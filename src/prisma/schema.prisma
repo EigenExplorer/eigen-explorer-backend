@@ -1,0 +1,30 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model avs {
+  id                       String   @id @default(auto()) @map("_id") @db.ObjectId
+  description              String
+  discord                  String
+  isOperating              Boolean
+  logo                     String
+  name                     String
+  service_manager_contract String   @map("service-manager-contract")
+  status                   String
+  tags                     String[]
+  telegram                 String
+  tvl                      BigInt
+  website                  String
+  x                        String
+
+  @@index([tags], map: "tags_1")
+}
+
+model strategies {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+}
