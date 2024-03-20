@@ -1,7 +1,18 @@
-# eigen-explorer-backend
+# Eigen Explorer Backend
+
+## Run Locally
+
+```bash
+# Install dependencies
+npm install
+
+# Start the server
+npm start
+```
 
 ## Project Structure
 
+```bash
 eigen-explorer-backend/
 │
 ├── src/
@@ -21,3 +32,4 @@ eigen-explorer-backend/
 │
 ├── package.json
 └── .env # Environment variables
+```
