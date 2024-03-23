@@ -39,5 +39,7 @@ eigen-explorer-backend/
 │ └── server.js # Server entry point, connects app with HTTP server
 │
 ├── package.json
-└── .env # Environment variables
+├── package-lock.json
+└── .env
+└── README.md
 ```

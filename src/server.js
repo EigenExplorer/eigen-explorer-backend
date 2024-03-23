@@ -8,7 +8,7 @@ const debug = debugLib('eigen-explorer-backend:server');
  * Get port from environment and store in Express.
  */
 
-var port = normalizePort(process.env.PORT || '3001');
+var port = normalizePort(process.env.PORT || '3002');
 app.set('port', port);
 
 /**
