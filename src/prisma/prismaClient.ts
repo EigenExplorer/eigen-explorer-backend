@@ -1,12 +1,12 @@
 import { PrismaClient } from '@prisma/client';
 
 // Ensure the Prisma client is only instantiated once in your application
-let prisma;
+let prisma: PrismaClient;
 
-if (!global.prisma) {
-    global.prisma = new PrismaClient();
+if (!(global as any).prisma) {
+    (global as any).prisma = new PrismaClient();
 }
 
-prisma = global.prisma;
+prisma = (global as any).prisma;
 
 export default prisma;

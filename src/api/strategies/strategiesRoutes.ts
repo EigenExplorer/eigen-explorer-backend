@@ -12,7 +12,7 @@ import {
     getSfrxEthTvl,
     getLsEthTvl,
     getMEthTvl,
-} from './strategiesController.js';
+} from './strategiesController';
 
 const router = express.Router();
 

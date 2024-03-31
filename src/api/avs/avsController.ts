@@ -1,6 +1,7 @@
-import prisma from '../../prisma/prismaClient.js';
+import { Request, Response } from 'express';
+import prisma from "@/prisma/prismaClient";
 
-async function getTotalNumOfAVS(req, res) {
+async function getTotalNumOfAVS(req: Request, res: Response) {
     try {
         const totalNumOfAVS = await prisma.avs.count();
         res.send({ totalNumOfAVS });

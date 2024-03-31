@@ -1,6 +1,6 @@
 import express from 'express';
-import avsRoutes from './avs/avsRoutes.js';
-import strategiesRoutes from './strategies/strategiesRoutes.js';
+import avsRoutes from './avs/avsRoutes';
+import strategiesRoutes from './strategies/strategiesRoutes'
 
 const apiRouter = express.Router();
 

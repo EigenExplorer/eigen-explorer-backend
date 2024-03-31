@@ -1,39 +1,40 @@
+import { Request, Response } from 'express';
 import { formatEther } from 'viem';
-import publicViemClient from '../../viem/viemClient.js';
-import { eigenLayerMainnetStrategyContracts } from '../../data/address/eigenMainnetContracts.js';
+import publicViemClient from '@/viem/viemClient';
+import { eigenLayerMainnetStrategyContracts } from '@/data/address/eigenMainnetContracts';
 
 // ABI Imports
-import { cbEthAbi } from '../../data/abi/cbEthAbi.js';
-import { stEthAbi } from '../../data/abi/stEthAbi.js';
-import { rEthAbi } from '../../data/abi/rEthAbi.js';
-import { ethXAbi } from '../../data/abi/ethXAbi.js';
-import { ankrEthAbi } from '../../data/abi/ankrEthAbi.js';
-import { oEthAbi } from '../../data/abi/oEthAbi.js';
-import { osEthAbi } from '../../data/abi/osEthAbi.js';
-import { swEthAbi } from '../../data/abi/swEthAbi.js';
-import { wbEthAbi } from '../../data/abi/wbEthAbi.js';
-import { sfrxEthAbi } from '../../data/abi/sfrxEthAbi.js';
-import { lsEthAbi } from '../../data/abi/lsEthAbi.js';
-import { mEthAbi } from '../../data/abi/mEthAbi.js';
+import { cbEthAbi } from '@/data/abi/cbEthAbi';
+import { stEthAbi } from '@/data/abi/stEthAbi';
+import { rEthAbi } from '@/data/abi/rEthAbi';
+import { ethXAbi } from '@/data/abi/ethXAbi';
+import { ankrEthAbi } from '@/data/abi/ankrEthAbi';
+import { oEthAbi } from '@/data/abi/oEthAbi';
+import { osEthAbi } from '@/data/abi/osEthAbi';
+import { swEthAbi } from '@/data/abi/swEthAbi';
+import { wbEthAbi } from '@/data/abi/wbEthAbi';
+import { sfrxEthAbi } from '@/data/abi/sfrxEthAbi';
+import { lsEthAbi } from '@/data/abi/lsEthAbi';
+import { mEthAbi } from '@/data/abi/mEthAbi';
 
 async function getStrategyBalance(
-    strategyProxyContractAddr,
-    tokenProxyContractAddr,
-    tokenImplementationAbi
+    strategyProxyContractAddr: string,
+    tokenProxyContractAddr: string,
+    tokenImplementationAbi: any
 ) {
     const data = await publicViemClient.readContract({
-        address: tokenProxyContractAddr,
+        address: tokenProxyContractAddr as `0x${string}`,
         abi: tokenImplementationAbi,
         functionName: 'balanceOf',
         args: [strategyProxyContractAddr],
-    });
+    }) as bigint;
 
     const formatedData = formatEther(data);
 
     return formatedData;
 }
 
-export async function getCbEthTvl(req, res) {
+export async function getCbEthTvl(req: Request, res: Response) {
     try {
         const cbEthTvl = await getStrategyBalance(
             eigenLayerMainnetStrategyContracts.cbETH.strategyContract,
@@ -48,7 +49,7 @@ export async function getCbEthTvl(req, res) {
     }
 }
 
-export async function getStEthTvl(req, res) {
+export async function getStEthTvl(req: Request, res: Response) {
     try {
         const stEthTvl = await getStrategyBalance(
             eigenLayerMainnetStrategyContracts.stETH.strategyContract,
@@ -63,7 +64,7 @@ export async function getStEthTvl(req, res) {
     }
 }
 
-export async function getREthTvl(req, res) {
+export async function getREthTvl(req: Request, res: Response) {
     try {
         const rEthTvl = await getStrategyBalance(
             eigenLayerMainnetStrategyContracts.rETH.strategyContract,
@@ -78,7 +79,7 @@ export async function getREthTvl(req, res) {
     }
 }
 
-export async function getEthXTvl(req, res) {
+export async function getEthXTvl(req: Request, res: Response) {
     try {
         const ethXTvl = await getStrategyBalance(
             eigenLayerMainnetStrategyContracts.ETHx.strategyContract,
@@ -93,7 +94,7 @@ export async function getEthXTvl(req, res) {
     }
 }
 
-export async function getAnkrEthTvl(req, res) {
+export async function getAnkrEthTvl(req: Request, res: Response) {
     try {
         const ankrEthTvl = await getStrategyBalance(
             eigenLayerMainnetStrategyContracts.ankrETH.strategyContract,
@@ -108,7 +109,7 @@ export async function getAnkrEthTvl(req, res) {
     }
 }
 
-export async function getOEthTvl(req, res) {
+export async function getOEthTvl(req: Request, res: Response) {
     try {
         const oEthTvl = await getStrategyBalance(
             eigenLayerMainnetStrategyContracts.oETH.strategyContract,
@@ -123,7 +124,7 @@ export async function getOEthTvl(req, res) {
     }
 }
 
-export async function getOsEthTvl(req, res) {
+export async function getOsEthTvl(req: Request, res: Response) {
     try {
         const osEthTvl = await getStrategyBalance(
             eigenLayerMainnetStrategyContracts.osETH.strategyContract,
@@ -138,7 +139,7 @@ export async function getOsEthTvl(req, res) {
     }
 }
 
-export async function getSwEthTvl(req, res) {
+export async function getSwEthTvl(req: Request, res: Response) {
     try {
         const swEthTvl = await getStrategyBalance(
             eigenLayerMainnetStrategyContracts.swETH.strategyContract,
@@ -153,7 +154,7 @@ export async function getSwEthTvl(req, res) {
     }
 }
 
-export async function getWbEthTvl(req, res) {
+export async function getWbEthTvl(req: Request, res: Response) {
     try {
         const wbEthTvl = await getStrategyBalance(
             eigenLayerMainnetStrategyContracts.wBETH.strategyContract,
@@ -168,7 +169,7 @@ export async function getWbEthTvl(req, res) {
     }
 }
 
-export async function getSfrxEthTvl(req, res) {
+export async function getSfrxEthTvl(req: Request, res: Response) {
     try {
         const sfrxEthTvl = await getStrategyBalance(
             eigenLayerMainnetStrategyContracts.sfrxETH.strategyContract,
@@ -183,7 +184,7 @@ export async function getSfrxEthTvl(req, res) {
     }
 }
 
-export async function getLsEthTvl(req, res) {
+export async function getLsEthTvl(req: Request, res: Response) {
     try {
         const lsEthTvl = await getStrategyBalance(
             eigenLayerMainnetStrategyContracts.lsETH.strategyContract,
@@ -198,7 +199,7 @@ export async function getLsEthTvl(req, res) {
     }
 }
 
-export async function getMEthTvl(req, res) {
+export async function getMEthTvl(req: Request, res: Response) {
     try {
         const mEthTvl = await getStrategyBalance(
             eigenLayerMainnetStrategyContracts.mETH.strategyContract,

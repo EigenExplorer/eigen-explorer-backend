@@ -1,5 +1,5 @@
 import express from 'express';
-import { getTotalNumOfAVS } from './avsController.js';
+import { getTotalNumOfAVS } from './avsController';
 
 const router = express.Router();
 
