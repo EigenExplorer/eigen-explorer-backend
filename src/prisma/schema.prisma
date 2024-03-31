@@ -25,6 +25,16 @@ model avs {
   @@index([tags], map: "tags_1")
 }
 
+model Operator {
+  id      String @id @default(auto()) @map("_id") @db.ObjectId
+  address String @unique
+
+  logo    String
+  website String
+  discord String
+  x       String
+}
+
 model strategies {
   id String @id @default(auto()) @map("_id") @db.ObjectId
 }

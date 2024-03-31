@@ -6,7 +6,8 @@
 	"scripts": {
 		"build": "tsc",
 		"start": "tsx watch --clear-screen=false ./src/index.ts",
-		"format": "npx @biomejs/biome format . --write"
+		"format": "npx @biomejs/biome format . --write",
+		"generate": "prisma generate --schema=./src/prisma/schema.prisma"
 	},
 	"dependencies": {
 		"@prisma/client": "^5.11.0",
