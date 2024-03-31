@@ -1,15 +1,15 @@
-import { PublicClient, createPublicClient, http } from 'viem';
-import { mainnet } from 'viem/chains';
+import { PublicClient, createPublicClient, http } from 'viem'
+import { mainnet } from 'viem/chains'
 
-let publicViemClient: PublicClient;
+let publicViemClient: PublicClient
 
 if (!(global as any).publicViemClient) {
-    (global as any).publicViemClient = createPublicClient({
-        chain: mainnet,
-        transport: http(),
-    });
+	;(global as any).publicViemClient = createPublicClient({
+		chain: mainnet,
+		transport: http()
+	})
 }
 
-publicViemClient = (global as any).publicViemClient;
+publicViemClient = (global as any).publicViemClient
 
-export default publicViemClient;
+export default publicViemClient

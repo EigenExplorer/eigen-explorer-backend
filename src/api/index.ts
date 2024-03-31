@@ -1,10 +1,10 @@
-import express from 'express';
-import avsRoutes from './avs/avsRoutes';
+import express from 'express'
+import avsRoutes from './avs/avsRoutes'
 import strategiesRoutes from './strategies/strategiesRoutes'
 
-const apiRouter = express.Router();
+const apiRouter = express.Router()
 
-apiRouter.use('/avs', avsRoutes);
-apiRouter.use('/strategies', strategiesRoutes);
+apiRouter.use('/avs', avsRoutes)
+apiRouter.use('/strategies', strategiesRoutes)
 
-export default apiRouter;
+export default apiRouter
