@@ -7,7 +7,7 @@
 		"sourceMap": true,
 		"strictNullChecks": true,
 		"skipLibCheck": true,
-		
+
 		"outDir": "dist",
 		"baseUrl": "./src"
 	},
