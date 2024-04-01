@@ -15,7 +15,7 @@ async function seedAvs() {
 
 	console.log('Seeding AVS ...')
 
-	// Seed operators from event logs
+	// Seed avs from event logs
 	let latestBlock = await publicViemClient.getBlockNumber()
 	let currentBlock = baseBlock
 	let nextBlock = baseBlock
@@ -75,6 +75,73 @@ async function seedAvs() {
 	}
 
 	console.log('Seeded AVS:', avsList.size)
+}
+
+async function seedAvsOperators() {
+	let avsOperatorsList: Map<string, Map<string, number>> = new Map()
+	console.log('Seeding AVS Operators ...')
+
+	// Seed avs from event logs
+	let latestBlock = await publicViemClient.getBlockNumber()
+	let currentBlock = baseBlock
+	let nextBlock = baseBlock
+
+	while (nextBlock < latestBlock) {
+		nextBlock = currentBlock + 9999n
+		if (nextBlock >= latestBlock) nextBlock = latestBlock
+
+		const logs = await publicViemClient.getLogs({
+			address: '0x055733000064333CaDDbC92763c58BF0192fFeBf',
+			event: parseAbiItem(
+				'event OperatorAVSRegistrationStatusUpdated(address indexed operator, address indexed avs, uint8 status)'
+			),
+			fromBlock: currentBlock,
+			toBlock: nextBlock
+		})
+
+		for (const l in logs) {
+			const log = logs[l]
+
+			const avsAddress = String(log.args.avs).toLowerCase()
+			const operatorAddress = String(log.args.operator).toLowerCase()
+
+			if (!avsOperatorsList.has(avsAddress)) {
+				avsOperatorsList.set(avsAddress, new Map())
+			}
+
+			avsOperatorsList
+				.get(avsAddress)!
+				.set(operatorAddress, log.args.status || 0)
+		}
+
+		console.log(
+			`Avs operators updated between blocks ${currentBlock} ${nextBlock}: ${logs.length}`
+		)
+
+		currentBlock = nextBlock
+	}
+
+	for (const [avsAddress, operatorsMap] of avsOperatorsList) {
+		let avsOperatorsStatus: { address: string; isActive: boolean }[] = []
+
+		for (const [operatorAddress, status] of operatorsMap) {
+			avsOperatorsStatus.push({
+				address: operatorAddress,
+				isActive: status === 1
+			})
+		}
+
+		await prisma.avs.updateMany({
+			where: { address: avsAddress },
+			data: {
+				operators: {
+					set: avsOperatorsStatus
+				}
+			}
+		})
+	}
+
+	console.log('avs operators', avsOperatorsList)
 }
 
 async function seedOperators() {
@@ -142,7 +209,8 @@ async function seedOperators() {
 
 async function main() {
 	await seedAvs()
-	await seedOperators()
+	// await seedOperators()
+	await seedAvsOperators()
 }
 
 main()

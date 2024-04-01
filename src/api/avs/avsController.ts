@@ -14,7 +14,14 @@ export async function getTotalNumOfAVS(req: Request, res: Response) {
 
 export async function getAllAVS(req: Request, res: Response) {
 	try {
-		const avsList = await prisma.avs.findMany()
+		let avsList = await prisma.avs.findMany({})
+
+		avsList = avsList.map((avs) => ({
+			...avs,
+			totalOperators: avs.operators.filter((o) => o.isActive).length,
+			operators: undefined
+		})) as any
+
 		res.send({ avsList })
 	} catch (error) {
 		console.error('Failed to fetch all operators', error)

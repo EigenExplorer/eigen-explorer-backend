@@ -17,15 +17,21 @@ type entityMetadata {
   x           String?
 }
 
+type avsOperator {
+  address  String
+  isActive Boolean
+}
+
 model avs {
   id       String         @id @default(auto()) @map("_id") @db.ObjectId
   address  String         @unique
   metadata entityMetadata
   tags     String[]
 
-  isVisible  Boolean @default(false)
-  isVerified Boolean @default(false)
-  
+  isVisible  Boolean       @default(false)
+  isVerified Boolean       @default(false)
+  operators  avsOperator[]
+
   // isOperating Boolean?
   // tvl         BigInt?
   // status      String?
