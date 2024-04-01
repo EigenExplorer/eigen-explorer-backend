@@ -10,23 +10,26 @@ datasource db {
 type entityMetadata {
   name        String
   description String
-  discord     String
-  logo        String
-  telegram    String
-  website     String
-  x           String
+  discord     String?
+  logo        String?
+  telegram    String?
+  website     String?
+  x           String?
 }
 
 model avs {
-  id          String         @id @default(auto()) @map("_id") @db.ObjectId
-  address     String         @unique
-  metadata    entityMetadata
-  isOperating Boolean?
-  tvl         BigInt?
-  status      String?
-  tags        String[]
+  id       String         @id @default(auto()) @map("_id") @db.ObjectId
+  address  String         @unique
+  metadata entityMetadata
+  tags     String[]
 
-  service_manager_contract String? @map("service-manager-contract") // Duplicate
+  isVisible  Boolean @default(false)
+  isVerified Boolean @default(false)
+  
+  // isOperating Boolean?
+  // tvl         BigInt?
+  // status      String?
+  // service_manager_contract String? @map("service-manager-contract") // Duplicate
 
   @@index([tags], map: "tags_1")
 }

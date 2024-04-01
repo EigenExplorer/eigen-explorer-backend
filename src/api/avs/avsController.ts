@@ -14,7 +14,8 @@ export async function getTotalNumOfAVS(req: Request, res: Response) {
 
 export async function getAllAVS(req: Request, res: Response) {
 	try {
-		res.send({ avsList: [] })
+		const avsList = await prisma.avs.findMany()
+		res.send({ avsList })
 	} catch (error) {
 		console.error('Failed to fetch all operators', error)
 		res.status(400).send('An error occurred while fetching data')
@@ -23,7 +24,11 @@ export async function getAllAVS(req: Request, res: Response) {
 
 export async function getAVS(req: Request, res: Response) {
 	try {
-		res.send({ avs: null })
+		const { id } = req.params
+
+		const avs = await prisma.avs.findUnique({ where: { address: id } })
+
+		res.send(avs)
 	} catch (error) {
 		console.error('Failed to fetch all operators', error)
 		res.status(400).send('An error occurred while fetching data')

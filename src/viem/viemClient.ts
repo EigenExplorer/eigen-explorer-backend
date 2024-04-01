@@ -1,12 +1,13 @@
-import { PublicClient, createPublicClient, http } from 'viem'
+import { PublicClient, createPublicClient, http, webSocket } from 'viem'
 import { mainnet } from 'viem/chains'
 
 let publicViemClient: PublicClient
 
 if (!(global as any).publicViemClient) {
 	;(global as any).publicViemClient = createPublicClient({
-		chain: mainnet,
-		transport: http()
+		transport: process.env.RPC_WSS_URL
+			? webSocket(process.env.RPC_WSS_URL)
+			: http(mainnet.rpcUrls.default.http[0])
 	})
 }
 
