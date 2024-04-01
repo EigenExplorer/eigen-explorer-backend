@@ -3,9 +3,9 @@ import publicViemClient from '../viem/viemClient'
 import { parseAbiItem } from 'viem'
 import {
 	EntityMetadata,
-	isValidAvsMetadataUrl,
-	validateAvsMetadata
-} from '../utils/avs'
+	isValidMetadataUrl,
+	validateMetadata
+} from '../utils/metadata'
 
 // Hardcoded base block for seeding
 const baseBlock = 1159609n
@@ -38,10 +38,10 @@ async function seedAvs() {
 
 			const avsAddress = String(log.args.avs).toLowerCase()
 
-			if (log.args.metadataURI && isValidAvsMetadataUrl(log.args.metadataURI)) {
+			if (log.args.metadataURI && isValidMetadataUrl(log.args.metadataURI)) {
 				const response = await fetch(log.args.metadataURI)
 				const data = await response.text()
-				const avsMetadata = validateAvsMetadata(data)
+				const avsMetadata = validateMetadata(data)
 
 				if (avsMetadata) {
 					avsList.set(avsAddress, avsMetadata)
@@ -74,12 +74,11 @@ async function seedAvs() {
 		})
 	}
 
-	console.log('Seeded AVS:', avsList, length)
+	console.log('Seeded AVS:', avsList.size)
 }
 
 async function seedOperators() {
-	let operators: string[] = []
-	let operatorMetadata: any = {}
+	let operatorList: Map<string, EntityMetadata> = new Map()
 
 	// Seed operators from event logs
 	let latestBlock = await publicViemClient.getBlockNumber()
@@ -92,38 +91,58 @@ async function seedOperators() {
 
 		const logs = await publicViemClient.getLogs({
 			address: '0xA44151489861Fe9e3055d95adC98FbD462B948e7',
-			events: [
-				parseAbiItem(
-					'event OperatorRegistered(address indexed operator, (address, address, uint32) operatorDetails)'
-				),
-				parseAbiItem(
-					'event OperatorMetadataURIUpdated(address indexed operator, string metadataURI)'
-				)
-			],
+			event: parseAbiItem(
+				'event OperatorMetadataURIUpdated(address indexed operator, string metadataURI)'
+			),
 			fromBlock: currentBlock,
 			toBlock: nextBlock
 		})
 
-		logs.map((l) => {
-			if (l.eventName === 'OperatorRegistered') {
-				operators.push(String(l.args.operator))
-			} else if (l.eventName === 'OperatorMetadataURIUpdated') {
-				operatorMetadata[String(l.args.operator)] = l.args.metadataURI
+		for (const l in logs) {
+			const log = logs[l]
+
+			const operatorAddress = String(log.args.operator).toLowerCase()
+
+			if (log.args.metadataURI && isValidMetadataUrl(log.args.metadataURI)) {
+				const response = await fetch(log.args.metadataURI)
+				const data = await response.text()
+				const metadata = validateMetadata(data)
+
+				if (metadata) {
+					operatorList.set(operatorAddress, metadata)
+				}
 			}
-		})
+		}
 
 		console.log(
-			`operators registered between blocks ${currentBlock} ${nextBlock}: ${logs.length}`
+			`Operators registered between blocks ${currentBlock} ${nextBlock}: ${logs.length}`
 		)
 		currentBlock = nextBlock
 	}
 
-	// Seed operators metadata from event logs
-	console.log(operators.length, Object.keys(operatorMetadata).length)
+	for (const [address, metadata] of operatorList) {
+		await prisma.operator.upsert({
+			where: { address },
+			update: {
+				metadata: {
+					set: metadata
+				}
+			},
+			create: {
+				address,
+				metadata: {
+					set: metadata
+				}
+			}
+		})
+	}
+
+	console.log('Seeded operators:', operatorList.size)
 }
 
 async function main() {
 	await seedAvs()
+	await seedOperators()
 }
 
 main()

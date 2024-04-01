@@ -1,4 +1,4 @@
-interface EntityMetadata {
+export interface EntityMetadata {
 	name: string
 	description: string
 	discord: string
@@ -8,7 +8,7 @@ interface EntityMetadata {
 	x: string
 }
 
-export function isValidAvsMetadataUrl(url: string): boolean {
+export function isValidMetadataUrl(url: string): boolean {
 	// Define the regular expression pattern for HTTPS URLs
 	const httpsUrlPattern =
 		/^https:\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&//=]*)$/
@@ -17,7 +17,7 @@ export function isValidAvsMetadataUrl(url: string): boolean {
 	return httpsUrlPattern.test(url)
 }
 
-export function validateAvsMetadata(metadata: string): EntityMetadata | null {
+export function validateMetadata(metadata: string): EntityMetadata | null {
 	try {
 		const data = JSON.parse(metadata)
 
@@ -36,9 +36,7 @@ export function validateAvsMetadata(metadata: string): EntityMetadata | null {
 			discord: data.discord,
 			telegram: data.telegram
 		}
-	} catch (error) {
-		console.error('Failed to validate avs metadata:', error)
-	}
+	} catch {}
 
 	return null
 }
