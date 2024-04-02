@@ -1,7 +1,7 @@
 import { Request, Response } from 'express'
 import prisma from '../../prisma/prismaClient'
 
-async function getTotalNumOfAVS(req: Request, res: Response) {
+export async function getTotalNumOfAVS(req: Request, res: Response) {
 	try {
 		const totalNumOfAVS = await prisma.avs.count()
 		res.send({ totalNumOfAVS })
@@ -12,4 +12,32 @@ async function getTotalNumOfAVS(req: Request, res: Response) {
 	}
 }
 
-export { getTotalNumOfAVS }
+export async function getAllAVS(req: Request, res: Response) {
+	try {
+		let avsList = await prisma.avs.findMany({})
+
+		avsList = avsList.map((avs) => ({
+			...avs,
+			totalOperators: avs.operators.filter((o) => o.isActive).length,
+			operators: undefined
+		})) as any
+
+		res.send({ avsList })
+	} catch (error) {
+		console.error('Failed to fetch all operators', error)
+		res.status(400).send('An error occurred while fetching data')
+	}
+}
+
+export async function getAVS(req: Request, res: Response) {
+	try {
+		const { id } = req.params
+
+		const avs = await prisma.avs.findUnique({ where: { address: id } })
+
+		res.send(avs)
+	} catch (error) {
+		console.error('Failed to fetch all operators', error)
+		res.status(400).send('An error occurred while fetching data')
+	}
+}

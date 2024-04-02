@@ -7,22 +7,44 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+type entityMetadata {
+  name        String
+  description String
+  discord     String?
+  logo        String?
+  telegram    String?
+  website     String?
+  x           String?
+}
+
+type avsOperator {
+  address  String
+  isActive Boolean
+}
+
 model avs {
-  id                       String   @id @default(auto()) @map("_id") @db.ObjectId
-  description              String
-  discord                  String
-  isOperating              Boolean
-  logo                     String
-  name                     String
-  service_manager_contract String   @map("service-manager-contract")
-  status                   String
-  tags                     String[]
-  telegram                 String
-  tvl                      BigInt
-  website                  String
-  x                        String
+  id       String         @id @default(auto()) @map("_id") @db.ObjectId
+  address  String         @unique
+  metadata entityMetadata
+  tags     String[]
+
+  isVisible  Boolean       @default(false)
+  isVerified Boolean       @default(false)
+  operators  avsOperator[]
+
+  // isOperating Boolean?
+  // tvl         BigInt?
+  // status      String?
+  // service_manager_contract String? @map("service-manager-contract") // Duplicate
 
   @@index([tags], map: "tags_1")
+}
+
+model Operator {
+  id      String @id @default(auto()) @map("_id") @db.ObjectId
+  address String @unique
+
+  metadata entityMetadata
 }
 
 model strategies {
