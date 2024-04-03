@@ -141,7 +141,7 @@ async function seedAvsOperators() {
 		})
 	}
 
-	console.log('avs operators', avsOperatorsList)
+	console.log('Seeded AVS Operators: ', avsOperatorsList.size)
 }
 
 async function seedOperators() {
@@ -209,7 +209,7 @@ async function seedOperators() {
 
 async function main() {
 	await seedAvs()
-	// await seedOperators()
+	await seedOperators()
 	await seedAvsOperators()
 }
 

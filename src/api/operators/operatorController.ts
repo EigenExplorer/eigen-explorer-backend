@@ -1,28 +1,55 @@
 import { Request, Response } from 'express'
 import prisma from '../../prisma/prismaClient'
+import { PaginationQuerySchema } from '../../schema/generic'
 
+/**
+ * Route to get a list of all operators
+ *
+ * @param req
+ * @param res
+ */
 export async function getAllOperators(req: Request, res: Response) {
 	try {
-		const operatorList = await prisma.operator.findMany()
+		// Validate pagination query
+		const {
+			error,
+			value: { skip, take }
+		} = PaginationQuerySchema.validate(req.query)
+		if (error) return res.status(422).json({ error: error.details[0].message })
 
-		res.send({ operatorList })
+		// Fetch count and record
+		const operatorCount = await prisma.operator.count()
+		const operatorRecords = await prisma.operator.findMany({ skip, take })
+
+		res.send({
+			data: operatorRecords,
+			meta: {
+				total: operatorCount,
+				skip,
+				take
+			}
+		})
 	} catch (error) {
-		console.error('Failed to fetch all operators', error)
-		res.status(400).send('An error occurred while fetching data')
+		res.status(400).send({ error: 'An error occurred while fetching data' })
 	}
 }
 
+/**
+ * Route to get a single operator
+ *
+ * @param req
+ * @param res
+ */
 export async function getOperator(req: Request, res: Response) {
 	try {
 		const { id } = req.params
 
-		const operator = await prisma.operator.findUnique({
+		const operator = await prisma.operator.findUniqueOrThrow({
 			where: { address: id }
 		})
 
-		res.send({ operator })
+		res.send(operator)
 	} catch (error) {
-		console.error('Failed to fetch all operators', error)
-		res.status(400).send('An error occurred while fetching data')
+		res.status(400).send({ error: 'An error occurred while fetching data' })
 	}
 }
