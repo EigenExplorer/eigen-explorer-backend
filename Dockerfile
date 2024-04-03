@@ -11,5 +11,6 @@ RUN npm install
 COPY . .
 
 RUN npm run build
+RUN npm run prisma:generate
 
 CMD ["sh", "-c", "node --experimental-specifier-resolution=node /app/dist/index.js"]
