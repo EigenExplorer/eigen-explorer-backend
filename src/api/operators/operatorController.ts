@@ -1,6 +1,13 @@
-import { Request, Response } from 'express'
+import type { Request, Response } from 'express'
 import prisma from '../../prisma/prismaClient'
 import { PaginationQuerySchema } from '../../schema/generic'
+import publicViemClient from '../../viem/viemClient'
+import { getContract } from 'viem'
+import { delegationManagerAbi } from '../../data/abi/delegationManager'
+import {
+	eigenHoleskyContractAddresses,
+	eigenLayerHoleskyStrategyContracts
+} from 'data/address/eigenHoleskyContracts'
 
 /**
  * Route to get a list of all operators
@@ -48,8 +55,33 @@ export async function getOperator(req: Request, res: Response) {
 			where: { address: id }
 		})
 
-		res.send(operator)
+		res.send({ ...operator, shares: await getOperatorShares(operator.address) })
 	} catch (error) {
+		console.log(error)
 		res.status(400).send({ error: 'An error occurred while fetching data' })
 	}
+}
+
+// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+async function getOperatorShares(operatorAddress: string): Promise<any> {
+	const contract = getContract({
+		address: eigenHoleskyContractAddresses.DelegationManager,
+		abi: delegationManagerAbi,
+		client: publicViemClient
+	})
+
+	const strategyKeys = Object.keys(eigenLayerHoleskyStrategyContracts)
+	const strategyContracts = strategyKeys.map(
+		(s) => eigenLayerHoleskyStrategyContracts[s].strategyContract
+	) as `0x${string}`[]
+
+	const shares = (await contract.read.getOperatorShares([
+		operatorAddress,
+		strategyContracts
+	])) as bigint[]
+
+	return shares.map((share, i) => ({
+		shares: share.toString(),
+		strategy: strategyContracts[i]
+	}))
 }

@@ -1,4 +1,4 @@
-import { Request, Response } from 'express'
+import type { Request, Response } from 'express'
 import { PaginationQuerySchema } from '../../schema/generic'
 import prisma from '../../prisma/prismaClient'
 
