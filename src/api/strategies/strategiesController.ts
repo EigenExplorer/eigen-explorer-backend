@@ -101,7 +101,6 @@ export async function getStrategyTvl(req: Request, res: Response) {
  * @param req
  * @param res
  */
-
 export async function getTotalTvl(req: Request, res: Response) {
     try {
         // Initialize an array to hold promises for fetching each strategy's TVL
@@ -137,8 +136,7 @@ export async function getTotalTvl(req: Request, res: Response) {
         // Sum up all the TVLs to get the total TVL
         const totalTvl = tvls.reduce((acc, tvl) => acc + parseFloat(tvl), 0);
 
-        // Send the total TVL response
-        res.send({ totalTvl: totalTvl.toString() });
+        res.send(totalTvl.toString());
     } catch (error) {
         console.error('Failed to fetch data:', error);
         res.status(500).send('An error occurred while fetching data.');
