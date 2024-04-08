@@ -19,6 +19,13 @@ const abiPath = {
     meth: '../../data/abi/mEthAbi',
 };
 
+/**
+ * Function to get the strategy balance
+ *
+ * @param strategyProxyContractAddr
+ * @param tokenProxyContractAddr
+ * @param tokenImplementationAbi
+ */
 async function getStrategyBalance(
     strategyProxyContractAddr: string,
     tokenProxyContractAddr: string,
@@ -36,6 +43,12 @@ async function getStrategyBalance(
     return formatedData;
 }
 
+/**
+ * Route to get a single strategy's TVL
+ *
+ * @param req
+ * @param res
+ */
 export async function getStrategyTvl(req: Request, res: Response) {
     try {
         // Get the strategy name from the request parameters
@@ -76,6 +89,54 @@ export async function getStrategyTvl(req: Request, res: Response) {
 
             res.send(strategyTvl);
         });
+    } catch (error) {
+        console.error('Failed to fetch data:', error);
+        res.status(500).send('An error occurred while fetching data.');
+    }
+}
+
+/**
+ * Route to get total TVL from all strategies
+ *
+ * @param req
+ * @param res
+ */
+export async function getTotalTvl(req: Request, res: Response) {
+    try {
+        // Initialize an array to hold promises for fetching each strategy's TVL
+        const tvlPromises: Promise<string>[] = [];
+
+        // Iterate over each strategy to prepare TVL fetch promises
+        for (const strategyName in eigenLayerMainnetStrategyContracts) {
+            const strategyContract =
+                eigenLayerMainnetStrategyContracts[strategyName];
+
+            // Import the strategy ABI dynamically based on the strategyName
+            const strategyAbiPath = abiPath[strategyName.toLowerCase()];
+            const abiModulePromise = import(strategyAbiPath);
+
+            // Create a promise to fetch the strategy's TVL
+            const tvlPromise = abiModulePromise.then(async (abiModule) => {
+                // Extract the ABI, assuming the ABI is the first export of the module
+                const abi = Object.values(abiModule)[0];
+                return getStrategyBalance(
+                    strategyContract.strategyContract,
+                    strategyContract.tokenContract,
+                    abi
+                );
+            });
+
+            // Add the promise to the array
+            tvlPromises.push(tvlPromise);
+        }
+
+        // Use Promise.all to fetch all TVLs concurrently
+        const tvls = await Promise.all(tvlPromises);
+
+        // Sum up all the TVLs to get the total TVL
+        const totalTvl = tvls.reduce((acc, tvl) => acc + parseFloat(tvl), 0);
+
+        res.send(totalTvl.toString());
     } catch (error) {
         console.error('Failed to fetch data:', error);
         res.status(500).send('An error occurred while fetching data.');
