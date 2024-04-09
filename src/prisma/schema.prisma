@@ -7,7 +7,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-type entityMetadata {
+type EntityMetadata {
   name        String
   description String
   discord     String?
@@ -17,25 +17,24 @@ type entityMetadata {
   x           String?
 }
 
-type avsOperator {
+type AvsOperator {
   address  String
   isActive Boolean
 }
 
-model avs {
-  id       String         @id @default(auto()) @map("_id") @db.ObjectId
-  address  String         @unique
-  metadata entityMetadata
-  tags     String[]
+model Avs {
+  id              String          @id @default(auto()) @map("_id") @db.ObjectId
+  address         String          @unique
+  metadata        EntityMetadata
+  curatedMetadata EntityMetadata?
+  tags            String[]
 
   isVisible  Boolean       @default(false)
   isVerified Boolean       @default(false)
-  operators  avsOperator[]
+  operators  AvsOperator[]
 
-  // isOperating Boolean?
-  // tvl         BigInt?
-  // status      String?
-  // service_manager_contract String? @map("service-manager-contract") // Duplicate
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([tags], map: "tags_1")
 }
@@ -44,8 +43,35 @@ model Operator {
   id      String @id @default(auto()) @map("_id") @db.ObjectId
   address String @unique
 
-  metadata entityMetadata
+  metadata        EntityMetadata
+  curatedMetadata EntityMetadata?
+  stakers         String[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
+
+// Records all sync tasks
+model SyncTask {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  type      String
+  status    String
+  fromBlock BigInt
+  toBlock   BigInt
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+}
+
+// Collection to store system settings
+model Settings {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  key       String   @unique
+  value     Json     @db.Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ======================================
 
 model strategies {
   id String @id @default(auto()) @map("_id") @db.ObjectId

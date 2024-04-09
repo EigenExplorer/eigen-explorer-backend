@@ -8,8 +8,7 @@
 		"strictNullChecks": true,
 		"skipLibCheck": true,
 
-		"outDir": "dist",
-		"baseUrl": "./src"
+		"outDir": "dist"
 	},
 	"include": ["src/**/*"],
 	"exclude": ["node_modules", "**/*.spec.ts"]
