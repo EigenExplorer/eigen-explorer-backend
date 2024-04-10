@@ -61,6 +61,26 @@ model Pod {
   updatedAt DateTime @updatedAt
 }
 
+model ValidatorRestake {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  podAddress     String
+  validatorIndex BigInt
+  blockNumber    BigInt
+}
+
+model Validator {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  validatorIndex BigInt
+  status         String
+
+  balance                    BigInt
+  effectiveBalance           BigInt
+  slashed                    Boolean
+  withdrawalCredentials      String
+}
+
 model Deposit {
   id      String @id @default(auto()) @map("_id") @db.ObjectId
   address String @unique
@@ -69,7 +89,14 @@ model Deposit {
   updatedAt DateTime @updatedAt
 }
 
-// Records all sync tasks
+model Withdrawals {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+}
+
+model QueuedWithdrawals {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+}
+
 model SyncTask {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
   type      String

@@ -1,14 +1,16 @@
 import 'dotenv/config'
 
-import { seedPods } from '../scripts/seedPods'
 import prisma from './prismaClient'
+import { seedValidators } from '../scripts/seedValidators'
+import { seedValidatorsRestake } from '../scripts/seedValidatorsRestake'
 
 // Hardcoded base block for seeding
 const baseBlock = 1159609n
-// const baseBlock = 1309594n
 
 async function main() {
-	await seedPods(baseBlock)
+	// await seedPods(baseBlock)
+	await seedValidatorsRestake(baseBlock)
+	await seedValidators(baseBlock)
 }
 
 main()
