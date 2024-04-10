@@ -1,5 +1,14 @@
 import express from 'express'
-import { getMetrics, getTotalAvs, getTotalOperators, getTotalStakers, getTvl, getTvlBeaconChain, getTvlRestaking, getTvlRestakingByStrategy } from './metricController'
+import {
+	getMetrics,
+	getTotalAvs,
+	getTotalOperators,
+	getTotalStakers,
+	getTvl,
+	getTvlBeaconChain,
+	getTvlRestaking,
+	getTvlRestakingByStrategy
+} from './metricController'
 
 const router = express.Router()
 

@@ -13,8 +13,12 @@ import { getEigenContracts } from '../../data/address'
  */
 export async function getMetrics(req: Request, res: Response) {
 	try {
+		const tvlRestaking = (await doGetTvl())
+		const tvlBeaconChain = await doGetTvlBeaconChain()
+
 		res.send({
-			...(await doGetTvl()),
+			tvl: tvlRestaking.tvlRestaking + tvlBeaconChain,
+			...tvlRestaking,
 			tvlBeaconChain: await doGetTvlBeaconChain(),
 			totalAvs: await doGetTotalAvsCount(),
 			totalOperators: await doGetTotalOperatorCount(),
