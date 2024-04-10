@@ -9,6 +9,7 @@ export interface EigenContractAddress {
 	DelegationManager: `0x${string}`,
 	Slasher: `0x${string}`,
 	StrategyManager: `0x${string}`,
+	EigenPodManager: `0x${string}`,
 
 	Strategies: {
 		WETH: { strategyContract: `0x${string}`, tokenContract: `0x${string}` },

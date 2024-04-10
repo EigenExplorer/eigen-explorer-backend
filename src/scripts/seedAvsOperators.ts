@@ -1,7 +1,8 @@
-import { parseAbiItem } from 'viem'
+import { getContract, parseAbi, parseAbiItem } from 'viem'
 import { getViemClient } from '../viem/viemClient'
 import { getEigenContracts } from '../data/address'
 import { getPrismaClient } from '../prisma/prismaClient'
+import { delegationManagerAbi } from '../data/abi/delegationManager'
 
 async function seedAvsOperators(fromBlock: bigint, toBlock?: bigint) {
 	const viemClient = getViemClient()

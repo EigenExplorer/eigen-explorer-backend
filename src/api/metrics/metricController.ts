@@ -8,10 +8,29 @@ import prisma from '../../prisma/prismaClient'
  * @param res
  */
 export async function getMetrics(req: Request, res: Response) {
-	try {
-		const totalNumOfAVS = await prisma.avs.count()
-		res.send({ totalNumOfAVS })
+	try {		
+		res.send({
+			totalAvs: await getTotalAvsCount(),
+			totalOperators: await getTotalOperatorCount(),
+			totalStakers: await getTotalStakerCount()
+		})
 	} catch (error) {
 		res.status(400).send('An error occurred while fetching data.')
 	}
+}
+
+async function getTvl() {
+	
+}
+
+async function getTotalAvsCount() {
+	return await prisma.avs.count()
+}
+
+async function getTotalOperatorCount() {
+	return await prisma.operator.count()
+}
+
+async function getTotalStakerCount() {
+	return await prisma.operator.count()
 }

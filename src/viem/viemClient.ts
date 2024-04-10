@@ -14,8 +14,8 @@ if (process.env.NETWORK) {
 
 /**
  * Return the selected network
- * 
- * @returns 
+ *
+ * @returns
  */
 export function getNetwork() {
 	return network
@@ -23,10 +23,14 @@ export function getNetwork() {
 
 /**
  * Get the initialized viem client
- * 
- * @returns 
+ *
+ * @returns
  */
-export function getViemClient() {
+export function getViemClient(n?: Chain) {
+	if (n) {
+		network = n
+	}
+
 	if (!publicViemClient) {
 		publicViemClient = createPublicClient({
 			transport: process.env.NETWORK_CHAIN_WSS_URL

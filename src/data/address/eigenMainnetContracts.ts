@@ -5,6 +5,7 @@ export const eigenContracts: EigenContractAddress = {
 	DelegationManager: '0xA44151489861Fe9e3055d95adC98FbD462B948e7',
 	Slasher: '0xcAe751b75833ef09627549868A04E32679386e7C',
 	StrategyManager: '0xdfB5f6CE42aAA7830E94ECFCcAd411beF4d4D5b6',
+	EigenPodManager: '0x91E677b07F7AF907ec9a428aafA9fc14a0d3A338',
 	Strategies: {
 		WETH: {
 			strategyContract: '0x54945180dB7943c0ed0FEE7EdaB2Bd24620256bc',

@@ -5,6 +5,7 @@ export const eigenHoleskyContracts: EigenContractAddress = {
 	DelegationManager: '0xA44151489861Fe9e3055d95adC98FbD462B948e7',
 	Slasher: '0xcAe751b75833ef09627549868A04E32679386e7C',
 	StrategyManager: '0xdfB5f6CE42aAA7830E94ECFCcAd411beF4d4D5b6',
+	EigenPodManager: '0x30770d7E3e71112d7A6b7259542D1f680a70e315',
 	Strategies: {
 		WETH: {
 			strategyContract: '0x80528d6e9a2babfc766965e0e26d5ab08d9cfaf9',
