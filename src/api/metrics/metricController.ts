@@ -13,7 +13,7 @@ import { getEigenContracts } from '../../data/address'
  */
 export async function getMetrics(req: Request, res: Response) {
 	try {
-		const tvlRestaking = (await doGetTvl())
+		const tvlRestaking = await doGetTvl()
 		const tvlBeaconChain = await doGetTvlBeaconChain()
 
 		res.send({
@@ -183,5 +183,11 @@ async function doGetTotalOperatorCount() {
 }
 
 async function doGetTotalStakerCount() {
-	return 0
+	const stakers = await prisma.operator.aggregate({
+		_sum: {
+			totalStakers: true
+		}
+	})
+
+	return stakers._sum.totalStakers
 }

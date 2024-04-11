@@ -1,10 +1,10 @@
-import express, { Request, Response } from 'express'
+import express, { type Request, type Response } from 'express'
 import cookieParser from 'cookie-parser'
 import logger from 'morgan'
 import helmet from 'helmet'
 import apiRouter from './api'
 
-const PORT = parseInt(process.env.PORT!) | 3002
+const PORT = process.env.PORT ? Number.parseInt(process.env.PORT) : 3002
 
 // Create express app
 const app = express()
@@ -25,7 +25,7 @@ app.use((req, res) => {
 })
 
 // error handler
-app.use(function (err: Error, req: Request, res: Response) {
+app.use((err: Error, req: Request, res: Response) => {
 	// set locals, only providing error in development
 	res.locals.message = err.message
 	res.locals.error = req.app.get('env') === 'development' ? err : {}

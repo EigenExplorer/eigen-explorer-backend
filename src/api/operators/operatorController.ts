@@ -29,7 +29,10 @@ export async function getAllOperators(req: Request, res: Response) {
 		const operatorRecords = await prisma.operator.findMany({ skip, take })
 
 		res.send({
-			data: operatorRecords,
+			data: operatorRecords.map((operator) => ({
+				...operator,
+				stakers: undefined
+			})),
 			meta: {
 				total: operatorCount,
 				skip,
@@ -37,6 +40,7 @@ export async function getAllOperators(req: Request, res: Response) {
 			}
 		})
 	} catch (error) {
+		console.log('error', error)
 		res.status(400).send({ error: 'An error occurred while fetching data' })
 	}
 }
@@ -55,7 +59,11 @@ export async function getOperator(req: Request, res: Response) {
 			where: { address: id }
 		})
 
-		res.send({ ...operator, shares: await getOperatorShares(operator.address) })
+		res.send({
+			...operator,
+			stakers: undefined,
+			shares: await getOperatorShares(operator.address)
+		})
 	} catch (error) {
 		console.log(error)
 		res.status(400).send({ error: 'An error occurred while fetching data' })

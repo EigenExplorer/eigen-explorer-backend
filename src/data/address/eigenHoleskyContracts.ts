@@ -1,4 +1,4 @@
-import type { EigenContractAddress } from "."
+import type { EigenContractAddress } from '.'
 
 export const eigenHoleskyContracts: EigenContractAddress = {
 	AVSDirectory: '0x055733000064333CaDDbC92763c58BF0192fFeBf',

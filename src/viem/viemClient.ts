@@ -1,4 +1,4 @@
-import { type PublicClient, createPublicClient, http, webSocket } from 'viem'
+import { type PublicClient, createPublicClient, http } from 'viem'
 import { type Chain, holesky, mainnet } from 'viem/chains'
 
 let publicViemClient: PublicClient
@@ -33,8 +33,8 @@ export function getViemClient(n?: Chain) {
 
 	if (!publicViemClient) {
 		publicViemClient = createPublicClient({
-			transport: process.env.NETWORK_CHAIN_WSS_URL
-				? webSocket(process.env.NETWORK_CHAIN_WSS_URL)
+			transport: process.env.NETWORK_CHAIN_RPC_URL
+				? http(process.env.NETWORK_CHAIN_RPC_URL)
 				: http(network.rpcUrls.default.http[0])
 		})
 	}
@@ -47,8 +47,8 @@ export function getViemClient(n?: Chain) {
 if (!(global as any).publicViemClient) {
 	// biome-ignore lint/suspicious/noExplicitAny:
 	;(global as any).publicViemClient = createPublicClient({
-		transport: process.env.NETWORK_CHAIN_WSS_URL
-			? webSocket(process.env.NETWORK_CHAIN_WSS_URL)
+		transport: process.env.NETWORK_CHAIN_RPC_URL
+			? http(process.env.NETWORK_CHAIN_RPC_URL)
 			: http(network.rpcUrls.default.http[0])
 	})
 }

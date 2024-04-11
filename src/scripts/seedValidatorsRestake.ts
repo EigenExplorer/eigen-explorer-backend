@@ -1,8 +1,20 @@
 import { parseAbiItem } from 'viem'
 import { getViemClient } from '../viem/viemClient'
 import { getPrismaClient } from '../prisma/prismaClient'
+import {
+	fetchLastSyncBlock,
+	loopThroughBlocks,
+	saveLastSyncBlock
+} from '../utils/seeder'
 
-export async function seedValidatorsRestake(fromBlock: bigint, toBlock?: bigint) {
+const blockSyncKey = 'lastSyncedBlock_validatorsRestake'
+
+export async function seedValidatorsRestake(
+	fromBlock?: bigint,
+	toBlock?: bigint
+) {
+	console.log('Seeding Validator Restake ...')
+
 	const viemClient = getViemClient()
 	const prismaClient = getPrismaClient()
 	const validatorRestakeList: {
@@ -12,21 +24,17 @@ export async function seedValidatorsRestake(fromBlock: bigint, toBlock?: bigint)
 	}[] = []
 	const validatorIndicies: number[] = []
 
-	console.log('Seeding Validator Restake ...')
+	const firstBlock = fromBlock
+		? fromBlock
+		: await fetchLastSyncBlock(blockSyncKey)
+	const lastBlock = toBlock ? toBlock : await viemClient.getBlockNumber()
 
-	const latestBlock = toBlock ? toBlock : await viemClient.getBlockNumber()
-
-	let currentBlock = fromBlock
-	let nextBlock = fromBlock
-
-	while (nextBlock < latestBlock) {
-		nextBlock = currentBlock + 9999n
-		if (nextBlock >= latestBlock) nextBlock = latestBlock
-
+	// Loop through evm logs
+	await loopThroughBlocks(firstBlock, lastBlock, async (fromBlock, toBlock) => {
 		const logs = await viemClient.getLogs({
 			event: parseAbiItem('event ValidatorRestaked(uint40 validatorIndex)'),
-			fromBlock: currentBlock,
-			toBlock: nextBlock
+			fromBlock,
+			toBlock
 		})
 
 		for (const l in logs) {
@@ -44,16 +52,17 @@ export async function seedValidatorsRestake(fromBlock: bigint, toBlock?: bigint)
 		}
 
 		console.log(
-			`Validator restaked between blocks ${currentBlock} ${nextBlock}: ${logs.length}`
+			`Validator restaked between blocks ${fromBlock} ${toBlock}: ${logs.length}`
 		)
+	})
 
-		currentBlock = nextBlock
-	}
+	// Storing last sycned block
+	await saveLastSyncBlock(blockSyncKey, lastBlock)
 
-	// Create
+	// Prepare db transaction object
 	await prismaClient.validatorRestake.createMany({
 		data: validatorRestakeList
 	})
 
-	console.log('Seeded Validator Restake')
+	console.log('Seeded validator restake:', validatorRestakeList.length)
 }
