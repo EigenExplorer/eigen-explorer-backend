@@ -1,3 +1,1 @@
-async function seedDeposits() {
-  
-}
+async function seedDeposits() {}

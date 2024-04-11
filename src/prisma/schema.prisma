@@ -46,9 +46,7 @@ model Operator {
   metadata        EntityMetadata
   curatedMetadata EntityMetadata?
   stakers         String[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  totalStakers    Int @default(0)
 }
 
 model Pod {
@@ -75,10 +73,10 @@ model Validator {
   validatorIndex BigInt
   status         String
 
-  balance                    BigInt
-  effectiveBalance           BigInt
-  slashed                    Boolean
-  withdrawalCredentials      String
+  balance               BigInt
+  effectiveBalance      BigInt
+  slashed               Boolean
+  withdrawalCredentials String
 }
 
 model Deposit {

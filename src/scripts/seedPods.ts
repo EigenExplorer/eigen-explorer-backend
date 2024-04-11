@@ -2,36 +2,40 @@ import { parseAbiItem } from 'viem'
 import { getEigenContracts } from '../data/address'
 import { getViemClient } from '../viem/viemClient'
 import { getPrismaClient } from '../prisma/prismaClient'
+import {
+	fetchLastSyncBlock,
+	loopThroughBlocks,
+	saveLastSyncBlock
+} from '../utils/seeder'
+
+const blockSyncKey = 'lastSyncedBlock_pods'
 
 /**
  *
  * @param fromBlock
  * @param toBlock
  */
-export async function seedPods(fromBlock: bigint, toBlock?: bigint) {
+export async function seedPods(fromBlock?: bigint, toBlock?: bigint) {
+	console.log('Seeding Pods ...')
+
 	const viemClient = getViemClient()
 	const prismaClient = getPrismaClient()
 	const podList: { address: string; owner: string; blockNumber: bigint }[] = []
 
-	console.log('Seeding Pods ...')
+	const firstBlock = fromBlock
+		? fromBlock
+		: await fetchLastSyncBlock(blockSyncKey)
+	const lastBlock = toBlock ? toBlock : await viemClient.getBlockNumber()
 
-	// Seed avs from event logs
-	const latestBlock = toBlock ? toBlock : await viemClient.getBlockNumber()
-
-	let currentBlock = fromBlock
-	let nextBlock = fromBlock
-
-	while (nextBlock < latestBlock) {
-		nextBlock = currentBlock + 9999n
-		if (nextBlock >= latestBlock) nextBlock = latestBlock
-
+	// Loop through evm logs
+	await loopThroughBlocks(firstBlock, lastBlock, async (fromBlock, toBlock) => {
 		const logs = await viemClient.getLogs({
 			address: getEigenContracts().EigenPodManager,
 			event: parseAbiItem(
 				'event PodDeployed(address indexed eigenPod, address indexed podOwner)'
 			),
-			fromBlock: currentBlock,
-			toBlock: nextBlock
+			fromBlock,
+			toBlock
 		})
 
 		for (const l in logs) {
@@ -48,13 +52,14 @@ export async function seedPods(fromBlock: bigint, toBlock?: bigint) {
 		}
 
 		console.log(
-			`Pods deployed between blocks ${currentBlock} ${nextBlock}: ${logs.length}`
+			`Pods deployed between blocks ${fromBlock} ${toBlock}: ${logs.length}`
 		)
+	})
 
-		currentBlock = nextBlock
-	}
+	// Storing last sycned block
+	await saveLastSyncBlock(blockSyncKey, lastBlock)
 
-	// Create
+	// Prepare db transaction object
 	await prismaClient.pod.createMany({
 		data: podList
 	})

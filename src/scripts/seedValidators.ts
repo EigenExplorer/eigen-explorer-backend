@@ -1,6 +1,6 @@
 import { getPrismaClient } from '../prisma/prismaClient'
 
-export async function seedValidators(fromBlock: bigint, toBlock?: bigint) {
+export async function seedValidators() {
 	const prismaClient = getPrismaClient()
 
 	// Clear all validator data
