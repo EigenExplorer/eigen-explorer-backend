@@ -3,21 +3,6 @@ import { PaginationQuerySchema } from '../../schema/generic'
 import prisma from '../../prisma/prismaClient'
 
 /**
- * Route to get total number of AVSs
- *
- * @param req
- * @param res
- */
-export async function getTotalNumOfAVS(req: Request, res: Response) {
-	try {
-		const totalNumOfAVS = await prisma.avs.count()
-		res.send({ totalNumOfAVS })
-	} catch (error) {
-		res.status(400).send('An error occurred while fetching data.')
-	}
-}
-
-/**
  * Route to get a list of all AVSs
  *
  * @param req

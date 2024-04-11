@@ -7,7 +7,7 @@ import { delegationManagerAbi } from '../../data/abi/delegationManager'
 import {
 	eigenHoleskyContractAddresses,
 	eigenLayerHoleskyStrategyContracts
-} from 'data/address/eigenHoleskyContracts'
+} from '../../data/address/eigenHoleskyContracts'
 
 /**
  * Route to get a list of all operators
