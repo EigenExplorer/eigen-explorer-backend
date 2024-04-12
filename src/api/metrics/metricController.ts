@@ -128,14 +128,32 @@ async function doGetTvl() {
 	let tvlRestaking = 0
 	const tvlStrategies = {}
 	const strategies = Object.keys(getEigenContracts().Strategies)
+	const strategiesContracts = strategies.map((s) =>
+		getContract({
+			address: getEigenContracts().Strategies[s].strategyContract,
+			abi: strategyAbi,
+			client: getViemClient()
+		})
+	)
 
-	for (const s of strategies) {
-		const strategy = getEigenContracts().Strategies[s]
-		const strategyTvl = await doGetTvlStrategy(strategy.strategyContract)
+	try {
+		const totalShares = await Promise.all(
+			strategiesContracts.map((sc) => sc.read.totalShares())
+		)
 
-		tvlStrategies[s] = strategyTvl
-		tvlRestaking += strategyTvl
-	}
+		const underlyingShares = await Promise.all(
+			strategiesContracts.map((sc, i) =>
+				sc.read.sharesToUnderlyingView([totalShares[i]])
+			)
+		)
+
+		strategies.map((s, i) => {
+			const strategyTvl = Number(underlyingShares[i]) / 1e18
+
+			tvlStrategies[s] = strategyTvl
+			tvlRestaking += strategyTvl
+		})
+	} catch (error) {}
 
 	return {
 		tvlRestaking,

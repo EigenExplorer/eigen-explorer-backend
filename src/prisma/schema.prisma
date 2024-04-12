@@ -33,9 +33,6 @@ model Avs {
   isVerified Boolean       @default(false)
   operators  AvsOperator[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
   @@index([tags], map: "tags_1")
 }
 
@@ -54,9 +51,6 @@ model Pod {
   address     String @unique
   owner       String
   blockNumber BigInt
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 }
 
 model ValidatorRestake {
@@ -82,9 +76,6 @@ model Validator {
 model Deposit {
   id      String @id @default(auto()) @map("_id") @db.ObjectId
   address String @unique
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 }
 
 model Withdrawals {

@@ -32,7 +32,7 @@ export async function getAllAVS(req: Request, res: Response) {
 				})
 
 				const totalOperators = avs.operators.filter((o) => o.isActive).length
-				const totalStakers = operators._sum.totalStakers
+				const totalStakers = operators._sum.totalStakers || 0
 
 				return {
 					...avs,

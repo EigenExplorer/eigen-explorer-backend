@@ -33,6 +33,10 @@ export function getViemClient(n?: Chain) {
 
 	if (!publicViemClient) {
 		publicViemClient = createPublicClient({
+			cacheTime: 10_000,
+			batch: {
+				multicall: true, 
+			},
 			transport: process.env.NETWORK_CHAIN_RPC_URL
 				? http(process.env.NETWORK_CHAIN_RPC_URL)
 				: http(network.rpcUrls.default.http[0])
@@ -47,6 +51,10 @@ export function getViemClient(n?: Chain) {
 if (!(global as any).publicViemClient) {
 	// biome-ignore lint/suspicious/noExplicitAny:
 	;(global as any).publicViemClient = createPublicClient({
+		cacheTime: 10_000,
+		batch: {
+			multicall: true, 
+		},
 		transport: process.env.NETWORK_CHAIN_RPC_URL
 			? http(process.env.NETWORK_CHAIN_RPC_URL)
 			: http(network.rpcUrls.default.http[0])

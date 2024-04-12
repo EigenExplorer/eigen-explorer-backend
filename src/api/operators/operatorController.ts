@@ -27,12 +27,25 @@ export async function getAllOperators(req: Request, res: Response) {
 		// Fetch count and record
 		const operatorCount = await prisma.operator.count()
 		const operatorRecords = await prisma.operator.findMany({ skip, take })
+		
+		const operators = await Promise.all(
+			operatorRecords.map(async (operator) => {
+				let tvl = 0n
+				const shares = await getOperatorShares(operator.address)
+				shares.map((s) => {
+					tvl += BigInt(s.shares)
+				})
+
+				return {
+					...operator,
+					tvl: tvl.toString(),
+					stakers: undefined
+				}
+			})
+		)
 
 		res.send({
-			data: operatorRecords.map((operator) => ({
-				...operator,
-				stakers: undefined
-			})),
+			data: operators,
 			meta: {
 				total: operatorCount,
 				skip,
