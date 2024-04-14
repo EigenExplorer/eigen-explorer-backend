@@ -50,6 +50,7 @@
  *          description: Indicates whether the operator is active.
  */
 
+// AVS
 /**
  * @swagger
  * components:
