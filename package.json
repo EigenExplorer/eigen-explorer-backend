@@ -9,7 +9,8 @@
         "format": "npx @biomejs/biome format . --write",
         "prisma:generate": "prisma generate --schema=./src/prisma/schema.prisma",
         "prisma:seed": "tsx ./src/prisma/seed.ts",
-        "prisma:format": "prisma format --schema=./src/prisma/schema.prisma"
+        "prisma:format": "prisma format --schema=./src/prisma/schema.prisma",
+        "generate-docs": "tsx ./docs/generateSwagger.ts"
     },
     "dependencies": {
         "@prisma/client": "^5.11.0",

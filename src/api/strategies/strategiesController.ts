@@ -87,7 +87,7 @@ export async function getStrategyTvl(req: Request, res: Response) {
                 abi
             );
 
-            res.send(strategyTvl);
+            res.status(200).send(strategyTvl);
         });
     } catch (error) {
         console.error('Failed to fetch data:', error);
