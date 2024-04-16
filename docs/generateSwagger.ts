@@ -14,7 +14,7 @@ const swaggerDefinition = {
     },
     servers: [
         {
-            url: 'http://api.eigenexplorer.com',
+            url: 'https://api.eigenexplorer.com',
             description: 'Eigen Explorer API server',
         },
     ],
