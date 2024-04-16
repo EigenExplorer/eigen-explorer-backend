@@ -88,7 +88,7 @@ router.get('/', getAllAVS);
  * @openapi
  * /avs/{id}:
  *   get:
- *     summary: Retrieve a single AVS
+ *     summary: Retrieve an AVS by ID
  *     description: Returns a single AVS record by ID.
  *     tags:
  *       - AVS

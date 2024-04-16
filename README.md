@@ -1,4 +1,10 @@
-# Eigen Explorer Backend
+# Eigen Explorer Node / Server Backend
+
+This is the node/server backend for [Eigen Explorer](https://eigenexplorer.com). Eigen Explorer backend provides an array of API endpoints organized around REST for community users and developers to quickly access data and information about the Eigen Layer ecosystem.
+
+Our API features predictable resource-oriented URLs, accepts form-encoded request bodies, returns JSON-encoded responses, and adheres to standard HTTP response codes, authentication methods, and verbs.
+
+Currently, the API is free to use and open to the public. Please note that the API is currently in Beta and may be subject to change.
 
 ## Run Locally
 
@@ -10,36 +16,12 @@ npm install
 npm start
 ```
 
-## Project Structure
+## Generate Documentation
 
 ```bash
-eigen-explorer-backend/
-│
-├── src/
-│ ├── api/ # API-specific route handlers
-│ │ ├── avs/ # AVS API routes and controllers
-│ │ │ ├── avsRoutes.js
-│ │ │ └── avsController.js
-│ │ │
-│ │ ├── strategies/ # LST & Eigen Pod Strategy API routes and controllers
-│ │ │ ├── avsRoutes.js
-│ │ │ └── avsController.js
-│ │ │
-│ │ └── index.js # Aggregate API routes
-│ │
-│ ├── prisma/ # Prisma database models and client
-│ │ ├── prismaClient.js
-│ │ └── schema.prisma
-│ │
-│ ├── data/ # Smart contract ABIs and addresses
-│ │ ├── abi/
-│ │ └── address/
-│ │
-│ ├── app.js # Express app setup, middleware registration
-│ └── server.js # Server entry point, connects app with HTTP server
-│
-├── package.json
-├── package-lock.json
-└── .env
-└── README.md
+npm run generate-docs
 ```
+
+## Contributing
+
+Feel free to contribute to the project by opening an issue or submitting a pull request.

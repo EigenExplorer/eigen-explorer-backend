@@ -10,7 +10,7 @@ const router = express.Router();
  * /strategy/tvl:
  *   get:
  *     summary: Retrieve total TVL from all strategies
- *     description: Fetches the total value locked (TVL) across various investment strategies.
+ *     description: Returns the total value locked (TVL) in LST strategies and beacon chain restaking.
  *     tags:
  *       - Strategies
  *     responses:
@@ -41,8 +41,8 @@ router.get('/tvl', getTotalTvl);
  * @openapi
  * /strategy/tvl/{strategyName}:
  *   get:
- *     summary: Retrieve TVL for a specific strategy
- *     description: Fetches the total value locked (TVL) for a given LST strategy by name.
+ *     summary: Retrieve a strategy TVL by name
+ *     description: Returns the total value locked (TVL) for a given LST strategy by name.
  *     tags:
  *       - Strategies
  *     parameters:

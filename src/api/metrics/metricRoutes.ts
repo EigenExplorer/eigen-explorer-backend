@@ -18,8 +18,8 @@ const router = express.Router();
  * @openapi
  * /metrics:
  *   get:
- *     summary: Retrieve explorer metrics
- *     description: Fetches various metrics including total value locked in restaking, beacon chain, total number of AVS, operators, and stakers.
+ *     summary: Retrieve summary metrics
+ *     description: Returns summary metrics including total value locked in restaking, beacon chain, total number of AVS, operators, and stakers.
  *     tags:
  *       - Metrics
  *     responses:
@@ -62,10 +62,10 @@ router.get('/', getMetrics);
  * @openapi
  * /metrics/tvl:
  *   get:
- *     summary: Retrieve the total value locked (TVL) from all strategies
- *     description: Fetches the total value locked (TVL) LST strategies and the beacon chain restaking.
+ *     summary: Retrieve TVL from all strategies
+ *     description: Returns the total value locked (TVL) in LST strategies and beacon chain restaking.
  *     tags:
- *       - TVL
+ *       - Metrics
  *     responses:
  *       200:
  *         description: Successfully retrieved the total value locked.
@@ -91,10 +91,10 @@ router.get('/tvl', getTvl);
  * @openapi
  * /metrics/tvl/beacon-chain:
  *   get:
- *     summary: Retrieve the total value locked (TVL) in the beacon chain eigen pods
- *     description: Fetches the total value locked (TVL) in the beacon chain restaking eigen pods.
+ *     summary: Retrieve beacon chain restaking TVL
+ *     description: Returns the total value locked (TVL) in the beacon chain restaking eigen pods.
  *     tags:
- *       - TVL
+ *       - Metrics
  *     responses:
  *       200:
  *         description: Successfully retrieved the total value locked in the beacon chain.
@@ -120,10 +120,10 @@ router.get('/tvl/beacon-chain', getTvlBeaconChain);
  * @openapi
  * /metrics/tvl/restaking:
  *   get:
- *     summary: Retrieve the total value locked (TVL) in LST strategies
- *     description: Fetches the total value locked (TVL) in LST strategies.
+ *     summary: Retrieve TVL in all LST strategies
+ *     description: Returns the total value locked (TVL) in all LST strategies.
  *     tags:
- *       - TVL
+ *       - Metrics
  *     responses:
  *       200:
  *         description: Successfully retrieved the total value locked in LST strategies.
@@ -152,10 +152,10 @@ router.get('/tvl/restaking', getTvlRestaking);
  * @openapi
  * /metrics/tvl/restaking/{strategy}:
  *   get:
- *     summary: Retrieve the total value locked (TVL) in a specific LST strategy
- *     description: Fetches the total value locked (TVL) in a specific LST strategy.
+ *     summary: Retrieve a strategy TVL by name
+ *     description: Returns the total value locked (TVL) in a specific LST strategy.
  *     tags:
- *       - TVL
+ *       - Metrics
  *     parameters:
  *       - in: path
  *         name: strategy
@@ -188,8 +188,8 @@ router.get('/tvl/restaking/:strategy', getTvlRestakingByStrategy);
  * @openapi
  * /metrics/total-avs:
  *   get:
- *     summary: Retrieve the total number of AVS
- *     description: Fetches the total number of AVS registered.
+ *     summary: Retrieve total number of AVS
+ *     description: Returns the total number of AVS registered.
  *     tags:
  *       - Metrics
  *     responses:
@@ -217,8 +217,8 @@ router.get('/total-avs', getTotalAvs);
  * @openapi
  * /metrics/total-operators:
  *   get:
- *     summary: Retrieve the total number of operators
- *     description: Fetches the total number of operators.
+ *     summary: Retrieve total number of operators
+ *     description: Returns the total number of operators.
  *     tags:
  *       - Metrics
  *     responses:
@@ -246,8 +246,8 @@ router.get('/total-operators', getTotalOperators);
  * @openapi
  * /metrics/total-stakers:
  *   get:
- *     summary: Retrieve the total number of stakers
- *     description: Fetches the total number of stakers across all operators.
+ *     summary: Retrieve total number of stakers
+ *     description: Returns the total number of stakers across all operators.
  *     tags:
  *       - Metrics
  *     responses:
