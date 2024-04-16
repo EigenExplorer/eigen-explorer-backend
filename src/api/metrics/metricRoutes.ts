@@ -62,10 +62,10 @@ router.get('/', getMetrics);
  * @openapi
  * /metrics/tvl:
  *   get:
- *     summary: Retrieve the total value locked (TVL) from all strategies
- *     description: Fetches the total value locked (TVL) LST strategies and the beacon chain restaking.
+ *     summary: Retrieve the combined TVL from all strategies
+ *     description: Fetches the total value locked (TVL) in LST strategies and beacon chain restaking.
  *     tags:
- *       - TVL
+ *       - Metrics
  *     responses:
  *       200:
  *         description: Successfully retrieved the total value locked.
@@ -91,10 +91,10 @@ router.get('/tvl', getTvl);
  * @openapi
  * /metrics/tvl/beacon-chain:
  *   get:
- *     summary: Retrieve the total value locked (TVL) in the beacon chain eigen pods
+ *     summary: Retrieve the beacon chain restaking TVL
  *     description: Fetches the total value locked (TVL) in the beacon chain restaking eigen pods.
  *     tags:
- *       - TVL
+ *       - Metrics
  *     responses:
  *       200:
  *         description: Successfully retrieved the total value locked in the beacon chain.
@@ -120,10 +120,10 @@ router.get('/tvl/beacon-chain', getTvlBeaconChain);
  * @openapi
  * /metrics/tvl/restaking:
  *   get:
- *     summary: Retrieve the total value locked (TVL) in LST strategies
- *     description: Fetches the total value locked (TVL) in LST strategies.
+ *     summary: Retrieve the combined TVL in LST strategies
+ *     description: Fetches the total value locked (TVL) in all LST strategies.
  *     tags:
- *       - TVL
+ *       - Metrics
  *     responses:
  *       200:
  *         description: Successfully retrieved the total value locked in LST strategies.
@@ -152,10 +152,10 @@ router.get('/tvl/restaking', getTvlRestaking);
  * @openapi
  * /metrics/tvl/restaking/{strategy}:
  *   get:
- *     summary: Retrieve the total value locked (TVL) in a specific LST strategy
+ *     summary: Retrieve the TVL in a specific LST strategy
  *     description: Fetches the total value locked (TVL) in a specific LST strategy.
  *     tags:
- *       - TVL
+ *       - Metrics
  *     parameters:
  *       - in: path
  *         name: strategy
