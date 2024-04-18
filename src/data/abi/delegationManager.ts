@@ -1,6 +1,3 @@
-import { getContract } from 'viem'
-import publicViemClient from '../../viem/viemClient'
-
 export const delegationManagerAbi = [
 	{
 		inputs: [

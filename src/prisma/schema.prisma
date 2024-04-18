@@ -36,6 +36,11 @@ model Avs {
   @@index([tags], map: "tags_1")
 }
 
+type OperatorShares {
+  shares   String
+  strategy String
+}
+
 model Operator {
   id      String @id @default(auto()) @map("_id") @db.ObjectId
   address String @unique
@@ -43,7 +48,8 @@ model Operator {
   metadata        EntityMetadata
   curatedMetadata EntityMetadata?
   stakers         String[]
-  totalStakers    Int @default(0)
+  totalStakers    Int              @default(0)
+  shares          OperatorShares[]
 }
 
 model Pod {

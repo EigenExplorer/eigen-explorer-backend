@@ -1,13 +1,6 @@
 import type { Request, Response } from 'express'
 import prisma from '../../prisma/prismaClient'
 import { PaginationQuerySchema } from '../../schema/generic'
-import publicViemClient from '../../viem/viemClient'
-import { getContract } from 'viem'
-import { delegationManagerAbi } from '../../data/abi/delegationManager'
-import {
-	eigenHoleskyContractAddresses,
-	eigenLayerHoleskyStrategyContracts
-} from '../../data/address/eigenHoleskyContracts'
 
 /**
  * Route to get a list of all operators
@@ -27,22 +20,20 @@ export async function getAllOperators(req: Request, res: Response) {
 		// Fetch count and record
 		const operatorCount = await prisma.operator.count()
 		const operatorRecords = await prisma.operator.findMany({ skip, take })
-		
-		const operators = await Promise.all(
-			operatorRecords.map(async (operator) => {
-				let tvl = 0n
-				const shares = await getOperatorShares(operator.address)
-				shares.map((s) => {
-					tvl += BigInt(s.shares)
-				})
 
-				return {
-					...operator,
-					tvl: tvl.toString(),
-					stakers: undefined
-				}
+		const operators = operatorRecords.map((operator) => {
+			let tvl = 0n
+			const shares = operator.shares
+			shares.map((s) => {
+				tvl += BigInt(s.shares)
 			})
-		)
+
+			return {
+				...operator,
+				tvl: tvl.toString(),
+				stakers: undefined
+			}
+		})
 
 		res.send({
 			data: operators,
@@ -74,35 +65,10 @@ export async function getOperator(req: Request, res: Response) {
 
 		res.send({
 			...operator,
-			stakers: undefined,
-			shares: await getOperatorShares(operator.address)
+			stakers: undefined
 		})
 	} catch (error) {
 		console.log(error)
 		res.status(400).send({ error: 'An error occurred while fetching data' })
 	}
-}
-
-// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-async function getOperatorShares(operatorAddress: string): Promise<any> {
-	const contract = getContract({
-		address: eigenHoleskyContractAddresses.DelegationManager,
-		abi: delegationManagerAbi,
-		client: publicViemClient
-	})
-
-	const strategyKeys = Object.keys(eigenLayerHoleskyStrategyContracts)
-	const strategyContracts = strategyKeys.map(
-		(s) => eigenLayerHoleskyStrategyContracts[s].strategyContract
-	) as `0x${string}`[]
-
-	const shares = (await contract.read.getOperatorShares([
-		operatorAddress,
-		strategyContracts
-	])) as bigint[]
-
-	return shares.map((share, i) => ({
-		shares: share.toString(),
-		strategy: strategyContracts[i]
-	}))
 }
