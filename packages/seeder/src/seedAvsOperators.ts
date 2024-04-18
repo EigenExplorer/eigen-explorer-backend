@@ -9,6 +9,7 @@ import {
 	saveLastSyncBlock
 } from './utils/seeder'
 
+const baseBlock = 1159609n
 const blockSyncKey = 'lastSyncedBlock_avsOperators'
 
 export async function seedAvsOperators(fromBlock?: bigint, toBlock?: bigint) {
@@ -22,6 +23,20 @@ export async function seedAvsOperators(fromBlock?: bigint, toBlock?: bigint) {
 		? fromBlock
 		: await fetchLastSyncBlock(blockSyncKey)
 	const lastBlock = toBlock ? toBlock : await viemClient.getBlockNumber()
+
+	// Load initial operator staker state
+	if (firstBlock !== baseBlock) {
+		const avs = await prismaClient.avs.findMany({
+			select: { address: true, operators: true }
+		})
+
+		avs.map((a) =>
+			avsOperatorsList.set(
+				a.address,
+				new Map(a.operators.map((ao) => [ao.address, ao.isActive ? 1 : 0]))
+			)
+		)
+	}
 
 	// Loop through evm logs
 	await loopThroughBlocks(firstBlock, lastBlock, async (fromBlock, toBlock) => {
