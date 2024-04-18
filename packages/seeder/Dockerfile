@@ -13,4 +13,4 @@ COPY . .
 RUN npm run prisma:generate
 RUN npm run build
 
-CMD ["sh", "-c", "node --experimental-specifier-resolution=node /app/dist/seeder/src/index.js"]
+CMD ["sh", "-c", "node --experimental-specifier-resolution=node /app/dist/index.js"]
