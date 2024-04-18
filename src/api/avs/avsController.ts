@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express'
 import { PaginationQuerySchema } from '../../schema/generic'
 import prisma from '../../prisma/prismaClient'
+import { getEigenContracts } from '../../data/address'
 
 /**
  * Route to get a list of all AVSs
@@ -67,7 +68,31 @@ export async function getAVS(req: Request, res: Response) {
 		const { id } = req.params
 		const avs = await prisma.avs.findUniqueOrThrow({ where: { address: id } })
 
+		const strategyKeys = Object.keys(getEigenContracts().Strategies)
+		const strategyContracts = strategyKeys.map(
+			(s) => getEigenContracts().Strategies[s].strategyContract
+		) as `0x${string}`[]
+
+		const shares = strategyContracts.map((sc) => ({
+			shares: '0',
+			strategy: sc
+		}))
+
 		const operatorAddresses = avs.operators.map((o) => o.address)
+		const operatorRecords = await prisma.operator.findMany({
+			where: { address: { in: operatorAddresses } }
+		})
+
+		operatorRecords.map((o) => {
+			o.shares.map((os) => {
+				const foundShare = shares.find((s) => s.strategy === os.strategy)
+				if (foundShare) {
+					const shares = BigInt(foundShare.shares) + BigInt(os.shares)
+					foundShare.shares = shares.toString()
+				}
+			})
+		})
+
 		const operators = await prisma.operator.aggregate({
 			where: { address: { in: operatorAddresses } },
 			_sum: {
@@ -78,7 +103,13 @@ export async function getAVS(req: Request, res: Response) {
 		const totalOperators = avs.operators.filter((o) => o.isActive).length
 		const totalStakers = operators._sum.totalStakers
 
-		res.send({ ...avs, operators: undefined, totalOperators, totalStakers })
+		res.send({
+			...avs,
+			shares,
+			totalOperators,
+			totalStakers,
+			operators: undefined
+		})
 	} catch (error) {
 		res.status(400).send({ error: 'An error occurred while fetching data' })
 	}
