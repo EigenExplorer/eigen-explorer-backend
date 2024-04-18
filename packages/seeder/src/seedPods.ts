@@ -60,9 +60,11 @@ export async function seedPods(fromBlock?: bigint, toBlock?: bigint) {
 	await saveLastSyncBlock(blockSyncKey, lastBlock)
 
 	// Prepare db transaction object
-	await prismaClient.pod.createMany({
-		data: podList
-	})
+	if (podList.length > 0) {
+		await prismaClient.pod.createMany({
+			data: podList
+		})
+	}
 
 	console.log('Seeded Pods:', podList.length)
 }

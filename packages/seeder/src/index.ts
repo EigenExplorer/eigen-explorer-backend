@@ -15,17 +15,17 @@ console.log('Initializing seeder ...')
 cron.schedule('*/2 * * * *', async () => {
 	console.log('Seeding AVS & Operators ...')
 
-	// await seedAvs()
-	// await seedOperators()
-	// await seedAvsOperators()
-	// await seedStakers()
-	// await seedOperatorShares()
+	await seedAvs()
+	await seedOperators()
+	await seedAvsOperators()
+	await seedStakers()
+	await seedOperatorShares()
 })
 
 cron.schedule('*/5 * * * *', async () => {
 	console.log('Seeding Pods & Validators')
 
-	// await seedPods()
-	// await seedValidatorsRestake()
-	// await seedValidators()
+	await seedPods()
+	await seedValidatorsRestake()
+	await seedValidators()
 })

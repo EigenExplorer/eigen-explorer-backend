@@ -60,9 +60,11 @@ export async function seedValidatorsRestake(
 	await saveLastSyncBlock(blockSyncKey, lastBlock)
 
 	// Prepare db transaction object
-	await prismaClient.validatorRestake.createMany({
-		data: validatorRestakeList
-	})
+	if (validatorRestakeList.length > 0) {
+		await prismaClient.validatorRestake.createMany({
+			data: validatorRestakeList
+		})
+	}
 
 	console.log('Seeded validator restake:', validatorRestakeList.length)
 }
