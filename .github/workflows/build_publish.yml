@@ -13,6 +13,17 @@ jobs:
   docker:
     runs-on: ubuntu-latest
 
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - dockerfile: ./packages/api/Dockerfile
+            image: -api
+            context: ./packages/api
+          - dockerfile: ./packages/seeder/Dockerfile
+            image: -seeder
+            context: ./packages/seeder
+
     permissions:
       contents: read
       packages: write
@@ -32,7 +43,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{ matrix.image }}
       
       - name: install modules
         run: npm i
@@ -40,8 +51,8 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v3
         with:
-          context: .
-          file: Dockerfile
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

@@ -12,6 +12,11 @@ import {
 const baseBlock = 1159609n
 const blockSyncKey = 'lastSyncedBlock_operatorShares'
 
+// Fix for broken types
+interface IMap<K, V> extends Map<K, V> {
+	get(key: K): V
+}
+
 export async function seedOperatorShares(fromBlock?: bigint, toBlock?: bigint) {
 	console.log('Seeding operator shares ...')
 
@@ -21,7 +26,7 @@ export async function seedOperatorShares(fromBlock?: bigint, toBlock?: bigint) {
 		string,
 		{ shares: string; strategy: string }[]
 	> = new Map()
-	const operatorShares: Map<string, { shares: string; strategy: string }[]> =
+	const operatorShares: IMap<string, { shares: string; strategy: string }[]> =
 		new Map()
 
 	const firstBlock = fromBlock
@@ -70,16 +75,16 @@ export async function seedOperatorShares(fromBlock?: bigint, toBlock?: bigint) {
 
 			let foundSharesIndex = operatorShares
 				.get(operatorAddress)
-				?.findIndex((os) => os.strategy.toLowerCase() === strategyAddress)
+				.findIndex((os) => os.strategy.toLowerCase() === strategyAddress)
 
 			if (foundSharesIndex !== undefined && foundSharesIndex === -1) {
 				operatorShares
 					.get(operatorAddress)
-					?.push({ shares: '0', strategy: strategyAddress })
+					.push({ shares: '0', strategy: strategyAddress })
 
 				foundSharesIndex = operatorShares
 					.get(operatorAddress)
-					?.findIndex((os) => os.strategy.toLowerCase() === strategyAddress)
+					.findIndex((os) => os.strategy.toLowerCase() === strategyAddress)
 			}
 
 			if (log.eventName === 'OperatorSharesIncreased') {
