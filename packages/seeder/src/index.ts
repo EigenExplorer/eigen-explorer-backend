@@ -12,20 +12,33 @@ import { seedOperatorShares } from './seedOperatorShares'
 
 console.log('Initializing seeder ...')
 
-cron.schedule('*/2 * * * *', async () => {
-	console.log('Seeding AVS & Operators ...')
+function delay(seconds: number) {
+	return new Promise((resolve) => setTimeout(resolve, seconds * 1000))
+}
 
-	await seedAvs()
-	await seedOperators()
-	await seedAvsOperators()
-	await seedStakers()
-	await seedOperatorShares()
-})
+async function seedAvsLoop() {
+	while (true) {
+		console.log('Seeding AVS & Operators ...')
+		await seedAvs()
+		await seedOperators()
+		await seedAvsOperators()
+		await seedStakers()
+		await seedOperatorShares()
 
-cron.schedule('*/5 * * * *', async () => {
-	console.log('Seeding Pods & Validators')
+		await delay(120) // Wait for 2 minutes (120 seconds)
+	}
+}
 
-	await seedPods()
-	await seedValidatorsRestake()
-	await seedValidators()
-})
+async function seedPodsLoop() {
+	while (true) {
+		await delay(300)
+		
+		console.log('Seeding Pods & Validators')
+		await seedPods()
+		await seedValidatorsRestake()
+		await seedValidators()
+	}
+}
+
+seedAvsLoop()
+seedPodsLoop()
