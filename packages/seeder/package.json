@@ -1,0 +1,24 @@
+{
+  "name": "eigen-explorer-backend-seeder",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "tsx ./src/index.ts",
+    "prisma:generate": "prisma generate --schema=./src/prisma/schema.prisma",
+    "prisma:format": "prisma format --schema=./src/prisma/schema.prisma"
+  },
+  "devDependencies": {
+    "@types/node-cron": "^3.0.11",
+    "@types/node": "^20.12.2",
+    "prisma": "^5.11.0",
+    "tsx": "^4.7.1",
+    "typescript": "^5.4.3"
+  },
+  "dependencies": {
+    "node-cron": "^3.0.3",
+    "viem": "^2.9.21",
+    "dotenv": "^16.4.5"
+  }
+}
