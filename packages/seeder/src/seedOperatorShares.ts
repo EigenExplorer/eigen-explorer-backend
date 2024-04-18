@@ -1,78 +1,124 @@
-import { getContract } from 'viem'
-import { delegationManagerAbi } from './data/abi/delegationManager'
+import { parseAbiItem } from 'viem'
 import { getEigenContracts } from './data/address'
-import { getPrismaClient } from './prisma/prismaClient'
-import { bulkUpdateDbTransactions } from './utils/seeder'
 import { getViemClient } from './viem/viemClient'
+import { getPrismaClient } from './prisma/prismaClient'
+import {
+	bulkUpdateDbTransactions,
+	fetchLastSyncBlock,
+	loopThroughBlocks,
+	saveLastSyncBlock
+} from './utils/seeder'
 
-export async function seedOperatorShares() {
+const baseBlock = 1159609n
+const blockSyncKey = 'lastSyncedBlock_operatorShares'
+
+export async function seedOperatorShares(fromBlock?: bigint, toBlock?: bigint) {
 	console.log('Seeding operator shares ...')
 
 	const viemClient = getViemClient()
 	const prismaClient = getPrismaClient()
+	const operatorSharesInit: Map<
+		string,
+		{ shares: string; strategy: string }[]
+	> = new Map()
+	const operatorShares: Map<string, { shares: string; strategy: string }[]> =
+		new Map()
 
-	const operators = await prismaClient.operator.findMany({
-		where: { stakers: { isEmpty: false } },
-		select: { address: true }
-	})
-	const operatorAddresses = operators.map((o) => o.address)
+	const firstBlock = fromBlock
+		? fromBlock
+		: await fetchLastSyncBlock(blockSyncKey)
+	const lastBlock = toBlock ? toBlock : await viemClient.getBlockNumber()
 
-	const batchSize = 50
-	let currentIndex = 0
-
-	const contract = getContract({
-		address: getEigenContracts().DelegationManager,
-		abi: delegationManagerAbi,
-		client: viemClient
-	})
-
-	const strategyKeys = Object.keys(getEigenContracts().Strategies)
-	const strategyContracts = strategyKeys.map(
-		(s) => getEigenContracts().Strategies[s].strategyContract
-	) as `0x${string}`[]
-
-	while (currentIndex < operatorAddresses.length) {
-		const batch = operatorAddresses.slice(
-			currentIndex,
-			currentIndex + batchSize
-		)
-		console.log(
-			`Seeding operator shares batch ${
-				Math.floor(currentIndex / batchSize) + 1
-			}`
-		)
-
-		const operatorSharesData = (await Promise.all(
-			batch.map((address) => {
-				return contract.read.getOperatorShares([address, strategyContracts])
-			})
-			// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-		)) as any
-
-		// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-		const dbTransactions: any[] = []
-
-		batch.map((address, i) => {
-			dbTransactions.push(
-				prismaClient.operator.update({
-					where: { address },
-					data: {
-						shares: {
-							set: operatorSharesData[i].map((share: bigint, i: number) => ({
-								shares: share.toString(),
-								strategy: strategyContracts[i]
-							}))
-						}
-					}
-				})
-			)
+	// Load initial operator staker state
+	if (firstBlock !== baseBlock) {
+		const operators = await prismaClient.operator.findMany({
+			select: { address: true, shares: true }
 		})
 
-		await bulkUpdateDbTransactions(dbTransactions)
-
-		currentIndex += batchSize
-		await new Promise((resolve) => setTimeout(resolve, 1000))
+		operators.map((o) => operatorSharesInit.set(o.address, o.shares))
 	}
 
-	console.log('Seeded opertor shares:', operatorAddresses.length)
+	// Loop through evm logs
+	await loopThroughBlocks(firstBlock, lastBlock, async (fromBlock, toBlock) => {
+		const logs = await viemClient.getLogs({
+			address: getEigenContracts().DelegationManager,
+			events: [
+				parseAbiItem(
+					'event OperatorSharesIncreased(address indexed operator, address staker, address strategy, uint256 shares)'
+				),
+				parseAbiItem(
+					'event OperatorSharesDecreased(address indexed operator, address staker, address strategy, uint256 shares)'
+				)
+			],
+			fromBlock,
+			toBlock
+		})
+
+		for (const l in logs) {
+			const log = logs[l]
+
+			const operatorAddress = String(log.args.operator).toLowerCase()
+			const strategyAddress = String(log.args.strategy).toLowerCase()
+			const shares = log.args.shares || 0n
+
+			if (!operatorShares.has(operatorAddress)) {
+				operatorShares.set(
+					operatorAddress,
+					operatorSharesInit.get(operatorAddress) || []
+				)
+			}
+
+			let foundSharesIndex = operatorShares
+				.get(operatorAddress)
+				?.findIndex((os) => os.strategy.toLowerCase() === strategyAddress)
+
+			if (foundSharesIndex !== undefined && foundSharesIndex === -1) {
+				operatorShares
+					.get(operatorAddress)
+					?.push({ shares: '0', strategy: strategyAddress })
+
+				foundSharesIndex = operatorShares
+					.get(operatorAddress)
+					?.findIndex((os) => os.strategy.toLowerCase() === strategyAddress)
+			}
+
+			if (log.eventName === 'OperatorSharesIncreased') {
+				operatorShares.get(operatorAddress)[foundSharesIndex].shares = (
+					BigInt(operatorShares.get(operatorAddress)[foundSharesIndex].shares) +
+					BigInt(shares)
+				).toString()
+			} else if (log.eventName === 'OperatorSharesDecreased') {
+				operatorShares.get(operatorAddress)[foundSharesIndex].shares = (
+					BigInt(operatorShares.get(operatorAddress)[foundSharesIndex].shares) -
+					BigInt(shares)
+				).toString()
+			}
+		}
+
+		console.log(
+			`Operator shares updated between blocks ${fromBlock} ${toBlock}: ${logs.length}`
+		)
+	})
+
+	// Storing last sycned block
+	await saveLastSyncBlock(blockSyncKey, lastBlock)
+
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+	const dbTransactions: any[] = []
+	for (const [operatorAddress, shares] of operatorShares) {
+		dbTransactions.push(
+			prismaClient.operator.updateMany({
+				where: { address: operatorAddress },
+				data: {
+					shares: {
+						set: shares
+					}
+				}
+			})
+		)
+	}
+
+	await bulkUpdateDbTransactions(dbTransactions)
+
+	console.log('Seeded operator shares:', operatorShares.size)
 }
