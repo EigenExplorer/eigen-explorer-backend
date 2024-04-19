@@ -24,7 +24,9 @@ export async function getAllAVS(req: Request, res: Response) {
 
 		const data = await Promise.all(
 			avsRecords.map(async (avs) => {
-				const operatorAddresses = avs.operators.map((o) => o.address)
+				const operatorAddresses = avs.operators
+					.filter((o) => o.isActive)
+					.map((o) => o.address)
 				const operators = await prisma.operator.aggregate({
 					where: { address: { in: operatorAddresses } },
 					_sum: {
@@ -32,7 +34,7 @@ export async function getAllAVS(req: Request, res: Response) {
 					}
 				})
 
-				const totalOperators = avs.operators.filter((o) => o.isActive).length
+				const totalOperators = operatorAddresses.length
 				const totalStakers = operators._sum.totalStakers || 0
 
 				return {
@@ -78,10 +80,17 @@ export async function getAVS(req: Request, res: Response) {
 			strategy: sc
 		}))
 
-		const operatorAddresses = avs.operators.map((o) => o.address)
+		const operatorAddresses = avs.operators
+			.filter((o) => o.isActive)
+			.map((o) => o.address)
 		const operatorRecords = await prisma.operator.findMany({
-			where: { address: { in: operatorAddresses } }
+			where: { address: { in: operatorAddresses } },
+			select: { shares: true, totalStakers: true }
 		})
+
+		let tvl = 0
+		let totalStakers = 0
+		const totalOperators = operatorAddresses.length
 
 		operatorRecords.map((o) => {
 			o.shares.map((os) => {
@@ -90,22 +99,17 @@ export async function getAVS(req: Request, res: Response) {
 					const shares = BigInt(foundShare.shares) + BigInt(os.shares)
 					foundShare.shares = shares.toString()
 				}
+
+				tvl += Number(os.shares) / 1e18
 			})
-		})
 
-		const operators = await prisma.operator.aggregate({
-			where: { address: { in: operatorAddresses } },
-			_sum: {
-				totalStakers: true
-			}
+			totalStakers += o.totalStakers
 		})
-
-		const totalOperators = avs.operators.filter((o) => o.isActive).length
-		const totalStakers = operators._sum.totalStakers
 
 		res.send({
 			...avs,
 			shares,
+			tvl,
 			totalOperators,
 			totalStakers,
 			operators: undefined

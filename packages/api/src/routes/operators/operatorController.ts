@@ -21,19 +21,22 @@ export async function getAllOperators(req: Request, res: Response) {
 		const operatorCount = await prisma.operator.count()
 		const operatorRecords = await prisma.operator.findMany({ skip, take })
 
-		const operators = operatorRecords.map((operator) => {
-			let tvl = 0n
-			const shares = operator.shares
-			shares.map((s) => {
-				tvl += BigInt(s.shares)
-			})
+		const operators = await Promise.all(
+			operatorRecords.map(async (operator) => {
+				let tvl = 0
+				const shares = operator.shares
 
-			return {
-				...operator,
-				tvl: tvl.toString(),
-				stakers: undefined
-			}
-		})
+				shares.map((s) => {
+					tvl += Number(s.shares) / 1e18
+				})
+
+				return {
+					...operator,
+					tvl,
+					stakers: undefined
+				}
+			})
+		)
 
 		res.send({
 			data: operators,
@@ -63,12 +66,19 @@ export async function getOperator(req: Request, res: Response) {
 			where: { address: id }
 		})
 
+		let tvl = 0
+		const shares = operator.shares
+
+		shares.map((s) => {
+			tvl += Number(s.shares) / 1e18
+		})
+
 		res.send({
 			...operator,
+			tvl,
 			stakers: undefined
 		})
 	} catch (error) {
-		console.log(error)
 		res.status(400).send({ error: 'An error occurred while fetching data' })
 	}
 }
