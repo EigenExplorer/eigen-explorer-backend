@@ -3,13 +3,13 @@ import { getViemClient } from './viem/viemClient'
 import { getEigenContracts } from './data/address'
 import { getPrismaClient } from './prisma/prismaClient'
 import {
+	baseBlock,
 	bulkUpdateDbTransactions,
 	fetchLastSyncBlock,
 	loopThroughBlocks,
 	saveLastSyncBlock
 } from './utils/seeder'
 
-const baseBlock = 1159609n
 const blockSyncKey = 'lastSyncedBlock_avsOperators'
 
 export async function seedAvsOperators(fromBlock?: bigint, toBlock?: bigint) {

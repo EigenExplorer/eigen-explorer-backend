@@ -1,6 +1,12 @@
 import { getPrismaClient } from '.././prisma/prismaClient'
 import { chunkArray } from './array'
 
+// Base block
+export const baseBlock =
+	process.env.NETWORK && process.env.NETWORK === 'holesky'
+		? 1159609n
+		: 19500000n
+
 export async function loopThroughBlocks(
 	firstBlock: bigint,
 	lastBlock: bigint,
@@ -41,7 +47,6 @@ export async function bulkUpdateDbTransactions(dbTransactions: any[]) {
 export async function fetchLastSyncBlock(key: string): Promise<bigint> {
 	const prismaClient = getPrismaClient()
 
-	const baseBlock = 1159609n
 	const lastSyncedBlockData = await prismaClient.settings.findUnique({
 		where: { key }
 	})
