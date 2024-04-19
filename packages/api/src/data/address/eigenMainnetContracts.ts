@@ -1,10 +1,10 @@
 import type { EigenContractAddress } from '.'
 
 export const eigenContracts: EigenContractAddress = {
-	AVSDirectory: '0x055733000064333CaDDbC92763c58BF0192fFeBf',
-	DelegationManager: '0xA44151489861Fe9e3055d95adC98FbD462B948e7',
-	Slasher: '0xcAe751b75833ef09627549868A04E32679386e7C',
-	StrategyManager: '0xdfB5f6CE42aAA7830E94ECFCcAd411beF4d4D5b6',
+	AVSDirectory: '0x135dda560e946695d6f155dacafc6f1f25c1f5af',
+	DelegationManager: '0x39053D51B77DC0d36036Fc1fCc8Cb819df8Ef37A',
+	Slasher: '0xD92145c07f8Ed1D392c1B88017934E301CC1c3Cd',
+	StrategyManager: '0x858646372CC42E1A627fcE94aa7A7033e7CF075A',
 	EigenPodManager: '0x91E677b07F7AF907ec9a428aafA9fc14a0d3A338',
 	Strategies: {
 		WETH: {
