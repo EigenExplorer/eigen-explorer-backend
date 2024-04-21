@@ -1,7 +1,13 @@
 import type { Request, Response } from 'express';
-import { PaginationQuerySchema } from '../../schema/generic';
+//import { PaginationQuerySchema } from '../../schema/generic';
+import { PaginationQuerySchema } from '../../zod/schemas/paginationQuery';
+import {
+    StrategyName,
+    StrategyNameSchema,
+} from '../../zod/schemas/eigenContractAddress';
 import prisma from '../../prisma/prismaClient';
 import { getEigenContracts } from '../../data/address';
+import { handleAndReturnErrorResponse } from '../../errors';
 
 /**
  * Route to get a list of all AVSs
@@ -10,15 +16,14 @@ import { getEigenContracts } from '../../data/address';
  * @param res
  */
 export async function getAllAVS(req: Request, res: Response) {
-    try {
-        // Validate pagination query
-        const {
-            error,
-            value: { skip, take },
-        } = PaginationQuerySchema.validate(req.query);
-        if (error)
-            return res.status(422).json({ error: error.details[0].message });
+    // Validate pagination query
+    const result = PaginationQuerySchema.safeParse(req.query);
+    if (!result.success) {
+        return handleAndReturnErrorResponse(req, res, result.error);
+    }
+    const { skip, take } = result.data;
 
+    try {
         // Fetch count and record
         const avsCount = await prisma.avs.count();
         const avsRecords = await prisma.avs.findMany({ skip, take });
@@ -56,9 +61,7 @@ export async function getAllAVS(req: Request, res: Response) {
             },
         });
     } catch (error) {
-        res.status(400).send({
-            error: 'An error occurred while fetching data',
-        });
+        handleAndReturnErrorResponse(req, res, error);
     }
 }
 
@@ -69,16 +72,14 @@ export async function getAllAVS(req: Request, res: Response) {
  * @param res
  */
 export async function getAllAVSAddresses(req: Request, res: Response) {
-    console.log('in route');
-    try {
-        // Validate pagination query
-        const {
-            error,
-            value: { skip, take },
-        } = PaginationQuerySchema.validate(req.query);
-        if (error)
-            return res.status(422).json({ error: error.details[0].message });
+    // Validate pagination query
+    const result = PaginationQuerySchema.safeParse(req.query);
+    if (!result.success) {
+        return handleAndReturnErrorResponse(req, res, result.error);
+    }
+    const { skip, take } = result.data;
 
+    try {
         // Fetch count and records
         const avsCount = await prisma.avs.count();
         const avsRecords = await prisma.avs.findMany({ skip, take });
@@ -99,9 +100,7 @@ export async function getAllAVSAddresses(req: Request, res: Response) {
             },
         });
     } catch (error) {
-        res.status(400).send({
-            error: 'An error occurred while fetching data',
-        });
+        handleAndReturnErrorResponse(req, res, error);
     }
 }
 
@@ -118,9 +117,9 @@ export async function getAVS(req: Request, res: Response) {
             where: { address: id },
         });
 
-        const strategyKeys = Object.keys(getEigenContracts().Strategies);
+        const strategyKeys: StrategyName[] = StrategyNameSchema.options;
         const strategyContracts = strategyKeys.map(
-            (s) => getEigenContracts().Strategies[s].strategyContract
+            (s) => getEigenContracts()?.Strategies[s]?.strategyContract
         ) as `0x${string}`[];
 
         const shares = strategyContracts.map((sc) => ({
@@ -166,8 +165,6 @@ export async function getAVS(req: Request, res: Response) {
             operators: undefined,
         });
     } catch (error) {
-        res.status(400).send({
-            error: 'An error occurred while fetching data',
-        });
+        handleAndReturnErrorResponse(req, res, error);
     }
 }

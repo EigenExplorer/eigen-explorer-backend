@@ -20,7 +20,10 @@
         "jade": "^0.29.0",
         "joi": "^17.12.2",
         "morgan": "~1.9.1",
-        "viem": "^2.8.14"
+        "viem": "^2.8.14",
+        "zod": "^3.22.5",
+        "zod-error": "^1.5.0",
+        "zod-openapi": "^2.15.2"
     },
     "devDependencies": {
         "@types/cookie-parser": "^1.4.7",
