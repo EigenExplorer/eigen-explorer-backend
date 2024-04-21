@@ -70,6 +70,9 @@ export class EigenExplorerApiError extends Error {
 }
 
 // Convert ZodError to an error response
+// if path is enabled, add the following parameters:
+// type: 'objectNotation',
+// label: '',
 export function fromZodError(error: ZodError): ErrorResponse {
     return {
         error: {
@@ -80,9 +83,7 @@ export function fromZodError(error: ZodError): ErrorResponse {
                     component: ': ',
                 },
                 path: {
-                    enabled: true,
-                    type: 'objectNotation',
-                    label: '',
+                    enabled: false,
                 },
                 code: {
                     enabled: true,
@@ -110,7 +111,7 @@ export function handleApiError(error: any): ErrorResponse & { status: number } {
         };
     }
 
-    // DubApiError errors
+    // EigenExplorerApiError errors
     if (error instanceof EigenExplorerApiError) {
         return {
             error: {

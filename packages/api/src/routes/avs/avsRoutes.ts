@@ -5,6 +5,10 @@ const router = express.Router();
 
 // API routes for /avs
 
+router.get('/addresses', getAllAVSAddresses);
+
+router.get('/:id', getAVS);
+
 /**
  * @openapi
  * /avs:
@@ -159,9 +163,6 @@ router.get('/', getAllAVS);
  *                   type: string
  *                   description: General error message about the issue encountered.
  */
-
-router.get('/addresses', getAllAVSAddresses);
-
 /**
  * @openapi
  * /avs/{id}:
@@ -197,6 +198,5 @@ router.get('/addresses', getAllAVSAddresses);
  *                   type: string
  *                   description: Error message detailing the issue encountered.
  */
-router.get('/:id', getAVS);
 
 export default router;

@@ -30,15 +30,17 @@ const MetadataSchema = z.object({
         .openapi({ example: 'https://twitter.com/acme' }),
 });
 
+export const EthereumAddressSchema = z
+    .string()
+    .regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address')
+    .describe("The AVS's service manager address")
+    .openapi({ example: '0x74b09c5de70ebadbeeb5db503fecb6e6ad39560d' });
+
 const schema = z.object({
     metadata: MetadataSchema,
     curatedMetadata: MetadataSchema.nullable(),
     id: z.string().openapi({ example: '66218ccb560e53b6760df00d' }),
-    address: z
-        .string()
-        .regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address')
-        .describe("The AVS's service manager address")
-        .openapi({ example: '0x74b09c5de70ebadbeeb5db503fecb6e6ad39560d' }),
+    address: EthereumAddressSchema,
     tags: z
         .array(z.string())
         .describe('A list of tags associated with the AVS')

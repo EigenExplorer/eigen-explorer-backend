@@ -5,6 +5,7 @@ import {
     StrategyName,
     StrategyNameSchema,
 } from '../../zod/schemas/eigenContractAddress';
+import { EthereumAddressSchema } from '../../zod/schemas/avs';
 import prisma from '../../prisma/prismaClient';
 import { getEigenContracts } from '../../data/address';
 import { handleAndReturnErrorResponse } from '../../errors';
@@ -111,8 +112,14 @@ export async function getAllAVSAddresses(req: Request, res: Response) {
  * @param res
  */
 export async function getAVS(req: Request, res: Response) {
+    const { id } = req.params;
+
+    const result = EthereumAddressSchema.safeParse(id);
+    if (!result.success) {
+        return handleAndReturnErrorResponse(req, res, result.error);
+    }
+
     try {
-        const { id } = req.params;
         const avs = await prisma.avs.findUniqueOrThrow({
             where: { address: id },
         });
