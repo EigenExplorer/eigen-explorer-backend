@@ -4,14 +4,12 @@ import { getContract } from 'viem';
 import { getViemClient } from '../../viem/viemClient';
 import { strategyAbi } from '../../data/abi/strategy';
 import { getEigenContracts } from '../../data/address';
-import {
-    StrategyName,
-    StrategyNameSchema,
-} from '../../zod/schemas/eigenContractAddress';
+import { StrategyNameSchema } from '../../zod/schemas/eigenContractAddress';
+import type { StrategyName } from '../../zod/schemas/eigenContractAddress';
 import { handleAndReturnErrorResponse } from '../../errors';
 
 /**
- * Route to get explorer metrics
+ * Get summary metrics
  *
  * @param req
  * @param res
@@ -34,6 +32,12 @@ export async function getMetrics(req: Request, res: Response) {
     }
 }
 
+/**
+ * Route to get total TVL
+ *
+ * @param req
+ * @param res
+ */
 export async function getTvl(req: Request, res: Response) {
     try {
         const tvlRestaking = (await doGetTvl()).tvlRestaking;
@@ -47,6 +51,12 @@ export async function getTvl(req: Request, res: Response) {
     }
 }
 
+/**
+ * Route to get beacon chain TVL
+ *
+ * @param req
+ * @param res
+ */
 export async function getTvlBeaconChain(req: Request, res: Response) {
     try {
         const tvlBeaconChain = await doGetTvlBeaconChain();
@@ -59,6 +69,12 @@ export async function getTvlBeaconChain(req: Request, res: Response) {
     }
 }
 
+/**
+ * Route to get LST TVL
+ *
+ * @param req
+ * @param res
+ */
 export async function getTvlRestaking(req: Request, res: Response) {
     try {
         const tvlRestaking = await doGetTvl();
@@ -72,25 +88,39 @@ export async function getTvlRestaking(req: Request, res: Response) {
     }
 }
 
+/**
+ * Route to get TVL (Total Value Locked) for a specific LST (Lido Staking Token) strategy
+ * @param {Request} req - The incoming request object
+ * @param {Response} res - The outgoing response object
+ * @param {string} req.params.strategy - The name of the LST strategy to get TVL for (e.g. "WETH", "cbETH", etc.)
+ * @returns a JSON response with the TVL value for the specified strategy
+ */
 export async function getTvlRestakingByStrategy(req: Request, res: Response) {
+    const { strategy } = req.params;
+
+    const result = StrategyNameSchema.safeParse(strategy);
+
+    if (!result.success) {
+        handleAndReturnErrorResponse(req, res, result.error);
+    }
+
     try {
-        const { strategy } = req.params;
-        const strategies: StrategyName[] = StrategyNameSchema.options;
-
-        if (strategy && strategies.indexOf(strategy) !== -1) {
-            const tvl = await doGetTvlStrategy(
-                getEigenContracts().Strategies[strategy].strategyContract
-            );
-
-            res.send({
-                tvl,
-            });
-        }
+        const tvl = await doGetTvlStrategy(
+            getEigenContracts()?.Strategies[strategy as StrategyName]
+                ?.strategyContract as '0x${string}'
+        );
+        res.send({ tvl });
     } catch (error) {
         handleAndReturnErrorResponse(req, res, error);
     }
 }
 
+/**
+Route to get the total number of AVS
+* @param {Request} req - The incoming request object
+* @param {Response} res - The outgoing response object
+* @returns a JSON response with the integer value for the total number of AVS
+*/
 export async function getTotalAvs(req: Request, res: Response) {
     try {
         const totalAvs = await doGetTotalAvsCount();
@@ -103,6 +133,12 @@ export async function getTotalAvs(req: Request, res: Response) {
     }
 }
 
+/**
+Route to get the total number of operators
+* @param {Request} req - The incoming request object
+* @param {Response} res - The outgoing response object
+* @returns a JSON response with the integer value for the total number of operators
+*/
 export async function getTotalOperators(req: Request, res: Response) {
     try {
         const totalOperators = await doGetTotalOperatorCount();
@@ -115,6 +151,12 @@ export async function getTotalOperators(req: Request, res: Response) {
     }
 }
 
+/**
+Route to get the total number of stakers
+* @param {Request} req - The incoming request object
+* @param {Response} res - The outgoing response object
+* @returns a JSON response with the integer value for the total number of stakers
+*/
 export async function getTotalStakers(req: Request, res: Response) {
     try {
         const totalStakers = await doGetTotalStakerCount();
@@ -127,15 +169,17 @@ export async function getTotalStakers(req: Request, res: Response) {
     }
 }
 
-// ================================================
-
+/**
+ * Supporting Functions
+ */
 async function doGetTvl() {
     let tvlRestaking = 0;
-    const tvlStrategies = {};
+    const tvlStrategies: { [key: string]: number } = {};
     const strategies = Object.keys(getEigenContracts().Strategies);
     const strategiesContracts = strategies.map((s) =>
         getContract({
-            address: getEigenContracts().Strategies[s].strategyContract,
+            address: getEigenContracts()?.Strategies[s as StrategyName]
+                ?.strategyContract as '0x${string}',
             abi: strategyAbi,
             client: getViemClient(),
         })
