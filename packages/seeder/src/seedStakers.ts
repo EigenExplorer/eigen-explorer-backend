@@ -12,27 +12,28 @@ import {
 
 const blockSyncKey = 'lastSyncedBlock_stakers'
 
+// Fix for broken types
+interface IMap<K, V> extends Map<K, V> {
+	get(key: K): V
+}
+
 export async function seedStakers(fromBlock?: bigint, toBlock?: bigint) {
 	console.log('Seeding stakers ...')
 
 	const viemClient = getViemClient()
 	const prismaClient = getPrismaClient()
-	const operatorStakersInit: Map<string, string[]> = new Map()
-	const operatorStakers: Map<string, string[]> = new Map()
+	const stakers: IMap<
+		string,
+		{
+			delegatedTo: string | null
+			shares: { shares: string; strategy: string }[]
+		}
+	> = new Map()
 
 	const firstBlock = fromBlock
 		? fromBlock
 		: await fetchLastSyncBlock(blockSyncKey)
 	const lastBlock = toBlock ? toBlock : await viemClient.getBlockNumber()
-
-	// Load initial operator staker state
-	if (firstBlock !== baseBlock) {
-		const operators = await prismaClient.operator.findMany({
-			select: { address: true, stakers: true }
-		})
-
-		operators.map((o) => operatorStakersInit.set(o.address, o.stakers))
-	}
 
 	// Loop through evm logs
 	await loopThroughBlocks(firstBlock, lastBlock, async (fromBlock, toBlock) => {
@@ -44,6 +45,12 @@ export async function seedStakers(fromBlock?: bigint, toBlock?: bigint) {
 				),
 				parseAbiItem(
 					'event StakerUndelegated(address indexed staker, address indexed operator)'
+				),
+				parseAbiItem(
+					'event OperatorSharesIncreased(address indexed operator, address staker, address strategy, uint256 shares)'
+				),
+				parseAbiItem(
+					'event OperatorSharesDecreased(address indexed operator, address staker, address strategy, uint256 shares)'
 				)
 			],
 			fromBlock,
@@ -56,25 +63,51 @@ export async function seedStakers(fromBlock?: bigint, toBlock?: bigint) {
 			const operatorAddress = String(log.args.operator).toLowerCase()
 			const stakerAddress = String(log.args.staker).toLowerCase()
 
-			if (!operatorStakers.has(operatorAddress)) {
-				operatorStakers.set(
-					operatorAddress,
-					operatorStakersInit.get(operatorAddress) || []
-				)
+			if (!stakers.has(stakerAddress)) {
+				stakers.set(stakerAddress, { delegatedTo: null, shares: [] })
 			}
 
 			if (log.eventName === 'StakerDelegated') {
-				// biome-ignore lint/style/noNonNullAssertion: <explanation>
-				operatorStakers.get(operatorAddress)!.push(stakerAddress)
+				stakers.get(stakerAddress).delegatedTo = operatorAddress
 			} else if (log.eventName === 'StakerUndelegated') {
-				// biome-ignore lint/style/noNonNullAssertion: <explanation>
-				operatorStakers.get(operatorAddress)!.splice(
-					// biome-ignore lint/style/noNonNullAssertion: <explanation>
-					operatorStakers
-						.get(operatorAddress)!
-						.indexOf(stakerAddress),
-					1
-				)
+				stakers.get(stakerAddress).delegatedTo = null
+			} else if (
+				log.eventName === 'OperatorSharesIncreased' ||
+				log.eventName === 'OperatorSharesDecreased'
+			) {
+				const strategyAddress = String(log.args.strategy).toLowerCase()
+				const shares = log.args.shares
+				if (!shares) continue
+
+				let foundSharesIndex = stakers
+					.get(stakerAddress)
+					.shares.findIndex(
+						(ss) => ss.strategy.toLowerCase() === strategyAddress
+					)
+
+				if (foundSharesIndex !== undefined && foundSharesIndex === -1) {
+					stakers
+						.get(stakerAddress)
+						.shares.push({ shares: '0', strategy: strategyAddress })
+
+					foundSharesIndex = stakers
+						.get(stakerAddress)
+						.shares.findIndex(
+							(os) => os.strategy.toLowerCase() === strategyAddress
+						)
+				}
+
+				if (log.eventName === 'OperatorSharesIncreased') {
+					stakers.get(stakerAddress).shares[foundSharesIndex].shares = (
+						BigInt(stakers.get(stakerAddress).shares[foundSharesIndex].shares) +
+						BigInt(shares)
+					).toString()
+				} else if (log.eventName === 'OperatorSharesDecreased') {
+					stakers.get(stakerAddress).shares[foundSharesIndex].shares = (
+						BigInt(stakers.get(stakerAddress).shares[foundSharesIndex].shares) -
+						BigInt(shares)
+					).toString()
+				}
 			}
 		}
 
@@ -86,23 +119,46 @@ export async function seedStakers(fromBlock?: bigint, toBlock?: bigint) {
 	// Storing last sycned block
 	await saveLastSyncBlock(blockSyncKey, lastBlock)
 
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-	const dbTransactions: any[] = []
-	for (const [operatorAddress, stakers] of operatorStakers) {
-		dbTransactions.push(
-			prismaClient.operator.updateMany({
-				where: { address: operatorAddress },
-				data: {
-					stakers: {
-						set: stakers
-					},
-					totalStakers: stakers.length
-				}
+	if (firstBlock === baseBlock) {
+		const stakersList: {
+			address: string
+			delegatedTo: string | null
+			shares: { shares: string; strategy: string }[]
+		}[] = []
+
+		for (const [stakerAddress, stakerDetails] of stakers) {
+			stakersList.push({
+				address: stakerAddress,
+				delegatedTo: stakerDetails.delegatedTo,
+				shares: stakerDetails.shares
 			})
-		)
+		}
+
+		await prismaClient.staker.createMany({
+			data: stakersList
+		})
+	} else {
+		// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+		const dbTransactions: any[] = []
+		for (const [stakerAddress, stakerDetails] of stakers) {
+			dbTransactions.push(
+				prismaClient.staker.upsert({
+					where: { address: stakerAddress },
+					create: {
+						address: stakerAddress,
+						delegatedTo: stakerDetails.delegatedTo,
+						shares: stakerDetails.shares
+					},
+					update: {
+						delegatedTo: stakerDetails.delegatedTo,
+						shares: stakerDetails.shares
+					}
+				})
+			)
+		}
+
+		await bulkUpdateDbTransactions(dbTransactions)
 	}
 
-	await bulkUpdateDbTransactions(dbTransactions)
-
-	console.log('Seeded stakers:', operatorStakers.size)
+	console.log('Seeded stakers:', stakers.size)
 }
