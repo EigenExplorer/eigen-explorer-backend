@@ -40,9 +40,14 @@ model Avs {
   @@index([tags], map: "tags_1")
 }
 
-type OperatorShares {
+type StrategyShares {
   shares   String
   strategy String
+}
+
+type OperatorStaker {
+  address String
+  shares  StrategyShares[]
 }
 
 model Operator {
@@ -51,13 +56,21 @@ model Operator {
 
   metadata        EntityMetadata
   curatedMetadata EntityMetadata?
-  stakers         String[]
-  totalStakers    Int              @default(0)
-  shares          OperatorShares[]
+  shares          StrategyShares[]
+  // stakers         OperatorStaker[]
+  // totalStakers    Int              @default(0)
 
   // blockNumber BigInt
   // createdAt   DateTime
   // updatedAt   DateTime
+}
+
+model Staker {
+  id      String @id @default(auto()) @map("_id") @db.ObjectId
+  address String @unique
+
+  delegatedTo String?
+  shares      StrategyShares[]
 }
 
 model Pod {
