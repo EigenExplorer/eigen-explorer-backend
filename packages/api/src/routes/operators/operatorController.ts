@@ -25,6 +25,9 @@ export async function getAllOperators(req: Request, res: Response) {
 			operatorRecords.map(async (operator) => {
 				let tvl = 0
 				const shares = operator.shares
+				const totalStakers = await prisma.staker.count({
+					where: { delegatedTo: operator.address }
+				})
 
 				shares.map((s) => {
 					tvl += Number(s.shares) / 1e18
@@ -33,6 +36,7 @@ export async function getAllOperators(req: Request, res: Response) {
 				return {
 					...operator,
 					tvl,
+					totalStakers,
 					stakers: undefined
 				}
 			})
@@ -66,6 +70,10 @@ export async function getOperator(req: Request, res: Response) {
 			where: { address: id }
 		})
 
+		const totalStakers = await prisma.staker.count({
+			where: { delegatedTo: operator.address }
+		})
+
 		let tvl = 0
 		const shares = operator.shares
 
@@ -76,6 +84,7 @@ export async function getOperator(req: Request, res: Response) {
 		res.send({
 			...operator,
 			tvl,
+			totalStakers,
 			stakers: undefined
 		})
 	} catch (error) {
