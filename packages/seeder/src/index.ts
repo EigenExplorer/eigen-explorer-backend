@@ -31,7 +31,7 @@ async function seedAvsLoop() {
 
 async function seedPodsLoop() {
 	while (true) {
-		await delay(300)
+		await delay(600)
 		
 		console.log('Seeding Pods & Validators')
 		await seedPods()

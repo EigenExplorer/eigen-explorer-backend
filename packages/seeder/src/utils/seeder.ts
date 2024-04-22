@@ -16,7 +16,7 @@ export async function loopThroughBlocks(
 	let nextBlock = firstBlock
 
 	while (nextBlock < lastBlock) {
-		nextBlock = currentBlock + 9999n
+		nextBlock = currentBlock + 999n
 		if (nextBlock >= lastBlock) nextBlock = lastBlock
 
 		await cb(currentBlock, nextBlock)
@@ -36,9 +36,9 @@ export async function bulkUpdateDbTransactions(dbTransactions: any[]) {
 	console.log('Updating db transactions', dbTransactions.length)
 
 	for (const chunk of chunkArray(dbTransactions, chunkSize)) {
-		console.time(`Updating db transactions ${i}`)
+		console.time(`Updating db transactions ${i}, size: ${chunk.length}`)
 		await prismaClient.$transaction(chunk)
-		console.timeEnd(`Updating db transactions ${i}`)
+		console.timeEnd(`Updating db transactions ${i}, size: ${chunk.length}`)
 
 		i++
 	}

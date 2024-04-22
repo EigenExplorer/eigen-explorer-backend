@@ -3,9 +3,6 @@ import { getPrismaClient } from './prisma/prismaClient'
 export async function seedValidators() {
 	const prismaClient = getPrismaClient()
 
-	// Clear all validator data
-	await prismaClient.validator.deleteMany()
-
 	let validators = []
 	const validatorRestake = await prismaClient.validatorRestake.findMany()
 	const validatorRestakeIds = validatorRestake.map((vr) => vr.validatorIndex)
@@ -41,6 +38,9 @@ export async function seedValidators() {
 
 		currentIndex = nextIndex
 	}
+
+	// Clear all validator data
+	await prismaClient.validator.deleteMany()
 
 	await prismaClient.validator.createMany({
 		// biome-ignore lint/suspicious/noExplicitAny: <explanation>

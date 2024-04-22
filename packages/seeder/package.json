@@ -9,6 +9,9 @@
     "prisma:generate": "prisma generate --schema=./src/prisma/schema.prisma",
     "prisma:format": "prisma format --schema=./src/prisma/schema.prisma"
   },
+  "prisma": {
+    "schema": "./src/prisma/schema.prisma"
+  },
   "devDependencies": {
     "@types/node-cron": "^3.0.11",
     "@types/node": "^20.12.2",

@@ -201,11 +201,9 @@ async function doGetTotalOperatorCount() {
 }
 
 async function doGetTotalStakerCount() {
-	const stakers = await prisma.operator.aggregate({
-		_sum: {
-			totalStakers: true
-		}
+	const stakers = await prisma.staker.count({
+		where: { delegatedTo: { not: null } }
 	})
 
-	return stakers._sum.totalStakers
+	return stakers
 }

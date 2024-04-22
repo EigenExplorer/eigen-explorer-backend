@@ -1,5 +1,5 @@
 import express from 'express';
-import { getAllAVS, getAllAVSAddresses, getAVS } from './avsController';
+import { getAllAVS, getAllAVSAddresses, getAVS, getAVSStakers } from './avsController';
 
 const router = express.Router();
 
@@ -198,5 +198,7 @@ router.get('/addresses', getAllAVSAddresses);
  *                   description: Error message detailing the issue encountered.
  */
 router.get('/:id', getAVS);
+
+router.get('/:id/stakers', getAVSStakers)
 
 export default router;
