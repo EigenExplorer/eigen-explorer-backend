@@ -8,8 +8,8 @@ export const eigenHoleskyContracts: EigenContractAddress = {
     EigenPodManager: '0x30770d7E3e71112d7A6b7259542D1f680a70e315',
     Strategies: {
         WETH: {
-            strategyContract: '0x80528d6e9a2babfc766965e0e26d5ab08d9cfaf9',
-            tokenContract: '0xBe9895146f7AF43049ca1c1AE358B0541Ea49704',
+            strategyContract: '0x80528D6e9A2BAbFc766965E0E26d5aB08D9CFaF9',
+            tokenContract: '0x94373a4919B3240D86eA41593D5eBa789FEF3848',
         },
         // cbETH: {
         // 	strategyContract: '0x70EB4D3c164a6B4A5f908D4FBb5a9cAfFb66bAB6',
