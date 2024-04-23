@@ -7,10 +7,6 @@ export const eigenContracts: EigenContractAddress = {
 	StrategyManager: '0x858646372CC42E1A627fcE94aa7A7033e7CF075A',
 	EigenPodManager: '0x91E677b07F7AF907ec9a428aafA9fc14a0d3A338',
 	Strategies: {
-		WETH: {
-			strategyContract: '0x54945180dB7943c0ed0FEE7EdaB2Bd24620256bc',
-			tokenContract: '0xBe9895146f7AF43049ca1c1AE358B0541Ea49704'
-		},
 		cbETH: {
 			strategyContract: '0x54945180dB7943c0ed0FEE7EdaB2Bd24620256bc',
 			tokenContract: '0xBe9895146f7AF43049ca1c1AE358B0541Ea49704'
