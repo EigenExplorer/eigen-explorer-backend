@@ -113,9 +113,10 @@ export async function getAVS(req: Request, res: Response) {
 		})
 
 		const strategyKeys = Object.keys(getEigenContracts().Strategies)
-		const strategyContracts = strategyKeys.map(
-			(s) => getEigenContracts().Strategies[s].strategyContract
+		const strategyContracts = strategyKeys.map((s) =>
+			getEigenContracts().Strategies[s].strategyContract.toLowerCase()
 		) as `0x${string}`[]
+		strategyContracts.push('0xbeaC0eeEeeeeEEeEeEEEEeeEEeEeeeEeeEEBEaC0')
 
 		const shares = strategyContracts.map((sc) => ({
 			shares: '0',
@@ -138,7 +139,9 @@ export async function getAVS(req: Request, res: Response) {
 
 		operatorRecords.map((o) => {
 			o.shares.map((os) => {
-				const foundShare = shares.find((s) => s.strategy === os.strategy)
+				const foundShare = shares.find(
+					(s) => s.strategy.toLowerCase() === os.strategy.toLowerCase()
+				)
 				if (foundShare) {
 					const shares = BigInt(foundShare.shares) + BigInt(os.shares)
 					foundShare.shares = shares.toString()
