@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express'
-import prisma from '../../prisma/prismaClient'
+import prisma from '../../utils/prismaClient'
 import { getContract } from 'viem'
 import { getViemClient } from '../../viem/viemClient'
 import { strategyAbi } from '../../data/abi/strategy'
@@ -202,7 +202,7 @@ async function doGetTotalOperatorCount() {
 
 async function doGetTotalStakerCount() {
 	const stakers = await prisma.staker.count({
-		where: { delegatedTo: { not: null } }
+		where: { operatorAddress: { not: null } }
 	})
 
 	return stakers

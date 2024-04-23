@@ -1,9 +1,9 @@
-import { getPrismaClient } from './prisma/prismaClient'
+import { getPrismaClient } from './utils/prismaClient'
 import { parseAbiItem } from 'viem'
 import { isValidMetadataUrl, validateMetadata } from './utils/metadata'
 import type { EntityMetadata } from './utils/metadata'
 import { getEigenContracts } from './data/address'
-import { getViemClient } from './viem/viemClient'
+import { getViemClient } from './utils/viemClient'
 import {
 	bulkUpdateDbTransactions,
 	fetchLastSyncBlock,
@@ -13,7 +13,7 @@ import {
 
 const blockSyncKey = 'lastSyncedBlock_operators'
 
-export async function seedOperators(fromBlock?: bigint, toBlock?: bigint) {
+export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 	console.log('Seeding Operators ...')
 
 	const viemClient = getViemClient()
@@ -41,21 +41,21 @@ export async function seedOperators(fromBlock?: bigint, toBlock?: bigint) {
 
 			const operatorAddress = String(log.args.operator).toLowerCase()
 
-			try {
-				if (log.args.metadataURI && isValidMetadataUrl(log.args.metadataURI)) {
-					const response = await fetch(log.args.metadataURI)
-					const data = await response.text()
-					const metadata = validateMetadata(data)
+			// try {
+			// 	if (log.args.metadataURI && isValidMetadataUrl(log.args.metadataURI)) {
+			// 		const response = await fetch(log.args.metadataURI)
+			// 		const data = await response.text()
+			// 		const metadata = validateMetadata(data)
 
-					if (metadata) {
-						operatorList.set(operatorAddress, metadata)
-					} else {
-						throw new Error('Missing operator metadata')
-					}
-				} else {
-					throw new Error('Invalid operator metadata uri')
-				}
-			} catch (error) {
+			// 		if (metadata) {
+			// 			operatorList.set(operatorAddress, metadata)
+			// 		} else {
+			// 			throw new Error('Missing operator metadata')
+			// 		}
+			// 	} else {
+			// 		throw new Error('Invalid operator metadata uri')
+			// 	}
+			// } catch (error) {
 				operatorList.set(operatorAddress, {
 					name: '',
 					description: '',
@@ -65,16 +65,13 @@ export async function seedOperators(fromBlock?: bigint, toBlock?: bigint) {
 					website: '',
 					x: ''
 				})
-			}
+			// }
 		}
 
 		console.log(
 			`Operators registered between blocks ${fromBlock} ${toBlock}: ${logs.length}`
 		)
 	})
-
-	// Storing last sycned block
-	await saveLastSyncBlock(blockSyncKey, lastBlock)
 
 	// Prepare db transaction object
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
@@ -85,15 +82,23 @@ export async function seedOperators(fromBlock?: bigint, toBlock?: bigint) {
 			prismaClient.operator.upsert({
 				where: { address },
 				update: {
-					metadata: {
-						set: metadata
-					}
+					metadataName: metadata.name,
+					metadataDescription: metadata.description,
+					metadataLogo: metadata.logo,
+					metadataDiscord: metadata.discord,
+					metadataTelegram: metadata.telegram,
+					metadataWebsite: metadata.website,
+					metadataX: metadata.x,
 				},
 				create: {
 					address,
-					metadata: {
-						set: metadata
-					}
+					metadataName: metadata.name,
+					metadataDescription: metadata.description,
+					metadataLogo: metadata.logo,
+					metadataDiscord: metadata.discord,
+					metadataTelegram: metadata.telegram,
+					metadataWebsite: metadata.website,
+					metadataX: metadata.x,
 				}
 			})
 		)
@@ -101,5 +106,8 @@ export async function seedOperators(fromBlock?: bigint, toBlock?: bigint) {
 
 	await bulkUpdateDbTransactions(dbTransactions)
 
+	// Storing last sycned block
+	await saveLastSyncBlock(blockSyncKey, lastBlock)
+	
 	console.log('Seeded operators:', operatorList.size)
 }

@@ -1,12 +1,9 @@
 import { parseAbiItem } from 'viem'
-import {
-	isValidMetadataUrl,
-	validateMetadata
-} from './utils/metadata'
+import { isValidMetadataUrl, validateMetadata } from './utils/metadata'
 import type { EntityMetadata } from './utils/metadata'
 import { getEigenContracts } from './data/address'
-import { getViemClient } from './viem/viemClient'
-import { getPrismaClient } from './prisma/prismaClient'
+import { getViemClient } from './utils/viemClient'
+import { getPrismaClient } from './utils/prismaClient'
 import {
 	bulkUpdateDbTransactions,
 	fetchLastSyncBlock,
@@ -22,7 +19,7 @@ const blockSyncKey = 'lastSyncedBlock_avs'
  * @param fromBlock
  * @param toBlock
  */
-export async function seedAvs(fromBlock?: bigint, toBlock?: bigint) {
+export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 	console.log('Seeding AVS ...')
 
 	const viemClient = getViemClient()
@@ -49,6 +46,15 @@ export async function seedAvs(fromBlock?: bigint, toBlock?: bigint) {
 			const log = logs[l]
 
 			const avsAddress = String(log.args.avs).toLowerCase()
+			avsList.set(avsAddress, {
+				name: '',
+				website: '',
+				description: '',
+				logo: '',
+				x: '',
+				discord: '',
+				telegram: ''
+			})
 
 			if (log.args.metadataURI && isValidMetadataUrl(log.args.metadataURI)) {
 				const response = await fetch(log.args.metadataURI)
@@ -66,9 +72,6 @@ export async function seedAvs(fromBlock?: bigint, toBlock?: bigint) {
 		)
 	})
 
-	// Storing last sycned block
-	await saveLastSyncBlock(blockSyncKey, lastBlock)
-
 	// Prepare db transaction object
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	const dbTransactions: any[] = []
@@ -78,15 +81,23 @@ export async function seedAvs(fromBlock?: bigint, toBlock?: bigint) {
 			prismaClient.avs.upsert({
 				where: { address },
 				update: {
-					metadata: {
-						set: metadata
-					}
+					metadataName: metadata.name,
+					metadataDescription: metadata.description,
+					metadataLogo: metadata.logo,
+					metadataDiscord: metadata.discord,
+					metadataTelegram: metadata.telegram,
+					metadataWebsite: metadata.website,
+					metadataX: metadata.x
 				},
 				create: {
 					address,
-					metadata: {
-						set: metadata
-					},
+					metadataName: metadata.name,
+					metadataDescription: metadata.description,
+					metadataLogo: metadata.logo,
+					metadataDiscord: metadata.discord,
+					metadataTelegram: metadata.telegram,
+					metadataWebsite: metadata.website,
+					metadataX: metadata.x,
 					tags: []
 				}
 			})
@@ -94,6 +105,9 @@ export async function seedAvs(fromBlock?: bigint, toBlock?: bigint) {
 	}
 
 	await bulkUpdateDbTransactions(dbTransactions)
+
+	// Storing last sycned block
+	await saveLastSyncBlock(blockSyncKey, lastBlock)
 
 	console.log('Seeded AVS:', avsList.size)
 }

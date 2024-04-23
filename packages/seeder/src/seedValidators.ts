@@ -1,4 +1,4 @@
-import { getPrismaClient } from './prisma/prismaClient'
+import { getPrismaClient } from './utils/prismaClient'
 
 export async function seedValidators() {
 	const prismaClient = getPrismaClient()

@@ -1,7 +1,7 @@
 import { parseAbiItem } from 'viem'
 import { getEigenContracts } from './data/address'
-import { getViemClient } from './viem/viemClient'
-import { getPrismaClient } from './prisma/prismaClient'
+import { getViemClient } from './utils/viemClient'
+import { getPrismaClient } from './utils/prismaClient'
 import {
 	fetchLastSyncBlock,
 	loopThroughBlocks,

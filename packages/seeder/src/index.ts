@@ -9,6 +9,7 @@ import { seedPods } from './seedPods'
 import { seedValidatorsRestake } from './seedValidatorsRestake'
 import { seedStakers } from './seedStakers'
 import { seedOperatorShares } from './seedOperatorShares'
+import { getViemClient } from './utils/viemClient'
 
 console.log('Initializing seeder ...')
 
@@ -17,28 +18,31 @@ function delay(seconds: number) {
 }
 
 async function seedAvsLoop() {
-	while (true) {
-		console.log('Seeding AVS & Operators ...')
-		await seedAvs()
-		await seedOperators()
-		await seedAvsOperators()
-		await seedStakers()
-		await seedOperatorShares()
-
-		await delay(120) // Wait for 2 minutes (120 seconds)
-	}
-}
-
-async function seedPodsLoop() {
-	while (true) {
-		await delay(600)
+	// while (true) {
+		const viemClient = getViemClient()
+		const targetBlock = await viemClient.getBlockNumber()
+		console.log('Seeding AVS & Operators ...', targetBlock)
 		
-		console.log('Seeding Pods & Validators')
-		await seedPods()
-		await seedValidatorsRestake()
-		await seedValidators()
-	}
+		await seedAvs(targetBlock)
+		await seedOperators(targetBlock)
+		// await seedAvsOperators(targetBlock)
+		// await seedStakers(targetBlock)
+		// await seedOperatorShares(targetBlock)
+
+		// await delay(120) // Wait for 2 minutes (120 seconds)
+	// }
 }
+
+// async function seedPodsLoop() {
+// 	while (true) {
+// 		await delay(600)
+		
+// 		console.log('Seeding Pods & Validators')
+// 		await seedPods()
+// 		await seedValidatorsRestake()
+// 		await seedValidators()
+// 	}
+// }
 
 seedAvsLoop()
-seedPodsLoop()
+// seedPodsLoop()

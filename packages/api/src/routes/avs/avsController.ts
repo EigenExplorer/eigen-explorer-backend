@@ -1,6 +1,6 @@
+import prisma from '../../utils/prismaClient'
 import type { Request, Response } from 'express'
 import { PaginationQuerySchema } from '../../schema/generic'
-import prisma from '../../prisma/prismaClient'
 import { getEigenContracts } from '../../data/address'
 
 /**
@@ -20,17 +20,21 @@ export async function getAllAVS(req: Request, res: Response) {
 
 		// Fetch count and record
 		const avsCount = await prisma.avs.count()
-		const avsRecords = await prisma.avs.findMany({ skip, take })
+		const avsRecords = await prisma.avs.findMany({
+			skip,
+			take,
+			include: { operators: true }
+		})
 
 		const data = await Promise.all(
 			avsRecords.map(async (avs) => {
 				const operatorAddresses = avs.operators
 					.filter((o) => o.isActive)
-					.map((o) => o.address)
+					.map((o) => o.operatorAddress)
 
 				const totalOperators = operatorAddresses.length
 				const totalStakers = await prisma.staker.count({
-					where: { delegatedTo: { in: operatorAddresses } }
+					where: { operatorAddress: { in: operatorAddresses } }
 				})
 
 				return {
@@ -64,7 +68,6 @@ export async function getAllAVS(req: Request, res: Response) {
  * @param res
  */
 export async function getAllAVSAddresses(req: Request, res: Response) {
-	console.log('in route')
 	try {
 		// Validate pagination query
 		const {
@@ -79,7 +82,7 @@ export async function getAllAVSAddresses(req: Request, res: Response) {
 
 		// Simplified map (assuming avs.address is not asynchronous)
 		const data = avsRecords.map((avs) => ({
-			name: avs.metadata.name,
+			name: avs.metadataName,
 			address: avs.address
 		}))
 
@@ -109,7 +112,8 @@ export async function getAVS(req: Request, res: Response) {
 	try {
 		const { id } = req.params
 		const avs = await prisma.avs.findUniqueOrThrow({
-			where: { address: id }
+			where: { address: id },
+			include: { operators: true }
 		})
 
 		const strategyKeys = Object.keys(getEigenContracts().Strategies)
@@ -125,7 +129,8 @@ export async function getAVS(req: Request, res: Response) {
 
 		const operatorAddresses = avs.operators
 			.filter((o) => o.isActive)
-			.map((o) => o.address)
+			.map((o) => o.operatorAddress)
+
 		const operatorRecords = await prisma.operator.findMany({
 			where: { address: { in: operatorAddresses } },
 			select: { shares: true }
@@ -134,14 +139,15 @@ export async function getAVS(req: Request, res: Response) {
 		let tvl = 0
 		const totalOperators = operatorAddresses.length
 		const totalStakers = await prisma.staker.count({
-			where: { delegatedTo: { in: operatorAddresses } }
+			where: { operatorAddress: { in: operatorAddresses } }
 		})
 
 		operatorRecords.map((o) => {
 			o.shares.map((os) => {
 				const foundShare = shares.find(
-					(s) => s.strategy.toLowerCase() === os.strategy.toLowerCase()
+					(s) => s.strategy.toLowerCase() === os.strategyAddress.toLowerCase()
 				)
+
 				if (foundShare) {
 					const shares = BigInt(foundShare.shares) + BigInt(os.shares)
 					foundShare.shares = shares.toString()
@@ -177,21 +183,23 @@ export async function getAVSStakers(req: Request, res: Response) {
 
 		const { id } = req.params
 		const avs = await prisma.avs.findUniqueOrThrow({
-			where: { address: id }
+			where: { address: id },
+			include: { operators: true }
 		})
 
 		const operatorAddresses = avs.operators
 			.filter((o) => o.isActive)
-			.map((o) => o.address)
+			.map((o) => o.operatorAddress)
 
 		const stakersCount = await prisma.staker.count({
-			where: { delegatedTo: { in: operatorAddresses } }
+			where: { operatorAddress: { in: operatorAddresses } }
 		})
 
 		const stakersRecords = await prisma.staker.findMany({
-			where: { delegatedTo: { in: operatorAddresses } },
+			where: { operatorAddress: { in: operatorAddresses } },
 			skip,
-			take
+			take,
+			include: { shares: true }
 		})
 
 		const data = await Promise.all(

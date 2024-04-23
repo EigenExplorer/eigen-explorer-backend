@@ -1,4 +1,4 @@
-import { getPrismaClient } from '.././prisma/prismaClient'
+import { getPrismaClient } from './prismaClient'
 import { chunkArray } from './array'
 
 // Base block
@@ -16,7 +16,7 @@ export async function loopThroughBlocks(
 	let nextBlock = firstBlock
 
 	while (nextBlock < lastBlock) {
-		nextBlock = currentBlock + 999n
+		nextBlock = currentBlock + 9999n
 		if (nextBlock >= lastBlock) nextBlock = lastBlock
 
 		await cb(currentBlock, nextBlock)

@@ -1,7 +1,7 @@
 import { parseAbiItem } from 'viem'
 import { getEigenContracts } from './data/address'
-import { getViemClient } from './viem/viemClient'
-import { getPrismaClient } from './prisma/prismaClient'
+import { getViemClient } from './utils/viemClient'
+import { getPrismaClient } from './utils/prismaClient'
 import {
 	baseBlock,
 	bulkUpdateDbTransactions,
@@ -17,7 +17,7 @@ interface IMap<K, V> extends Map<K, V> {
 	get(key: K): V
 }
 
-export async function seedStakers(fromBlock?: bigint, toBlock?: bigint) {
+export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 	console.log('Seeding stakers ...')
 
 	const viemClient = getViemClient()
