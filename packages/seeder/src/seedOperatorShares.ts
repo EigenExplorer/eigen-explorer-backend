@@ -22,10 +22,6 @@ export async function seedOperatorShares(toBlock?: bigint, fromBlock?: bigint) {
 
 	const viemClient = getViemClient()
 	const prismaClient = getPrismaClient()
-	const operatorSharesInit: Map<
-		string,
-		{ shares: string; strategy: string }[]
-	> = new Map()
 	const operatorShares: IMap<string, { shares: string; strategy: string }[]> =
 		new Map()
 
@@ -33,15 +29,6 @@ export async function seedOperatorShares(toBlock?: bigint, fromBlock?: bigint) {
 		? fromBlock
 		: await fetchLastSyncBlock(blockSyncKey)
 	const lastBlock = toBlock ? toBlock : await viemClient.getBlockNumber()
-
-	// Load initial operator staker state
-	if (firstBlock !== baseBlock) {
-		const operators = await prismaClient.operator.findMany({
-			select: { address: true, shares: true }
-		})
-
-		operators.map((o) => operatorSharesInit.set(o.address, o.shares))
-	}
 
 	// Loop through evm logs
 	await loopThroughBlocks(firstBlock, lastBlock, async (fromBlock, toBlock) => {
@@ -64,13 +51,11 @@ export async function seedOperatorShares(toBlock?: bigint, fromBlock?: bigint) {
 
 			const operatorAddress = String(log.args.operator).toLowerCase()
 			const strategyAddress = String(log.args.strategy).toLowerCase()
-			const shares = log.args.shares || 0n
+			const shares = log.args.shares
+			if (!shares) continue
 
 			if (!operatorShares.has(operatorAddress)) {
-				operatorShares.set(
-					operatorAddress,
-					operatorSharesInit.get(operatorAddress) || []
-				)
+				operatorShares.set(operatorAddress, [])
 			}
 
 			let foundSharesIndex = operatorShares
@@ -105,25 +90,35 @@ export async function seedOperatorShares(toBlock?: bigint, fromBlock?: bigint) {
 		)
 	})
 
-	// Storing last sycned block
-	await saveLastSyncBlock(blockSyncKey, lastBlock)
-
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	const dbTransactions: any[] = []
 	for (const [operatorAddress, shares] of operatorShares) {
-		dbTransactions.push(
-			prismaClient.operator.updateMany({
-				where: { address: operatorAddress },
-				data: {
-					shares: {
-						set: shares
+		shares.map((share) => {
+			dbTransactions.push(
+				prismaClient.operatorStrategyShares.upsert({
+					where: {
+						operatorAddress_strategyAddress: {
+							operatorAddress,
+							strategyAddress: share.strategy
+						}
+					},
+					create: {
+						operatorAddress,
+						strategyAddress: share.strategy,
+						shares: share.shares
+					},
+					update: {
+						shares: share.shares
 					}
-				}
-			})
-		)
+				})
+			)
+		})
 	}
 
 	await bulkUpdateDbTransactions(dbTransactions)
+
+	// Storing last sycned block
+	await saveLastSyncBlock(blockSyncKey, lastBlock)
 
 	console.log('Seeded operator shares:', operatorShares.size)
 }

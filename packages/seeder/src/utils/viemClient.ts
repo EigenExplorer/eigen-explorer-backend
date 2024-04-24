@@ -35,7 +35,7 @@ export function getViemClient(n?: Chain) {
 		publicViemClient = createPublicClient({
 			cacheTime: 10_000,
 			batch: {
-				multicall: true, 
+				multicall: true
 			},
 			transport: process.env.NETWORK_CHAIN_RPC_URL
 				? http(process.env.NETWORK_CHAIN_RPC_URL)
@@ -53,7 +53,7 @@ if (!(global as any).publicViemClient) {
 	;(global as any).publicViemClient = createPublicClient({
 		cacheTime: 10_000,
 		batch: {
-			multicall: true, 
+			multicall: true
 		},
 		transport: process.env.NETWORK_CHAIN_RPC_URL
 			? http(process.env.NETWORK_CHAIN_RPC_URL)

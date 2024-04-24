@@ -1,5 +1,4 @@
 import 'dotenv/config'
-import cron from 'node-cron'
 
 import { seedValidators } from './seedValidators'
 import { seedAvs } from './seedAvs'
@@ -18,31 +17,33 @@ function delay(seconds: number) {
 }
 
 async function seedAvsLoop() {
-	// while (true) {
+	while (true) {
 		const viemClient = getViemClient()
 		const targetBlock = await viemClient.getBlockNumber()
 		console.log('Seeding AVS & Operators ...', targetBlock)
-		
+
 		await seedAvs(targetBlock)
 		await seedOperators(targetBlock)
-		// await seedAvsOperators(targetBlock)
-		// await seedStakers(targetBlock)
-		// await seedOperatorShares(targetBlock)
+		await seedAvsOperators(targetBlock)
+		await seedStakers(targetBlock)
+		await seedOperatorShares(targetBlock)
 
-		// await delay(120) // Wait for 2 minutes (120 seconds)
-	// }
+		await delay(120) // Wait for 2 minutes (120 seconds)
+	}
 }
 
-// async function seedPodsLoop() {
-// 	while (true) {
-// 		await delay(600)
-		
-// 		console.log('Seeding Pods & Validators')
-// 		await seedPods()
-// 		await seedValidatorsRestake()
-// 		await seedValidators()
-// 	}
-// }
+async function seedPodsLoop() {
+	while (true) {
+		await delay(600)
+		const viemClient = getViemClient()
+		const targetBlock = await viemClient.getBlockNumber()
+
+		console.log('Seeding Pods & Validators ...', targetBlock)
+		await seedPods(targetBlock)
+		await seedValidatorsRestake(targetBlock)
+		await seedValidators()
+	}
+}
 
 seedAvsLoop()
-// seedPodsLoop()
+seedPodsLoop()

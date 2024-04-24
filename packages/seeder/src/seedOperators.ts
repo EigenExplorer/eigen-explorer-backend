@@ -41,21 +41,21 @@ export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 
 			const operatorAddress = String(log.args.operator).toLowerCase()
 
-			// try {
-			// 	if (log.args.metadataURI && isValidMetadataUrl(log.args.metadataURI)) {
-			// 		const response = await fetch(log.args.metadataURI)
-			// 		const data = await response.text()
-			// 		const metadata = validateMetadata(data)
+			try {
+				if (log.args.metadataURI && isValidMetadataUrl(log.args.metadataURI)) {
+					const response = await fetch(log.args.metadataURI)
+					const data = await response.text()
+					const metadata = validateMetadata(data)
 
-			// 		if (metadata) {
-			// 			operatorList.set(operatorAddress, metadata)
-			// 		} else {
-			// 			throw new Error('Missing operator metadata')
-			// 		}
-			// 	} else {
-			// 		throw new Error('Invalid operator metadata uri')
-			// 	}
-			// } catch (error) {
+					if (metadata) {
+						operatorList.set(operatorAddress, metadata)
+					} else {
+						throw new Error('Missing operator metadata')
+					}
+				} else {
+					throw new Error('Invalid operator metadata uri')
+				}
+			} catch (error) {
 				operatorList.set(operatorAddress, {
 					name: '',
 					description: '',
@@ -65,7 +65,7 @@ export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 					website: '',
 					x: ''
 				})
-			// }
+			}
 		}
 
 		console.log(
@@ -88,7 +88,7 @@ export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 					metadataDiscord: metadata.discord,
 					metadataTelegram: metadata.telegram,
 					metadataWebsite: metadata.website,
-					metadataX: metadata.x,
+					metadataX: metadata.x
 				},
 				create: {
 					address,
@@ -98,7 +98,7 @@ export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 					metadataDiscord: metadata.discord,
 					metadataTelegram: metadata.telegram,
 					metadataWebsite: metadata.website,
-					metadataX: metadata.x,
+					metadataX: metadata.x
 				}
 			})
 		)
@@ -108,6 +108,6 @@ export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 
 	// Storing last sycned block
 	await saveLastSyncBlock(blockSyncKey, lastBlock)
-	
+
 	console.log('Seeded operators:', operatorList.size)
 }

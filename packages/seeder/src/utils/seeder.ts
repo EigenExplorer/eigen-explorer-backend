@@ -30,7 +30,7 @@ export async function loopThroughBlocks(
 // biome-ignore lint/suspicious/noExplicitAny: <explanation>
 export async function bulkUpdateDbTransactions(dbTransactions: any[]) {
 	const prismaClient = getPrismaClient()
-	const chunkSize = 100
+	const chunkSize = 1000
 
 	let i = 0
 	console.log('Updating db transactions', dbTransactions.length)

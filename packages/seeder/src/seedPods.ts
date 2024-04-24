@@ -15,7 +15,7 @@ const blockSyncKey = 'lastSyncedBlock_pods'
  * @param fromBlock
  * @param toBlock
  */
-export async function seedPods(fromBlock?: bigint, toBlock?: bigint) {
+export async function seedPods(toBlock?: bigint, fromBlock?: bigint) {
 	console.log('Seeding Pods ...')
 
 	const viemClient = getViemClient()

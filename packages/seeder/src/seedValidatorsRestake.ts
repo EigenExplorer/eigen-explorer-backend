@@ -10,8 +10,8 @@ import {
 const blockSyncKey = 'lastSyncedBlock_validatorsRestake'
 
 export async function seedValidatorsRestake(
-	fromBlock?: bigint,
-	toBlock?: bigint
+	toBlock?: bigint,
+	fromBlock?: bigint
 ) {
 	console.log('Seeding Validator Restake ...')
 

@@ -1,16 +1,16 @@
-import express from 'express';
+import express from 'express'
 import {
-    getMetrics,
-    getTotalAvs,
-    getTotalOperators,
-    getTotalStakers,
-    getTvl,
-    getTvlBeaconChain,
-    getTvlRestaking,
-    getTvlRestakingByStrategy,
-} from './metricController';
+	getMetrics,
+	getTotalAvs,
+	getTotalOperators,
+	getTotalStakers,
+	getTvl,
+	getTvlBeaconChain,
+	getTvlRestaking,
+	getTvlRestakingByStrategy
+} from './metricController'
 
-const router = express.Router();
+const router = express.Router()
 
 // API routes for /metrics
 
@@ -56,7 +56,7 @@ const router = express.Router();
  *               type: string
  *               example: 'An error occurred while fetching data.'
  */
-router.get('/', getMetrics);
+router.get('/', getMetrics)
 
 /**
  * @openapi
@@ -85,7 +85,7 @@ router.get('/', getMetrics);
  *               type: string
  *               example: 'An error occurred while fetching data.'
  */
-router.get('/tvl', getTvl);
+router.get('/tvl', getTvl)
 
 /**
  * @openapi
@@ -114,7 +114,7 @@ router.get('/tvl', getTvl);
  *               type: string
  *               example: 'An error occurred while fetching data.'
  */
-router.get('/tvl/beacon-chain', getTvlBeaconChain);
+router.get('/tvl/beacon-chain', getTvlBeaconChain)
 
 /**
  * @openapi
@@ -146,7 +146,7 @@ router.get('/tvl/beacon-chain', getTvlBeaconChain);
  *               type: string
  *               example: 'An error occurred while fetching data.'
  */
-router.get('/tvl/restaking', getTvlRestaking);
+router.get('/tvl/restaking', getTvlRestaking)
 
 /**
  * @openapi
@@ -182,7 +182,7 @@ router.get('/tvl/restaking', getTvlRestaking);
  *               type: string
  *               example: 'An error occurred while fetching data.'
  */
-router.get('/tvl/restaking/:strategy', getTvlRestakingByStrategy);
+router.get('/tvl/restaking/:strategy', getTvlRestakingByStrategy)
 
 /**
  * @openapi
@@ -211,7 +211,7 @@ router.get('/tvl/restaking/:strategy', getTvlRestakingByStrategy);
  *               type: string
  *               example: 'An error occurred while fetching data.'
  */
-router.get('/total-avs', getTotalAvs);
+router.get('/total-avs', getTotalAvs)
 
 /**
  * @openapi
@@ -240,7 +240,7 @@ router.get('/total-avs', getTotalAvs);
  *               type: string
  *               example: 'An error occurred while fetching data.'
  */
-router.get('/total-operators', getTotalOperators);
+router.get('/total-operators', getTotalOperators)
 
 /**
  * @openapi
@@ -269,6 +269,6 @@ router.get('/total-operators', getTotalOperators);
  *               type: string
  *               example: 'An error occurred while fetching data.'
  */
-router.get('/total-stakers', getTotalStakers);
+router.get('/total-stakers', getTotalStakers)
 
-export default router;
+export default router

@@ -31,7 +31,7 @@ async function getStrategyBalance(
 	tokenProxyContractAddr: string,
 	tokenImplementationAbi: any
 ) {
-    const viemClient = getViemClient()
+	const viemClient = getViemClient()
 	const data = (await viemClient.readContract({
 		address: tokenProxyContractAddr as `0x${string}`,
 		abi: tokenImplementationAbi,

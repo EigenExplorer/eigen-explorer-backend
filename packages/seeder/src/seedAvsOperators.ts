@@ -65,8 +65,6 @@ export async function seedAvsOperators(toBlock?: bigint, fromBlock?: bigint) {
 
 	for (const [avsAddress, operatorsMap] of avsOperatorsList) {
 		for (const [operatorAddress, status] of operatorsMap) {
-			console.log('avs', avsAddress, operatorAddress, status)
-
 			dbTransactions.push(
 				prismaClient.avsOperator.upsert({
 					where: {

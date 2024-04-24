@@ -25,7 +25,7 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 	const stakers: IMap<
 		string,
 		{
-			delegatedTo: string | null
+			operatorAddress: string | null
 			shares: { shares: string; strategy: string }[]
 		}
 	> = new Map()
@@ -64,13 +64,13 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 			const stakerAddress = String(log.args.staker).toLowerCase()
 
 			if (!stakers.has(stakerAddress)) {
-				stakers.set(stakerAddress, { delegatedTo: null, shares: [] })
+				stakers.set(stakerAddress, { operatorAddress: null, shares: [] })
 			}
 
 			if (log.eventName === 'StakerDelegated') {
-				stakers.get(stakerAddress).delegatedTo = operatorAddress
+				stakers.get(stakerAddress).operatorAddress = operatorAddress
 			} else if (log.eventName === 'StakerUndelegated') {
-				stakers.get(stakerAddress).delegatedTo = null
+				stakers.get(stakerAddress).operatorAddress = null
 			} else if (
 				log.eventName === 'OperatorSharesIncreased' ||
 				log.eventName === 'OperatorSharesDecreased'
@@ -116,49 +116,48 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 		)
 	})
 
-	// Storing last sycned block
-	await saveLastSyncBlock(blockSyncKey, lastBlock)
-
-	if (firstBlock === baseBlock) {
-		const stakersList: {
-			address: string
-			delegatedTo: string | null
-			shares: { shares: string; strategy: string }[]
-		}[] = []
-
-		for (const [stakerAddress, stakerDetails] of stakers) {
-			stakersList.push({
-				address: stakerAddress,
-				delegatedTo: stakerDetails.delegatedTo,
-				shares: stakerDetails.shares
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+	const dbTransactions: any[] = []
+	for (const [stakerAddress, stakerDetails] of stakers) {
+		dbTransactions.push(
+			prismaClient.staker.upsert({
+				where: { address: stakerAddress },
+				create: {
+					address: stakerAddress,
+					operatorAddress: stakerDetails.operatorAddress
+				},
+				update: {
+					operatorAddress: stakerDetails.operatorAddress
+				}
 			})
-		}
+		)
 
-		await prismaClient.staker.createMany({
-			data: stakersList
-		})
-	} else {
-		// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-		const dbTransactions: any[] = []
-		for (const [stakerAddress, stakerDetails] of stakers) {
+		stakerDetails.shares.map((share) => {
 			dbTransactions.push(
-				prismaClient.staker.upsert({
-					where: { address: stakerAddress },
+				prismaClient.stakerStrategyShares.upsert({
+					where: {
+						stakerAddress_strategyAddress: {
+							stakerAddress,
+							strategyAddress: share.strategy
+						}
+					},
 					create: {
-						address: stakerAddress,
-						delegatedTo: stakerDetails.delegatedTo,
-						shares: stakerDetails.shares
+						stakerAddress,
+						strategyAddress: share.strategy,
+						shares: share.shares
 					},
 					update: {
-						delegatedTo: stakerDetails.delegatedTo,
-						shares: stakerDetails.shares
+						shares: share.shares
 					}
 				})
 			)
-		}
-
-		await bulkUpdateDbTransactions(dbTransactions)
+		})
 	}
+
+	await bulkUpdateDbTransactions(dbTransactions)
+
+	// Storing last sycned block
+	await saveLastSyncBlock(blockSyncKey, lastBlock)
 
 	console.log('Seeded stakers:', stakers.size)
 }
