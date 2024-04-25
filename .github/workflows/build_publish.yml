@@ -17,12 +17,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - dockerfile: ./packages/api/Dockerfile
+          - dockerfile: ./Dockerfile-API
             image: -api
-            context: ./packages/api
-          - dockerfile: ./packages/seeder/Dockerfile
+            context: .
+          - dockerfile: ./Dockerfile-Seeder
             image: -seeder
-            context: ./packages/seeder
+            context: .
 
     permissions:
       contents: read
