@@ -145,5 +145,3 @@ ALTER TABLE "Staker" ADD CONSTRAINT "Staker_operatorAddress_fkey" FOREIGN KEY ("
 -- AddForeignKey
 ALTER TABLE "StakerStrategyShares" ADD CONSTRAINT "StakerStrategyShares_stakerAddress_fkey" FOREIGN KEY ("stakerAddress") REFERENCES "Staker"("address") ON DELETE RESTRICT ON UPDATE CASCADE;
 
--- AddForeignKey
-ALTER TABLE "ValidatorRestake" ADD CONSTRAINT "ValidatorRestake_podAddress_fkey" FOREIGN KEY ("podAddress") REFERENCES "Pod"("address") ON DELETE RESTRICT ON UPDATE CASCADE;
