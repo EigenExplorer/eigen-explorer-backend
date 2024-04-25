@@ -5,6 +5,7 @@ import { getEigenContracts } from './data/address'
 import { getViemClient } from './utils/viemClient'
 import { getPrismaClient } from './utils/prismaClient'
 import {
+	baseBlock,
 	bulkUpdateDbTransactions,
 	fetchLastSyncBlock,
 	loopThroughBlocks,
@@ -76,32 +77,71 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	const dbTransactions: any[] = []
 
-	for (const [address, metadata] of avsList) {
+	if (firstBlock === baseBlock) {
+		dbTransactions.push(prismaClient.avs.deleteMany())
+
+		const newAvs: {
+			address: string
+			tags?: string[]
+			metadataName: string
+			metadataDescription: string
+			metadataDiscord?: string | null
+			metadataLogo?: string | null
+			metadataTelegram?: string | null
+			metadataWebsite?: string | null
+			metadataX?: string | null
+			isVisible?: boolean
+			isVerified?: boolean
+		}[] = []
+
+		for (const [address, metadata] of avsList) {
+			newAvs.push({
+				address,
+				metadataName: metadata.name,
+				metadataDescription: metadata.description,
+				metadataLogo: metadata.logo,
+				metadataDiscord: metadata.discord,
+				metadataTelegram: metadata.telegram,
+				metadataWebsite: metadata.website,
+				metadataX: metadata.x,
+				tags: []
+			})
+		}
+
 		dbTransactions.push(
-			prismaClient.avs.upsert({
-				where: { address },
-				update: {
-					metadataName: metadata.name,
-					metadataDescription: metadata.description,
-					metadataLogo: metadata.logo,
-					metadataDiscord: metadata.discord,
-					metadataTelegram: metadata.telegram,
-					metadataWebsite: metadata.website,
-					metadataX: metadata.x
-				},
-				create: {
-					address,
-					metadataName: metadata.name,
-					metadataDescription: metadata.description,
-					metadataLogo: metadata.logo,
-					metadataDiscord: metadata.discord,
-					metadataTelegram: metadata.telegram,
-					metadataWebsite: metadata.website,
-					metadataX: metadata.x,
-					tags: []
-				}
+			prismaClient.avs.createMany({
+				data: newAvs,
+				skipDuplicates: true
 			})
 		)
+	} else {
+		for (const [address, metadata] of avsList) {
+			dbTransactions.push(
+				prismaClient.avs.upsert({
+					where: { address },
+					update: {
+						metadataName: metadata.name,
+						metadataDescription: metadata.description,
+						metadataLogo: metadata.logo,
+						metadataDiscord: metadata.discord,
+						metadataTelegram: metadata.telegram,
+						metadataWebsite: metadata.website,
+						metadataX: metadata.x
+					},
+					create: {
+						address,
+						metadataName: metadata.name,
+						metadataDescription: metadata.description,
+						metadataLogo: metadata.logo,
+						metadataDiscord: metadata.discord,
+						metadataTelegram: metadata.telegram,
+						metadataWebsite: metadata.website,
+						metadataX: metadata.x,
+						tags: []
+					}
+				})
+			)
+		}
 	}
 
 	await bulkUpdateDbTransactions(dbTransactions)

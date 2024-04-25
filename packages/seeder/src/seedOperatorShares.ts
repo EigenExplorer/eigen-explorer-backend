@@ -92,27 +92,56 @@ export async function seedOperatorShares(toBlock?: bigint, fromBlock?: bigint) {
 
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	const dbTransactions: any[] = []
-	for (const [operatorAddress, shares] of operatorShares) {
-		shares.map((share) => {
-			dbTransactions.push(
-				prismaClient.operatorStrategyShares.upsert({
-					where: {
-						operatorAddress_strategyAddress: {
-							operatorAddress,
-							strategyAddress: share.strategy
-						}
-					},
-					create: {
-						operatorAddress,
-						strategyAddress: share.strategy,
-						shares: share.shares
-					},
-					update: {
-						shares: share.shares
-					}
+	
+	if (firstBlock === baseBlock) {
+		// Clear existing table
+		dbTransactions.push(prismaClient.operatorStrategyShares.deleteMany())
+
+		const newOperatorShares: {
+			operatorAddress: string
+			strategyAddress: string
+			shares: string
+		}[] = []
+
+		for (const [operatorAddress, shares] of operatorShares) {
+			shares.map((share) => {
+				newOperatorShares.push({
+					operatorAddress,
+					strategyAddress: share.strategy,
+					shares: share.shares
 				})
-			)
-		})
+			})
+		}
+
+		dbTransactions.push(
+			prismaClient.operatorStrategyShares.createMany({
+				data: newOperatorShares,
+				skipDuplicates: true
+			})
+		)
+	} else {
+		for (const [operatorAddress, shares] of operatorShares) {
+			shares.map((share) => {
+				dbTransactions.push(
+					prismaClient.operatorStrategyShares.upsert({
+						where: {
+							operatorAddress_strategyAddress: {
+								operatorAddress,
+								strategyAddress: share.strategy
+							}
+						},
+						create: {
+							operatorAddress,
+							strategyAddress: share.strategy,
+							shares: share.shares
+						},
+						update: {
+							shares: share.shares
+						}
+					})
+				)
+			})
+		}
 	}
 
 	await bulkUpdateDbTransactions(dbTransactions)

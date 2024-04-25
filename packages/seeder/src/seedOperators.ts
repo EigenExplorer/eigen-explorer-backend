@@ -5,6 +5,7 @@ import type { EntityMetadata } from './utils/metadata'
 import { getEigenContracts } from './data/address'
 import { getViemClient } from './utils/viemClient'
 import {
+	baseBlock,
 	bulkUpdateDbTransactions,
 	fetchLastSyncBlock,
 	loopThroughBlocks,
@@ -77,31 +78,66 @@ export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	const dbTransactions: any[] = []
 
-	for (const [address, metadata] of operatorList) {
+	if (firstBlock === baseBlock) {
+		dbTransactions.push(prismaClient.operator.deleteMany())
+
+		const newOperator: {
+			address: string
+			metadataName: string
+			metadataDescription: string
+			metadataDiscord?: string | null
+			metadataLogo?: string | null
+			metadataTelegram?: string | null
+			metadataWebsite?: string | null
+			metadataX?: string | null
+		}[] = []
+
+		for (const [address, metadata] of operatorList) {
+			newOperator.push({
+				address,
+				metadataName: metadata.name,
+				metadataDescription: metadata.description,
+				metadataLogo: metadata.logo,
+				metadataDiscord: metadata.discord,
+				metadataTelegram: metadata.telegram,
+				metadataWebsite: metadata.website,
+				metadataX: metadata.x
+			})
+		}
+
 		dbTransactions.push(
-			prismaClient.operator.upsert({
-				where: { address },
-				update: {
-					metadataName: metadata.name,
-					metadataDescription: metadata.description,
-					metadataLogo: metadata.logo,
-					metadataDiscord: metadata.discord,
-					metadataTelegram: metadata.telegram,
-					metadataWebsite: metadata.website,
-					metadataX: metadata.x
-				},
-				create: {
-					address,
-					metadataName: metadata.name,
-					metadataDescription: metadata.description,
-					metadataLogo: metadata.logo,
-					metadataDiscord: metadata.discord,
-					metadataTelegram: metadata.telegram,
-					metadataWebsite: metadata.website,
-					metadataX: metadata.x
-				}
+			prismaClient.operator.createMany({
+				data: newOperator,
+				skipDuplicates: true
 			})
 		)
+	} else {
+		for (const [address, metadata] of operatorList) {
+			dbTransactions.push(
+				prismaClient.operator.upsert({
+					where: { address },
+					update: {
+						metadataName: metadata.name,
+						metadataDescription: metadata.description,
+						metadataLogo: metadata.logo,
+						metadataDiscord: metadata.discord,
+						metadataTelegram: metadata.telegram,
+						metadataWebsite: metadata.website,
+						metadataX: metadata.x
+					},
+					create: {
+						address,
+						metadataName: metadata.name,
+						metadataDescription: metadata.description,
+						metadataLogo: metadata.logo,
+						metadataDiscord: metadata.discord,
+						metadataTelegram: metadata.telegram,
+						metadataWebsite: metadata.website,
+						metadataX: metadata.x
+					}
+				})
+			)
+		}
 	}
 
 	await bulkUpdateDbTransactions(dbTransactions)

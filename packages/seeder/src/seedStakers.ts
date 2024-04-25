@@ -118,40 +118,85 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	const dbTransactions: any[] = []
-	for (const [stakerAddress, stakerDetails] of stakers) {
-		dbTransactions.push(
-			prismaClient.staker.upsert({
-				where: { address: stakerAddress },
-				create: {
+
+	if (firstBlock === baseBlock) {
+		// Clear existing table
+		dbTransactions.push(prismaClient.stakerStrategyShares.deleteMany())
+		dbTransactions.push(prismaClient.staker.deleteMany())
+
+		const newStakers: { address: string; operatorAddress: string }[] = []
+		const newStakerShares: {
+			stakerAddress: string
+			strategyAddress: string
+			shares: string
+		}[] = []
+
+		for (const [stakerAddress, stakerDetails] of stakers) {
+			if (stakerDetails.operatorAddress) {
+				newStakers.push({
 					address: stakerAddress,
 					operatorAddress: stakerDetails.operatorAddress
-				},
-				update: {
-					operatorAddress: stakerDetails.operatorAddress
-				}
-			})
-		)
+				})
 
-		stakerDetails.shares.map((share) => {
-			dbTransactions.push(
-				prismaClient.stakerStrategyShares.upsert({
-					where: {
-						stakerAddress_strategyAddress: {
-							stakerAddress,
-							strategyAddress: share.strategy
-						}
-					},
-					create: {
+				stakerDetails.shares.map((share) => {
+					newStakerShares.push({
 						stakerAddress,
 						strategyAddress: share.strategy,
 						shares: share.shares
+					})
+				})
+			}
+		}
+
+		dbTransactions.push(
+			prismaClient.staker.createMany({
+				data: newStakers,
+				skipDuplicates: true
+			})
+		)
+
+		dbTransactions.push(
+			prismaClient.stakerStrategyShares.createMany({
+				data: newStakerShares,
+				skipDuplicates: true
+			})
+		)
+	} else {
+		for (const [stakerAddress, stakerDetails] of stakers) {
+			dbTransactions.push(
+				prismaClient.staker.upsert({
+					where: { address: stakerAddress },
+					create: {
+						address: stakerAddress,
+						operatorAddress: stakerDetails.operatorAddress
 					},
 					update: {
-						shares: share.shares
+						operatorAddress: stakerDetails.operatorAddress
 					}
 				})
 			)
-		})
+
+			stakerDetails.shares.map((share) => {
+				dbTransactions.push(
+					prismaClient.stakerStrategyShares.upsert({
+						where: {
+							stakerAddress_strategyAddress: {
+								stakerAddress,
+								strategyAddress: share.strategy
+							}
+						},
+						create: {
+							stakerAddress,
+							strategyAddress: share.strategy,
+							shares: share.shares
+						},
+						update: {
+							shares: share.shares
+						}
+					})
+				)
+			})
+		}
 	}
 
 	await bulkUpdateDbTransactions(dbTransactions)

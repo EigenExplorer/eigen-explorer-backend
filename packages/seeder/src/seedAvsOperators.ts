@@ -3,6 +3,7 @@ import { getViemClient } from './utils/viemClient'
 import { getEigenContracts } from './data/address'
 import { getPrismaClient } from './utils/prismaClient'
 import {
+	baseBlock,
 	bulkUpdateDbTransactions,
 	fetchLastSyncBlock,
 	loopThroughBlocks,
@@ -63,23 +64,50 @@ export async function seedAvsOperators(toBlock?: bigint, fromBlock?: bigint) {
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	const dbTransactions: any[] = []
 
-	for (const [avsAddress, operatorsMap] of avsOperatorsList) {
-		for (const [operatorAddress, status] of operatorsMap) {
-			dbTransactions.push(
-				prismaClient.avsOperator.upsert({
-					where: {
-						avsAddress_operatorAddress: { avsAddress, operatorAddress }
-					},
-					create: {
-						operatorAddress,
-						avsAddress,
-						isActive: status === 1
-					},
-					update: {
-						isActive: status === 1
-					}
+	if (firstBlock === baseBlock) {
+		dbTransactions.push(prismaClient.avsOperator.deleteMany())
+
+		const newAvsOperator: {
+			avsAddress: string
+			operatorAddress: string
+			isActive: boolean
+		}[] = []
+
+		for (const [avsAddress, operatorsMap] of avsOperatorsList) {
+			for (const [operatorAddress, status] of operatorsMap) {
+				newAvsOperator.push({
+					operatorAddress,
+					avsAddress,
+					isActive: status === 1
 				})
-			)
+			}
+		}
+
+		dbTransactions.push(
+			prismaClient.avsOperator.createMany({
+				data: newAvsOperator,
+				skipDuplicates: true
+			})
+		)
+	} else {
+		for (const [avsAddress, operatorsMap] of avsOperatorsList) {
+			for (const [operatorAddress, status] of operatorsMap) {
+				dbTransactions.push(
+					prismaClient.avsOperator.upsert({
+						where: {
+							avsAddress_operatorAddress: { avsAddress, operatorAddress }
+						},
+						create: {
+							operatorAddress,
+							avsAddress,
+							isActive: status === 1
+						},
+						update: {
+							isActive: status === 1
+						}
+					})
+				)
+			}
 		}
 	}
 

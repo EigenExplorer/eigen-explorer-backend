@@ -16,7 +16,7 @@ export async function loopThroughBlocks(
 	let nextBlock = firstBlock
 
 	while (nextBlock < lastBlock) {
-		nextBlock = currentBlock + 9999n
+		nextBlock = currentBlock + 4999n
 		if (nextBlock >= lastBlock) nextBlock = lastBlock
 
 		await cb(currentBlock, nextBlock)

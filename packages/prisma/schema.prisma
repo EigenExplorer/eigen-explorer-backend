@@ -86,15 +86,12 @@ model StakerStrategyShares {
 }
 
 model Pod {
-  address          String             @id @unique
-  validatorRestake ValidatorRestake[]
-
+  address     String @id @unique
   owner       String
   blockNumber BigInt
 }
 
 model ValidatorRestake {
-  Pod            Pod    @relation(fields: [podAddress], references: [address])
   podAddress     String
   validatorIndex BigInt
   blockNumber    BigInt
