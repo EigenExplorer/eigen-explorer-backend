@@ -1,10 +1,11 @@
-import { getPrismaClient } from './prisma/prismaClient'
+import { getPrismaClient } from './utils/prismaClient'
 import { parseAbiItem } from 'viem'
 import { isValidMetadataUrl, validateMetadata } from './utils/metadata'
 import type { EntityMetadata } from './utils/metadata'
 import { getEigenContracts } from './data/address'
-import { getViemClient } from './viem/viemClient'
+import { getViemClient } from './utils/viemClient'
 import {
+	baseBlock,
 	bulkUpdateDbTransactions,
 	fetchLastSyncBlock,
 	loopThroughBlocks,
@@ -13,7 +14,7 @@ import {
 
 const blockSyncKey = 'lastSyncedBlock_operators'
 
-export async function seedOperators(fromBlock?: bigint, toBlock?: bigint) {
+export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 	console.log('Seeding Operators ...')
 
 	const viemClient = getViemClient()
@@ -73,33 +74,76 @@ export async function seedOperators(fromBlock?: bigint, toBlock?: bigint) {
 		)
 	})
 
-	// Storing last sycned block
-	await saveLastSyncBlock(blockSyncKey, lastBlock)
-
 	// Prepare db transaction object
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	const dbTransactions: any[] = []
 
-	for (const [address, metadata] of operatorList) {
+	if (firstBlock === baseBlock) {
+		dbTransactions.push(prismaClient.operator.deleteMany())
+
+		const newOperator: {
+			address: string
+			metadataName: string
+			metadataDescription: string
+			metadataDiscord?: string | null
+			metadataLogo?: string | null
+			metadataTelegram?: string | null
+			metadataWebsite?: string | null
+			metadataX?: string | null
+		}[] = []
+
+		for (const [address, metadata] of operatorList) {
+			newOperator.push({
+				address,
+				metadataName: metadata.name,
+				metadataDescription: metadata.description,
+				metadataLogo: metadata.logo,
+				metadataDiscord: metadata.discord,
+				metadataTelegram: metadata.telegram,
+				metadataWebsite: metadata.website,
+				metadataX: metadata.x
+			})
+		}
+
 		dbTransactions.push(
-			prismaClient.operator.upsert({
-				where: { address },
-				update: {
-					metadata: {
-						set: metadata
-					}
-				},
-				create: {
-					address,
-					metadata: {
-						set: metadata
-					}
-				}
+			prismaClient.operator.createMany({
+				data: newOperator,
+				skipDuplicates: true
 			})
 		)
+	} else {
+		for (const [address, metadata] of operatorList) {
+			dbTransactions.push(
+				prismaClient.operator.upsert({
+					where: { address },
+					update: {
+						metadataName: metadata.name,
+						metadataDescription: metadata.description,
+						metadataLogo: metadata.logo,
+						metadataDiscord: metadata.discord,
+						metadataTelegram: metadata.telegram,
+						metadataWebsite: metadata.website,
+						metadataX: metadata.x
+					},
+					create: {
+						address,
+						metadataName: metadata.name,
+						metadataDescription: metadata.description,
+						metadataLogo: metadata.logo,
+						metadataDiscord: metadata.discord,
+						metadataTelegram: metadata.telegram,
+						metadataWebsite: metadata.website,
+						metadataX: metadata.x
+					}
+				})
+			)
+		}
 	}
 
 	await bulkUpdateDbTransactions(dbTransactions)
+
+	// Storing last sycned block
+	await saveLastSyncBlock(blockSyncKey, lastBlock)
 
 	console.log('Seeded operators:', operatorList.size)
 }

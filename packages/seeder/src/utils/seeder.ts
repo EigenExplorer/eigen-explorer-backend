@@ -1,4 +1,4 @@
-import { getPrismaClient } from '.././prisma/prismaClient'
+import { getPrismaClient } from './prismaClient'
 import { chunkArray } from './array'
 
 // Base block
@@ -16,7 +16,7 @@ export async function loopThroughBlocks(
 	let nextBlock = firstBlock
 
 	while (nextBlock < lastBlock) {
-		nextBlock = currentBlock + 999n
+		nextBlock = currentBlock + 4999n
 		if (nextBlock >= lastBlock) nextBlock = lastBlock
 
 		await cb(currentBlock, nextBlock)
@@ -30,7 +30,7 @@ export async function loopThroughBlocks(
 // biome-ignore lint/suspicious/noExplicitAny: <explanation>
 export async function bulkUpdateDbTransactions(dbTransactions: any[]) {
 	const prismaClient = getPrismaClient()
-	const chunkSize = 100
+	const chunkSize = 1000
 
 	let i = 0
 	console.log('Updating db transactions', dbTransactions.length)

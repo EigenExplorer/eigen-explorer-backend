@@ -1,8 +1,10 @@
 import { parseAbiItem } from 'viem'
 import { getEigenContracts } from './data/address'
-import { getViemClient } from './viem/viemClient'
-import { getPrismaClient } from './prisma/prismaClient'
+import { getViemClient } from './utils/viemClient'
+import { getPrismaClient } from './utils/prismaClient'
 import {
+	baseBlock,
+	bulkUpdateDbTransactions,
 	fetchLastSyncBlock,
 	loopThroughBlocks,
 	saveLastSyncBlock
@@ -15,7 +17,7 @@ const blockSyncKey = 'lastSyncedBlock_pods'
  * @param fromBlock
  * @param toBlock
  */
-export async function seedPods(fromBlock?: bigint, toBlock?: bigint) {
+export async function seedPods(toBlock?: bigint, fromBlock?: bigint) {
 	console.log('Seeding Pods ...')
 
 	const viemClient = getViemClient()
@@ -56,15 +58,43 @@ export async function seedPods(fromBlock?: bigint, toBlock?: bigint) {
 		)
 	})
 
-	// Storing last sycned block
-	await saveLastSyncBlock(blockSyncKey, lastBlock)
-
 	// Prepare db transaction object
-	if (podList.length > 0) {
-		await prismaClient.pod.createMany({
-			data: podList
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+	const dbTransactions: any[] = []
+
+	if (firstBlock === baseBlock) {
+		dbTransactions.push(prismaClient.validatorRestake.deleteMany())
+		dbTransactions.push(prismaClient.pod.deleteMany())
+
+		dbTransactions.push(
+			prismaClient.pod.createMany({
+				data: podList,
+				skipDuplicates: true
+			})
+		)
+	} else {
+		podList.map((pod) => {
+			dbTransactions.push(
+				prismaClient.pod.upsert({
+					where: { address: pod.address },
+					update: {
+						owner: pod.owner,
+						blockNumber: pod.blockNumber
+					},
+					create: {
+						address: pod.address,
+						owner: pod.owner,
+						blockNumber: pod.blockNumber
+					}
+				})
+			)
 		})
 	}
+
+	await bulkUpdateDbTransactions(dbTransactions)
+
+	// Storing last sycned block
+	await saveLastSyncBlock(blockSyncKey, lastBlock)
 
 	console.log('Seeded Pods:', podList.length)
 }

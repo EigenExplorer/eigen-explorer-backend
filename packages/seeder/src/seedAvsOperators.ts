@@ -1,7 +1,7 @@
 import { parseAbiItem } from 'viem'
-import { getViemClient } from './viem/viemClient'
+import { getViemClient } from './utils/viemClient'
 import { getEigenContracts } from './data/address'
-import { getPrismaClient } from './prisma/prismaClient'
+import { getPrismaClient } from './utils/prismaClient'
 import {
 	baseBlock,
 	bulkUpdateDbTransactions,
@@ -12,7 +12,7 @@ import {
 
 const blockSyncKey = 'lastSyncedBlock_avsOperators'
 
-export async function seedAvsOperators(fromBlock?: bigint, toBlock?: bigint) {
+export async function seedAvsOperators(toBlock?: bigint, fromBlock?: bigint) {
 	console.log('Seeding AVS Operators ...')
 
 	const viemClient = getViemClient()
@@ -25,18 +25,11 @@ export async function seedAvsOperators(fromBlock?: bigint, toBlock?: bigint) {
 	const lastBlock = toBlock ? toBlock : await viemClient.getBlockNumber()
 
 	// Load initial operator staker state
-	if (firstBlock !== baseBlock) {
-		const avs = await prismaClient.avs.findMany({
-			select: { address: true, operators: true }
-		})
+	const avs = await prismaClient.avs.findMany({
+		select: { address: true }
+	})
 
-		avs.map((a) =>
-			avsOperatorsList.set(
-				a.address,
-				new Map(a.operators.map((ao) => [ao.address, ao.isActive ? 1 : 0]))
-			)
-		)
-	}
+	avs.map((a) => avsOperatorsList.set(a.address, new Map()))
 
 	// Loop through evm logs
 	await loopThroughBlocks(firstBlock, lastBlock, async (fromBlock, toBlock) => {
@@ -55,13 +48,11 @@ export async function seedAvsOperators(fromBlock?: bigint, toBlock?: bigint) {
 			const avsAddress = String(log.args.avs).toLowerCase()
 			const operatorAddress = String(log.args.operator).toLowerCase()
 
-			if (!avsOperatorsList.has(avsAddress)) {
-				avsOperatorsList.set(avsAddress, new Map())
+			if (avsOperatorsList.has(avsAddress)) {
+				avsOperatorsList
+					.get(avsAddress)
+					?.set(operatorAddress, log.args.status || 0)
 			}
-
-			avsOperatorsList
-				.get(avsAddress)
-				?.set(operatorAddress, log.args.status || 0)
 		}
 
 		console.log(
@@ -69,36 +60,61 @@ export async function seedAvsOperators(fromBlock?: bigint, toBlock?: bigint) {
 		)
 	})
 
-	// Storing last sycned block
-	await saveLastSyncBlock(blockSyncKey, lastBlock)
-
 	// Prepare db transaction object
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	const dbTransactions: any[] = []
 
-	for (const [avsAddress, operatorsMap] of avsOperatorsList) {
-		const avsOperatorsStatus: { address: string; isActive: boolean }[] = []
+	if (firstBlock === baseBlock) {
+		dbTransactions.push(prismaClient.avsOperator.deleteMany())
 
-		for (const [operatorAddress, status] of operatorsMap) {
-			avsOperatorsStatus.push({
-				address: operatorAddress,
-				isActive: status === 1
-			})
+		const newAvsOperator: {
+			avsAddress: string
+			operatorAddress: string
+			isActive: boolean
+		}[] = []
+
+		for (const [avsAddress, operatorsMap] of avsOperatorsList) {
+			for (const [operatorAddress, status] of operatorsMap) {
+				newAvsOperator.push({
+					operatorAddress,
+					avsAddress,
+					isActive: status === 1
+				})
+			}
 		}
 
 		dbTransactions.push(
-			prismaClient.avs.updateMany({
-				where: { address: avsAddress },
-				data: {
-					operators: {
-						set: avsOperatorsStatus
-					}
-				}
+			prismaClient.avsOperator.createMany({
+				data: newAvsOperator,
+				skipDuplicates: true
 			})
 		)
+	} else {
+		for (const [avsAddress, operatorsMap] of avsOperatorsList) {
+			for (const [operatorAddress, status] of operatorsMap) {
+				dbTransactions.push(
+					prismaClient.avsOperator.upsert({
+						where: {
+							avsAddress_operatorAddress: { avsAddress, operatorAddress }
+						},
+						create: {
+							operatorAddress,
+							avsAddress,
+							isActive: status === 1
+						},
+						update: {
+							isActive: status === 1
+						}
+					})
+				)
+			}
+		}
 	}
 
 	await bulkUpdateDbTransactions(dbTransactions)
+
+	// Storing last sycned block
+	await saveLastSyncBlock(blockSyncKey, lastBlock)
 
 	console.log('Seeded AVS Operators:', avsOperatorsList.size)
 }

@@ -1,0 +1,118 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Avs {
+  address String   @id @unique
+  tags    String[]
+
+  metadataName        String
+  metadataDescription String
+  metadataDiscord     String?
+  metadataLogo        String?
+  metadataTelegram    String?
+  metadataWebsite     String?
+  metadataX           String?
+
+  isVisible  Boolean       @default(false)
+  isVerified Boolean       @default(false)
+  operators  AvsOperator[]
+
+  @@index([tags], map: "tags_1")
+}
+
+model AvsOperator {
+  avs             Avs      @relation(fields: [avsAddress], references: [address])
+  avsAddress      String
+  operator        Operator @relation(fields: [operatorAddress], references: [address])
+  operatorAddress String
+  isActive        Boolean
+
+  @@id([avsAddress, operatorAddress])
+}
+
+model Strategies {
+  address String @id
+  symbol  String
+}
+
+model Operator {
+  address String @id @unique
+
+  metadataName        String
+  metadataDescription String
+  metadataDiscord     String?
+  metadataLogo        String?
+  metadataTelegram    String?
+  metadataWebsite     String?
+  metadataX           String?
+
+  avs     AvsOperator[]
+  shares  OperatorStrategyShares[]
+  stakers Staker[]
+}
+
+model OperatorStrategyShares {
+  Operator        Operator @relation(fields: [operatorAddress], references: [address])
+  operatorAddress String
+  strategyAddress String
+  shares          String
+
+  @@id([operatorAddress, strategyAddress])
+}
+
+model Staker {
+  address String @id @unique
+
+  operator        Operator? @relation(fields: [operatorAddress], references: [address])
+  operatorAddress String?
+
+  shares StakerStrategyShares[]
+}
+
+model StakerStrategyShares {
+  Staker          Staker @relation(fields: [stakerAddress], references: [address])
+  stakerAddress   String
+  strategyAddress String
+  shares          String
+
+  @@id([stakerAddress, strategyAddress])
+}
+
+model Pod {
+  address     String @id @unique
+  owner       String
+  blockNumber BigInt
+}
+
+model ValidatorRestake {
+  podAddress     String
+  validatorIndex BigInt
+  blockNumber    BigInt
+
+  @@id([podAddress, validatorIndex])
+}
+
+model Validator {
+  validatorIndex BigInt @id
+  status         String
+
+  balance               BigInt
+  effectiveBalance      BigInt
+  slashed               Boolean
+  withdrawalCredentials String
+}
+
+// Collection to store system settings
+model Settings {
+  key       String   @id @unique
+  value     Json     @db.Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

@@ -1,7 +1,9 @@
 import { parseAbiItem } from 'viem'
-import { getViemClient } from './viem/viemClient'
-import { getPrismaClient } from './prisma/prismaClient'
+import { getViemClient } from './utils/viemClient'
+import { getPrismaClient } from './utils/prismaClient'
 import {
+	baseBlock,
+	bulkUpdateDbTransactions,
 	fetchLastSyncBlock,
 	loopThroughBlocks,
 	saveLastSyncBlock
@@ -10,8 +12,8 @@ import {
 const blockSyncKey = 'lastSyncedBlock_validatorsRestake'
 
 export async function seedValidatorsRestake(
-	fromBlock?: bigint,
-	toBlock?: bigint
+	toBlock?: bigint,
+	fromBlock?: bigint
 ) {
 	console.log('Seeding Validator Restake ...')
 
@@ -56,15 +58,45 @@ export async function seedValidatorsRestake(
 		)
 	})
 
-	// Storing last sycned block
-	await saveLastSyncBlock(blockSyncKey, lastBlock)
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+	const dbTransactions: any[] = []
 
-	// Prepare db transaction object
-	if (validatorRestakeList.length > 0) {
-		await prismaClient.validatorRestake.createMany({
-			data: validatorRestakeList
+	if (firstBlock === baseBlock) {
+		dbTransactions.push(prismaClient.validatorRestake.deleteMany())
+
+		dbTransactions.push(
+			prismaClient.validatorRestake.createMany({
+				data: validatorRestakeList,
+				skipDuplicates: true
+			})
+		)
+	} else {
+		validatorRestakeList.map((validatorRestake) => {
+			dbTransactions.push(
+				prismaClient.validatorRestake.upsert({
+					where: {
+						podAddress_validatorIndex: {
+							podAddress: validatorRestake.podAddress,
+							validatorIndex: validatorRestake.validatorIndex
+						}
+					},
+					update: {
+						blockNumber: validatorRestake.blockNumber
+					},
+					create: {
+						podAddress: validatorRestake.podAddress,
+						validatorIndex: validatorRestake.validatorIndex,
+						blockNumber: validatorRestake.blockNumber
+					}
+				})
+			)
 		})
 	}
+
+	await bulkUpdateDbTransactions(dbTransactions)
+
+	// Storing last sycned block
+	await saveLastSyncBlock(blockSyncKey, lastBlock)
 
 	console.log('Seeded validator restake:', validatorRestakeList.length)
 }

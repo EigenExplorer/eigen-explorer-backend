@@ -1,6 +1,6 @@
 import type { Chain } from 'viem'
 import { holesky } from 'viem/chains'
-import { getNetwork } from '../../viem/viemClient'
+import { getNetwork } from '../../utils/viemClient'
 import { eigenHoleskyContracts } from './eigenHoleskyContracts'
 import { eigenContracts } from './eigenMainnetContracts'
 

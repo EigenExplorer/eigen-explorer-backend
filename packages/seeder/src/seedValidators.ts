@@ -1,4 +1,5 @@
-import { getPrismaClient } from './prisma/prismaClient'
+import { getPrismaClient } from './utils/prismaClient'
+import { bulkUpdateDbTransactions } from './utils/seeder'
 
 export async function seedValidators() {
 	const prismaClient = getPrismaClient()
@@ -39,21 +40,28 @@ export async function seedValidators() {
 		currentIndex = nextIndex
 	}
 
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+	const dbTransactions: any[] = []
+
 	// Clear all validator data
-	await prismaClient.validator.deleteMany()
+	dbTransactions.push(prismaClient.validator.deleteMany())
 
-	await prismaClient.validator.createMany({
-		// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-		data: validators.map((v: any) => ({
-			validatorIndex: v.index as bigint,
-			status: v.status as string,
+	dbTransactions.push(
+		prismaClient.validator.createMany({
+			// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+			data: validators.map((v: any) => ({
+				validatorIndex: v.index as bigint,
+				status: v.status as string,
 
-			balance: v.balance as bigint,
-			effectiveBalance: v.validator.effective_balance as bigint,
-			slashed: v.validator.slashed as boolean,
-			withdrawalCredentials: v.validator.withdrawal_credentials as string
-		}))
-	})
+				balance: v.balance as bigint,
+				effectiveBalance: v.validator.effective_balance as bigint,
+				slashed: v.validator.slashed as boolean,
+				withdrawalCredentials: v.validator.withdrawal_credentials as string
+			}))
+		})
+	)
+
+	await bulkUpdateDbTransactions(dbTransactions)
 
 	console.log('Seeded Validators', validators.length)
 }

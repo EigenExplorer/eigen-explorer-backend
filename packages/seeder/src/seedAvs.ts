@@ -1,13 +1,11 @@
 import { parseAbiItem } from 'viem'
-import {
-	isValidMetadataUrl,
-	validateMetadata
-} from './utils/metadata'
+import { isValidMetadataUrl, validateMetadata } from './utils/metadata'
 import type { EntityMetadata } from './utils/metadata'
 import { getEigenContracts } from './data/address'
-import { getViemClient } from './viem/viemClient'
-import { getPrismaClient } from './prisma/prismaClient'
+import { getViemClient } from './utils/viemClient'
+import { getPrismaClient } from './utils/prismaClient'
 import {
+	baseBlock,
 	bulkUpdateDbTransactions,
 	fetchLastSyncBlock,
 	loopThroughBlocks,
@@ -22,7 +20,7 @@ const blockSyncKey = 'lastSyncedBlock_avs'
  * @param fromBlock
  * @param toBlock
  */
-export async function seedAvs(fromBlock?: bigint, toBlock?: bigint) {
+export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 	console.log('Seeding AVS ...')
 
 	const viemClient = getViemClient()
@@ -49,6 +47,15 @@ export async function seedAvs(fromBlock?: bigint, toBlock?: bigint) {
 			const log = logs[l]
 
 			const avsAddress = String(log.args.avs).toLowerCase()
+			avsList.set(avsAddress, {
+				name: '',
+				website: '',
+				description: '',
+				logo: '',
+				x: '',
+				discord: '',
+				telegram: ''
+			})
 
 			if (log.args.metadataURI && isValidMetadataUrl(log.args.metadataURI)) {
 				const response = await fetch(log.args.metadataURI)
@@ -66,34 +73,81 @@ export async function seedAvs(fromBlock?: bigint, toBlock?: bigint) {
 		)
 	})
 
-	// Storing last sycned block
-	await saveLastSyncBlock(blockSyncKey, lastBlock)
-
 	// Prepare db transaction object
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	const dbTransactions: any[] = []
 
-	for (const [address, metadata] of avsList) {
+	if (firstBlock === baseBlock) {
+		dbTransactions.push(prismaClient.avs.deleteMany())
+
+		const newAvs: {
+			address: string
+			tags?: string[]
+			metadataName: string
+			metadataDescription: string
+			metadataDiscord?: string | null
+			metadataLogo?: string | null
+			metadataTelegram?: string | null
+			metadataWebsite?: string | null
+			metadataX?: string | null
+			isVisible?: boolean
+			isVerified?: boolean
+		}[] = []
+
+		for (const [address, metadata] of avsList) {
+			newAvs.push({
+				address,
+				metadataName: metadata.name,
+				metadataDescription: metadata.description,
+				metadataLogo: metadata.logo,
+				metadataDiscord: metadata.discord,
+				metadataTelegram: metadata.telegram,
+				metadataWebsite: metadata.website,
+				metadataX: metadata.x,
+				tags: []
+			})
+		}
+
 		dbTransactions.push(
-			prismaClient.avs.upsert({
-				where: { address },
-				update: {
-					metadata: {
-						set: metadata
-					}
-				},
-				create: {
-					address,
-					metadata: {
-						set: metadata
-					},
-					tags: []
-				}
+			prismaClient.avs.createMany({
+				data: newAvs,
+				skipDuplicates: true
 			})
 		)
+	} else {
+		for (const [address, metadata] of avsList) {
+			dbTransactions.push(
+				prismaClient.avs.upsert({
+					where: { address },
+					update: {
+						metadataName: metadata.name,
+						metadataDescription: metadata.description,
+						metadataLogo: metadata.logo,
+						metadataDiscord: metadata.discord,
+						metadataTelegram: metadata.telegram,
+						metadataWebsite: metadata.website,
+						metadataX: metadata.x
+					},
+					create: {
+						address,
+						metadataName: metadata.name,
+						metadataDescription: metadata.description,
+						metadataLogo: metadata.logo,
+						metadataDiscord: metadata.discord,
+						metadataTelegram: metadata.telegram,
+						metadataWebsite: metadata.website,
+						metadataX: metadata.x,
+						tags: []
+					}
+				})
+			)
+		}
 	}
 
 	await bulkUpdateDbTransactions(dbTransactions)
+
+	// Storing last sycned block
+	await saveLastSyncBlock(blockSyncKey, lastBlock)
 
 	console.log('Seeded AVS:', avsList.size)
 }

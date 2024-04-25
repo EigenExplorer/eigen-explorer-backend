@@ -1,7 +1,7 @@
-import express from 'express';
-import { getAllOperators, getOperator } from './operatorController';
+import express from 'express'
+import { getAllOperators, getOperator } from './operatorController'
 
-const router = express.Router();
+const router = express.Router()
 
 // API routes for /operators
 
@@ -58,7 +58,7 @@ const router = express.Router();
  *                       type: integer
  *                       description: Number of records returned in the current request.
  */
-router.get('/', getAllOperators);
+router.get('/', getAllOperators)
 
 /**
  * @openapi
@@ -93,6 +93,6 @@ router.get('/', getAllOperators);
  *               type: string
  *               example: 'Operator not found.'
  */
-router.get('/:id', getOperator);
+router.get('/:id', getOperator)
 
-export default router;
+export default router

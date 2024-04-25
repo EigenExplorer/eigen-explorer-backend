@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express'
-import prisma from '../../prisma/prismaClient'
+import prisma from '../../utils/prismaClient'
 import { PaginationQuerySchema } from '../../schema/generic'
 
 /**
@@ -19,14 +19,18 @@ export async function getAllOperators(req: Request, res: Response) {
 
 		// Fetch count and record
 		const operatorCount = await prisma.operator.count()
-		const operatorRecords = await prisma.operator.findMany({ skip, take })
+		const operatorRecords = await prisma.operator.findMany({
+			skip,
+			take,
+			include: { shares: true }
+		})
 
 		const operators = await Promise.all(
 			operatorRecords.map(async (operator) => {
 				let tvl = 0
 				const shares = operator.shares
 				const totalStakers = await prisma.staker.count({
-					where: { delegatedTo: operator.address }
+					where: { operatorAddress: operator.address }
 				})
 
 				shares.map((s) => {
@@ -51,7 +55,6 @@ export async function getAllOperators(req: Request, res: Response) {
 			}
 		})
 	} catch (error) {
-		console.log('error', error)
 		res.status(400).send({ error: 'An error occurred while fetching data' })
 	}
 }
@@ -67,11 +70,12 @@ export async function getOperator(req: Request, res: Response) {
 		const { id } = req.params
 
 		const operator = await prisma.operator.findUniqueOrThrow({
-			where: { address: id }
+			where: { address: id },
+			include: { shares: true }
 		})
 
 		const totalStakers = await prisma.staker.count({
-			where: { delegatedTo: operator.address }
+			where: { operatorAddress: operator.address }
 		})
 
 		let tvl = 0

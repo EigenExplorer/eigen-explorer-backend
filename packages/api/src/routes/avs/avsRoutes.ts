@@ -1,7 +1,12 @@
-import express from 'express';
-import { getAllAVS, getAllAVSAddresses, getAVS, getAVSStakers } from './avsController';
+import express from 'express'
+import {
+	getAllAVS,
+	getAllAVSAddresses,
+	getAVS,
+	getAVSStakers
+} from './avsController'
 
-const router = express.Router();
+const router = express.Router()
 
 // API routes for /avs
 
@@ -82,7 +87,7 @@ const router = express.Router();
  *                   type: string
  *                   description: Error message detailing the issue encountered.
  */
-router.get('/', getAllAVS);
+router.get('/', getAllAVS)
 
 /**
  * @openapi
@@ -160,7 +165,7 @@ router.get('/', getAllAVS);
  *                   description: General error message about the issue encountered.
  */
 
-router.get('/addresses', getAllAVSAddresses);
+router.get('/addresses', getAllAVSAddresses)
 
 /**
  * @openapi
@@ -197,8 +202,8 @@ router.get('/addresses', getAllAVSAddresses);
  *                   type: string
  *                   description: Error message detailing the issue encountered.
  */
-router.get('/:id', getAVS);
+router.get('/:id', getAVS)
 
 router.get('/:id/stakers', getAVSStakers)
 
-export default router;
+export default router
