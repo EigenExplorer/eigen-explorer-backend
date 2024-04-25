@@ -58,7 +58,7 @@ CREATE TABLE "OperatorStrategyShares" (
 -- CreateTable
 CREATE TABLE "Staker" (
     "address" TEXT NOT NULL,
-    "delegatedTo" TEXT,
+    "operatorAddress" TEXT,
 
     CONSTRAINT "Staker_pkey" PRIMARY KEY ("address")
 );
@@ -140,4 +140,10 @@ ALTER TABLE "AvsOperator" ADD CONSTRAINT "AvsOperator_operatorAddress_fkey" FORE
 ALTER TABLE "OperatorStrategyShares" ADD CONSTRAINT "OperatorStrategyShares_operatorAddress_fkey" FOREIGN KEY ("operatorAddress") REFERENCES "Operator"("address") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "Staker" ADD CONSTRAINT "Staker_operatorAddress_fkey" FOREIGN KEY ("operatorAddress") REFERENCES "Operator"("address") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "StakerStrategyShares" ADD CONSTRAINT "StakerStrategyShares_stakerAddress_fkey" FOREIGN KEY ("stakerAddress") REFERENCES "Staker"("address") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ValidatorRestake" ADD CONSTRAINT "ValidatorRestake_podAddress_fkey" FOREIGN KEY ("podAddress") REFERENCES "Pod"("address") ON DELETE RESTRICT ON UPDATE CASCADE;
