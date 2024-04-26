@@ -1,6 +1,5 @@
 import prisma from '../../utils/prismaClient';
 import type { Request, Response } from 'express';
-//import { PaginationQuerySchema } from '../../schema/generic'
 import { getEigenContracts } from '../../data/address';
 import { PaginationQuerySchema } from '../../schema/zod/schemas/paginationQuery';
 import { handleAndReturnErrorResponse } from '../../schema/errors';
@@ -178,6 +177,13 @@ export async function getAVS(req: Request, res: Response) {
     }
 }
 
+/**
+ * Route to get all AVS stakers
+ *
+ * @param req
+ * @param res
+ * @returns
+ */
 export async function getAVSStakers(req: Request, res: Response) {
     // Validate pagination query
     const result = PaginationQuerySchema.safeParse(req.query);
@@ -234,4 +240,74 @@ export async function getAVSStakers(req: Request, res: Response) {
     } catch (error) {
         handleAndReturnErrorResponse(req, res, error);
     }
+}
+
+/**
+ * Route to get all AVS operators
+ *
+ * @param req
+ * @param res
+ * @returns
+ */
+export async function getAVSOperators(req: Request, res: Response) {
+	try {
+		// Validate pagination query
+    const result = PaginationQuerySchema.safeParse(req.query);
+    if (!result.success) {
+        return handleAndReturnErrorResponse(req, res, result.error);
+    }
+    const { skip, take } = result.data;
+
+		const { id } = req.params
+		const avs = await prisma.avs.findUniqueOrThrow({
+			where: { address: id },
+			include: { operators: true }
+		})
+
+		const operatorAddresses = avs.operators
+			.filter((o) => o.isActive)
+			.map((o) => o.operatorAddress)
+
+		const operatorsCount = await prisma.operator.count({
+			where: { address: { in: operatorAddresses } }
+		})
+
+		const operatorsRecords = await prisma.operator.findMany({
+			where: { address: { in: operatorAddresses } },
+			skip,
+			take,
+			include: { shares: true }
+		})
+
+		const data = await Promise.all(
+			operatorsRecords.map(async (operator) => {
+				let tvl = 0
+
+				const totalStakers = await prisma.staker.count({
+					where: { operatorAddress: operator.address }
+				})
+
+				operator.shares.map((os) => {
+					tvl += Number(BigInt(os.shares)) / 1e18
+				})
+
+				return {
+					...operator,
+					tvl,
+					totalStakers
+				}
+			})
+		)
+
+		res.send({
+			data,
+			meta: {
+				total: operatorsCount,
+				skip,
+				take
+			}
+		})
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error);
+	}
 }
