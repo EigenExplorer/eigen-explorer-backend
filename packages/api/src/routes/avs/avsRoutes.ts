@@ -1,14 +1,129 @@
-import express from 'express'
+import express from 'express';
 import {
-	getAllAVS,
-	getAllAVSAddresses,
-	getAVS,
-	getAVSStakers
-} from './avsController'
+    getAllAVS,
+    getAllAVSAddresses,
+    getAVS,
+    getAVSStakers,
+} from './avsController';
 
-const router = express.Router()
+const router = express.Router();
 
 // API routes for /avs
+/**
+ * @openapi
+ * /avs/addresses:
+ *   get:
+ *     summary: Retrieve addresses of all AVS
+ *     description: This endpoint retrieves a paginated list of AVS addresses along with basic metadata such as the AVS name.
+ *     tags:
+ *       - AVS
+ *     parameters:
+ *       - in: query
+ *         name: skip
+ *         description: The number of records to skip for pagination.
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *       - in: query
+ *         name: take
+ *         description: The number of records to return for pagination.
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved list of AVS addresses.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       name:
+ *                         type: string
+ *                         description: The name of the AVS.
+ *                       address:
+ *                         type: string
+ *                         description: The address of the AVS service contract.
+ *                 meta:
+ *                   type: object
+ *                   properties:
+ *                     total:
+ *                       type: integer
+ *                       description: The total number of AVS records in the database.
+ *                     skip:
+ *                       type: integer
+ *                       description: The number of records skipped.
+ *                     take:
+ *                       type: integer
+ *                       description: The number of records taken.
+ *       422:
+ *         description: Validation error in the request parameters.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   description: Detailed message of the validation error.
+ *       400:
+ *         description: Error occurred while processing the request.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   description: General error message about the issue encountered.
+ */
+router.get('/addresses', getAllAVSAddresses);
+
+/**
+ * @openapi
+ * /avs/{id}:
+ *   get:
+ *     summary: Retrieve an AVS by ID
+ *     description: Returns a single AVS record by ID.
+ *     tags:
+ *       - AVS
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique identifier for the AVS.
+ *     responses:
+ *       200:
+ *         description: A successful response with AVS data.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AVS'
+ *       404:
+ *         description: AVS record not found.
+ *       400:
+ *         description: General error during the data fetching process.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   description: Error message detailing the issue encountered.
+ */
+router.get('/:id', getAVS);
+
+router.get('/:id/stakers', getAVSStakers);
 
 /**
  * @openapi
@@ -87,123 +202,6 @@ const router = express.Router()
  *                   type: string
  *                   description: Error message detailing the issue encountered.
  */
-router.get('/', getAllAVS)
+router.get('/', getAllAVS);
 
-/**
- * @openapi
- * /avs/addresses:
- *   get:
- *     summary: Retrieve addresses of all AVS
- *     description: This endpoint retrieves a paginated list of AVS addresses along with basic metadata such as the AVS name.
- *     tags:
- *       - AVS
- *     parameters:
- *       - in: query
- *         name: skip
- *         description: The number of records to skip for pagination.
- *         required: false
- *         schema:
- *           type: integer
- *           default: 0
- *       - in: query
- *         name: take
- *         description: The number of records to return for pagination.
- *         required: false
- *         schema:
- *           type: integer
- *           default: 10
- *     responses:
- *       200:
- *         description: Successfully retrieved list of AVS addresses.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 data:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       name:
- *                         type: string
- *                         description: The name of the AVS.
- *                       address:
- *                         type: string
- *                         description: The address of the AVS service contract.
- *                 meta:
- *                   type: object
- *                   properties:
- *                     total:
- *                       type: integer
- *                       description: The total number of AVS records in the database.
- *                     skip:
- *                       type: integer
- *                       description: The number of records skipped.
- *                     take:
- *                       type: integer
- *                       description: The number of records taken.
- *       422:
- *         description: Validation error in the request parameters.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
- *                   description: Detailed message of the validation error.
- *       400:
- *         description: Error occurred while processing the request.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
- *                   description: General error message about the issue encountered.
- */
-
-router.get('/addresses', getAllAVSAddresses)
-
-/**
- * @openapi
- * /avs/{id}:
- *   get:
- *     summary: Retrieve an AVS by ID
- *     description: Returns a single AVS record by ID.
- *     tags:
- *       - AVS
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: The unique identifier for the AVS.
- *     responses:
- *       200:
- *         description: A successful response with AVS data.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/AVS'
- *       404:
- *         description: AVS record not found.
- *       400:
- *         description: General error during the data fetching process.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
- *                   description: Error message detailing the issue encountered.
- */
-router.get('/:id', getAVS)
-
-router.get('/:id/stakers', getAVSStakers)
-
-export default router
+export default router;
