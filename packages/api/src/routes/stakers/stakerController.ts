@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express'
 import prisma from '../../utils/prismaClient'
-import { PaginationQuerySchema } from '../../schema/generic'
+import { handleAndReturnErrorResponse } from '../../schema/errors'
+import { PaginationQuerySchema } from '../../schema/zod/schemas/paginationQuery'
 
 /**
  * Route to get a list of all stakers
@@ -11,11 +12,11 @@ import { PaginationQuerySchema } from '../../schema/generic'
 export async function getAllStakers(req: Request, res: Response) {
 	try {
 		// Validate pagination query
-		const {
-			error,
-			value: { skip, take }
-		} = PaginationQuerySchema.validate(req.query)
-		if (error) return res.status(422).json({ error: error.details[0].message })
+		const result = PaginationQuerySchema.safeParse(req.query)
+		if (!result.success) {
+			return handleAndReturnErrorResponse(req, res, result.error)
+		}
+		const { skip, take } = result.data
 
 		// Fetch count and record
 		const stakersCount = await prisma.staker.count()
@@ -49,7 +50,7 @@ export async function getAllStakers(req: Request, res: Response) {
 			}
 		})
 	} catch (error) {
-		res.status(400).send({ error: 'An error occurred while fetching data' })
+		handleAndReturnErrorResponse(req, res, error)
 	}
 }
 
@@ -80,6 +81,6 @@ export async function getStaker(req: Request, res: Response) {
 			tvl
 		})
 	} catch (error) {
-		res.status(400).send({ error: 'An error occurred while fetching data' })
+		handleAndReturnErrorResponse(req, res, error)
 	}
 }
