@@ -1,0 +1,821 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "Eigen Explorer node / server backend",
+        "version": "1.0.0",
+        "description": "Eigen Explorer node / server backend API documentation",
+        "license": {
+            "name": "MIT",
+            "url": "https://spdx.org/licenses/MIT.html"
+        }
+    },
+    "servers": [
+        {
+            "url": "https://api.eigenexplorer.com",
+            "description": "Eigen Explorer API server"
+        }
+    ],
+    "paths": {
+        "/avs": {
+            "get": {
+                "summary": "Retrieve all AVS",
+                "description": "Returns all AVS records. This endpoint supports pagination.",
+                "tags": ["AVS"],
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "skip",
+                        "required": false,
+                        "schema": { "type": "integer", "default": 0 },
+                        "description": "Number of records to skip for pagination."
+                    },
+                    {
+                        "in": "query",
+                        "name": "take",
+                        "required": false,
+                        "schema": { "type": "integer", "default": 10 },
+                        "description": "Limit number of records to return (used for pagination)."
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "A successful response with AVS data.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "avs": {
+                                                        "$ref": "#/components/schemas/AVS"
+                                                    },
+                                                    "totalOperators": {
+                                                        "type": "integer",
+                                                        "description": "Total number of active operators within the AVS."
+                                                    },
+                                                    "totalStakers": {
+                                                        "type": "integer",
+                                                        "description": "Total number of stakers across all operators in this AVS."
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "total": {
+                                                    "type": "integer",
+                                                    "description": "Total number of AVS records in the database."
+                                                },
+                                                "skip": {
+                                                    "type": "integer",
+                                                    "description": "Number of records skipped in the current request."
+                                                },
+                                                "take": {
+                                                    "type": "integer",
+                                                    "description": "Number of records requested to return."
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "General error during the data fetching process.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "type": "string",
+                                            "description": "Error message detailing the issue encountered."
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error on request parameters.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "type": "string",
+                                            "description": "Error message detailing what went wrong during request validation."
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/avs/{id}": {
+            "get": {
+                "summary": "Retrieve an AVS by ID",
+                "description": "Returns a single AVS record by ID.",
+                "tags": ["AVS"],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": { "type": "string" },
+                        "description": "The unique identifier for the AVS."
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "A successful response with AVS data.",
+                        "content": {
+                            "application/json": {
+                                "schema": { "$ref": "#/components/schemas/AVS" }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "General error during the data fetching process.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "type": "string",
+                                            "description": "Error message detailing the issue encountered."
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": { "description": "AVS record not found." }
+                }
+            }
+        },
+        "/metrics": {
+            "get": {
+                "summary": "Retrieve summary metrics",
+                "description": "Returns summary metrics including total value locked in restaking, beacon chain, total number of AVS, operators, and stakers.",
+                "tags": ["Metrics"],
+                "responses": {
+                    "200": {
+                        "description": "Successfully retrieved the metrics.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "tvl": {
+                                            "type": "number",
+                                            "description": "Total value locked combining restaking and beacon chain."
+                                        },
+                                        "tvlRestaking": {
+                                            "type": "number",
+                                            "description": "Total value locked in restaking."
+                                        },
+                                        "tvlBeaconChain": {
+                                            "type": "number",
+                                            "description": "Total value locked in the beacon chain."
+                                        },
+                                        "totalAvs": {
+                                            "type": "number",
+                                            "description": "Total number of AVS registered."
+                                        },
+                                        "totalOperators": {
+                                            "type": "number",
+                                            "description": "Total number of operators."
+                                        },
+                                        "totalStakers": {
+                                            "type": "number",
+                                            "description": "Total number of stakers."
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "An error occurred while fetching data.",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string",
+                                    "example": "An error occurred while fetching data."
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/metrics/tvl": {
+            "get": {
+                "summary": "Retrieve TVL from all strategies",
+                "description": "Returns the total value locked (TVL) in LST strategies and beacon chain restaking.",
+                "tags": ["Metrics"],
+                "responses": {
+                    "200": {
+                        "description": "Successfully retrieved the total value locked.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "tvl": {
+                                            "type": "number",
+                                            "description": "The combined total value locked in restaking and the beacon chain."
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "An error occurred while fetching data.",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string",
+                                    "example": "An error occurred while fetching data."
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/metrics/tvl/beacon-chain": {
+            "get": {
+                "summary": "Retrieve beacon chain restaking TVL",
+                "description": "Returns the total value locked (TVL) in the beacon chain restaking eigen pods.",
+                "tags": ["Metrics"],
+                "responses": {
+                    "200": {
+                        "description": "Successfully retrieved the total value locked in the beacon chain.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "tvl": {
+                                            "type": "number",
+                                            "description": "The total value locked in the beacon chain."
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "An error occurred while fetching data.",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string",
+                                    "example": "An error occurred while fetching data."
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/metrics/tvl/restaking": {
+            "get": {
+                "summary": "Retrieve TVL in all LST strategies",
+                "description": "Returns the total value locked (TVL) in all LST strategies.",
+                "tags": ["Metrics"],
+                "responses": {
+                    "200": {
+                        "description": "Successfully retrieved the total value locked in LST strategies.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "tvl": {
+                                            "type": "number",
+                                            "description": "The total value locked in restaking strategies."
+                                        },
+                                        "tvlStrategies": {
+                                            "type": "object",
+                                            "description": "The total value locked in each LST strategy."
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "An error occurred while fetching data.",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string",
+                                    "example": "An error occurred while fetching data."
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/metrics/tvl/restaking/{strategy}": {
+            "get": {
+                "summary": "Retrieve a strategy TVL by name",
+                "description": "Returns the total value locked (TVL) in a specific LST strategy.",
+                "tags": ["Metrics"],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "strategy",
+                        "required": true,
+                        "schema": { "type": "string" },
+                        "description": "The name of the LST strategy."
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successfully retrieved the total value locked in the specified LST strategy.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "tvl": {
+                                            "type": "number",
+                                            "description": "The total value locked in the specified LST strategy."
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "An error occurred while fetching data.",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string",
+                                    "example": "An error occurred while fetching data."
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/metrics/total-avs": {
+            "get": {
+                "summary": "Retrieve total number of AVS",
+                "description": "Returns the total number of AVS registered.",
+                "tags": ["Metrics"],
+                "responses": {
+                    "200": {
+                        "description": "Successfully retrieved the total number of AVS.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "totalAvs": {
+                                            "type": "number",
+                                            "description": "The total number of AVS registered."
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "An error occurred while fetching data.",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string",
+                                    "example": "An error occurred while fetching data."
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/metrics/total-operators": {
+            "get": {
+                "summary": "Retrieve total number of operators",
+                "description": "Returns the total number of operators.",
+                "tags": ["Metrics"],
+                "responses": {
+                    "200": {
+                        "description": "Successfully retrieved the total number of operators.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "totalOperators": {
+                                            "type": "number",
+                                            "description": "The total number of operators."
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "An error occurred while fetching data.",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string",
+                                    "example": "An error occurred while fetching data."
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/metrics/total-stakers": {
+            "get": {
+                "summary": "Retrieve total number of stakers",
+                "description": "Returns the total number of stakers across all operators.",
+                "tags": ["Metrics"],
+                "responses": {
+                    "200": {
+                        "description": "Successfully retrieved the total number of stakers.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "totalStakers": {
+                                            "type": "number",
+                                            "description": "The total number of stakers across all operators."
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "An error occurred while fetching data.",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string",
+                                    "example": "An error occurred while fetching data."
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/operators": {
+            "get": {
+                "summary": "Retrieve all operators",
+                "description": "Returns all operator records. This endpoint supports pagination.",
+                "tags": ["Operators"],
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "skip",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 0,
+                            "minimum": 0
+                        },
+                        "description": "Number of records to skip for pagination."
+                    },
+                    {
+                        "in": "query",
+                        "name": "take",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 10,
+                            "minimum": 1
+                        },
+                        "description": "Limit number of records to return (used for pagination)."
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "A successful response with operator data.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "operator": {
+                                                        "$ref": "#/components/schemas/AvsOperator"
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "total": {
+                                                    "type": "integer",
+                                                    "description": "Total number of operator records in the database."
+                                                },
+                                                "skip": {
+                                                    "type": "integer",
+                                                    "description": "Number of records skipped in the current request."
+                                                },
+                                                "take": {
+                                                    "type": "integer",
+                                                    "description": "Number of records returned in the current request."
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/operators/{id}": {
+            "get": {
+                "summary": "Retrieve an operator by ID",
+                "description": "Returns an operator record by ID.",
+                "tags": ["Operators"],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": { "type": "string" },
+                        "description": "Operator ID."
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "A successful response with operator data.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "operator": {
+                                            "$ref": "#/components/schemas/AvsOperator"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Operator not found.",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string",
+                                    "example": "Operator not found."
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/strategy/tvl": {
+            "get": {
+                "summary": "Retrieve total TVL from all strategies",
+                "description": "Returns the total value locked (TVL) in LST strategies and beacon chain restaking.",
+                "tags": ["Strategies"],
+                "responses": {
+                    "200": {
+                        "description": "Successfully retrieved the total TVL.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "totalTvl": {
+                                            "type": "string",
+                                            "description": "The total TVL summed from all strategies, returned as a string to maintain precision in large numbers."
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error occurred while fetching the data.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "type": "string",
+                                            "description": "Error message describing why the data fetch operation failed."
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/strategy/tvl/{strategyName}": {
+            "get": {
+                "summary": "Retrieve a strategy TVL by name",
+                "description": "Returns the total value locked (TVL) for a given LST strategy by name.",
+                "tags": ["Strategies"],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "strategyName",
+                        "required": true,
+                        "schema": { "type": "string" },
+                        "description": "The name of the strategy for which to retrieve TVL."
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successfully retrieved the TVL for the specified strategy.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string",
+                                    "description": "The TVL of the specified strategy, returned as a string to preserve precision for large values."
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Strategy name not provided in the request.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "type": "string",
+                                            "description": "Error message indicating that the strategy name is required."
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Strategy not found.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "type": "string",
+                                            "description": "Error message indicating that the specified strategy does not exist."
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error occurred while fetching the data.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "type": "string",
+                                            "description": "Error message describing why the data fetch operation failed."
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "EntityMetadata": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "Name of the entity."
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Description of the entity."
+                    },
+                    "discord": {
+                        "type": "string",
+                        "description": "Optional Discord contact.",
+                        "nullable": true
+                    },
+                    "logo": {
+                        "type": "string",
+                        "description": "Optional logo URL.",
+                        "nullable": true
+                    },
+                    "telegram": {
+                        "type": "string",
+                        "description": "Optional Telegram contact.",
+                        "nullable": true
+                    },
+                    "website": {
+                        "type": "string",
+                        "description": "Optional website URL.",
+                        "nullable": true
+                    },
+                    "x": {
+                        "type": "string",
+                        "description": "Additional optional field.",
+                        "nullable": true
+                    }
+                }
+            },
+            "AvsOperator": {
+                "type": "object",
+                "properties": {
+                    "address": {
+                        "type": "string",
+                        "description": "Address of the AVS operator."
+                    },
+                    "isActive": {
+                        "type": "boolean",
+                        "description": "Indicates whether the operator is active."
+                    }
+                }
+            },
+            "AVS": {
+                "type": "object",
+                "required": ["id", "address", "metadata"],
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "description": "The unique identifier for the AVS."
+                    },
+                    "address": {
+                        "type": "string",
+                        "description": "The unique address of the AVS."
+                    },
+                    "metadata": {
+                        "$ref": "#/components/schemas/EntityMetadata",
+                        "description": "Metadata associated with the AVS."
+                    },
+                    "curatedMetadata": {
+                        "$ref": "#/components/schemas/EntityMetadata",
+                        "description": "Curated metadata, optionally provided for the AVS.",
+                        "nullable": true
+                    },
+                    "tags": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "description": "Tags associated with the AVS."
+                    },
+                    "isVisible": {
+                        "type": "boolean",
+                        "description": "Visibility status of the AVS."
+                    },
+                    "isVerified": {
+                        "type": "boolean",
+                        "description": "Verification status of the AVS."
+                    },
+                    "operators": {
+                        "type": "array",
+                        "items": { "$ref": "#/components/schemas/AvsOperator" },
+                        "description": "List of operators associated with this AVS."
+                    }
+                }
+            }
+        }
+    },
+    "tags": []
+}

@@ -1,8 +1,15 @@
 import z from '../';
 
-const MetadataSchema = z.object({
-    name: z.string(),
-    description: z.string().nullable(),
+const AvsMetadataSchema = z.object({
+    name: z
+        .string()
+        .describe('The name of the AVS')
+        .openapi({ example: 'Example AVS' }),
+    description: z
+        .string()
+        .nullable()
+        .describe('The description of the AVS')
+        .openapi({ example: 'This is an example AVS' }),
     discord: z
         .string()
         .url()
@@ -33,12 +40,12 @@ const MetadataSchema = z.object({
 export const EthereumAddressSchema = z
     .string()
     .regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address')
-    .describe("The AVS's service manager address")
+    .describe('The AVS service manager contract address')
     .openapi({ example: '0x74b09c5de70ebadbeeb5db503fecb6e6ad39560d' });
 
-const schema = z.object({
-    metadata: MetadataSchema,
-    curatedMetadata: MetadataSchema.nullable(),
+export const AvsSchema = z.object({
+    metadata: AvsMetadataSchema,
+    curatedMetadata: AvsMetadataSchema.nullable(),
     id: z.string().openapi({ example: '66218ccb560e53b6760df00d' }),
     address: EthereumAddressSchema,
     tags: z
@@ -62,4 +69,10 @@ const schema = z.object({
         .openapi({ example: 1 }),
 });
 
-export default schema;
+export const AvsAddressSchema = z.object({
+    name: z
+        .string()
+        .describe('The name of the AVS')
+        .openapi({ example: 'Example AVS' }),
+    address: EthereumAddressSchema,
+});
