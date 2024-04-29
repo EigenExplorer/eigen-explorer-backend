@@ -107,16 +107,19 @@ export async function getAllAVSAddresses(req: Request, res: Response) {
  * @param res
  */
 export async function getAVS(req: Request, res: Response) {
-    const { avsAddress } = req.params;
+    const { address } = req.params;
+    console.log('avsAddress', address);
 
-    const result = EthereumAddressSchema.safeParse(avsAddress);
+    const result = EthereumAddressSchema.safeParse(address);
     if (!result.success) {
         return handleAndReturnErrorResponse(req, res, result.error);
     }
 
+    console.log(result);
+
     try {
         const avs = await prisma.avs.findUniqueOrThrow({
-            where: { address: avsAddress },
+            where: { address: address },
             include: { operators: true },
         });
 
@@ -250,14 +253,16 @@ export async function getAVSStakers(req: Request, res: Response) {
  * @returns
  */
 export async function getAVSOperators(req: Request, res: Response) {
-    try {
-        // Validate pagination query
-        const result = PaginationQuerySchema.safeParse(req.query);
-        if (!result.success) {
-            return handleAndReturnErrorResponse(req, res, result.error);
-        }
-        const { skip, take } = result.data;
+    console.log(req.query);
+    // Validate pagination query
+    const result = PaginationQuerySchema.safeParse(req.query);
+    if (!result.success) {
+        return handleAndReturnErrorResponse(req, res, result.error);
+    }
+    console.log(result);
+    const { skip, take } = result.data;
 
+    try {
         const { id } = req.params;
         const avs = await prisma.avs.findUniqueOrThrow({
             where: { address: id },
