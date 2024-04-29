@@ -1,4 +1,4 @@
-import { openApiErrorResponses } from './components/errorResponses';
+import { openApiErrorResponses } from './apiResTypes/errorResponses';
 import { createDocument } from 'zod-openapi';
 import { avsRoutes } from './routes/avs';
 import { AvsAddressSchema } from '../../api/src/schema/zod/schemas/avs';

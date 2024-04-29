@@ -52,13 +52,292 @@
         ],
         "responses": {
           "200": {
-            "description": "The created links",
+            "description": "The list of AVS addresses.",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/AvsAddressSchema"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/avs": {
+      "get": {
+        "operationId": "getAllAvs",
+        "summary": "Retrieve all AVS",
+        "description": "Returns all AVS records. This endpoint supports pagination.",
+        "tags": [
+          "AVS"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "skip",
+            "description": "The number of records to skip for pagination.",
+            "schema": {
+              "type": "number",
+              "minimum": 0,
+              "default": 0,
+              "description": "The number of records to skip for pagination.",
+              "example": 0
+            }
+          },
+          {
+            "in": "query",
+            "name": "take",
+            "description": "The number of records to return for pagination.",
+            "schema": {
+              "type": "number",
+              "minimum": 1,
+              "default": 12,
+              "description": "The number of records to return for pagination.",
+              "example": 12
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The list of AVS records.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "AvsSchema": {
+                        "type": "object",
+                        "properties": {
+                          "metadata": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string",
+                                "description": "The name of the AVS",
+                                "example": "Example AVS"
+                              },
+                              "description": {
+                                "type": "string",
+                                "nullable": true,
+                                "description": "The description of the AVS",
+                                "example": "This is an example AVS"
+                              },
+                              "discord": {
+                                "type": "string",
+                                "nullable": true,
+                                "format": "uri",
+                                "description": "The URL of the AVS's Discord server",
+                                "example": "https://discord.com/invite/9eeRHxSCTZ"
+                              },
+                              "logo": {
+                                "type": "string",
+                                "nullable": true,
+                                "format": "uri",
+                                "description": "The URL of the AVS's logo"
+                              },
+                              "telegram": {
+                                "type": "string",
+                                "nullable": true,
+                                "format": "uri",
+                                "description": "The URL of the AVS's Telegram channel",
+                                "example": "https://t.me/acme"
+                              },
+                              "website": {
+                                "type": "string",
+                                "nullable": true,
+                                "format": "uri",
+                                "description": "The URL of the AVS's website",
+                                "example": "https://acme.com"
+                              },
+                              "x": {
+                                "type": "string",
+                                "nullable": true,
+                                "format": "uri",
+                                "description": "The URL of the AVS's X",
+                                "example": "https://twitter.com/acme"
+                              }
+                            },
+                            "required": [
+                              "name",
+                              "description",
+                              "discord",
+                              "logo",
+                              "telegram",
+                              "website",
+                              "x"
+                            ]
+                          },
+                          "curatedMetadata": {
+                            "type": "object",
+                            "nullable": true,
+                            "properties": {
+                              "name": {
+                                "type": "string",
+                                "description": "The name of the AVS",
+                                "example": "Example AVS"
+                              },
+                              "description": {
+                                "type": "string",
+                                "nullable": true,
+                                "description": "The description of the AVS",
+                                "example": "This is an example AVS"
+                              },
+                              "discord": {
+                                "type": "string",
+                                "nullable": true,
+                                "format": "uri",
+                                "description": "The URL of the AVS's Discord server",
+                                "example": "https://discord.com/invite/9eeRHxSCTZ"
+                              },
+                              "logo": {
+                                "type": "string",
+                                "nullable": true,
+                                "format": "uri",
+                                "description": "The URL of the AVS's logo"
+                              },
+                              "telegram": {
+                                "type": "string",
+                                "nullable": true,
+                                "format": "uri",
+                                "description": "The URL of the AVS's Telegram channel",
+                                "example": "https://t.me/acme"
+                              },
+                              "website": {
+                                "type": "string",
+                                "nullable": true,
+                                "format": "uri",
+                                "description": "The URL of the AVS's website",
+                                "example": "https://acme.com"
+                              },
+                              "x": {
+                                "type": "string",
+                                "nullable": true,
+                                "format": "uri",
+                                "description": "The URL of the AVS's X",
+                                "example": "https://twitter.com/acme"
+                              }
+                            },
+                            "required": [
+                              "name",
+                              "description",
+                              "discord",
+                              "logo",
+                              "telegram",
+                              "website",
+                              "x"
+                            ]
+                          },
+                          "id": {
+                            "type": "string",
+                            "example": "66218ccb560e53b6760df00d"
+                          },
+                          "address": {
+                            "type": "string",
+                            "pattern": "^0x[a-fA-F0-9]{40}$",
+                            "description": "The AVS service manager contract address",
+                            "example": "0x74b09c5de70ebadbeeb5db503fecb6e6ad39560d"
+                          },
+                          "tags": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "description": "A list of tags associated with the AVS",
+                            "example": [
+                              "DA"
+                            ]
+                          },
+                          "isVisible": {
+                            "type": "boolean",
+                            "example": true
+                          },
+                          "isVerified": {
+                            "type": "boolean",
+                            "description": "Whether the AVS is manually verified",
+                            "example": true
+                          },
+                          "totalOperators": {
+                            "type": "number",
+                            "minimum": 0,
+                            "description": "The total number of operators",
+                            "example": 1
+                          },
+                          "totalStakers": {
+                            "type": "number",
+                            "minimum": 0,
+                            "description": "The total number of stakers",
+                            "example": 1
+                          }
+                        },
+                        "required": [
+                          "metadata",
+                          "curatedMetadata",
+                          "id",
+                          "address",
+                          "tags",
+                          "isVisible",
+                          "isVerified",
+                          "totalOperators",
+                          "totalStakers"
+                        ]
+                      },
+                      "meta": {
+                        "type": "object",
+                        "properties": {
+                          "total": {
+                            "type": "number",
+                            "description": "Total number of AVS records in the database",
+                            "example": 30
+                          },
+                          "skip": {
+                            "type": "number",
+                            "description": "The number of skiped records for this query",
+                            "example": 0
+                          },
+                          "take": {
+                            "type": "number",
+                            "description": "The number of records returned for this query",
+                            "example": 12
+                          }
+                        },
+                        "required": [
+                          "total",
+                          "skip",
+                          "take"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "AvsSchema",
+                      "meta"
+                    ]
                   }
                 }
               }
