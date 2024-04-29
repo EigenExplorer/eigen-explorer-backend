@@ -6,3 +6,8 @@ export const PaginationQuerySchema = Joi.object<{ skip: number; take: number }>(
 		take: Joi.number().default(12).min(1)
 	}
 )
+
+// Fix for broken types
+export interface IMap<K, V> extends Map<K, V> {
+	get(key: K): V
+}

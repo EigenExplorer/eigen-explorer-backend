@@ -26,7 +26,7 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 		string,
 		{
 			operatorAddress: string | null
-			shares: { shares: string; strategy: string }[]
+			shares: { shares: bigint; strategy: string }[]
 		}
 	> = new Map()
 
@@ -88,7 +88,7 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 				if (foundSharesIndex !== undefined && foundSharesIndex === -1) {
 					stakers
 						.get(stakerAddress)
-						.shares.push({ shares: '0', strategy: strategyAddress })
+						.shares.push({ shares: 0n, strategy: strategyAddress })
 
 					foundSharesIndex = stakers
 						.get(stakerAddress)
@@ -98,15 +98,11 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 				}
 
 				if (log.eventName === 'OperatorSharesIncreased') {
-					stakers.get(stakerAddress).shares[foundSharesIndex].shares = (
-						BigInt(stakers.get(stakerAddress).shares[foundSharesIndex].shares) +
-						BigInt(shares)
-					).toString()
+					stakers.get(stakerAddress).shares[foundSharesIndex].shares =
+						stakers.get(stakerAddress).shares[foundSharesIndex].shares + shares
 				} else if (log.eventName === 'OperatorSharesDecreased') {
-					stakers.get(stakerAddress).shares[foundSharesIndex].shares = (
-						BigInt(stakers.get(stakerAddress).shares[foundSharesIndex].shares) -
-						BigInt(shares)
-					).toString()
+					stakers.get(stakerAddress).shares[foundSharesIndex].shares =
+						stakers.get(stakerAddress).shares[foundSharesIndex].shares - shares
 				}
 			}
 		}
@@ -142,7 +138,7 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 					newStakerShares.push({
 						stakerAddress,
 						strategyAddress: share.strategy,
-						shares: share.shares
+						shares: share.shares.toString()
 					})
 				})
 			}
@@ -188,10 +184,10 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 						create: {
 							stakerAddress,
 							strategyAddress: share.strategy,
-							shares: share.shares
+							shares: share.shares.toString()
 						},
 						update: {
-							shares: share.shares
+							shares: share.shares.toString()
 						}
 					})
 				)
