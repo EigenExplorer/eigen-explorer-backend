@@ -138,6 +138,8 @@ export async function getAVS(req: Request, res: Response) {
         return handleAndReturnErrorResponse(req, res, result.error);
     }
 
+    console.log(result);
+
     try {
         const avs = await prisma.avs.findUniqueOrThrow({
             where: { address: id },
@@ -275,14 +277,16 @@ export async function getAVSStakers(req: Request, res: Response) {
  * @returns
  */
 export async function getAVSOperators(req: Request, res: Response) {
-    try {
-        // Validate pagination query
-        const result = PaginationQuerySchema.safeParse(req.query);
-        if (!result.success) {
-            return handleAndReturnErrorResponse(req, res, result.error);
-        }
-        const { skip, take } = result.data;
+    console.log(req.query);
+    // Validate pagination query
+    const result = PaginationQuerySchema.safeParse(req.query);
+    if (!result.success) {
+        return handleAndReturnErrorResponse(req, res, result.error);
+    }
+    console.log(result);
+    const { skip, take } = result.data;
 
+    try {
         const { id } = req.params;
         const avs = await prisma.avs.findUniqueOrThrow({
             where: { address: id },
