@@ -1,6 +1,11 @@
 import { getPrismaClient } from './prismaClient'
 import { chunkArray } from './array'
 
+// Fix for broken types
+export interface IMap<K, V> extends Map<K, V> {
+	get(key: K): V
+}
+
 // Base block
 export const baseBlock =
 	process.env.NETWORK && process.env.NETWORK === 'holesky'

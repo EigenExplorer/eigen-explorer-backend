@@ -6,16 +6,13 @@ import {
 	baseBlock,
 	bulkUpdateDbTransactions,
 	fetchLastSyncBlock,
+	IMap,
 	loopThroughBlocks,
 	saveLastSyncBlock
 } from './utils/seeder'
+import { seedOperatorShares } from './seedOperatorShares'
 
 const blockSyncKey = 'lastSyncedBlock_stakers'
-
-// Fix for broken types
-interface IMap<K, V> extends Map<K, V> {
-	get(key: K): V
-}
 
 export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 	console.log('Seeding stakers ...')
@@ -29,6 +26,8 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 			shares: { shares: bigint; strategy: string }[]
 		}
 	> = new Map()
+
+	const impactedOperators = new Set<string>()
 
 	const firstBlock = fromBlock
 		? fromBlock
@@ -75,6 +74,8 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 				log.eventName === 'OperatorSharesIncreased' ||
 				log.eventName === 'OperatorSharesDecreased'
 			) {
+				impactedOperators.add(operatorAddress)
+
 				const strategyAddress = String(log.args.strategy).toLowerCase()
 				const shares = log.args.shares
 				if (!shares) continue
@@ -196,6 +197,9 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 	}
 
 	await bulkUpdateDbTransactions(dbTransactions)
+
+	// Update operator shares
+	await seedOperatorShares(Array.from(impactedOperators))
 
 	// Storing last sycned block
 	await saveLastSyncBlock(blockSyncKey, lastBlock)

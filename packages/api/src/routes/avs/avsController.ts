@@ -35,11 +35,7 @@ export async function getAllAVS(req: Request, res: Response) {
 					include: {
 						operator: {
 							include: {
-								stakers: {
-									include: {
-										shares: true
-									}
-								}
+								shares: true
 							}
 						}
 					}
@@ -47,26 +43,32 @@ export async function getAllAVS(req: Request, res: Response) {
 			}
 		})
 
-		const data = avsRecords.map((avs) => {
-			let tvl = 0
-			let totalStakers = 0
-			const totalOperators = avs.operators.length
+		const data = await Promise.all(
+			avsRecords.map(async (avs) => {
+				let tvl = 0
 
-			avs.operators.map((avsOperator) => {
-				const operator = withOperatorTvl(avsOperator.operator)
+				const totalOperators = avs.operators.length
+				const totalStakers = await prisma.staker.count({
+					where: {
+						operatorAddress: { in: avs.operators.map((o) => o.operatorAddress) }
+					}
+				})
 
-				tvl += operator.tvl
-				totalStakers += operator.totalStakers
+				avs.operators.map((avsOperator) => {
+					const operator = withOperatorTvl(avsOperator.operator)
+
+					tvl += operator.tvl
+				})
+
+				return {
+					...avs,
+					operators: undefined,
+					tvl,
+					totalOperators,
+					totalStakers
+				}
 			})
-
-			return {
-				...avs,
-				operators: undefined,
-				tvl,
-				totalOperators,
-				totalStakers
-			}
-		})
+		)
 
 		res.send({
 			data,
@@ -143,11 +145,7 @@ export async function getAVS(req: Request, res: Response) {
 					include: {
 						operator: {
 							include: {
-								stakers: {
-									include: {
-										shares: true
-									}
-								}
+								shares: true
 							}
 						}
 					}
@@ -156,30 +154,32 @@ export async function getAVS(req: Request, res: Response) {
 		})
 
 		let tvl = 0
-		let totalStakers = 0
-		const totalOperators = avs.operators.length
 		const sharesMap: IMap<string, string> = new Map()
+		const totalOperators = avs.operators.length
+		const totalStakers = await prisma.staker.count({
+			where: {
+				operatorAddress: { in: avs.operators.map((o) => o.operatorAddress) }
+			}
+		})
 
-		avs.operators
-			.map((avsOperator) => avsOperator.operator)
-			.map((operator) => withOperatorTvlAndShares(operator))
-			.map((operator) => {
-				operator.shares.map((s) => {
-					if (!sharesMap.has(s.strategyAddress)) {
-						sharesMap.set(s.strategyAddress, '0')
-					}
+		avs.operators.map((avsOperator) => {
+			const operator = withOperatorTvlAndShares(avsOperator.operator)
 
-					sharesMap.set(
-						s.strategyAddress,
-						(
-							BigInt(sharesMap.get(s.strategyAddress)) + BigInt(s.shares)
-						).toString()
-					)
-				})
+			operator.shares.map((s) => {
+				if (!sharesMap.has(s.strategyAddress)) {
+					sharesMap.set(s.strategyAddress, '0')
+				}
 
-				tvl += operator.tvl
-				totalStakers += operator.totalStakers
+				sharesMap.set(
+					s.strategyAddress,
+					(
+						BigInt(sharesMap.get(s.strategyAddress)) + BigInt(s.shares)
+					).toString()
+				)
 			})
+
+			tvl += operator.tvl
+		})
 
 		res.send({
 			...avs,
@@ -281,36 +281,35 @@ export async function getAVSOperators(req: Request, res: Response) {
 		const { id } = req.params
 		const avs = await prisma.avs.findUniqueOrThrow({
 			where: { address: id },
-			include: { operators: true }
-		})
-
-		const operatorAddresses = avs.operators
-			.filter((o) => o.isActive)
-			.map((o) => o.operatorAddress)
-
-		const operatorsCount = await prisma.operator.count({
-			where: { address: { in: operatorAddresses } }
-		})
-
-		const operatorsRecords = await prisma.operator.findMany({
-			where: { address: { in: operatorAddresses } },
-			skip,
-			take,
 			include: {
-				stakers: {
-					include: {
-						shares: true
-					}
+				operators: {
+					where: { isActive: true }
 				}
 			}
 		})
 
-		const data = operatorsRecords.map((operator) => withOperatorTvl(operator))
+		const operatorsRecords = await prisma.operator.findMany({
+			where: { address: { in: avs.operators.map((o) => o.operatorAddress) } },
+			skip,
+			take,
+			include: {
+				shares: true,
+				stakers: true
+			}
+		})
+
+		const data = operatorsRecords
+			.map((operator) => ({
+				...operator,
+				stakers: undefined,
+				totalStakers: operator.stakers.length
+			}))
+			.map((operator) => withOperatorTvl(operator))
 
 		res.send({
 			data,
 			meta: {
-				total: operatorsCount,
+				total: avs.operators.length,
 				skip,
 				take
 			}
