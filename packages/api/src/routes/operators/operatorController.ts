@@ -2,7 +2,7 @@ import type { Request, Response } from 'express'
 import prisma from '../../utils/prismaClient'
 import { PaginationQuerySchema } from '../../schema/zod/schemas/paginationQuery'
 import { handleAndReturnErrorResponse } from '../../schema/errors'
-import { StakerStrategyShares } from '@prisma/client'
+import { OperatorStrategyShares } from '@prisma/client'
 import { IMap } from '../../schema/generic'
 
 /**
@@ -26,17 +26,18 @@ export async function getAllOperators(req: Request, res: Response) {
 			skip,
 			take,
 			include: {
-				stakers: {
-					include: {
-						shares: true
-					}
-				}
+				shares: true,
+				stakers: true
 			}
 		})
 
-		const operators = operatorRecords.map((operator) =>
-			withOperatorTvl(operator)
-		)
+		const operators = operatorRecords
+			.map((operator) => ({
+				...operator,
+				stakers: undefined,
+				totalStakers: operator.stakers.length
+			}))
+			.map((operator) => withOperatorTvl(operator))
 
 		res.send({
 			data: operators,
@@ -64,23 +65,22 @@ export async function getOperator(req: Request, res: Response) {
 		const operator = await prisma.operator.findUniqueOrThrow({
 			where: { address: id },
 			include: {
-				stakers: {
-					include: {
-						shares: true
-					}
-				}
+				shares: true,
+				stakers: true
 			}
 		})
 
 		let tvl = 0
 
-		operator.stakers.map((staker) => {
-			staker.shares.map((s) => {
-				tvl += Number(s.shares) / 1e18
-			})
+		operator.shares.map((s) => {
+			tvl += Number(s.shares) / 1e18
 		})
 
-		res.send(withOperatorTvlAndShares(operator))
+		res.send({
+			...withOperatorTvlAndShares(operator),
+			stakers: undefined,
+			totalStakers: operator.stakers.length
+		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
 	}
@@ -88,43 +88,38 @@ export async function getOperator(req: Request, res: Response) {
 
 // Helper methods
 export function withOperatorTvl(operator: {
-	stakers: { shares: StakerStrategyShares[] }[]
+	shares: OperatorStrategyShares[]
 }) {
 	let tvl = 0
 
-	operator.stakers.map((staker) => {
-		staker.shares.map((s) => {
-			tvl += Number(s.shares) / 1e18
-		})
+	operator.shares.map((s) => {
+		tvl += Number(s.shares) / 1e18
 	})
 
 	return {
 		...operator,
-		tvl,
-		totalStakers: operator.stakers.length,
-		stakers: undefined
+		shares: undefined,
+		tvl
 	}
 }
 
 export function withOperatorTvlAndShares(operator: {
-	stakers: { shares: StakerStrategyShares[] }[]
+	shares: OperatorStrategyShares[]
 }) {
 	let tvl = 0
 	const sharesMap: IMap<string, string> = new Map()
 
-	operator.stakers.map((staker) => {
-		staker.shares.map((s) => {
-			if (!sharesMap.has(s.strategyAddress)) {
-				sharesMap.set(s.strategyAddress, '0')
-			}
+	operator.shares.map((s) => {
+		if (!sharesMap.has(s.strategyAddress)) {
+			sharesMap.set(s.strategyAddress, '0')
+		}
 
-			sharesMap.set(
-				s.strategyAddress,
-				(BigInt(sharesMap.get(s.strategyAddress)) + BigInt(s.shares)).toString()
-			)
+		sharesMap.set(
+			s.strategyAddress,
+			(BigInt(sharesMap.get(s.strategyAddress)) + BigInt(s.shares)).toString()
+		)
 
-			tvl += Number(s.shares) / 1e18
-		})
+		tvl += Number(s.shares) / 1e18
 	})
 
 	return {
@@ -134,7 +129,6 @@ export function withOperatorTvlAndShares(operator: {
 			strategyAddress,
 			shares
 		})),
-		tvl,
-		totalStakers: operator.stakers.length
+		tvl
 	}
 }

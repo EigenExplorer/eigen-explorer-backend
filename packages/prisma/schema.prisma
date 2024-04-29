@@ -54,7 +54,17 @@ model Operator {
   metadataX           String?
 
   avs     AvsOperator[]
+  shares  OperatorStrategyShares[]
   stakers Staker[]
+}
+
+model OperatorStrategyShares {
+  Operator        Operator @relation(fields: [operatorAddress], references: [address])
+  operatorAddress String
+  strategyAddress String
+  shares          String
+
+  @@id([operatorAddress, strategyAddress])
 }
 
 model Staker {
