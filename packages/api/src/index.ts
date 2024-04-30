@@ -9,7 +9,6 @@ import {
     EigenExplorerApiError,
     handleAndReturnErrorResponse,
 } from './schema/errors';
-import { error } from 'console';
 
 const PORT = process.env.PORT ? Number.parseInt(process.env.PORT) : 3002;
 

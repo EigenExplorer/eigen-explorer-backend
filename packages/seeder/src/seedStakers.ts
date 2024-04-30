@@ -10,7 +10,6 @@ import {
 	loopThroughBlocks,
 	saveLastSyncBlock
 } from './utils/seeder'
-import { seedOperatorShares } from './seedOperatorShares'
 
 const blockSyncKey = 'lastSyncedBlock_stakers'
 
@@ -23,19 +22,22 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 		string,
 		{
 			operatorAddress: string | null
-			shares: { shares: bigint; strategy: string }[]
+			shares: { shares: bigint; strategyAddress: string }[]
 		}
 	> = new Map()
-
-	const impactedOperators = new Set<string>()
 
 	const firstBlock = fromBlock
 		? fromBlock
 		: await fetchLastSyncBlock(blockSyncKey)
 	const lastBlock = toBlock ? toBlock : await viemClient.getBlockNumber()
 
+	if (firstBlock === baseBlock) {
+		await prismaClient.stakerStrategyShares.deleteMany()
+	}
+
 	// Loop through evm logs
 	await loopThroughBlocks(firstBlock, lastBlock, async (fromBlock, toBlock) => {
+		// Fetch logs
 		const logs = await viemClient.getLogs({
 			address: getEigenContracts().DelegationManager,
 			events: [
@@ -56,14 +58,42 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 			toBlock
 		})
 
+		// Stakers list
+		const stakerAddresses = logs.map((l) => String(l.args.staker).toLowerCase())
+		console.log('stakerAddresses shares for seeding', stakerAddresses)
+
+		const stakerInit = await prismaClient.staker.findMany({
+			where: { address: { in: stakerAddresses } },
+			include: {
+				shares: true
+			}
+		})
+
 		for (const l in logs) {
 			const log = logs[l]
 
 			const operatorAddress = String(log.args.operator).toLowerCase()
 			const stakerAddress = String(log.args.staker).toLowerCase()
 
+			// Load existing staker shares data
 			if (!stakers.has(stakerAddress)) {
-				stakers.set(stakerAddress, { operatorAddress: null, shares: [] })
+				const foundStakerInit = stakerInit.find(
+					(s) => s.address.toLowerCase() === stakerAddress.toLowerCase()
+				)
+				if (foundStakerInit) {
+					stakers.set(stakerAddress, {
+						operatorAddress: foundStakerInit.operatorAddress,
+						shares: foundStakerInit.shares.map((s) => ({
+							...s,
+							shares: BigInt(s.shares)
+						}))
+					})
+				} else {
+					stakers.set(stakerAddress, {
+						operatorAddress: null,
+						shares: []
+					})
+				}
 			}
 
 			if (log.eventName === 'StakerDelegated') {
@@ -74,8 +104,6 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 				log.eventName === 'OperatorSharesIncreased' ||
 				log.eventName === 'OperatorSharesDecreased'
 			) {
-				impactedOperators.add(operatorAddress)
-
 				const strategyAddress = String(log.args.strategy).toLowerCase()
 				const shares = log.args.shares
 				if (!shares) continue
@@ -83,27 +111,33 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 				let foundSharesIndex = stakers
 					.get(stakerAddress)
 					.shares.findIndex(
-						(ss) => ss.strategy.toLowerCase() === strategyAddress
+						(ss) =>
+							ss.strategyAddress.toLowerCase() === strategyAddress.toLowerCase()
 					)
 
 				if (foundSharesIndex !== undefined && foundSharesIndex === -1) {
 					stakers
 						.get(stakerAddress)
-						.shares.push({ shares: 0n, strategy: strategyAddress })
+						.shares.push({ shares: 0n, strategyAddress })
 
 					foundSharesIndex = stakers
 						.get(stakerAddress)
 						.shares.findIndex(
-							(os) => os.strategy.toLowerCase() === strategyAddress
+							(os) =>
+								os.strategyAddress.toLowerCase() ===
+								strategyAddress.toLowerCase()
 						)
 				}
 
 				if (log.eventName === 'OperatorSharesIncreased') {
 					stakers.get(stakerAddress).shares[foundSharesIndex].shares =
 						stakers.get(stakerAddress).shares[foundSharesIndex].shares + shares
+
+					stakers.get(stakerAddress).operatorAddress = operatorAddress
 				} else if (log.eventName === 'OperatorSharesDecreased') {
 					stakers.get(stakerAddress).shares[foundSharesIndex].shares =
 						stakers.get(stakerAddress).shares[foundSharesIndex].shares - shares
+					stakers.get(stakerAddress).operatorAddress = null
 				}
 			}
 		}
@@ -121,7 +155,7 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 		dbTransactions.push(prismaClient.stakerStrategyShares.deleteMany())
 		dbTransactions.push(prismaClient.staker.deleteMany())
 
-		const newStakers: { address: string; operatorAddress: string }[] = []
+		const newStakers: { address: string; operatorAddress: string | null }[] = []
 		const newStakerShares: {
 			stakerAddress: string
 			strategyAddress: string
@@ -129,20 +163,18 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 		}[] = []
 
 		for (const [stakerAddress, stakerDetails] of stakers) {
-			if (stakerDetails.operatorAddress) {
-				newStakers.push({
-					address: stakerAddress,
-					operatorAddress: stakerDetails.operatorAddress
-				})
+			newStakers.push({
+				address: stakerAddress,
+				operatorAddress: stakerDetails.operatorAddress
+			})
 
-				stakerDetails.shares.map((share) => {
-					newStakerShares.push({
-						stakerAddress,
-						strategyAddress: share.strategy,
-						shares: share.shares.toString()
-					})
+			stakerDetails.shares.map((share) => {
+				newStakerShares.push({
+					stakerAddress,
+					strategyAddress: share.strategyAddress,
+					shares: share.shares.toString()
 				})
-			}
+			})
 		}
 
 		dbTransactions.push(
@@ -179,12 +211,12 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 						where: {
 							stakerAddress_strategyAddress: {
 								stakerAddress,
-								strategyAddress: share.strategy
+								strategyAddress: share.strategyAddress
 							}
 						},
 						create: {
 							stakerAddress,
-							strategyAddress: share.strategy,
+							strategyAddress: share.strategyAddress,
 							shares: share.shares.toString()
 						},
 						update: {
@@ -197,9 +229,6 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 	}
 
 	await bulkUpdateDbTransactions(dbTransactions)
-
-	// Update operator shares
-	await seedOperatorShares(Array.from(impactedOperators))
 
 	// Storing last sycned block
 	await saveLastSyncBlock(blockSyncKey, lastBlock)
