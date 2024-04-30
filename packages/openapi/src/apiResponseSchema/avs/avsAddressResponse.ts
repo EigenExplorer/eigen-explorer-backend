@@ -1,5 +1,5 @@
-import z from '../../../api/src/schema/zod';
-import { EthereumAddressSchema } from '../../../api/src/schema/zod/schemas/base/ethereumAddress';
+import z from '../../../../api/src/schema/zod';
+import { EthereumAddressSchema } from '../../../../api/src/schema/zod/schemas/base/ethereumAddress';
 
 export const AvsAddressSchema = z.object({
     name: z

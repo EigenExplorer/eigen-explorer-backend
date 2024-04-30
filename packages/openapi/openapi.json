@@ -16,6 +16,527 @@
     }
   ],
   "paths": {
+    "/metrics": {
+      "get": {
+        "operationId": "getAllMetrics",
+        "summary": "Retrieve summary metrics",
+        "description": "Returns summary metrics, including TVLs for both restaking strategies and the beacon chain, as well as the total number of AVS, operators, and stakers.",
+        "tags": [
+          "Metrics"
+        ],
+        "responses": {
+          "200": {
+            "description": "The list of summary metrics.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "tvl": {
+                      "type": "number",
+                      "description": "The total value locked in all EigenLayer AVS",
+                      "example": 10
+                    },
+                    "tvlRestaking": {
+                      "type": "number",
+                      "description": "The total value locked in all restaking strategies",
+                      "example": 5
+                    },
+                    "tvlStrategies": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "strategyName": {
+                            "type": "string",
+                            "description": "The name of the strategy",
+                            "example": "cbETH"
+                          },
+                          "strategyTvl": {
+                            "type": "number",
+                            "description": "The total value locked in the strategy",
+                            "example": 1000000
+                          }
+                        },
+                        "required": [
+                          "strategyName",
+                          "strategyTvl"
+                        ]
+                      },
+                      "description": "The total value locked in each restaking strategy"
+                    },
+                    "tvlBeaconChain": {
+                      "type": "number",
+                      "description": "The total value locked in the beacon chain ETH",
+                      "example": 1000000
+                    },
+                    "totalAVS": {
+                      "type": "number",
+                      "description": "The total number of AVS",
+                      "example": 10
+                    },
+                    "totalOperators": {
+                      "type": "number",
+                      "description": "The total number of operators",
+                      "example": 10
+                    },
+                    "totalStakers": {
+                      "type": "number",
+                      "description": "The total number of stakers",
+                      "example": 10
+                    }
+                  },
+                  "required": [
+                    "tvl",
+                    "tvlRestaking",
+                    "tvlStrategies",
+                    "tvlBeaconChain",
+                    "totalAVS",
+                    "totalOperators",
+                    "totalStakers"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/metrics/tvl": {
+      "get": {
+        "operationId": "getTvlMetrics",
+        "summary": "Retrieve total TVL",
+        "description": "Returns the total value locked (TVL) in all restaking strategies and beacon chain restaking.",
+        "tags": [
+          "Metrics"
+        ],
+        "responses": {
+          "200": {
+            "description": "The value of the combined TVL.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "tvl": {
+                      "type": "number",
+                      "example": 1000000
+                    }
+                  },
+                  "required": [
+                    "tvl"
+                  ],
+                  "description": "The value of the combined TVL."
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/metrics/tvl/beacon-chain": {
+      "get": {
+        "operationId": "getBeaconChainTvlMetric",
+        "summary": "Retrieve Beacon Chain restaking TVL",
+        "description": "Returns the total value locked (TVL) in the Beacon Chain restaking eigen pods.",
+        "tags": [
+          "Metrics"
+        ],
+        "responses": {
+          "200": {
+            "description": "The value of the Beacon Chain restaking TVL.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "tvl": {
+                      "type": "number",
+                      "example": 1000000
+                    }
+                  },
+                  "required": [
+                    "tvl"
+                  ],
+                  "description": "The value of the Beacon Chain restaking TVL."
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/metrics/tvl/restaking": {
+      "get": {
+        "operationId": "getRestakingTvlMetrics",
+        "summary": "Retrieve restaking strategies TVL",
+        "description": "Returns the combined total value locked (TVL) across all restaking strategies, along with a breakdown of the TVL for each individual strategy.",
+        "tags": [
+          "Metrics"
+        ],
+        "responses": {
+          "200": {
+            "description": "The value of combined restaking strategy TVL and a breakdown of the TVL for each individual strategy.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "tvl": {
+                      "type": "object",
+                      "properties": {
+                        "tvl": {
+                          "type": "number",
+                          "example": 1000000
+                        }
+                      },
+                      "required": [
+                        "tvl"
+                      ],
+                      "description": "The value of the combined restaking strategies TVL."
+                    },
+                    "tvlStrategies": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "strategyName": {
+                            "type": "string",
+                            "description": "The name of the strategy",
+                            "example": "cbETH"
+                          },
+                          "strategyTvl": {
+                            "type": "number",
+                            "description": "The total value locked in the strategy",
+                            "example": 1000000
+                          }
+                        },
+                        "required": [
+                          "strategyName",
+                          "strategyTvl"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "tvl",
+                    "tvlStrategies"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/metrics/tvl/restaking/:strategy": {
+      "get": {
+        "operationId": "getTvlRestakingMetricByStrategy",
+        "summary": "Retrieve a strategy TVL by name",
+        "description": "Returns the total value locked (TVL) in a specific LST strategy.",
+        "tags": [
+          "Metrics"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "description": "The name of the restaking strategy.",
+            "schema": {
+              "type": "string",
+              "description": "The name of the restaking strategy.",
+              "example": "cbETH"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The value of combined restaking strategy TVL and a breakdown of the TVL for each individual strategy.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "tvl": {
+                      "type": "number",
+                      "example": 1000000
+                    }
+                  },
+                  "required": [
+                    "tvl"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/metrics/total-avs": {
+      "get": {
+        "operationId": "getTotalAvsMetric",
+        "summary": "Retrieve total number of AVS",
+        "description": "Returns the total number of AVS registered.",
+        "tags": [
+          "Metrics"
+        ],
+        "responses": {
+          "200": {
+            "description": "The total number of AVS registered.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "totalAvs": {
+                      "type": "number",
+                      "description": "The total number of AVS registered",
+                      "example": 1000000
+                    }
+                  },
+                  "required": [
+                    "totalAvs"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/metrics/total-operators": {
+      "get": {
+        "operationId": "getTotalOperatorsMetric",
+        "summary": "Retrieve total number of AVS operators",
+        "description": "Returns the total number of AVS operators registered.",
+        "tags": [
+          "Metrics"
+        ],
+        "responses": {
+          "200": {
+            "description": "The total number of AVS operators registered.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "totalAvs": {
+                      "type": "number",
+                      "description": "The total number of AVS operators registered",
+                      "example": 1000000
+                    }
+                  },
+                  "required": [
+                    "totalAvs"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/metrics/total-stakers": {
+      "get": {
+        "operationId": "getTotalStakerssMetric",
+        "summary": "Retrieve total number of AVS stakers",
+        "description": "Returns the total number of AVS stakers registered.",
+        "tags": [
+          "Metrics"
+        ],
+        "responses": {
+          "200": {
+            "description": "The total number of AVS stakers registered.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "totalAvs": {
+                      "type": "number",
+                      "description": "The total number of AVS stakerss registered",
+                      "example": 1000000
+                    }
+                  },
+                  "required": [
+                    "totalAvs"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
     "/avs/addresses": {
       "get": {
         "operationId": "getAllAvsAddresses",

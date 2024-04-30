@@ -2,7 +2,7 @@ import { openApiErrorResponses } from '../../apiResponseSchema/base/errorRespons
 import z from '../../../../api/src/schema/zod';
 import { ZodOpenApiOperationObject } from 'zod-openapi';
 import { PaginationQuerySchema } from '../../../../api/src/schema/zod/schemas/paginationQuery';
-import { AvsAddressSchema } from '../../apiResponseSchema/avsAddress';
+import { AvsAddressSchema } from '../../apiResponseSchema/avs/avsAddressResponse';
 import { PaginationMetaResponsesSchema } from '../../apiResponseSchema/base/paginationMetaResponses';
 
 const AvsAddressResponseSchema = z.object({

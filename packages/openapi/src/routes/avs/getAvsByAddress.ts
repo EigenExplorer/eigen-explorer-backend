@@ -1,7 +1,7 @@
 import { openApiErrorResponses } from '../../apiResponseSchema/base/errorResponses';
 import z from '../../../../api/src/schema/zod';
 import { EthereumAddressSchema } from '../../../../api/src/schema/zod/schemas/base/ethereumAddress';
-import { AvsDetailsSchema } from '../../apiResponseSchema/avsResponse';
+import { AvsDetailsSchema } from '../../apiResponseSchema/avs/avsResponse';
 import { ZodOpenApiOperationObject } from 'zod-openapi';
 
 const EthereumAddressParam = z.object({

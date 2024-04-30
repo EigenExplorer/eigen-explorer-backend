@@ -1,7 +1,7 @@
-import z from '../../../api/src/schema/zod';
-import { AvsMetaDataSchema } from '../../../api/src/schema/zod/schemas/base/avsMetaData';
-import { EthereumAddressSchema } from '../../../api/src/schema/zod/schemas/base/ethereumAddress';
-import { StrategySharesSchema } from '../../../api/src/schema/zod/schemas/base/strategyShares';
+import z from '../../../../api/src/schema/zod';
+import { AvsMetaDataSchema } from '../../../../api/src/schema/zod/schemas/base/avsMetaData';
+import { EthereumAddressSchema } from '../../../../api/src/schema/zod/schemas/base/ethereumAddress';
+import { StrategySharesSchema } from '../../../../api/src/schema/zod/schemas/base/strategyShares';
 
 export const AvsDetailsSchema = z.object({
     address: EthereumAddressSchema.describe(
