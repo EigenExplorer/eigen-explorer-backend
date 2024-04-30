@@ -1,25 +1,13 @@
 import { ZodOpenApiOperationObject } from 'zod-openapi';
 import z from '../../../../api/src/schema/zod';
 import { PaginationQuerySchema } from '../../../../api/src/schema/zod/schemas/paginationQuery';
-import { AvsSchema } from '../../../../api/src/schema/zod/schemas/avs';
-import { openApiErrorResponses } from '../../apiResTypes/errorResponses';
+import { openApiErrorResponses } from '../../apiResponseSchema/base/errorResponses';
+import { AllAvsSchema } from '../../apiResponseSchema/avsResponse';
+import { PaginationMetaResponsesSchema } from '../../apiResponseSchema/base/paginationMetaResponses';
 
 const AvsResponseSchema = z.object({
-    AvsSchema,
-    meta: z.object({
-        total: z
-            .number()
-            .describe('Total number of AVS records in the database')
-            .openapi({ example: 30 }),
-        skip: z
-            .number()
-            .describe('The number of skiped records for this query')
-            .openapi({ example: 0 }),
-        take: z
-            .number()
-            .describe('The number of records returned for this query')
-            .openapi({ example: 12 }),
-    }),
+    data: z.array(AllAvsSchema),
+    meta: z.array(PaginationMetaResponsesSchema),
 });
 
 export const getAllAvs: ZodOpenApiOperationObject = {
@@ -35,7 +23,7 @@ export const getAllAvs: ZodOpenApiOperationObject = {
             description: 'The list of AVS records.',
             content: {
                 'application/json': {
-                    schema: z.array(AvsResponseSchema),
+                    schema: AvsResponseSchema,
                 },
             },
         },

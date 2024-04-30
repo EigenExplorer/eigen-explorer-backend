@@ -1,9 +1,7 @@
-import { openApiErrorResponses } from '../../apiResTypes/errorResponses';
+import { openApiErrorResponses } from '../../apiResponseSchema/base/errorResponses';
 import z from '../../../../api/src/schema/zod';
-import {
-    AvsSchema,
-    EthereumAddressSchema,
-} from '../../../../api/src/schema/zod/schemas/avs';
+import { EthereumAddressSchema } from '../../../../api/src/schema/zod/schemas/base/ethereumAddress';
+import { AvsDetailsSchema } from '../../apiResponseSchema/avsResponse';
 import { ZodOpenApiOperationObject } from 'zod-openapi';
 
 const EthereumAddressParam = z.object({
@@ -12,7 +10,7 @@ const EthereumAddressParam = z.object({
 
 export const getAvsByAddress: ZodOpenApiOperationObject = {
     operationId: 'getAvsByAddress',
-    summary: 'Retrieve an AVS by address.',
+    summary: 'Retrieve an AVS by address',
     description: 'Returns a single AVS record by address.',
     tags: ['AVS'],
     requestParams: {
@@ -23,7 +21,7 @@ export const getAvsByAddress: ZodOpenApiOperationObject = {
             description: 'The AVS record found.',
             content: {
                 'application/json': {
-                    schema: z.array(AvsSchema),
+                    schema: z.array(AvsDetailsSchema),
                 },
             },
         },

@@ -20,7 +20,7 @@
       "get": {
         "operationId": "getAllAvsAddresses",
         "summary": "Retrieve all AVS addresses",
-        "description": "Returns a list of all AVS addresses.",
+        "description": "Returns a list of all AVS addresses. This page supports pagination.",
         "tags": [
           "AVS"
         ],
@@ -30,9 +30,8 @@
             "name": "skip",
             "description": "The number of records to skip for pagination.",
             "schema": {
-              "type": "number",
-              "minimum": 0,
-              "default": 0,
+              "type": "string",
+              "default": "0",
               "description": "The number of records to skip for pagination.",
               "example": 0
             }
@@ -42,9 +41,8 @@
             "name": "take",
             "description": "The number of records to return for pagination.",
             "schema": {
-              "type": "number",
-              "minimum": 1,
-              "default": 12,
+              "type": "string",
+              "default": "12",
               "description": "The number of records to return for pagination.",
               "example": 12
             }
@@ -56,10 +54,61 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/AvsAddressSchema"
-                  }
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "description": "The AVS's name",
+                            "example": "Example AVS"
+                          },
+                          "address": {
+                            "type": "string",
+                            "pattern": "^0x[a-fA-F0-9]{40}$",
+                            "description": "AVS service manager contract address",
+                            "example": "0x35f4f28a8d3ff20eed10e087e8f96ea2641e6aa1"
+                          }
+                        },
+                        "required": [
+                          "name",
+                          "address"
+                        ]
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "total": {
+                          "type": "number",
+                          "description": "Total number of records in the database",
+                          "example": 30
+                        },
+                        "skip": {
+                          "type": "number",
+                          "description": "The number of skiped records for this query",
+                          "example": 0
+                        },
+                        "take": {
+                          "type": "number",
+                          "description": "The number of records returned for this query",
+                          "example": 12
+                        }
+                      },
+                      "required": [
+                        "total",
+                        "skip",
+                        "take"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
                 }
               }
             }
@@ -102,9 +151,8 @@
             "name": "skip",
             "description": "The number of records to skip for pagination.",
             "schema": {
-              "type": "number",
-              "minimum": 0,
-              "default": 0,
+              "type": "string",
+              "default": "0",
               "description": "The number of records to skip for pagination.",
               "example": 0
             }
@@ -114,9 +162,8 @@
             "name": "take",
             "description": "The number of records to return for pagination.",
             "schema": {
-              "type": "number",
-              "minimum": 1,
-              "default": 12,
+              "type": "string",
+              "default": "12",
               "description": "The number of records to return for pagination.",
               "example": 12
             }
@@ -128,192 +175,128 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "AvsSchema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
                         "type": "object",
                         "properties": {
-                          "metadata": {
-                            "type": "object",
-                            "properties": {
-                              "name": {
-                                "type": "string",
-                                "description": "The name of the AVS",
-                                "example": "Example AVS"
-                              },
-                              "description": {
-                                "type": "string",
-                                "nullable": true,
-                                "description": "The description of the AVS",
-                                "example": "This is an example AVS"
-                              },
-                              "discord": {
-                                "type": "string",
-                                "nullable": true,
-                                "format": "uri",
-                                "description": "The URL of the AVS's Discord server",
-                                "example": "https://discord.com/invite/9eeRHxSCTZ"
-                              },
-                              "logo": {
-                                "type": "string",
-                                "nullable": true,
-                                "format": "uri",
-                                "description": "The URL of the AVS's logo"
-                              },
-                              "telegram": {
-                                "type": "string",
-                                "nullable": true,
-                                "format": "uri",
-                                "description": "The URL of the AVS's Telegram channel",
-                                "example": "https://t.me/acme"
-                              },
-                              "website": {
-                                "type": "string",
-                                "nullable": true,
-                                "format": "uri",
-                                "description": "The URL of the AVS's website",
-                                "example": "https://acme.com"
-                              },
-                              "x": {
-                                "type": "string",
-                                "nullable": true,
-                                "format": "uri",
-                                "description": "The URL of the AVS's X",
-                                "example": "https://twitter.com/acme"
-                              }
-                            },
-                            "required": [
-                              "name",
-                              "description",
-                              "discord",
-                              "logo",
-                              "telegram",
-                              "website",
-                              "x"
-                            ]
-                          },
-                          "curatedMetadata": {
-                            "type": "object",
-                            "nullable": true,
-                            "properties": {
-                              "name": {
-                                "type": "string",
-                                "description": "The name of the AVS",
-                                "example": "Example AVS"
-                              },
-                              "description": {
-                                "type": "string",
-                                "nullable": true,
-                                "description": "The description of the AVS",
-                                "example": "This is an example AVS"
-                              },
-                              "discord": {
-                                "type": "string",
-                                "nullable": true,
-                                "format": "uri",
-                                "description": "The URL of the AVS's Discord server",
-                                "example": "https://discord.com/invite/9eeRHxSCTZ"
-                              },
-                              "logo": {
-                                "type": "string",
-                                "nullable": true,
-                                "format": "uri",
-                                "description": "The URL of the AVS's logo"
-                              },
-                              "telegram": {
-                                "type": "string",
-                                "nullable": true,
-                                "format": "uri",
-                                "description": "The URL of the AVS's Telegram channel",
-                                "example": "https://t.me/acme"
-                              },
-                              "website": {
-                                "type": "string",
-                                "nullable": true,
-                                "format": "uri",
-                                "description": "The URL of the AVS's website",
-                                "example": "https://acme.com"
-                              },
-                              "x": {
-                                "type": "string",
-                                "nullable": true,
-                                "format": "uri",
-                                "description": "The URL of the AVS's X",
-                                "example": "https://twitter.com/acme"
-                              }
-                            },
-                            "required": [
-                              "name",
-                              "description",
-                              "discord",
-                              "logo",
-                              "telegram",
-                              "website",
-                              "x"
-                            ]
-                          },
-                          "id": {
-                            "type": "string",
-                            "example": "66218ccb560e53b6760df00d"
-                          },
                           "address": {
                             "type": "string",
                             "pattern": "^0x[a-fA-F0-9]{40}$",
-                            "description": "The AVS service manager contract address",
-                            "example": "0x74b09c5de70ebadbeeb5db503fecb6e6ad39560d"
+                            "description": "AVS service manager contract address",
+                            "example": "0x35f4f28a8d3ff20eed10e087e8f96ea2641e6aa1"
                           },
                           "tags": {
                             "type": "array",
                             "items": {
                               "type": "string"
                             },
-                            "description": "A list of tags associated with the AVS",
+                            "description": "The tags associated with the AVS",
                             "example": [
-                              "DA"
+                              "DA",
+                              "DeFi"
                             ]
+                          },
+                          "metadataName": {
+                            "type": "string",
+                            "description": "The name of the AVS",
+                            "example": "Example AVS"
+                          },
+                          "metadataDescription": {
+                            "type": "string",
+                            "nullable": true,
+                            "description": "The description of the AVS",
+                            "example": "This is an example AVS"
+                          },
+                          "metadataDiscord": {
+                            "type": "string",
+                            "nullable": true,
+                            "format": "uri",
+                            "description": "The URL of the AVS's Discord server",
+                            "example": "https://discord.com/invite/abcdefghij"
+                          },
+                          "metadataLogo": {
+                            "type": "string",
+                            "nullable": true,
+                            "format": "uri",
+                            "description": "The URL of the AVS's logo"
+                          },
+                          "metadataTelegram": {
+                            "type": "string",
+                            "nullable": true,
+                            "format": "uri",
+                            "description": "The URL of the AVS's Telegram channel",
+                            "example": "https://t.me/acme"
+                          },
+                          "metadataWebsite": {
+                            "type": "string",
+                            "nullable": true,
+                            "format": "uri",
+                            "description": "The URL of the AVS's website",
+                            "example": "https://acme.com"
+                          },
+                          "metadataX": {
+                            "type": "string",
+                            "nullable": true,
+                            "format": "uri",
+                            "description": "The URL of the AVS's X",
+                            "example": "https://twitter.com/acme"
                           },
                           "isVisible": {
                             "type": "boolean",
+                            "default": false,
+                            "description": "Whether the AVS is visible on the EigenExplorer UI",
                             "example": true
                           },
-                          "isVerified": {
+                          "isverified": {
                             "type": "boolean",
-                            "description": "Whether the AVS is manually verified",
+                            "default": false,
+                            "description": "Whether the AVS has gone through manual verification",
                             "example": true
+                          },
+                          "tvl": {
+                            "type": "number",
+                            "description": "The total value locked in the AVS",
+                            "example": 1000000
                           },
                           "totalOperators": {
                             "type": "number",
-                            "minimum": 0,
-                            "description": "The total number of operators",
-                            "example": 1
+                            "description": "The total number of operators operating the AVS",
+                            "example": 10
                           },
                           "totalStakers": {
                             "type": "number",
-                            "minimum": 0,
-                            "description": "The total number of stakers",
-                            "example": 1
+                            "description": "The total number of stakers staking in the AVS",
+                            "example": 10
                           }
                         },
                         "required": [
-                          "metadata",
-                          "curatedMetadata",
-                          "id",
                           "address",
-                          "tags",
+                          "metadataName",
+                          "metadataDescription",
+                          "metadataDiscord",
+                          "metadataLogo",
+                          "metadataTelegram",
+                          "metadataWebsite",
+                          "metadataX",
                           "isVisible",
-                          "isVerified",
+                          "isverified",
+                          "tvl",
                           "totalOperators",
                           "totalStakers"
                         ]
-                      },
-                      "meta": {
+                      }
+                    },
+                    "meta": {
+                      "type": "array",
+                      "items": {
                         "type": "object",
                         "properties": {
                           "total": {
                             "type": "number",
-                            "description": "Total number of AVS records in the database",
+                            "description": "Total number of records in the database",
                             "example": 30
                           },
                           "skip": {
@@ -333,12 +316,552 @@
                           "take"
                         ]
                       }
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/avs/:address": {
+      "get": {
+        "operationId": "getAvsByAddress",
+        "summary": "Retrieve an AVS by address",
+        "description": "Returns a single AVS record by address.",
+        "tags": [
+          "AVS"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "address",
+            "schema": {
+              "type": "string",
+              "pattern": "^0x[a-fA-F0-9]{40}$"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The AVS record found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "address": {
+                        "type": "string",
+                        "pattern": "^0x[a-fA-F0-9]{40}$",
+                        "description": "AVS service manager contract address",
+                        "example": "0x35f4f28a8d3ff20eed10e087e8f96ea2641e6aa1"
+                      },
+                      "tags": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "description": "The tags associated with the AVS",
+                        "example": [
+                          "DA",
+                          "DeFi"
+                        ]
+                      },
+                      "metadataName": {
+                        "type": "string",
+                        "description": "The name of the AVS",
+                        "example": "Example AVS"
+                      },
+                      "metadataDescription": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "The description of the AVS",
+                        "example": "This is an example AVS"
+                      },
+                      "metadataDiscord": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "uri",
+                        "description": "The URL of the AVS's Discord server",
+                        "example": "https://discord.com/invite/abcdefghij"
+                      },
+                      "metadataLogo": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "uri",
+                        "description": "The URL of the AVS's logo"
+                      },
+                      "metadataTelegram": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "uri",
+                        "description": "The URL of the AVS's Telegram channel",
+                        "example": "https://t.me/acme"
+                      },
+                      "metadataWebsite": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "uri",
+                        "description": "The URL of the AVS's website",
+                        "example": "https://acme.com"
+                      },
+                      "metadataX": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "uri",
+                        "description": "The URL of the AVS's X",
+                        "example": "https://twitter.com/acme"
+                      },
+                      "isVisible": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "Whether the AVS is visible on the EigenExplorer UI",
+                        "example": true
+                      },
+                      "isverified": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "Whether the AVS has gone through manual verification",
+                        "example": true
+                      },
+                      "shares": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "strategyAddress": {
+                              "type": "string",
+                              "pattern": "^0x[a-fA-F0-9]{40}$",
+                              "description": "The contract address of the restaking strategy",
+                              "example": "0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0"
+                            },
+                            "shares": {
+                              "type": "string",
+                              "description": "The amount of shares held in the strategy",
+                              "example": "1277920000000000000000000"
+                            }
+                          },
+                          "required": [
+                            "strategyAddress",
+                            "shares"
+                          ]
+                        },
+                        "description": "The strategy shares held in the AVS"
+                      },
+                      "tvl": {
+                        "type": "number",
+                        "description": "The total value locked in the AVS",
+                        "example": 1000000
+                      },
+                      "totalOperators": {
+                        "type": "number",
+                        "description": "The total number of operators operating the AVS",
+                        "example": 10
+                      },
+                      "totalStakers": {
+                        "type": "number",
+                        "description": "The total number of stakers staking in the AVS",
+                        "example": 10
+                      }
                     },
                     "required": [
-                      "AvsSchema",
-                      "meta"
+                      "address",
+                      "metadataName",
+                      "metadataDescription",
+                      "metadataDiscord",
+                      "metadataLogo",
+                      "metadataTelegram",
+                      "metadataWebsite",
+                      "metadataX",
+                      "isVisible",
+                      "isverified",
+                      "tvl",
+                      "totalOperators",
+                      "totalStakers"
                     ]
                   }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/avs/:address/stakers": {
+      "get": {
+        "operationId": "getAvsStakersByAddress",
+        "summary": "Retrieve all stakers for a given AVS address",
+        "description": "Returns all stakers for a given AVS address. This endpoint supports pagination.",
+        "tags": [
+          "AVS"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "address",
+            "schema": {
+              "type": "string",
+              "pattern": "^0x[a-fA-F0-9]{40}$"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "skip",
+            "description": "The number of records to skip for pagination.",
+            "schema": {
+              "type": "string",
+              "default": "0",
+              "description": "The number of records to skip for pagination.",
+              "example": 0
+            }
+          },
+          {
+            "in": "query",
+            "name": "take",
+            "description": "The number of records to return for pagination.",
+            "schema": {
+              "type": "string",
+              "default": "12",
+              "description": "The number of records to return for pagination.",
+              "example": 12
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The stakers record found for the AVS.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "address": {
+                            "type": "string",
+                            "pattern": "^0x[a-fA-F0-9]{40}$",
+                            "description": "The contract address of the staker",
+                            "example": "0x0000006c21964af0d420af8992851a30fa13a68b"
+                          },
+                          "operatorAddress": {
+                            "type": "string",
+                            "pattern": "^0x[a-fA-F0-9]{40}$",
+                            "description": "The address of the operator",
+                            "example": "0x71c6f7ed8c2d4925d0baf16f6a85bb1736d412eb"
+                          },
+                          "shares": {
+                            "type": "object",
+                            "properties": {
+                              "stakerAddress": {
+                                "type": "string",
+                                "pattern": "^0x[a-fA-F0-9]{40}$",
+                                "description": "The contract address of the staker",
+                                "example": "0x0000006c21964af0d420af8992851a30fa13c68a"
+                              },
+                              "strategyAddress": {
+                                "type": "string",
+                                "pattern": "^0x[a-fA-F0-9]{40}$",
+                                "description": "The contract address of the restaking strategy",
+                                "example": "0x93c4b944d05dfe6df7645a86cd2206016c51564a"
+                              },
+                              "shares": {
+                                "type": "string",
+                                "description": "The amount of shares held in the strategy",
+                                "example": "40888428658906049"
+                              }
+                            },
+                            "required": [
+                              "stakerAddress",
+                              "strategyAddress",
+                              "shares"
+                            ]
+                          },
+                          "tvl": {
+                            "type": "number",
+                            "description": "The total value locked in the AVS staker",
+                            "example": 0.040888428658906045
+                          }
+                        },
+                        "required": [
+                          "address",
+                          "operatorAddress",
+                          "shares",
+                          "tvl"
+                        ]
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "total": {
+                          "type": "number",
+                          "description": "Total number of records in the database",
+                          "example": 30
+                        },
+                        "skip": {
+                          "type": "number",
+                          "description": "The number of skiped records for this query",
+                          "example": 0
+                        },
+                        "take": {
+                          "type": "number",
+                          "description": "The number of records returned for this query",
+                          "example": 12
+                        }
+                      },
+                      "required": [
+                        "total",
+                        "skip",
+                        "take"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/avs/:address/operators": {
+      "get": {
+        "operationId": "getAvsOperatorsByAddress",
+        "summary": "Retrieve all operators for a given AVS address",
+        "description": "Returns all operators for a given AVS address. This endpoint supports pagination.",
+        "tags": [
+          "AVS"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "address",
+            "schema": {
+              "type": "string",
+              "pattern": "^0x[a-fA-F0-9]{40}$"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "skip",
+            "description": "The number of records to skip for pagination.",
+            "schema": {
+              "type": "string",
+              "default": "0",
+              "description": "The number of records to skip for pagination.",
+              "example": 0
+            }
+          },
+          {
+            "in": "query",
+            "name": "take",
+            "description": "The number of records to return for pagination.",
+            "schema": {
+              "type": "string",
+              "default": "12",
+              "description": "The number of records to return for pagination.",
+              "example": 12
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The operators record found for the AVS.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "address": {
+                            "type": "string",
+                            "pattern": "^0x[a-fA-F0-9]{40}$",
+                            "description": "The contract address of the AVS operator",
+                            "example": "0x09e6eb09213bdd3698bd8afb43ec3cb0ecff683a"
+                          },
+                          "metadataName": {
+                            "type": "string",
+                            "description": "The name of the AVS operator",
+                            "example": "Example AVS Operator"
+                          },
+                          "metadataDescription": {
+                            "type": "string",
+                            "nullable": true,
+                            "description": "The description of the AVS operator",
+                            "example": "This is an example AVS operator"
+                          },
+                          "metadataDiscord": {
+                            "type": "string",
+                            "nullable": true,
+                            "format": "uri",
+                            "description": "The URL of the AVS operator's Discord server",
+                            "example": "https://discord.com/invite/abcdefghij"
+                          },
+                          "metadataLogo": {
+                            "type": "string",
+                            "nullable": true,
+                            "format": "uri",
+                            "description": "The URL of the AVS operator's logo"
+                          },
+                          "metadataTelegram": {
+                            "type": "string",
+                            "nullable": true,
+                            "format": "uri",
+                            "description": "The URL of the AVS operator's Telegram channel",
+                            "example": "https://t.me/acme"
+                          },
+                          "metadataWebsite": {
+                            "type": "string",
+                            "nullable": true,
+                            "format": "uri",
+                            "description": "The URL of the AVS operator's website",
+                            "example": "https://acme.com"
+                          },
+                          "metadataX": {
+                            "type": "string",
+                            "nullable": true,
+                            "format": "uri",
+                            "description": "The URL of the AVS operator's X",
+                            "example": "https://twitter.com/acme"
+                          },
+                          "totalStakers": {
+                            "type": "number",
+                            "description": "The total number of stakers opted into the AVS operator",
+                            "example": 10
+                          },
+                          "tvl": {
+                            "type": "number",
+                            "description": "The total value locked in the AVS operator",
+                            "example": 1000000
+                          }
+                        },
+                        "required": [
+                          "address",
+                          "metadataName",
+                          "metadataDescription",
+                          "metadataDiscord",
+                          "metadataLogo",
+                          "metadataTelegram",
+                          "metadataWebsite",
+                          "metadataX",
+                          "totalStakers",
+                          "tvl"
+                        ]
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "total": {
+                          "type": "number",
+                          "description": "Total number of records in the database",
+                          "example": 30
+                        },
+                        "skip": {
+                          "type": "number",
+                          "description": "The number of skiped records for this query",
+                          "example": 0
+                        },
+                        "take": {
+                          "type": "number",
+                          "description": "The number of records returned for this query",
+                          "example": 12
+                        }
+                      },
+                      "required": [
+                        "total",
+                        "skip",
+                        "take"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
                 }
               }
             }
@@ -369,28 +892,6 @@
     }
   },
   "components": {
-    "schemas": {
-      "AvsAddressSchema": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "description": "The name of the AVS",
-            "example": "Example AVS"
-          },
-          "address": {
-            "type": "string",
-            "pattern": "^0x[a-fA-F0-9]{40}$",
-            "description": "The AVS service manager contract address",
-            "example": "0x74b09c5de70ebadbeeb5db503fecb6e6ad39560d"
-          }
-        },
-        "required": [
-          "name",
-          "address"
-        ]
-      }
-    },
     "responses": {
       "400": {
         "description": "The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).",
