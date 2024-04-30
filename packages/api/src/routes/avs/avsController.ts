@@ -126,7 +126,6 @@ export async function getAllAVSAddresses(req: Request, res: Response) {
 
 /**
  * Route to get a single AVS by address
- * Route to get a single AVS by address
  *
  * @param req
  * @param res
