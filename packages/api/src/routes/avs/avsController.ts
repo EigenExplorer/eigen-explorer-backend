@@ -8,6 +8,28 @@ import {
 	withOperatorTvlAndShares
 } from '../operators/operatorController'
 import { IMap } from '../../schema/generic'
+import { Avs } from '@prisma/client'
+import { getNetwork } from '../../viem/viemClient'
+
+// Constant Queries
+const avsFilterQuery = getNetwork().testnet
+	? {
+			OR: [
+				{
+					curatedMetadata: {
+						isVisible: true
+					}
+				},
+				{
+					curatedMetadata: null
+				}
+			]
+	  }
+	: {
+			curatedMetadata: {
+				isVisible: true
+			}
+	  }
 
 /**
  * Route to get a list of all AVSs
@@ -25,11 +47,13 @@ export async function getAllAVS(req: Request, res: Response) {
 
 	try {
 		// Fetch count and record
-		const avsCount = await prisma.avs.count()
+		const avsCount = await prisma.avs.count({ where: avsFilterQuery })
 		const avsRecords = await prisma.avs.findMany({
 			skip,
 			take,
+			where: avsFilterQuery,
 			include: {
+				curatedMetadata: true,
 				operators: {
 					where: { isActive: true },
 					include: {
@@ -61,7 +85,7 @@ export async function getAllAVS(req: Request, res: Response) {
 				})
 
 				return {
-					...avs,
+					...withCuratedMetadata(avs),
 					operators: undefined,
 					tvl,
 					totalOperators,
@@ -99,8 +123,12 @@ export async function getAllAVSAddresses(req: Request, res: Response) {
 
 	try {
 		// Fetch count and records
-		const avsCount = await prisma.avs.count()
-		const avsRecords = await prisma.avs.findMany({ skip, take })
+		const avsCount = await prisma.avs.count({ where: avsFilterQuery })
+		const avsRecords = await prisma.avs.findMany({
+			where: avsFilterQuery,
+			skip,
+			take
+		})
 
 		// Simplified map (assuming avs.address is not asynchronous)
 		const data = avsRecords.map((avs) => ({
@@ -138,8 +166,9 @@ export async function getAVS(req: Request, res: Response) {
 
 	try {
 		const avs = await prisma.avs.findUniqueOrThrow({
-			where: { address: id },
+			where: { address: id, ...avsFilterQuery },
 			include: {
+				curatedMetadata: true,
 				operators: {
 					where: { isActive: true },
 					include: {
@@ -162,27 +191,29 @@ export async function getAVS(req: Request, res: Response) {
 			}
 		})
 
-		avs.operators.map((avsOperator) => {
-			const operator = withOperatorTvlAndShares(avsOperator.operator)
+		await Promise.all(
+			avs.operators.map(async (avsOperator) => {
+				const operator = await withOperatorTvlAndShares(avsOperator.operator)
 
-			operator.shares.map((s) => {
-				if (!sharesMap.has(s.strategyAddress)) {
-					sharesMap.set(s.strategyAddress, '0')
-				}
+				operator.shares.map((s) => {
+					if (!sharesMap.has(s.strategyAddress)) {
+						sharesMap.set(s.strategyAddress, '0')
+					}
 
-				sharesMap.set(
-					s.strategyAddress,
-					(
-						BigInt(sharesMap.get(s.strategyAddress)) + BigInt(s.shares)
-					).toString()
-				)
+					sharesMap.set(
+						s.strategyAddress,
+						(
+							BigInt(sharesMap.get(s.strategyAddress)) + BigInt(s.shares)
+						).toString()
+					)
+				})
+
+				tvl += operator.tvl
 			})
-
-			tvl += operator.tvl
-		})
+		)
 
 		res.send({
-			...avs,
+			...withCuratedMetadata(avs),
 			shares: Array.from(sharesMap, ([strategyAddress, shares]) => ({
 				strategyAddress,
 				shares
@@ -215,7 +246,7 @@ export async function getAVSStakers(req: Request, res: Response) {
 	try {
 		const { id } = req.params
 		const avs = await prisma.avs.findUniqueOrThrow({
-			where: { address: id },
+			where: { address: id, ...avsFilterQuery },
 			include: { operators: true }
 		})
 
@@ -280,7 +311,7 @@ export async function getAVSOperators(req: Request, res: Response) {
 
 		const { id } = req.params
 		const avs = await prisma.avs.findUniqueOrThrow({
-			where: { address: id },
+			where: { address: id, ...avsFilterQuery },
 			include: {
 				operators: {
 					where: { isActive: true }
@@ -317,4 +348,46 @@ export async function getAVSOperators(req: Request, res: Response) {
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
 	}
+}
+
+// Helper functions
+function withCuratedMetadata(avs): Avs {
+	// Replace metadata with curated metadata
+	if (avs.curatedMetadata) {
+		avs.metadataName = avs.curatedMetadata.metadataName
+			? avs.curatedMetadata.metadataName
+			: avs.metadataName
+
+		avs.metadataDescription = avs.curatedMetadata.metadataDescription
+			? avs.curatedMetadata.metadataDescription
+			: avs.metadataDescription
+
+		avs.metadataLogo = avs.curatedMetadata.metadataLogo
+			? avs.curatedMetadata.metadataLogo
+			: avs.metadataLogo
+
+		avs.metadataDiscord = avs.curatedMetadata.metadataDiscord
+			? avs.curatedMetadata.metadataDiscord
+			: avs.metadataDiscord
+
+		avs.metadataTelegram = avs.curatedMetadata.metadataTelegram
+			? avs.curatedMetadata.metadataTelegram
+			: avs.metadataTelegram
+
+		avs.metadataWebsite = avs.curatedMetadata.metadataWebsite
+			? avs.curatedMetadata.metadataWebsite
+			: avs.metadataWebsite
+
+		avs.metadataX = avs.curatedMetadata.metadataX
+			? avs.curatedMetadata.metadataX
+			: avs.metadataX
+
+		if (avs.curatedMetadata.tags) {
+			avs.tags = avs.curatedMetadata.tags
+		}
+	}
+
+	avs.curatedMetadata = undefined
+
+	return avs
 }
