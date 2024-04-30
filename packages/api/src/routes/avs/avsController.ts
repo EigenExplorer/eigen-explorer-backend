@@ -126,17 +126,21 @@ export async function getAllAVSAddresses(req: Request, res: Response) {
 
 /**
  * Route to get a single AVS by address
+ * Route to get a single AVS by address
  *
  * @param req
  * @param res
  */
 export async function getAVS(req: Request, res: Response) {
-    const { id } = req.params;
+    const { address } = req.params;
+    console.log('avsAddress', address);
 
-    const result = EthereumAddressSchema.safeParse(id);
+    const result = EthereumAddressSchema.safeParse(address);
     if (!result.success) {
         return handleAndReturnErrorResponse(req, res, result.error);
     }
+
+    console.log(result);
 
     console.log(result);
 
@@ -279,10 +283,13 @@ export async function getAVSStakers(req: Request, res: Response) {
 export async function getAVSOperators(req: Request, res: Response) {
     console.log(req.query);
     // Validate pagination query
+    console.log(req.query);
+    // Validate pagination query
     const result = PaginationQuerySchema.safeParse(req.query);
     if (!result.success) {
         return handleAndReturnErrorResponse(req, res, result.error);
     }
+    console.log(result);
     console.log(result);
     const { skip, take } = result.data;
 

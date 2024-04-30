@@ -1,1713 +1,1603 @@
 {
-  "openapi": "3.0.3",
-  "info": {
-    "title": "EigenExplorer API",
-    "description": "EigenExplorer is a community-driven data platform for EigenLayer AVS.",
-    "version": "0.0.1",
-    "license": {
-      "name": "MIT",
-      "url": "https://spdx.org/licenses/MIT.html"
-    }
-  },
-  "servers": [
-    {
-      "url": "https://api.eigenexplorer.com",
-      "description": "EigenExplorer Production API"
-    }
-  ],
-  "paths": {
-    "/metrics": {
-      "get": {
-        "operationId": "getAllMetrics",
-        "summary": "Retrieve summary metrics",
-        "description": "Returns summary metrics, including TVLs for both restaking strategies and the beacon chain, as well as the total number of AVS, operators, and stakers.",
-        "tags": [
-          "Metrics"
-        ],
-        "responses": {
-          "200": {
-            "description": "The list of summary metrics.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "tvl": {
-                      "type": "number",
-                      "description": "The total value locked in all EigenLayer AVS",
-                      "example": 10
-                    },
-                    "tvlRestaking": {
-                      "type": "number",
-                      "description": "The total value locked in all restaking strategies",
-                      "example": 5
-                    },
-                    "tvlStrategies": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "strategyName": {
-                            "type": "string",
-                            "description": "The name of the strategy",
-                            "example": "cbETH"
-                          },
-                          "strategyTvl": {
-                            "type": "number",
-                            "description": "The total value locked in the strategy",
-                            "example": 1000000
-                          }
-                        },
-                        "required": [
-                          "strategyName",
-                          "strategyTvl"
-                        ]
-                      },
-                      "description": "The total value locked in each restaking strategy"
-                    },
-                    "tvlBeaconChain": {
-                      "type": "number",
-                      "description": "The total value locked in the beacon chain ETH",
-                      "example": 1000000
-                    },
-                    "totalAVS": {
-                      "type": "number",
-                      "description": "The total number of AVS",
-                      "example": 10
-                    },
-                    "totalOperators": {
-                      "type": "number",
-                      "description": "The total number of operators",
-                      "example": 10
-                    },
-                    "totalStakers": {
-                      "type": "number",
-                      "description": "The total number of stakers",
-                      "example": 10
-                    }
-                  },
-                  "required": [
-                    "tvl",
-                    "tvlRestaking",
-                    "tvlStrategies",
-                    "tvlBeaconChain",
-                    "totalAVS",
-                    "totalOperators",
-                    "totalStakers"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "422": {
-            "$ref": "#/components/responses/422"
-          },
-          "429": {
-            "$ref": "#/components/responses/429"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
+    "openapi": "3.0.3",
+    "info": {
+        "title": "EigenExplorer API",
+        "description": "EigenExplorer is a community-driven data platform for EigenLayer AVS.",
+        "version": "0.0.1",
+        "license": {
+            "name": "MIT",
+            "url": "https://spdx.org/licenses/MIT.html"
         }
-      }
     },
-    "/metrics/tvl": {
-      "get": {
-        "operationId": "getTvlMetrics",
-        "summary": "Retrieve total TVL",
-        "description": "Returns the total value locked (TVL) in all restaking strategies and beacon chain restaking.",
-        "tags": [
-          "Metrics"
-        ],
-        "responses": {
-          "200": {
-            "description": "The value of the combined TVL.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "tvl": {
-                      "type": "number",
-                      "example": 1000000
-                    }
-                  },
-                  "required": [
-                    "tvl"
-                  ],
-                  "description": "The value of the combined TVL."
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "422": {
-            "$ref": "#/components/responses/422"
-          },
-          "429": {
-            "$ref": "#/components/responses/429"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
+    "servers": [
+        {
+            "url": "https://api.eigenexplorer.com",
+            "description": "EigenExplorer Production API"
         }
-      }
-    },
-    "/metrics/tvl/beacon-chain": {
-      "get": {
-        "operationId": "getBeaconChainTvlMetric",
-        "summary": "Retrieve Beacon Chain restaking TVL",
-        "description": "Returns the total value locked (TVL) in the Beacon Chain restaking eigen pods.",
-        "tags": [
-          "Metrics"
-        ],
-        "responses": {
-          "200": {
-            "description": "The value of the Beacon Chain restaking TVL.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "tvl": {
-                      "type": "number",
-                      "example": 1000000
-                    }
-                  },
-                  "required": [
-                    "tvl"
-                  ],
-                  "description": "The value of the Beacon Chain restaking TVL."
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "422": {
-            "$ref": "#/components/responses/422"
-          },
-          "429": {
-            "$ref": "#/components/responses/429"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        }
-      }
-    },
-    "/metrics/tvl/restaking": {
-      "get": {
-        "operationId": "getRestakingTvlMetrics",
-        "summary": "Retrieve restaking strategies TVL",
-        "description": "Returns the combined total value locked (TVL) across all restaking strategies, along with a breakdown of the TVL for each individual strategy.",
-        "tags": [
-          "Metrics"
-        ],
-        "responses": {
-          "200": {
-            "description": "The value of combined restaking strategy TVL and a breakdown of the TVL for each individual strategy.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "tvl": {
-                      "type": "object",
-                      "properties": {
-                        "tvl": {
-                          "type": "number",
-                          "example": 1000000
-                        }
-                      },
-                      "required": [
-                        "tvl"
-                      ],
-                      "description": "The value of the combined restaking strategies TVL."
-                    },
-                    "tvlStrategies": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "strategyName": {
-                            "type": "string",
-                            "description": "The name of the strategy",
-                            "example": "cbETH"
-                          },
-                          "strategyTvl": {
-                            "type": "number",
-                            "description": "The total value locked in the strategy",
-                            "example": 1000000
-                          }
-                        },
-                        "required": [
-                          "strategyName",
-                          "strategyTvl"
-                        ]
-                      }
-                    }
-                  },
-                  "required": [
-                    "tvl",
-                    "tvlStrategies"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "422": {
-            "$ref": "#/components/responses/422"
-          },
-          "429": {
-            "$ref": "#/components/responses/429"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        }
-      }
-    },
-    "/metrics/tvl/restaking/:strategy": {
-      "get": {
-        "operationId": "getTvlRestakingMetricByStrategy",
-        "summary": "Retrieve a strategy TVL by name",
-        "description": "Returns the total value locked (TVL) in a specific LST strategy.",
-        "tags": [
-          "Metrics"
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "name",
-            "description": "The name of the restaking strategy.",
-            "schema": {
-              "type": "string",
-              "description": "The name of the restaking strategy.",
-              "example": "cbETH"
-            },
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "The value of combined restaking strategy TVL and a breakdown of the TVL for each individual strategy.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "tvl": {
-                      "type": "number",
-                      "example": 1000000
-                    }
-                  },
-                  "required": [
-                    "tvl"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "422": {
-            "$ref": "#/components/responses/422"
-          },
-          "429": {
-            "$ref": "#/components/responses/429"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        }
-      }
-    },
-    "/metrics/total-avs": {
-      "get": {
-        "operationId": "getTotalAvsMetric",
-        "summary": "Retrieve total number of AVS",
-        "description": "Returns the total number of AVS registered.",
-        "tags": [
-          "Metrics"
-        ],
-        "responses": {
-          "200": {
-            "description": "The total number of AVS registered.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "totalAvs": {
-                      "type": "number",
-                      "description": "The total number of AVS registered",
-                      "example": 1000000
-                    }
-                  },
-                  "required": [
-                    "totalAvs"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "422": {
-            "$ref": "#/components/responses/422"
-          },
-          "429": {
-            "$ref": "#/components/responses/429"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        }
-      }
-    },
-    "/metrics/total-operators": {
-      "get": {
-        "operationId": "getTotalOperatorsMetric",
-        "summary": "Retrieve total number of AVS operators",
-        "description": "Returns the total number of AVS operators registered.",
-        "tags": [
-          "Metrics"
-        ],
-        "responses": {
-          "200": {
-            "description": "The total number of AVS operators registered.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "totalAvs": {
-                      "type": "number",
-                      "description": "The total number of AVS operators registered",
-                      "example": 1000000
-                    }
-                  },
-                  "required": [
-                    "totalAvs"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "422": {
-            "$ref": "#/components/responses/422"
-          },
-          "429": {
-            "$ref": "#/components/responses/429"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        }
-      }
-    },
-    "/metrics/total-stakers": {
-      "get": {
-        "operationId": "getTotalStakerssMetric",
-        "summary": "Retrieve total number of AVS stakers",
-        "description": "Returns the total number of AVS stakers registered.",
-        "tags": [
-          "Metrics"
-        ],
-        "responses": {
-          "200": {
-            "description": "The total number of AVS stakers registered.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "totalAvs": {
-                      "type": "number",
-                      "description": "The total number of AVS stakerss registered",
-                      "example": 1000000
-                    }
-                  },
-                  "required": [
-                    "totalAvs"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "422": {
-            "$ref": "#/components/responses/422"
-          },
-          "429": {
-            "$ref": "#/components/responses/429"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        }
-      }
-    },
-    "/avs/addresses": {
-      "get": {
-        "operationId": "getAllAvsAddresses",
-        "summary": "Retrieve all AVS addresses",
-        "description": "Returns a list of all AVS addresses. This page supports pagination.",
-        "tags": [
-          "AVS"
-        ],
-        "parameters": [
-          {
-            "in": "query",
-            "name": "skip",
-            "description": "The number of records to skip for pagination.",
-            "schema": {
-              "type": "string",
-              "default": "0",
-              "description": "The number of records to skip for pagination.",
-              "example": 0
-            }
-          },
-          {
-            "in": "query",
-            "name": "take",
-            "description": "The number of records to return for pagination.",
-            "schema": {
-              "type": "string",
-              "default": "12",
-              "description": "The number of records to return for pagination.",
-              "example": 12
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "The list of AVS addresses.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "name": {
-                            "type": "string",
-                            "description": "The AVS's name",
-                            "example": "Example AVS"
-                          },
-                          "address": {
-                            "type": "string",
-                            "pattern": "^0x[a-fA-F0-9]{40}$",
-                            "description": "AVS service manager contract address",
-                            "example": "0x35f4f28a8d3ff20eed10e087e8f96ea2641e6aa1"
-                          }
-                        },
-                        "required": [
-                          "name",
-                          "address"
-                        ]
-                      }
-                    },
-                    "meta": {
-                      "type": "object",
-                      "properties": {
-                        "total": {
-                          "type": "number",
-                          "description": "Total number of records in the database",
-                          "example": 30
-                        },
-                        "skip": {
-                          "type": "number",
-                          "description": "The number of skiped records for this query",
-                          "example": 0
-                        },
-                        "take": {
-                          "type": "number",
-                          "description": "The number of records returned for this query",
-                          "example": 12
-                        }
-                      },
-                      "required": [
-                        "total",
-                        "skip",
-                        "take"
-                      ]
-                    }
-                  },
-                  "required": [
-                    "data",
-                    "meta"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "422": {
-            "$ref": "#/components/responses/422"
-          },
-          "429": {
-            "$ref": "#/components/responses/429"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        }
-      }
-    },
-    "/avs": {
-      "get": {
-        "operationId": "getAllAvs",
-        "summary": "Retrieve all AVS",
-        "description": "Returns all AVS records. This endpoint supports pagination.",
-        "tags": [
-          "AVS"
-        ],
-        "parameters": [
-          {
-            "in": "query",
-            "name": "skip",
-            "description": "The number of records to skip for pagination.",
-            "schema": {
-              "type": "string",
-              "default": "0",
-              "description": "The number of records to skip for pagination.",
-              "example": 0
-            }
-          },
-          {
-            "in": "query",
-            "name": "take",
-            "description": "The number of records to return for pagination.",
-            "schema": {
-              "type": "string",
-              "default": "12",
-              "description": "The number of records to return for pagination.",
-              "example": 12
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "The list of AVS records.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "address": {
-                            "type": "string",
-                            "pattern": "^0x[a-fA-F0-9]{40}$",
-                            "description": "AVS service manager contract address",
-                            "example": "0x35f4f28a8d3ff20eed10e087e8f96ea2641e6aa1"
-                          },
-                          "tags": {
-                            "type": "array",
-                            "items": {
-                              "type": "string"
-                            },
-                            "description": "The tags associated with the AVS",
-                            "example": [
-                              "DA",
-                              "DeFi"
-                            ]
-                          },
-                          "metadataName": {
-                            "type": "string",
-                            "description": "The name of the AVS",
-                            "example": "Example AVS"
-                          },
-                          "metadataDescription": {
-                            "type": "string",
-                            "nullable": true,
-                            "description": "The description of the AVS",
-                            "example": "This is an example AVS"
-                          },
-                          "metadataDiscord": {
-                            "type": "string",
-                            "nullable": true,
-                            "format": "uri",
-                            "description": "The URL of the AVS's Discord server",
-                            "example": "https://discord.com/invite/abcdefghij"
-                          },
-                          "metadataLogo": {
-                            "type": "string",
-                            "nullable": true,
-                            "format": "uri",
-                            "description": "The URL of the AVS's logo"
-                          },
-                          "metadataTelegram": {
-                            "type": "string",
-                            "nullable": true,
-                            "format": "uri",
-                            "description": "The URL of the AVS's Telegram channel",
-                            "example": "https://t.me/acme"
-                          },
-                          "metadataWebsite": {
-                            "type": "string",
-                            "nullable": true,
-                            "format": "uri",
-                            "description": "The URL of the AVS's website",
-                            "example": "https://acme.com"
-                          },
-                          "metadataX": {
-                            "type": "string",
-                            "nullable": true,
-                            "format": "uri",
-                            "description": "The URL of the AVS's X",
-                            "example": "https://twitter.com/acme"
-                          },
-                          "isVisible": {
-                            "type": "boolean",
-                            "default": false,
-                            "description": "Whether the AVS is visible on the EigenExplorer UI",
-                            "example": true
-                          },
-                          "isverified": {
-                            "type": "boolean",
-                            "default": false,
-                            "description": "Whether the AVS has gone through manual verification",
-                            "example": true
-                          },
-                          "tvl": {
-                            "type": "number",
-                            "description": "The total value locked in the AVS",
-                            "example": 1000000
-                          },
-                          "totalOperators": {
-                            "type": "number",
-                            "description": "The total number of operators operating the AVS",
-                            "example": 10
-                          },
-                          "totalStakers": {
-                            "type": "number",
-                            "description": "The total number of stakers staking in the AVS",
-                            "example": 10
-                          }
-                        },
-                        "required": [
-                          "address",
-                          "metadataName",
-                          "metadataDescription",
-                          "metadataDiscord",
-                          "metadataLogo",
-                          "metadataTelegram",
-                          "metadataWebsite",
-                          "metadataX",
-                          "isVisible",
-                          "isverified",
-                          "tvl",
-                          "totalOperators",
-                          "totalStakers"
-                        ]
-                      }
-                    },
-                    "meta": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "total": {
-                            "type": "number",
-                            "description": "Total number of records in the database",
-                            "example": 30
-                          },
-                          "skip": {
-                            "type": "number",
-                            "description": "The number of skiped records for this query",
-                            "example": 0
-                          },
-                          "take": {
-                            "type": "number",
-                            "description": "The number of records returned for this query",
-                            "example": 12
-                          }
-                        },
-                        "required": [
-                          "total",
-                          "skip",
-                          "take"
-                        ]
-                      }
-                    }
-                  },
-                  "required": [
-                    "data",
-                    "meta"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "422": {
-            "$ref": "#/components/responses/422"
-          },
-          "429": {
-            "$ref": "#/components/responses/429"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        }
-      }
-    },
-    "/avs/:address": {
-      "get": {
-        "operationId": "getAvsByAddress",
-        "summary": "Retrieve an AVS by address",
-        "description": "Returns a single AVS record by address.",
-        "tags": [
-          "AVS"
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "address",
-            "schema": {
-              "type": "string",
-              "pattern": "^0x[a-fA-F0-9]{40}$"
-            },
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "The AVS record found.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "address": {
-                        "type": "string",
-                        "pattern": "^0x[a-fA-F0-9]{40}$",
-                        "description": "AVS service manager contract address",
-                        "example": "0x35f4f28a8d3ff20eed10e087e8f96ea2641e6aa1"
-                      },
-                      "tags": {
-                        "type": "array",
-                        "items": {
-                          "type": "string"
-                        },
-                        "description": "The tags associated with the AVS",
-                        "example": [
-                          "DA",
-                          "DeFi"
-                        ]
-                      },
-                      "metadataName": {
-                        "type": "string",
-                        "description": "The name of the AVS",
-                        "example": "Example AVS"
-                      },
-                      "metadataDescription": {
-                        "type": "string",
-                        "nullable": true,
-                        "description": "The description of the AVS",
-                        "example": "This is an example AVS"
-                      },
-                      "metadataDiscord": {
-                        "type": "string",
-                        "nullable": true,
-                        "format": "uri",
-                        "description": "The URL of the AVS's Discord server",
-                        "example": "https://discord.com/invite/abcdefghij"
-                      },
-                      "metadataLogo": {
-                        "type": "string",
-                        "nullable": true,
-                        "format": "uri",
-                        "description": "The URL of the AVS's logo"
-                      },
-                      "metadataTelegram": {
-                        "type": "string",
-                        "nullable": true,
-                        "format": "uri",
-                        "description": "The URL of the AVS's Telegram channel",
-                        "example": "https://t.me/acme"
-                      },
-                      "metadataWebsite": {
-                        "type": "string",
-                        "nullable": true,
-                        "format": "uri",
-                        "description": "The URL of the AVS's website",
-                        "example": "https://acme.com"
-                      },
-                      "metadataX": {
-                        "type": "string",
-                        "nullable": true,
-                        "format": "uri",
-                        "description": "The URL of the AVS's X",
-                        "example": "https://twitter.com/acme"
-                      },
-                      "isVisible": {
-                        "type": "boolean",
-                        "default": false,
-                        "description": "Whether the AVS is visible on the EigenExplorer UI",
-                        "example": true
-                      },
-                      "isverified": {
-                        "type": "boolean",
-                        "default": false,
-                        "description": "Whether the AVS has gone through manual verification",
-                        "example": true
-                      },
-                      "shares": {
-                        "type": "array",
-                        "items": {
-                          "type": "object",
-                          "properties": {
-                            "strategyAddress": {
-                              "type": "string",
-                              "pattern": "^0x[a-fA-F0-9]{40}$",
-                              "description": "The contract address of the restaking strategy",
-                              "example": "0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0"
-                            },
-                            "shares": {
-                              "type": "string",
-                              "description": "The amount of shares held in the strategy",
-                              "example": "1277920000000000000000000"
+    ],
+    "paths": {
+        "/metrics": {
+            "get": {
+                "operationId": "getAllMetrics",
+                "summary": "Retrieve summary metrics",
+                "description": "Returns summary metrics, including TVLs for both restaking strategies and the beacon chain, as well as the total number of AVS, operators, and stakers.",
+                "tags": ["Metrics"],
+                "responses": {
+                    "200": {
+                        "description": "The list of summary metrics.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "tvl": {
+                                            "type": "number",
+                                            "description": "The total value locked in all EigenLayer AVS",
+                                            "example": 10
+                                        },
+                                        "tvlRestaking": {
+                                            "type": "number",
+                                            "description": "The total value locked in all restaking strategies",
+                                            "example": 5
+                                        },
+                                        "tvlStrategies": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "strategyName": {
+                                                        "type": "string",
+                                                        "description": "The name of the strategy",
+                                                        "example": "cbETH"
+                                                    },
+                                                    "strategyTvl": {
+                                                        "type": "number",
+                                                        "description": "The total value locked in the strategy",
+                                                        "example": 1000000
+                                                    }
+                                                },
+                                                "required": [
+                                                    "strategyName",
+                                                    "strategyTvl"
+                                                ]
+                                            },
+                                            "description": "The total value locked in each restaking strategy"
+                                        },
+                                        "tvlBeaconChain": {
+                                            "type": "number",
+                                            "description": "The total value locked in the beacon chain ETH",
+                                            "example": 1000000
+                                        },
+                                        "totalAVS": {
+                                            "type": "number",
+                                            "description": "The total number of AVS",
+                                            "example": 10
+                                        },
+                                        "totalOperators": {
+                                            "type": "number",
+                                            "description": "The total number of operators",
+                                            "example": 10
+                                        },
+                                        "totalStakers": {
+                                            "type": "number",
+                                            "description": "The total number of stakers",
+                                            "example": 10
+                                        }
+                                    },
+                                    "required": [
+                                        "tvl",
+                                        "tvlRestaking",
+                                        "tvlStrategies",
+                                        "tvlBeaconChain",
+                                        "totalAVS",
+                                        "totalOperators",
+                                        "totalStakers"
+                                    ]
+                                }
                             }
-                          },
-                          "required": [
-                            "strategyAddress",
-                            "shares"
-                          ]
-                        },
-                        "description": "The strategy shares held in the AVS"
-                      },
-                      "tvl": {
-                        "type": "number",
-                        "description": "The total value locked in the AVS",
-                        "example": 1000000
-                      },
-                      "totalOperators": {
-                        "type": "number",
-                        "description": "The total number of operators operating the AVS",
-                        "example": 10
-                      },
-                      "totalStakers": {
-                        "type": "number",
-                        "description": "The total number of stakers staking in the AVS",
-                        "example": 10
-                      }
+                        }
                     },
-                    "required": [
-                      "address",
-                      "metadataName",
-                      "metadataDescription",
-                      "metadataDiscord",
-                      "metadataLogo",
-                      "metadataTelegram",
-                      "metadataWebsite",
-                      "metadataX",
-                      "isVisible",
-                      "isverified",
-                      "tvl",
-                      "totalOperators",
-                      "totalStakers"
-                    ]
-                  }
+                    "400": {
+                        "$ref": "#/components/responses/400"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/401"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/403"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/404"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/422"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/429"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/500"
+                    }
                 }
-              }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "422": {
-            "$ref": "#/components/responses/422"
-          },
-          "429": {
-            "$ref": "#/components/responses/429"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
+        },
+        "/metrics/tvl": {
+            "get": {
+                "operationId": "getTvlMetrics",
+                "summary": "Retrieve total TVL",
+                "description": "Returns the total value locked (TVL) in all restaking strategies and beacon chain restaking.",
+                "tags": ["Metrics"],
+                "responses": {
+                    "200": {
+                        "description": "The value of the combined TVL.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "tvl": {
+                                            "type": "number",
+                                            "example": 1000000
+                                        }
+                                    },
+                                    "required": ["tvl"],
+                                    "description": "The value of the combined TVL."
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/400"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/401"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/403"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/404"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/422"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/429"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/500"
+                    }
+                }
+            }
+        },
+        "/metrics/tvl/beacon-chain": {
+            "get": {
+                "operationId": "getBeaconChainTvlMetric",
+                "summary": "Retrieve Beacon Chain restaking TVL",
+                "description": "Returns the total value locked (TVL) in the Beacon Chain restaking eigen pods.",
+                "tags": ["Metrics"],
+                "responses": {
+                    "200": {
+                        "description": "The value of the Beacon Chain restaking TVL.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "tvl": {
+                                            "type": "number",
+                                            "example": 1000000
+                                        }
+                                    },
+                                    "required": ["tvl"],
+                                    "description": "The value of the Beacon Chain restaking TVL."
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/400"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/401"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/403"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/404"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/422"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/429"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/500"
+                    }
+                }
+            }
+        },
+        "/metrics/tvl/restaking": {
+            "get": {
+                "operationId": "getRestakingTvlMetrics",
+                "summary": "Retrieve restaking strategies TVL",
+                "description": "Returns the combined total value locked (TVL) across all restaking strategies, along with a breakdown of the TVL for each individual strategy.",
+                "tags": ["Metrics"],
+                "responses": {
+                    "200": {
+                        "description": "The value of combined restaking strategy TVL and a breakdown of the TVL for each individual strategy.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "tvl": {
+                                            "type": "object",
+                                            "properties": {
+                                                "tvl": {
+                                                    "type": "number",
+                                                    "example": 1000000
+                                                }
+                                            },
+                                            "required": ["tvl"],
+                                            "description": "The value of the combined restaking strategies TVL."
+                                        },
+                                        "tvlStrategies": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "strategyName": {
+                                                        "type": "string",
+                                                        "description": "The name of the strategy",
+                                                        "example": "cbETH"
+                                                    },
+                                                    "strategyTvl": {
+                                                        "type": "number",
+                                                        "description": "The total value locked in the strategy",
+                                                        "example": 1000000
+                                                    }
+                                                },
+                                                "required": [
+                                                    "strategyName",
+                                                    "strategyTvl"
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "required": ["tvl", "tvlStrategies"]
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/400"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/401"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/403"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/404"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/422"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/429"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/500"
+                    }
+                }
+            }
+        },
+        "/metrics/tvl/restaking/:strategy": {
+            "get": {
+                "operationId": "getTvlRestakingMetricByStrategy",
+                "summary": "Retrieve a strategy TVL by name",
+                "description": "Returns the total value locked (TVL) in a specific LST strategy.",
+                "tags": ["Metrics"],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "name",
+                        "description": "The name of the restaking strategy.",
+                        "schema": {
+                            "type": "string",
+                            "description": "The name of the restaking strategy.",
+                            "example": "cbETH"
+                        },
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "The value of combined restaking strategy TVL and a breakdown of the TVL for each individual strategy.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "tvl": {
+                                            "type": "number",
+                                            "example": 1000000
+                                        }
+                                    },
+                                    "required": ["tvl"]
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/400"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/401"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/403"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/404"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/422"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/429"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/500"
+                    }
+                }
+            }
+        },
+        "/metrics/total-avs": {
+            "get": {
+                "operationId": "getTotalAvsMetric",
+                "summary": "Retrieve total number of AVS",
+                "description": "Returns the total number of AVS registered.",
+                "tags": ["Metrics"],
+                "responses": {
+                    "200": {
+                        "description": "The total number of AVS registered.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "totalAvs": {
+                                            "type": "number",
+                                            "description": "The total number of AVS registered",
+                                            "example": 1000000
+                                        }
+                                    },
+                                    "required": ["totalAvs"]
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/400"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/401"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/403"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/404"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/422"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/429"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/500"
+                    }
+                }
+            }
+        },
+        "/metrics/total-operators": {
+            "get": {
+                "operationId": "getTotalOperatorsMetric",
+                "summary": "Retrieve total number of AVS operators",
+                "description": "Returns the total number of AVS operators registered.",
+                "tags": ["Metrics"],
+                "responses": {
+                    "200": {
+                        "description": "The total number of AVS operators registered.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "totalAvs": {
+                                            "type": "number",
+                                            "description": "The total number of AVS operators registered",
+                                            "example": 1000000
+                                        }
+                                    },
+                                    "required": ["totalAvs"]
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/400"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/401"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/403"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/404"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/422"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/429"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/500"
+                    }
+                }
+            }
+        },
+        "/metrics/total-stakers": {
+            "get": {
+                "operationId": "getTotalStakerssMetric",
+                "summary": "Retrieve total number of AVS stakers",
+                "description": "Returns the total number of AVS stakers registered.",
+                "tags": ["Metrics"],
+                "responses": {
+                    "200": {
+                        "description": "The total number of AVS stakers registered.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "totalAvs": {
+                                            "type": "number",
+                                            "description": "The total number of AVS stakerss registered",
+                                            "example": 1000000
+                                        }
+                                    },
+                                    "required": ["totalAvs"]
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/400"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/401"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/403"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/404"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/422"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/429"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/500"
+                    }
+                }
+            }
+        },
+        "/avs/addresses": {
+            "get": {
+                "operationId": "getAllAvsAddresses",
+                "summary": "Retrieve all AVS addresses",
+                "description": "Returns a list of all AVS addresses. This page supports pagination.",
+                "tags": ["AVS"],
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "skip",
+                        "description": "The number of records to skip for pagination.",
+                        "schema": {
+                            "type": "string",
+                            "default": "0",
+                            "description": "The number of records to skip for pagination.",
+                            "example": 0
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "take",
+                        "description": "The number of records to return for pagination.",
+                        "schema": {
+                            "type": "string",
+                            "default": "12",
+                            "description": "The number of records to return for pagination.",
+                            "example": 12
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "The list of AVS addresses.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string",
+                                                        "description": "The AVS's name",
+                                                        "example": "Example AVS"
+                                                    },
+                                                    "address": {
+                                                        "type": "string",
+                                                        "pattern": "^0x[a-fA-F0-9]{40}$",
+                                                        "description": "AVS service manager contract address",
+                                                        "example": "0x35f4f28a8d3ff20eed10e087e8f96ea2641e6aa1"
+                                                    }
+                                                },
+                                                "required": ["name", "address"]
+                                            }
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "total": {
+                                                    "type": "number",
+                                                    "description": "Total number of records in the database",
+                                                    "example": 30
+                                                },
+                                                "skip": {
+                                                    "type": "number",
+                                                    "description": "The number of skiped records for this query",
+                                                    "example": 0
+                                                },
+                                                "take": {
+                                                    "type": "number",
+                                                    "description": "The number of records returned for this query",
+                                                    "example": 12
+                                                }
+                                            },
+                                            "required": [
+                                                "total",
+                                                "skip",
+                                                "take"
+                                            ]
+                                        }
+                                    },
+                                    "required": ["data", "meta"]
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/400"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/401"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/403"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/404"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/422"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/429"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/500"
+                    }
+                }
+            }
+        },
+        "/avs": {
+            "get": {
+                "operationId": "getAllAvs",
+                "summary": "Retrieve all AVS",
+                "description": "Returns all AVS records. This endpoint supports pagination.",
+                "tags": ["AVS"],
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "skip",
+                        "description": "The number of records to skip for pagination.",
+                        "schema": {
+                            "type": "string",
+                            "default": "0",
+                            "description": "The number of records to skip for pagination.",
+                            "example": 0
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "take",
+                        "description": "The number of records to return for pagination.",
+                        "schema": {
+                            "type": "string",
+                            "default": "12",
+                            "description": "The number of records to return for pagination.",
+                            "example": 12
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "The list of AVS records.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "address": {
+                                                        "type": "string",
+                                                        "pattern": "^0x[a-fA-F0-9]{40}$",
+                                                        "description": "AVS service manager contract address",
+                                                        "example": "0x35f4f28a8d3ff20eed10e087e8f96ea2641e6aa1"
+                                                    },
+                                                    "tags": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "string"
+                                                        },
+                                                        "description": "The tags associated with the AVS",
+                                                        "example": [
+                                                            "DA",
+                                                            "DeFi"
+                                                        ]
+                                                    },
+                                                    "metadataName": {
+                                                        "type": "string",
+                                                        "description": "The name of the AVS",
+                                                        "example": "Example AVS"
+                                                    },
+                                                    "metadataDescription": {
+                                                        "type": "string",
+                                                        "nullable": true,
+                                                        "description": "The description of the AVS",
+                                                        "example": "This is an example AVS"
+                                                    },
+                                                    "metadataDiscord": {
+                                                        "type": "string",
+                                                        "nullable": true,
+                                                        "format": "uri",
+                                                        "description": "The URL of the AVS's Discord server",
+                                                        "example": "https://discord.com/invite/abcdefghij"
+                                                    },
+                                                    "metadataLogo": {
+                                                        "type": "string",
+                                                        "nullable": true,
+                                                        "format": "uri",
+                                                        "description": "The URL of the AVS's logo"
+                                                    },
+                                                    "metadataTelegram": {
+                                                        "type": "string",
+                                                        "nullable": true,
+                                                        "format": "uri",
+                                                        "description": "The URL of the AVS's Telegram channel",
+                                                        "example": "https://t.me/acme"
+                                                    },
+                                                    "metadataWebsite": {
+                                                        "type": "string",
+                                                        "nullable": true,
+                                                        "format": "uri",
+                                                        "description": "The URL of the AVS's website",
+                                                        "example": "https://acme.com"
+                                                    },
+                                                    "metadataX": {
+                                                        "type": "string",
+                                                        "nullable": true,
+                                                        "format": "uri",
+                                                        "description": "The URL of the AVS's X",
+                                                        "example": "https://twitter.com/acme"
+                                                    },
+                                                    "isVisible": {
+                                                        "type": "boolean",
+                                                        "default": false,
+                                                        "description": "Whether the AVS is visible on the EigenExplorer UI",
+                                                        "example": true
+                                                    },
+                                                    "isverified": {
+                                                        "type": "boolean",
+                                                        "default": false,
+                                                        "description": "Whether the AVS has gone through manual verification",
+                                                        "example": true
+                                                    },
+                                                    "tvl": {
+                                                        "type": "number",
+                                                        "description": "The total value locked in the AVS",
+                                                        "example": 1000000
+                                                    },
+                                                    "totalOperators": {
+                                                        "type": "number",
+                                                        "description": "The total number of operators operating the AVS",
+                                                        "example": 10
+                                                    },
+                                                    "totalStakers": {
+                                                        "type": "number",
+                                                        "description": "The total number of stakers staking in the AVS",
+                                                        "example": 10
+                                                    }
+                                                },
+                                                "required": [
+                                                    "address",
+                                                    "metadataName",
+                                                    "metadataDescription",
+                                                    "metadataDiscord",
+                                                    "metadataLogo",
+                                                    "metadataTelegram",
+                                                    "metadataWebsite",
+                                                    "metadataX",
+                                                    "isVisible",
+                                                    "isverified",
+                                                    "tvl",
+                                                    "totalOperators",
+                                                    "totalStakers"
+                                                ]
+                                            }
+                                        },
+                                        "meta": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "total": {
+                                                        "type": "number",
+                                                        "description": "Total number of records in the database",
+                                                        "example": 30
+                                                    },
+                                                    "skip": {
+                                                        "type": "number",
+                                                        "description": "The number of skiped records for this query",
+                                                        "example": 0
+                                                    },
+                                                    "take": {
+                                                        "type": "number",
+                                                        "description": "The number of records returned for this query",
+                                                        "example": 12
+                                                    }
+                                                },
+                                                "required": [
+                                                    "total",
+                                                    "skip",
+                                                    "take"
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "required": ["data", "meta"]
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/400"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/401"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/403"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/404"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/422"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/429"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/500"
+                    }
+                }
+            }
+        },
+        "/avs/:address": {
+            "get": {
+                "operationId": "getAvsByAddress",
+                "summary": "Retrieve an AVS by address",
+                "description": "Returns a single AVS record by address.",
+                "tags": ["AVS"],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "address",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^0x[a-fA-F0-9]{40}$"
+                        },
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "The AVS record found.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "address": {
+                                                "type": "string",
+                                                "pattern": "^0x[a-fA-F0-9]{40}$",
+                                                "description": "AVS service manager contract address",
+                                                "example": "0x35f4f28a8d3ff20eed10e087e8f96ea2641e6aa1"
+                                            },
+                                            "tags": {
+                                                "type": "array",
+                                                "items": {
+                                                    "type": "string"
+                                                },
+                                                "description": "The tags associated with the AVS",
+                                                "example": ["DA", "DeFi"]
+                                            },
+                                            "metadataName": {
+                                                "type": "string",
+                                                "description": "The name of the AVS",
+                                                "example": "Example AVS"
+                                            },
+                                            "metadataDescription": {
+                                                "type": "string",
+                                                "nullable": true,
+                                                "description": "The description of the AVS",
+                                                "example": "This is an example AVS"
+                                            },
+                                            "metadataDiscord": {
+                                                "type": "string",
+                                                "nullable": true,
+                                                "format": "uri",
+                                                "description": "The URL of the AVS's Discord server",
+                                                "example": "https://discord.com/invite/abcdefghij"
+                                            },
+                                            "metadataLogo": {
+                                                "type": "string",
+                                                "nullable": true,
+                                                "format": "uri",
+                                                "description": "The URL of the AVS's logo"
+                                            },
+                                            "metadataTelegram": {
+                                                "type": "string",
+                                                "nullable": true,
+                                                "format": "uri",
+                                                "description": "The URL of the AVS's Telegram channel",
+                                                "example": "https://t.me/acme"
+                                            },
+                                            "metadataWebsite": {
+                                                "type": "string",
+                                                "nullable": true,
+                                                "format": "uri",
+                                                "description": "The URL of the AVS's website",
+                                                "example": "https://acme.com"
+                                            },
+                                            "metadataX": {
+                                                "type": "string",
+                                                "nullable": true,
+                                                "format": "uri",
+                                                "description": "The URL of the AVS's X",
+                                                "example": "https://twitter.com/acme"
+                                            },
+                                            "isVisible": {
+                                                "type": "boolean",
+                                                "default": false,
+                                                "description": "Whether the AVS is visible on the EigenExplorer UI",
+                                                "example": true
+                                            },
+                                            "isverified": {
+                                                "type": "boolean",
+                                                "default": false,
+                                                "description": "Whether the AVS has gone through manual verification",
+                                                "example": true
+                                            },
+                                            "shares": {
+                                                "type": "array",
+                                                "items": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "strategyAddress": {
+                                                            "type": "string",
+                                                            "pattern": "^0x[a-fA-F0-9]{40}$",
+                                                            "description": "The contract address of the restaking strategy",
+                                                            "example": "0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0"
+                                                        },
+                                                        "shares": {
+                                                            "type": "string",
+                                                            "description": "The amount of shares held in the strategy",
+                                                            "example": "1277920000000000000000000"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "strategyAddress",
+                                                        "shares"
+                                                    ]
+                                                },
+                                                "description": "The strategy shares held in the AVS"
+                                            },
+                                            "tvl": {
+                                                "type": "number",
+                                                "description": "The total value locked in the AVS",
+                                                "example": 1000000
+                                            },
+                                            "totalOperators": {
+                                                "type": "number",
+                                                "description": "The total number of operators operating the AVS",
+                                                "example": 10
+                                            },
+                                            "totalStakers": {
+                                                "type": "number",
+                                                "description": "The total number of stakers staking in the AVS",
+                                                "example": 10
+                                            }
+                                        },
+                                        "required": [
+                                            "address",
+                                            "metadataName",
+                                            "metadataDescription",
+                                            "metadataDiscord",
+                                            "metadataLogo",
+                                            "metadataTelegram",
+                                            "metadataWebsite",
+                                            "metadataX",
+                                            "isVisible",
+                                            "isverified",
+                                            "tvl",
+                                            "totalOperators",
+                                            "totalStakers"
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/400"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/401"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/403"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/404"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/422"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/429"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/500"
+                    }
+                }
+            }
+        },
+        "/avs/:address/stakers": {
+            "get": {
+                "operationId": "getAvsStakersByAddress",
+                "summary": "Retrieve all stakers for a given AVS address",
+                "description": "Returns all stakers for a given AVS address. This endpoint supports pagination.",
+                "tags": ["AVS"],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "address",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^0x[a-fA-F0-9]{40}$"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "query",
+                        "name": "skip",
+                        "description": "The number of records to skip for pagination.",
+                        "schema": {
+                            "type": "string",
+                            "default": "0",
+                            "description": "The number of records to skip for pagination.",
+                            "example": 0
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "take",
+                        "description": "The number of records to return for pagination.",
+                        "schema": {
+                            "type": "string",
+                            "default": "12",
+                            "description": "The number of records to return for pagination.",
+                            "example": 12
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "The stakers record found for the AVS.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "address": {
+                                                        "type": "string",
+                                                        "pattern": "^0x[a-fA-F0-9]{40}$",
+                                                        "description": "The contract address of the staker",
+                                                        "example": "0x0000006c21964af0d420af8992851a30fa13a68b"
+                                                    },
+                                                    "operatorAddress": {
+                                                        "type": "string",
+                                                        "pattern": "^0x[a-fA-F0-9]{40}$",
+                                                        "description": "The address of the operator",
+                                                        "example": "0x71c6f7ed8c2d4925d0baf16f6a85bb1736d412eb"
+                                                    },
+                                                    "shares": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "stakerAddress": {
+                                                                "type": "string",
+                                                                "pattern": "^0x[a-fA-F0-9]{40}$",
+                                                                "description": "The contract address of the staker",
+                                                                "example": "0x0000006c21964af0d420af8992851a30fa13c68a"
+                                                            },
+                                                            "strategyAddress": {
+                                                                "type": "string",
+                                                                "pattern": "^0x[a-fA-F0-9]{40}$",
+                                                                "description": "The contract address of the restaking strategy",
+                                                                "example": "0x93c4b944d05dfe6df7645a86cd2206016c51564a"
+                                                            },
+                                                            "shares": {
+                                                                "type": "string",
+                                                                "description": "The amount of shares held in the strategy",
+                                                                "example": "40888428658906049"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "stakerAddress",
+                                                            "strategyAddress",
+                                                            "shares"
+                                                        ]
+                                                    },
+                                                    "tvl": {
+                                                        "type": "number",
+                                                        "description": "The total value locked in the AVS staker",
+                                                        "example": 0.040888428658906045
+                                                    }
+                                                },
+                                                "required": [
+                                                    "address",
+                                                    "operatorAddress",
+                                                    "shares",
+                                                    "tvl"
+                                                ]
+                                            }
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "total": {
+                                                    "type": "number",
+                                                    "description": "Total number of records in the database",
+                                                    "example": 30
+                                                },
+                                                "skip": {
+                                                    "type": "number",
+                                                    "description": "The number of skiped records for this query",
+                                                    "example": 0
+                                                },
+                                                "take": {
+                                                    "type": "number",
+                                                    "description": "The number of records returned for this query",
+                                                    "example": 12
+                                                }
+                                            },
+                                            "required": [
+                                                "total",
+                                                "skip",
+                                                "take"
+                                            ]
+                                        }
+                                    },
+                                    "required": ["data", "meta"]
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/400"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/401"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/403"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/404"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/422"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/429"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/500"
+                    }
+                }
+            }
+        },
+        "/avs/:address/operators": {
+            "get": {
+                "operationId": "getAvsOperatorsByAddress",
+                "summary": "Retrieve all operators for a given AVS address",
+                "description": "Returns all operators for a given AVS address. This endpoint supports pagination.",
+                "tags": ["AVS"],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "address",
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^0x[a-fA-F0-9]{40}$"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "query",
+                        "name": "skip",
+                        "description": "The number of records to skip for pagination.",
+                        "schema": {
+                            "type": "string",
+                            "default": "0",
+                            "description": "The number of records to skip for pagination.",
+                            "example": 0
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "take",
+                        "description": "The number of records to return for pagination.",
+                        "schema": {
+                            "type": "string",
+                            "default": "12",
+                            "description": "The number of records to return for pagination.",
+                            "example": 12
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "The operators record found for the AVS.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "address": {
+                                                        "type": "string",
+                                                        "pattern": "^0x[a-fA-F0-9]{40}$",
+                                                        "description": "The contract address of the AVS operator",
+                                                        "example": "0x09e6eb09213bdd3698bd8afb43ec3cb0ecff683a"
+                                                    },
+                                                    "metadataName": {
+                                                        "type": "string",
+                                                        "description": "The name of the AVS operator",
+                                                        "example": "Example AVS Operator"
+                                                    },
+                                                    "metadataDescription": {
+                                                        "type": "string",
+                                                        "nullable": true,
+                                                        "description": "The description of the AVS operator",
+                                                        "example": "This is an example AVS operator"
+                                                    },
+                                                    "metadataDiscord": {
+                                                        "type": "string",
+                                                        "nullable": true,
+                                                        "format": "uri",
+                                                        "description": "The URL of the AVS operator's Discord server",
+                                                        "example": "https://discord.com/invite/abcdefghij"
+                                                    },
+                                                    "metadataLogo": {
+                                                        "type": "string",
+                                                        "nullable": true,
+                                                        "format": "uri",
+                                                        "description": "The URL of the AVS operator's logo"
+                                                    },
+                                                    "metadataTelegram": {
+                                                        "type": "string",
+                                                        "nullable": true,
+                                                        "format": "uri",
+                                                        "description": "The URL of the AVS operator's Telegram channel",
+                                                        "example": "https://t.me/acme"
+                                                    },
+                                                    "metadataWebsite": {
+                                                        "type": "string",
+                                                        "nullable": true,
+                                                        "format": "uri",
+                                                        "description": "The URL of the AVS operator's website",
+                                                        "example": "https://acme.com"
+                                                    },
+                                                    "metadataX": {
+                                                        "type": "string",
+                                                        "nullable": true,
+                                                        "format": "uri",
+                                                        "description": "The URL of the AVS operator's X",
+                                                        "example": "https://twitter.com/acme"
+                                                    },
+                                                    "totalStakers": {
+                                                        "type": "number",
+                                                        "description": "The total number of stakers opted into the AVS operator",
+                                                        "example": 10
+                                                    },
+                                                    "tvl": {
+                                                        "type": "number",
+                                                        "description": "The total value locked in the AVS operator",
+                                                        "example": 1000000
+                                                    }
+                                                },
+                                                "required": [
+                                                    "address",
+                                                    "metadataName",
+                                                    "metadataDescription",
+                                                    "metadataDiscord",
+                                                    "metadataLogo",
+                                                    "metadataTelegram",
+                                                    "metadataWebsite",
+                                                    "metadataX",
+                                                    "totalStakers",
+                                                    "tvl"
+                                                ]
+                                            }
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "total": {
+                                                    "type": "number",
+                                                    "description": "Total number of records in the database",
+                                                    "example": 30
+                                                },
+                                                "skip": {
+                                                    "type": "number",
+                                                    "description": "The number of skiped records for this query",
+                                                    "example": 0
+                                                },
+                                                "take": {
+                                                    "type": "number",
+                                                    "description": "The number of records returned for this query",
+                                                    "example": 12
+                                                }
+                                            },
+                                            "required": [
+                                                "total",
+                                                "skip",
+                                                "take"
+                                            ]
+                                        }
+                                    },
+                                    "required": ["data", "meta"]
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/400"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/401"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/403"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/404"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/422"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/429"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/500"
+                    }
+                }
+            }
         }
-      }
     },
-    "/avs/:address/stakers": {
-      "get": {
-        "operationId": "getAvsStakersByAddress",
-        "summary": "Retrieve all stakers for a given AVS address",
-        "description": "Returns all stakers for a given AVS address. This endpoint supports pagination.",
-        "tags": [
-          "AVS"
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "address",
-            "schema": {
-              "type": "string",
-              "pattern": "^0x[a-fA-F0-9]{40}$"
-            },
-            "required": true
-          },
-          {
-            "in": "query",
-            "name": "skip",
-            "description": "The number of records to skip for pagination.",
-            "schema": {
-              "type": "string",
-              "default": "0",
-              "description": "The number of records to skip for pagination.",
-              "example": 0
-            }
-          },
-          {
-            "in": "query",
-            "name": "take",
-            "description": "The number of records to return for pagination.",
-            "schema": {
-              "type": "string",
-              "default": "12",
-              "description": "The number of records to return for pagination.",
-              "example": 12
-            }
-          }
-        ],
+    "components": {
         "responses": {
-          "200": {
-            "description": "The stakers record found for the AVS.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "address": {
-                            "type": "string",
-                            "pattern": "^0x[a-fA-F0-9]{40}$",
-                            "description": "The contract address of the staker",
-                            "example": "0x0000006c21964af0d420af8992851a30fa13a68b"
-                          },
-                          "operatorAddress": {
-                            "type": "string",
-                            "pattern": "^0x[a-fA-F0-9]{40}$",
-                            "description": "The address of the operator",
-                            "example": "0x71c6f7ed8c2d4925d0baf16f6a85bb1736d412eb"
-                          },
-                          "shares": {
+            "400": {
+                "description": "The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).",
+                "content": {
+                    "application/json": {
+                        "schema": {
                             "type": "object",
                             "properties": {
-                              "stakerAddress": {
-                                "type": "string",
-                                "pattern": "^0x[a-fA-F0-9]{40}$",
-                                "description": "The contract address of the staker",
-                                "example": "0x0000006c21964af0d420af8992851a30fa13c68a"
-                              },
-                              "strategyAddress": {
-                                "type": "string",
-                                "pattern": "^0x[a-fA-F0-9]{40}$",
-                                "description": "The contract address of the restaking strategy",
-                                "example": "0x93c4b944d05dfe6df7645a86cd2206016c51564a"
-                              },
-                              "shares": {
-                                "type": "string",
-                                "description": "The amount of shares held in the strategy",
-                                "example": "40888428658906049"
-                              }
+                                "error": {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "string",
+                                            "enum": ["bad_request"],
+                                            "description": "A short code indicating the error code returned.",
+                                            "example": "bad_request"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "description": "A human readable explanation of what went wrong.",
+                                            "example": "The requested resource was not found."
+                                        },
+                                        "doc_url": {
+                                            "type": "string",
+                                            "description": "A link to our documentation with more details about this error code",
+                                            "example": "https://docs.eigenexplorer.com/api-reference/errors#bad_request"
+                                        }
+                                    },
+                                    "required": ["code", "message"]
+                                }
                             },
-                            "required": [
-                              "stakerAddress",
-                              "strategyAddress",
-                              "shares"
-                            ]
-                          },
-                          "tvl": {
-                            "type": "number",
-                            "description": "The total value locked in the AVS staker",
-                            "example": 0.040888428658906045
-                          }
-                        },
-                        "required": [
-                          "address",
-                          "operatorAddress",
-                          "shares",
-                          "tvl"
-                        ]
-                      }
-                    },
-                    "meta": {
-                      "type": "object",
-                      "properties": {
-                        "total": {
-                          "type": "number",
-                          "description": "Total number of records in the database",
-                          "example": 30
-                        },
-                        "skip": {
-                          "type": "number",
-                          "description": "The number of skiped records for this query",
-                          "example": 0
-                        },
-                        "take": {
-                          "type": "number",
-                          "description": "The number of records returned for this query",
-                          "example": 12
+                            "required": ["error"]
                         }
-                      },
-                      "required": [
-                        "total",
-                        "skip",
-                        "take"
-                      ]
                     }
-                  },
-                  "required": [
-                    "data",
-                    "meta"
-                  ]
                 }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "422": {
-            "$ref": "#/components/responses/422"
-          },
-          "429": {
-            "$ref": "#/components/responses/429"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        }
-      }
-    },
-    "/avs/:address/operators": {
-      "get": {
-        "operationId": "getAvsOperatorsByAddress",
-        "summary": "Retrieve all operators for a given AVS address",
-        "description": "Returns all operators for a given AVS address. This endpoint supports pagination.",
-        "tags": [
-          "AVS"
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "address",
-            "schema": {
-              "type": "string",
-              "pattern": "^0x[a-fA-F0-9]{40}$"
             },
-            "required": true
-          },
-          {
-            "in": "query",
-            "name": "skip",
-            "description": "The number of records to skip for pagination.",
-            "schema": {
-              "type": "string",
-              "default": "0",
-              "description": "The number of records to skip for pagination.",
-              "example": 0
-            }
-          },
-          {
-            "in": "query",
-            "name": "take",
-            "description": "The number of records to return for pagination.",
-            "schema": {
-              "type": "string",
-              "default": "12",
-              "description": "The number of records to return for pagination.",
-              "example": 12
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "The operators record found for the AVS.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "address": {
-                            "type": "string",
-                            "pattern": "^0x[a-fA-F0-9]{40}$",
-                            "description": "The contract address of the AVS operator",
-                            "example": "0x09e6eb09213bdd3698bd8afb43ec3cb0ecff683a"
-                          },
-                          "metadataName": {
-                            "type": "string",
-                            "description": "The name of the AVS operator",
-                            "example": "Example AVS Operator"
-                          },
-                          "metadataDescription": {
-                            "type": "string",
-                            "nullable": true,
-                            "description": "The description of the AVS operator",
-                            "example": "This is an example AVS operator"
-                          },
-                          "metadataDiscord": {
-                            "type": "string",
-                            "nullable": true,
-                            "format": "uri",
-                            "description": "The URL of the AVS operator's Discord server",
-                            "example": "https://discord.com/invite/abcdefghij"
-                          },
-                          "metadataLogo": {
-                            "type": "string",
-                            "nullable": true,
-                            "format": "uri",
-                            "description": "The URL of the AVS operator's logo"
-                          },
-                          "metadataTelegram": {
-                            "type": "string",
-                            "nullable": true,
-                            "format": "uri",
-                            "description": "The URL of the AVS operator's Telegram channel",
-                            "example": "https://t.me/acme"
-                          },
-                          "metadataWebsite": {
-                            "type": "string",
-                            "nullable": true,
-                            "format": "uri",
-                            "description": "The URL of the AVS operator's website",
-                            "example": "https://acme.com"
-                          },
-                          "metadataX": {
-                            "type": "string",
-                            "nullable": true,
-                            "format": "uri",
-                            "description": "The URL of the AVS operator's X",
-                            "example": "https://twitter.com/acme"
-                          },
-                          "totalStakers": {
-                            "type": "number",
-                            "description": "The total number of stakers opted into the AVS operator",
-                            "example": 10
-                          },
-                          "tvl": {
-                            "type": "number",
-                            "description": "The total value locked in the AVS operator",
-                            "example": 1000000
-                          }
-                        },
-                        "required": [
-                          "address",
-                          "metadataName",
-                          "metadataDescription",
-                          "metadataDiscord",
-                          "metadataLogo",
-                          "metadataTelegram",
-                          "metadataWebsite",
-                          "metadataX",
-                          "totalStakers",
-                          "tvl"
-                        ]
-                      }
-                    },
-                    "meta": {
-                      "type": "object",
-                      "properties": {
-                        "total": {
-                          "type": "number",
-                          "description": "Total number of records in the database",
-                          "example": 30
-                        },
-                        "skip": {
-                          "type": "number",
-                          "description": "The number of skiped records for this query",
-                          "example": 0
-                        },
-                        "take": {
-                          "type": "number",
-                          "description": "The number of records returned for this query",
-                          "example": 12
+            "401": {
+                "description": "Although the HTTP standard specifies \"unauthorized\", semantically this response means \"unauthenticated\". That is, the client must authenticate itself to get the requested response.",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "string",
+                                            "enum": ["unauthorized"],
+                                            "description": "A short code indicating the error code returned.",
+                                            "example": "unauthorized"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "description": "A human readable explanation of what went wrong.",
+                                            "example": "The requested resource was not found."
+                                        },
+                                        "doc_url": {
+                                            "type": "string",
+                                            "description": "A link to our documentation with more details about this error code",
+                                            "example": "https://docs.eigenexplorer.com/api-reference/errors#unauthorized"
+                                        }
+                                    },
+                                    "required": ["code", "message"]
+                                }
+                            },
+                            "required": ["error"]
                         }
-                      },
-                      "required": [
-                        "total",
-                        "skip",
-                        "take"
-                      ]
                     }
-                  },
-                  "required": [
-                    "data",
-                    "meta"
-                  ]
                 }
-              }
+            },
+            "403": {
+                "description": "The client does not have access rights to the content; that is, it is unauthorized, so the server is refusing to give the requested resource. Unlike 401 Unauthorized, the client's identity is known to the server.",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "string",
+                                            "enum": ["forbidden"],
+                                            "description": "A short code indicating the error code returned.",
+                                            "example": "forbidden"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "description": "A human readable explanation of what went wrong.",
+                                            "example": "The requested resource was not found."
+                                        },
+                                        "doc_url": {
+                                            "type": "string",
+                                            "description": "A link to our documentation with more details about this error code",
+                                            "example": "https://docs.eigenexplorer.com/api-reference/errors#forbidden"
+                                        }
+                                    },
+                                    "required": ["code", "message"]
+                                }
+                            },
+                            "required": ["error"]
+                        }
+                    }
+                }
+            },
+            "404": {
+                "description": "The server cannot find the requested resource.",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "string",
+                                            "enum": ["not_found"],
+                                            "description": "A short code indicating the error code returned.",
+                                            "example": "not_found"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "description": "A human readable explanation of what went wrong.",
+                                            "example": "The requested resource was not found."
+                                        },
+                                        "doc_url": {
+                                            "type": "string",
+                                            "description": "A link to our documentation with more details about this error code",
+                                            "example": "https://docs.eigenexplorer.com/api-reference/errors#not_found"
+                                        }
+                                    },
+                                    "required": ["code", "message"]
+                                }
+                            },
+                            "required": ["error"]
+                        }
+                    }
+                }
+            },
+            "422": {
+                "description": "The request was well-formed but was unable to be followed due to semantic errors.",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "string",
+                                            "enum": ["unprocessable_entity"],
+                                            "description": "A short code indicating the error code returned.",
+                                            "example": "unprocessable_entity"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "description": "A human readable explanation of what went wrong.",
+                                            "example": "The requested resource was not found."
+                                        },
+                                        "doc_url": {
+                                            "type": "string",
+                                            "description": "A link to our documentation with more details about this error code",
+                                            "example": "https://docs.eigenexplorer.com/api-reference/errors#unprocessable_entity"
+                                        }
+                                    },
+                                    "required": ["code", "message"]
+                                }
+                            },
+                            "required": ["error"]
+                        }
+                    }
+                }
+            },
+            "429": {
+                "description": "The user has sent too many requests in a given amount of time (\"rate limiting\")",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "string",
+                                            "enum": ["rate_limit_exceeded"],
+                                            "description": "A short code indicating the error code returned.",
+                                            "example": "rate_limit_exceeded"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "description": "A human readable explanation of what went wrong.",
+                                            "example": "The requested resource was not found."
+                                        },
+                                        "doc_url": {
+                                            "type": "string",
+                                            "description": "A link to our documentation with more details about this error code",
+                                            "example": "https://docs.eigenexplorer.com/api-reference/errors#rate_limit_exceeded"
+                                        }
+                                    },
+                                    "required": ["code", "message"]
+                                }
+                            },
+                            "required": ["error"]
+                        }
+                    }
+                }
+            },
+            "500": {
+                "description": "The server has encountered a situation it does not know how to handle.",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "string",
+                                            "enum": ["internal_server_error"],
+                                            "description": "A short code indicating the error code returned.",
+                                            "example": "internal_server_error"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "description": "A human readable explanation of what went wrong.",
+                                            "example": "The requested resource was not found."
+                                        },
+                                        "doc_url": {
+                                            "type": "string",
+                                            "description": "A link to our documentation with more details about this error code",
+                                            "example": "https://docs.eigenexplorer.com/api-reference/errors#internal_server_error"
+                                        }
+                                    },
+                                    "required": ["code", "message"]
+                                }
+                            },
+                            "required": ["error"]
+                        }
+                    }
+                }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "422": {
-            "$ref": "#/components/responses/422"
-          },
-          "429": {
-            "$ref": "#/components/responses/429"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
         }
-      }
     }
-  },
-  "components": {
-    "responses": {
-      "400": {
-        "description": "The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).",
-        "content": {
-          "application/json": {
-            "schema": {
-              "type": "object",
-              "properties": {
-                "error": {
-                  "type": "object",
-                  "properties": {
-                    "code": {
-                      "type": "string",
-                      "enum": [
-                        "bad_request"
-                      ],
-                      "description": "A short code indicating the error code returned.",
-                      "example": "bad_request"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "A human readable explanation of what went wrong.",
-                      "example": "The requested resource was not found."
-                    },
-                    "doc_url": {
-                      "type": "string",
-                      "description": "A link to our documentation with more details about this error code",
-                      "example": "https://docs.eigenexplorer.com/api-reference/errors#bad_request"
-                    }
-                  },
-                  "required": [
-                    "code",
-                    "message"
-                  ]
-                }
-              },
-              "required": [
-                "error"
-              ]
-            }
-          }
-        }
-      },
-      "401": {
-        "description": "Although the HTTP standard specifies \"unauthorized\", semantically this response means \"unauthenticated\". That is, the client must authenticate itself to get the requested response.",
-        "content": {
-          "application/json": {
-            "schema": {
-              "type": "object",
-              "properties": {
-                "error": {
-                  "type": "object",
-                  "properties": {
-                    "code": {
-                      "type": "string",
-                      "enum": [
-                        "unauthorized"
-                      ],
-                      "description": "A short code indicating the error code returned.",
-                      "example": "unauthorized"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "A human readable explanation of what went wrong.",
-                      "example": "The requested resource was not found."
-                    },
-                    "doc_url": {
-                      "type": "string",
-                      "description": "A link to our documentation with more details about this error code",
-                      "example": "https://docs.eigenexplorer.com/api-reference/errors#unauthorized"
-                    }
-                  },
-                  "required": [
-                    "code",
-                    "message"
-                  ]
-                }
-              },
-              "required": [
-                "error"
-              ]
-            }
-          }
-        }
-      },
-      "403": {
-        "description": "The client does not have access rights to the content; that is, it is unauthorized, so the server is refusing to give the requested resource. Unlike 401 Unauthorized, the client's identity is known to the server.",
-        "content": {
-          "application/json": {
-            "schema": {
-              "type": "object",
-              "properties": {
-                "error": {
-                  "type": "object",
-                  "properties": {
-                    "code": {
-                      "type": "string",
-                      "enum": [
-                        "forbidden"
-                      ],
-                      "description": "A short code indicating the error code returned.",
-                      "example": "forbidden"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "A human readable explanation of what went wrong.",
-                      "example": "The requested resource was not found."
-                    },
-                    "doc_url": {
-                      "type": "string",
-                      "description": "A link to our documentation with more details about this error code",
-                      "example": "https://docs.eigenexplorer.com/api-reference/errors#forbidden"
-                    }
-                  },
-                  "required": [
-                    "code",
-                    "message"
-                  ]
-                }
-              },
-              "required": [
-                "error"
-              ]
-            }
-          }
-        }
-      },
-      "404": {
-        "description": "The server cannot find the requested resource.",
-        "content": {
-          "application/json": {
-            "schema": {
-              "type": "object",
-              "properties": {
-                "error": {
-                  "type": "object",
-                  "properties": {
-                    "code": {
-                      "type": "string",
-                      "enum": [
-                        "not_found"
-                      ],
-                      "description": "A short code indicating the error code returned.",
-                      "example": "not_found"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "A human readable explanation of what went wrong.",
-                      "example": "The requested resource was not found."
-                    },
-                    "doc_url": {
-                      "type": "string",
-                      "description": "A link to our documentation with more details about this error code",
-                      "example": "https://docs.eigenexplorer.com/api-reference/errors#not_found"
-                    }
-                  },
-                  "required": [
-                    "code",
-                    "message"
-                  ]
-                }
-              },
-              "required": [
-                "error"
-              ]
-            }
-          }
-        }
-      },
-      "422": {
-        "description": "The request was well-formed but was unable to be followed due to semantic errors.",
-        "content": {
-          "application/json": {
-            "schema": {
-              "type": "object",
-              "properties": {
-                "error": {
-                  "type": "object",
-                  "properties": {
-                    "code": {
-                      "type": "string",
-                      "enum": [
-                        "unprocessable_entity"
-                      ],
-                      "description": "A short code indicating the error code returned.",
-                      "example": "unprocessable_entity"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "A human readable explanation of what went wrong.",
-                      "example": "The requested resource was not found."
-                    },
-                    "doc_url": {
-                      "type": "string",
-                      "description": "A link to our documentation with more details about this error code",
-                      "example": "https://docs.eigenexplorer.com/api-reference/errors#unprocessable_entity"
-                    }
-                  },
-                  "required": [
-                    "code",
-                    "message"
-                  ]
-                }
-              },
-              "required": [
-                "error"
-              ]
-            }
-          }
-        }
-      },
-      "429": {
-        "description": "The user has sent too many requests in a given amount of time (\"rate limiting\")",
-        "content": {
-          "application/json": {
-            "schema": {
-              "type": "object",
-              "properties": {
-                "error": {
-                  "type": "object",
-                  "properties": {
-                    "code": {
-                      "type": "string",
-                      "enum": [
-                        "rate_limit_exceeded"
-                      ],
-                      "description": "A short code indicating the error code returned.",
-                      "example": "rate_limit_exceeded"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "A human readable explanation of what went wrong.",
-                      "example": "The requested resource was not found."
-                    },
-                    "doc_url": {
-                      "type": "string",
-                      "description": "A link to our documentation with more details about this error code",
-                      "example": "https://docs.eigenexplorer.com/api-reference/errors#rate_limit_exceeded"
-                    }
-                  },
-                  "required": [
-                    "code",
-                    "message"
-                  ]
-                }
-              },
-              "required": [
-                "error"
-              ]
-            }
-          }
-        }
-      },
-      "500": {
-        "description": "The server has encountered a situation it does not know how to handle.",
-        "content": {
-          "application/json": {
-            "schema": {
-              "type": "object",
-              "properties": {
-                "error": {
-                  "type": "object",
-                  "properties": {
-                    "code": {
-                      "type": "string",
-                      "enum": [
-                        "internal_server_error"
-                      ],
-                      "description": "A short code indicating the error code returned.",
-                      "example": "internal_server_error"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "A human readable explanation of what went wrong.",
-                      "example": "The requested resource was not found."
-                    },
-                    "doc_url": {
-                      "type": "string",
-                      "description": "A link to our documentation with more details about this error code",
-                      "example": "https://docs.eigenexplorer.com/api-reference/errors#internal_server_error"
-                    }
-                  },
-                  "required": [
-                    "code",
-                    "message"
-                  ]
-                }
-              },
-              "required": [
-                "error"
-              ]
-            }
-          }
-        }
-      }
-    }
-  }
 }
