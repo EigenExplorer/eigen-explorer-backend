@@ -1,8 +1,5 @@
 import z from '../';
-
-const EthereumAddress = z
-    .string()
-    .regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address');
+import { EthereumAddressSchema } from './base/ethereumAddress';
 
 export const StrategyNameSchema = z.enum([
     'WETH',
@@ -21,18 +18,18 @@ export const StrategyNameSchema = z.enum([
 ]);
 
 const StrategyContractSchema = z.object({
-    strategyContract: EthereumAddress,
-    tokenContract: EthereumAddress,
+    strategyContract: EthereumAddressSchema,
+    tokenContract: EthereumAddressSchema,
 });
 
 const StrategiesSchema = z.record(StrategyNameSchema, StrategyContractSchema);
 
 const EigenContractAddressSchema = z.object({
-    AVSDirectory: EthereumAddress,
-    DelegationManager: EthereumAddress,
-    Slasher: EthereumAddress,
-    StrategyManager: EthereumAddress,
-    EigenPodManager: EthereumAddress,
+    AVSDirectory: EthereumAddressSchema,
+    DelegationManager: EthereumAddressSchema,
+    Slasher: EthereumAddressSchema,
+    StrategyManager: EthereumAddressSchema,
+    EigenPodManager: EthereumAddressSchema,
     Strategies: StrategiesSchema,
 });
 
