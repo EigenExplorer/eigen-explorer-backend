@@ -2,7 +2,7 @@ import prisma from '../../utils/prismaClient';
 import type { Request, Response } from 'express';
 import { PaginationQuerySchema } from '../../schema/zod/schemas/paginationQuery';
 import { handleAndReturnErrorResponse } from '../../schema/errors';
-import { EthereumAddressSchema } from '../../schema/zod/schemas/avs';
+import { EthereumAddressSchema } from '../../schema/zod/schemas/base/ethereumAddress';
 import {
     withOperatorTvl,
     withOperatorTvlAndShares,
@@ -133,20 +133,15 @@ export async function getAllAVSAddresses(req: Request, res: Response) {
  */
 export async function getAVS(req: Request, res: Response) {
     const { address } = req.params;
-    console.log('avsAddress', address);
 
     const result = EthereumAddressSchema.safeParse(address);
     if (!result.success) {
         return handleAndReturnErrorResponse(req, res, result.error);
     }
 
-    console.log(result);
-
-    console.log(result);
-
     try {
         const avs = await prisma.avs.findUniqueOrThrow({
-            where: { address: id },
+            where: { address },
             include: {
                 operators: {
                     where: { isActive: true },
@@ -281,16 +276,11 @@ export async function getAVSStakers(req: Request, res: Response) {
  * @returns
  */
 export async function getAVSOperators(req: Request, res: Response) {
-    console.log(req.query);
-    // Validate pagination query
-    console.log(req.query);
     // Validate pagination query
     const result = PaginationQuerySchema.safeParse(req.query);
     if (!result.success) {
         return handleAndReturnErrorResponse(req, res, result.error);
     }
-    console.log(result);
-    console.log(result);
     const { skip, take } = result.data;
 
     try {
