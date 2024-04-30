@@ -1,0 +1,21 @@
+{
+    "name": "openapi",
+    "version": "1.0.0",
+    "description": "EigenExplorer OpenAPI docs",
+    "type": "module",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "build": "tsc",
+        "start": "nodemon --watch src --exec tsx src/index.ts"
+    },
+    "license": "MIT",
+    "devDependencies": {
+        "nodemon": "^3.1.0",
+        "tsx": "^4.7.3",
+        "typescript": "^5.4.5"
+    },
+    "dependencies": {
+        "zod": "^3.23.4",
+        "zod-openapi": "^2.17.0"
+    }
+}

@@ -25,6 +25,8 @@ app.use(cookieParser());
 // Routes
 app.use('/', apiRouter);
 
+app.get('/favicon.ico', (req, res) => res.sendStatus(204));
+
 // catch 404 and forward to error handler
 app.use((req, res) => {
     const err = new EigenExplorerApiError({

@@ -2,7 +2,7 @@ import prisma from '../../utils/prismaClient'
 import type { Request, Response } from 'express'
 import { PaginationQuerySchema } from '../../schema/zod/schemas/paginationQuery'
 import { handleAndReturnErrorResponse } from '../../schema/errors'
-import { EthereumAddressSchema } from '../../schema/zod/schemas/avs'
+import { EthereumAddressSchema } from '../../schema/zod/schemas/base/ethereumAddress'
 import {
 	withOperatorTvl,
 	withOperatorTvlAndShares
@@ -74,7 +74,9 @@ export async function getAllAVS(req: Request, res: Response) {
 				const totalOperators = avs.operators.length
 				const totalStakers = await prisma.staker.count({
 					where: {
-						operatorAddress: { in: avs.operators.map((o) => o.operatorAddress) }
+						operatorAddress: {
+							in: avs.operators.map((o) => o.operatorAddress)
+						}
 					}
 				})
 
@@ -151,22 +153,22 @@ export async function getAllAVSAddresses(req: Request, res: Response) {
 }
 
 /**
- * Route to get a single AVS
+ * Route to get a single AVS by address
  *
  * @param req
  * @param res
  */
 export async function getAVS(req: Request, res: Response) {
-	const { id } = req.params
+	const { address } = req.params
 
-	const result = EthereumAddressSchema.safeParse(id)
+	const result = EthereumAddressSchema.safeParse(address)
 	if (!result.success) {
 		return handleAndReturnErrorResponse(req, res, result.error)
 	}
 
 	try {
 		const avs = await prisma.avs.findUniqueOrThrow({
-			where: { address: id, ...avsFilterQuery },
+			where: { address, ...avsFilterQuery },
 			include: {
 				curatedMetadata: true,
 				operators: {
@@ -187,13 +189,15 @@ export async function getAVS(req: Request, res: Response) {
 		const totalOperators = avs.operators.length
 		const totalStakers = await prisma.staker.count({
 			where: {
-				operatorAddress: { in: avs.operators.map((o) => o.operatorAddress) }
+				operatorAddress: {
+					in: avs.operators.map((o) => o.operatorAddress)
+				}
 			}
 		})
 
 		await Promise.all(
 			avs.operators.map(async (avsOperator) => {
-				const operator = await withOperatorTvlAndShares(avsOperator.operator)
+				const operator = withOperatorTvlAndShares(avsOperator.operator)
 
 				operator.shares.map((s) => {
 					if (!sharesMap.has(s.strategyAddress)) {
@@ -301,14 +305,14 @@ export async function getAVSStakers(req: Request, res: Response) {
  * @returns
  */
 export async function getAVSOperators(req: Request, res: Response) {
-	try {
-		// Validate pagination query
-		const result = PaginationQuerySchema.safeParse(req.query)
-		if (!result.success) {
-			return handleAndReturnErrorResponse(req, res, result.error)
-		}
-		const { skip, take } = result.data
+	// Validate pagination query
+	const result = PaginationQuerySchema.safeParse(req.query)
+	if (!result.success) {
+		return handleAndReturnErrorResponse(req, res, result.error)
+	}
+	const { skip, take } = result.data
 
+	try {
 		const { id } = req.params
 		const avs = await prisma.avs.findUniqueOrThrow({
 			where: { address: id, ...avsFilterQuery },
@@ -320,7 +324,9 @@ export async function getAVSOperators(req: Request, res: Response) {
 		})
 
 		const operatorsRecords = await prisma.operator.findMany({
-			where: { address: { in: avs.operators.map((o) => o.operatorAddress) } },
+			where: {
+				address: { in: avs.operators.map((o) => o.operatorAddress) }
+			},
 			skip,
 			take,
 			include: {

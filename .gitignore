@@ -3,3 +3,6 @@ node_modules
 .env
 .env*
 dist
+
+# Prevent DS Store files
+.DS_Store
