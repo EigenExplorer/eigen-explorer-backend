@@ -8,6 +8,7 @@ import { seedPods } from './seedPods'
 import { seedValidatorsRestake } from './seedValidatorsRestake'
 import { seedStakers } from './seedStakers'
 import { getViemClient } from './utils/viemClient'
+import { seedOperatorShares } from './seedOperatorShares'
 
 console.log('Initializing seeder ...')
 
@@ -25,6 +26,7 @@ async function seedAvsLoop() {
 		await seedOperators(targetBlock)
 		await seedAvsOperators(targetBlock)
 		await seedStakers(targetBlock)
+		await seedOperatorShares(targetBlock)
 
 		await delay(120) // Wait for 2 minutes (120 seconds)
 	}
