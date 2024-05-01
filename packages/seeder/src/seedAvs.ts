@@ -82,7 +82,6 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 
 		const newAvs: {
 			address: string
-			tags?: string[]
 			metadataName: string
 			metadataDescription: string
 			metadataDiscord?: string | null
@@ -90,8 +89,6 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 			metadataTelegram?: string | null
 			metadataWebsite?: string | null
 			metadataX?: string | null
-			isVisible?: boolean
-			isVerified?: boolean
 		}[] = []
 
 		for (const [address, metadata] of avsList) {
@@ -104,7 +101,6 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 				metadataTelegram: metadata.telegram,
 				metadataWebsite: metadata.website,
 				metadataX: metadata.x,
-				tags: []
 			})
 		}
 
@@ -137,7 +133,6 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 						metadataTelegram: metadata.telegram,
 						metadataWebsite: metadata.website,
 						metadataX: metadata.x,
-						tags: []
 					}
 				})
 			)

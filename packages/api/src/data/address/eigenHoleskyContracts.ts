@@ -29,7 +29,7 @@ export const eigenHoleskyContracts: EigenContractAddress = {
 		},
 		ankrETH: {
 			strategyContract: '0x7673a47463f80c6a3553db9e54c8cdcd5313d0ac',
-			tokenContract: '0x8783C9C904e1bdC87d9168AE703c8481E8a477Fd '
+			tokenContract: '0x8783C9C904e1bdC87d9168AE703c8481E8a477Fd'
 		},
 		osETH: {
 			strategyContract: '0x46281e3b7fdcacdba44cadf069a94a588fd4c6ef',

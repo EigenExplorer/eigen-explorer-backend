@@ -2,6 +2,8 @@ import type { Request, Response } from 'express'
 import { formatEther } from 'viem'
 import { eigenLayerMainnetStrategyContracts } from '../../data/address/eigenMainnetContracts'
 import { getViemClient } from '../../viem/viemClient'
+import { getEigenContracts } from '../../data/address'
+import { strategyAbi } from '../../data/abi/strategy'
 
 // ABI path for dynamic imports
 const abiPath = {
@@ -140,5 +142,95 @@ export async function getTotalTvl(req: Request, res: Response) {
 	} catch (error) {
 		console.error('Failed to fetch data:', error)
 		res.status(500).send('An error occurred while fetching data.')
+	}
+}
+
+export async function getStrategiesWithShareUnderlying(): Promise<
+	{
+		strategyAddress: string
+		sharesToUnderlying: number
+	}[]
+> {
+	const viemClient = getViemClient()
+	const strategies = Object.values(getEigenContracts().Strategies)
+
+	return await Promise.all(
+		strategies.map(async (s) => {
+			let sharesToUnderlying = 1e18
+
+			try {
+				sharesToUnderlying = (await viemClient.readContract({
+					address: s.strategyContract,
+					abi: strategyAbi,
+					functionName: 'sharesToUnderlying',
+					args: [1e18]
+				})) as number
+			} catch {}
+
+			return {
+				strategyAddress: s.strategyContract,
+				sharesToUnderlying
+			}
+		})
+	)
+}
+
+export function sharesToTVL(
+	shares: {
+		strategyAddress: string
+		shares: string
+	}[],
+	strategiesWithSharesUnderlying: {
+		strategyAddress: string
+		sharesToUnderlying: number
+	}[]
+) {
+	const beaconAddress = '0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0'
+
+	const beaconStrategy = shares.find(
+		(s) => s.strategyAddress.toLowerCase() === beaconAddress
+	)
+	const restakingStrategies = shares.filter(
+		(s) => s.strategyAddress.toLowerCase() !== beaconAddress
+	)
+
+	const tvlBeaconChain = beaconStrategy
+		? Number(beaconStrategy.shares) / 1e18
+		: 0
+
+	let tvlRestaking = 0
+	let tvlWETH = 0
+
+	restakingStrategies.map((s) => {
+		if (
+			s.strategyAddress.toLowerCase() ===
+			getEigenContracts().Strategies.WETH?.strategyContract.toLowerCase()
+		) {
+			tvlWETH = Number(s.shares) / 1e18
+		} else {
+			const sharesUnderlying = strategiesWithSharesUnderlying.find(
+				(su) =>
+					su.strategyAddress.toLowerCase() === s.strategyAddress.toLowerCase()
+			)
+
+			if (sharesUnderlying) {
+				tvlRestaking =
+					tvlRestaking +
+					Number(
+						(BigInt(s.shares) * BigInt(sharesUnderlying.sharesToUnderlying)) /
+							BigInt(1e18)
+					) /
+						1e18
+			} else {
+				tvlRestaking = tvlRestaking + Number(s.shares) / 1e18
+			}
+		}
+	})
+
+	return {
+		tvl: tvlWETH + tvlBeaconChain + tvlRestaking,
+		tvlRestaking,
+		tvlWETH,
+		tvlBeaconChain
 	}
 }

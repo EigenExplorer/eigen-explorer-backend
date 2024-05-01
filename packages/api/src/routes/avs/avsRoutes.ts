@@ -18,8 +18,8 @@ router.get('/', routeCache.cacheSeconds(120), getAllAVS);
 
 router.get('/:address', routeCache.cacheSeconds(120), getAVS);
 
-router.get('/:id/stakers', routeCache.cacheSeconds(120), getAVSStakers);
+router.get('/:address/stakers', routeCache.cacheSeconds(120), getAVSStakers);
 
-router.get('/:id/operators', routeCache.cacheSeconds(120), getAVSOperators);
+router.get('/:address/operators', routeCache.cacheSeconds(120), getAVSOperators);
 
 export default router;
