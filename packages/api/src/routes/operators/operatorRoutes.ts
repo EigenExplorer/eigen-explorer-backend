@@ -1,6 +1,8 @@
 import express from 'express'
 import { getAllOperators, getOperator } from './operatorController'
 
+import routeCache from "route-cache";
+
 const router = express.Router()
 
 // API routes for /operators
@@ -58,7 +60,7 @@ const router = express.Router()
  *                       type: integer
  *                       description: Number of records returned in the current request.
  */
-router.get('/', getAllOperators)
+router.get('/', routeCache.cacheSeconds(120), getAllOperators)
 
 /**
  * @openapi
@@ -93,6 +95,6 @@ router.get('/', getAllOperators)
  *               type: string
  *               example: 'Operator not found.'
  */
-router.get('/:id', getOperator)
+router.get('/:id', routeCache.cacheSeconds(120), getOperator)
 
 export default router

@@ -7,17 +7,19 @@ import {
     getAVSStakers,
 } from './avsController';
 
+import routeCache from "route-cache";
+
 const router = express.Router();
 
 // API routes for /avs
-router.get('/addresses', getAllAVSAddresses);
+router.get('/addresses', routeCache.cacheSeconds(120), getAllAVSAddresses);
 
-router.get('/', getAllAVS);
+router.get('/', routeCache.cacheSeconds(120), getAllAVS);
 
-router.get('/:address', getAVS);
+router.get('/:address', routeCache.cacheSeconds(120), getAVS);
 
-router.get('/:id/stakers', getAVSStakers);
+router.get('/:id/stakers', routeCache.cacheSeconds(120), getAVSStakers);
 
-router.get('/:id/operators', getAVSOperators);
+router.get('/:id/operators', routeCache.cacheSeconds(120), getAVSOperators);
 
 export default router;

@@ -12,5 +12,8 @@
   },
   "devDependencies": {
     "@biomejs/biome": "1.4.1"
+  },
+  "dependencies": {
+    "route-cache": "^0.7.0"
   }
 }
