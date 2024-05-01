@@ -130,12 +130,9 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 				if (log.eventName === 'OperatorSharesIncreased') {
 					stakers.get(stakerAddress).shares[foundSharesIndex].shares =
 						stakers.get(stakerAddress).shares[foundSharesIndex].shares + shares
-
-					stakers.get(stakerAddress).operatorAddress = operatorAddress
 				} else if (log.eventName === 'OperatorSharesDecreased') {
 					stakers.get(stakerAddress).shares[foundSharesIndex].shares =
 						stakers.get(stakerAddress).shares[foundSharesIndex].shares - shares
-					stakers.get(stakerAddress).operatorAddress = null
 				}
 			}
 		}
