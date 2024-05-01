@@ -1,6 +1,6 @@
 import { ZodOpenApiOperationObject } from 'zod-openapi';
 import { openApiErrorResponses } from '../../apiResponseSchema/base/errorResponses';
-import { TvlResponseSchema } from '../../apiResponseSchema/metrics/tvlResponse';
+import { TotalTvlResponseSchema } from '../../apiResponseSchema/metrics/tvlResponse';
 
 export const getTvlMetrics: ZodOpenApiOperationObject = {
     operationId: 'getTvlMetrics',
@@ -14,9 +14,7 @@ export const getTvlMetrics: ZodOpenApiOperationObject = {
             description: 'The value of the combined TVL.',
             content: {
                 'application/json': {
-                    schema: TvlResponseSchema.describe(
-                        'The value of the combined TVL.'
-                    ),
+                    schema: TotalTvlResponseSchema,
                 },
             },
         },

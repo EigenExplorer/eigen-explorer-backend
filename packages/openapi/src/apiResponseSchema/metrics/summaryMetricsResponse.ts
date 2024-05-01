@@ -10,12 +10,10 @@ export const SummaryMetricsResponseSchema = z.object({
         .number()
         .describe('The total value locked in all restaking strategies')
         .openapi({ example: 5 }),
-    tvlStrategies: z
-        .array(StrategyTvlSchema)
-        .describe('The total value locked in each restaking strategy'),
+    tvlStrategies: StrategyTvlSchema,
     tvlBeaconChain: z
         .number()
-        .describe('The total value locked in the beacon chain ETH')
+        .describe('The total value locked in the beacon chain ETH strategy')
         .openapi({ example: 1000000 }),
     totalAVS: z
         .number()

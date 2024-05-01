@@ -6,11 +6,11 @@ import { getAvsStakersByAddress } from './getAvsStakersByAddress';
 import { getAvsOperatorsByAddress } from './getAvsOperatorsByAddress';
 
 export const avsRoutes: ZodOpenApiPathsObject = {
+    '/avs': { get: getAllAvs },
     '/avs/addresses': {
         get: getAllAvsAddresses,
     },
-    '/avs': { get: getAllAvs },
-    '/avs/:address': { get: getAvsByAddress },
-    '/avs/:address/stakers': { get: getAvsStakersByAddress },
-    '/avs/:address/operators': { get: getAvsOperatorsByAddress },
+    '/avs/{address}': { get: getAvsByAddress },
+    '/avs/{address}/stakers': { get: getAvsStakersByAddress },
+    '/avs/{address}/operators': { get: getAvsOperatorsByAddress },
 };

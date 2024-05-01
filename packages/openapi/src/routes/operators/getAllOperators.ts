@@ -2,28 +2,29 @@ import { ZodOpenApiOperationObject } from 'zod-openapi';
 import z from '../../../../api/src/schema/zod';
 import { PaginationQuerySchema } from '../../../../api/src/schema/zod/schemas/paginationQuery';
 import { openApiErrorResponses } from '../../apiResponseSchema/base/errorResponses';
-import { AllAvsSchema } from '../../apiResponseSchema/avs/avsResponse';
 import { PaginationMetaResponsesSchema } from '../../apiResponseSchema/base/paginationMetaResponses';
+import { OperatorResponseSchema } from '../../apiResponseSchema/operatorResponse';
 
-const AvsResponseSchema = z.object({
-    data: z.array(AllAvsSchema),
+const AllOperatorsResponseSchema = z.object({
+    data: z.array(OperatorResponseSchema),
     meta: PaginationMetaResponsesSchema,
 });
 
-export const getAllAvs: ZodOpenApiOperationObject = {
-    operationId: 'getAllAvs',
-    summary: 'Retrieve all AVS',
-    description: 'Returns all AVS records. This endpoint supports pagination.',
-    tags: ['AVS'],
+export const getAllOperators: ZodOpenApiOperationObject = {
+    operationId: 'getAllOperators',
+    summary: 'Retrieve all operators',
+    description:
+        'Returns all operator records. This endpoint supports pagination.',
+    tags: ['Operators'],
     requestParams: {
         query: PaginationQuerySchema,
     },
     responses: {
         '200': {
-            description: 'The list of AVS records.',
+            description: 'The list of Operators records.',
             content: {
                 'application/json': {
-                    schema: AvsResponseSchema,
+                    schema: AllOperatorsResponseSchema,
                 },
             },
         },

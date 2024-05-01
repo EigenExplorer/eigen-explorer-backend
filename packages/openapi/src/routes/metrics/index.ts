@@ -15,7 +15,7 @@ export const metricsRoutes: ZodOpenApiPathsObject = {
     '/metrics/tvl': { get: getTvlMetrics },
     '/metrics/tvl/beacon-chain': { get: getBeaconChainTvlMetric },
     '/metrics/tvl/restaking': { get: getRestakingTvlMetrics },
-    '/metrics/tvl/restaking/:strategy': {
+    '/metrics/tvl/restaking/{strategy}': {
         get: getTvlRestakingMetricByStrategy,
     },
     '/metrics/total-avs': { get: getTotalAvsMetric },
