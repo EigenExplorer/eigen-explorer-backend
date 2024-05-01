@@ -60,8 +60,6 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 
 		// Stakers list
 		const stakerAddresses = logs.map((l) => String(l.args.staker).toLowerCase())
-		console.log('stakerAddresses shares for seeding', stakerAddresses)
-
 		const stakerInit = await prismaClient.staker.findMany({
 			where: { address: { in: stakerAddresses } },
 			include: {
