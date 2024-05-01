@@ -1,9 +1,12 @@
 import type { Request, Response } from 'express'
 import prisma from '../../utils/prismaClient'
 import { PaginationQuerySchema } from '../../schema/zod/schemas/paginationQuery'
+import { WithTvlQuerySchema } from '../../schema/zod/schemas/withTvlQuery'
 import { handleAndReturnErrorResponse } from '../../schema/errors'
-import { OperatorStrategyShares } from '@prisma/client'
-import { IMap } from '../../schema/generic'
+import {
+	getStrategiesWithShareUnderlying,
+	sharesToTVL
+} from '../strategies/strategiesController'
 
 /**
  * Route to get a list of all operators
@@ -13,11 +16,13 @@ import { IMap } from '../../schema/generic'
  */
 export async function getAllOperators(req: Request, res: Response) {
 	// Validate pagination query
-	const result = PaginationQuerySchema.safeParse(req.query)
+	const result = PaginationQuerySchema.and(WithTvlQuerySchema).safeParse(
+		req.query
+	)
 	if (!result.success) {
 		return handleAndReturnErrorResponse(req, res, result.error)
 	}
-	const { skip, take } = result.data
+	const { skip, take, withTvl } = result.data
 
 	try {
 		// Fetch count and record
@@ -26,18 +31,25 @@ export async function getAllOperators(req: Request, res: Response) {
 			skip,
 			take,
 			include: {
-				shares: true,
+				shares: {
+					select: { strategyAddress: true, shares: true }
+				},
 				stakers: true
 			}
 		})
 
-		const operators = operatorRecords
-			.map((operator) => ({
-				...operator,
-				stakers: undefined,
-				totalStakers: operator.stakers.length
-			}))
-			.map((operator) => withOperatorTvl(operator))
+		const strategiesWithSharesUnderlying = withTvl
+			? await getStrategiesWithShareUnderlying()
+			: []
+
+		const operators = operatorRecords.map((operator) => ({
+			...operator,
+			totalStakers: operator.stakers.length,
+			tvl: withTvl
+				? sharesToTVL(operator.shares, strategiesWithSharesUnderlying)
+				: undefined,
+			stakers: undefined
+		}))
 
 		res.send({
 			data: operators,
@@ -59,76 +71,39 @@ export async function getAllOperators(req: Request, res: Response) {
  * @param res
  */
 export async function getOperator(req: Request, res: Response) {
+	// Validate pagination query
+	const result = WithTvlQuerySchema.safeParse(req.query)
+	if (!result.success) {
+		return handleAndReturnErrorResponse(req, res, result.error)
+	}
+	const { withTvl } = result.data
+
 	try {
 		const { id } = req.params
 
 		const operator = await prisma.operator.findUniqueOrThrow({
 			where: { address: id },
 			include: {
-				shares: true,
+				shares: {
+					select: { strategyAddress: true, shares: true }
+				},
 				stakers: true
 			}
 		})
 
-		let tvl = 0
-
-		operator.shares.map((s) => {
-			tvl += Number(s.shares) / 1e18
-		})
+		const strategiesWithSharesUnderlying = withTvl
+			? await getStrategiesWithShareUnderlying()
+			: []
 
 		res.send({
-			...withOperatorTvlAndShares(operator),
-			stakers: undefined,
-			totalStakers: operator.stakers.length
+			...operator,
+			totalStakers: operator.stakers.length,
+			tvl: withTvl
+				? sharesToTVL(operator.shares, strategiesWithSharesUnderlying)
+				: undefined,
+			stakers: undefined
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
-	}
-}
-
-// Helper methods
-export function withOperatorTvl(operator: {
-	shares: OperatorStrategyShares[]
-}) {
-	let tvl = 0
-
-	operator.shares.map((s) => {
-		tvl += Number(s.shares) / 1e18
-	})
-
-	return {
-		...operator,
-		shares: undefined,
-		tvl
-	}
-}
-
-export function withOperatorTvlAndShares(operator: {
-	shares: OperatorStrategyShares[]
-}) {
-	let tvl = 0
-	const sharesMap: IMap<string, string> = new Map()
-
-	operator.shares.map((s) => {
-		if (!sharesMap.has(s.strategyAddress)) {
-			sharesMap.set(s.strategyAddress, '0')
-		}
-
-		sharesMap.set(
-			s.strategyAddress,
-			(BigInt(sharesMap.get(s.strategyAddress)) + BigInt(s.shares)).toString()
-		)
-
-		tvl += Number(s.shares) / 1e18
-	})
-
-	return {
-		...operator,
-		stakers: undefined,
-		shares: Array.from(sharesMap, ([strategyAddress, shares]) => ({
-			strategyAddress,
-			shares
-		})),
-		tvl
 	}
 }

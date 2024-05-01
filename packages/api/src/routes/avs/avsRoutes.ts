@@ -16,8 +16,8 @@ router.get('/', getAllAVS);
 
 router.get('/:address', getAVS);
 
-router.get('/:id/stakers', getAVSStakers);
+router.get('/:address/stakers', getAVSStakers);
 
-router.get('/:id/operators', getAVSOperators);
+router.get('/:address/operators', getAVSOperators);
 
 export default router;
