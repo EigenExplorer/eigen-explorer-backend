@@ -9,8 +9,7 @@ datasource db {
 }
 
 model Avs {
-  address String   @id @unique
-  tags    String[]
+  address String @id @unique
 
   metadataName        String
   metadataDescription String
@@ -20,9 +19,25 @@ model Avs {
   metadataWebsite     String?
   metadataX           String?
 
-  isVisible  Boolean       @default(false)
-  isVerified Boolean       @default(false)
-  operators  AvsOperator[]
+  operators       AvsOperator[]
+  curatedMetadata AvsCuratedMetadata?
+}
+
+model AvsCuratedMetadata {
+  avs        Avs    @relation(fields: [avsAddress], references: [address])
+  avsAddress String @id @unique
+
+  metadataName        String?
+  metadataDescription String?
+  metadataDiscord     String?
+  metadataLogo        String?
+  metadataTelegram    String?
+  metadataWebsite     String?
+  metadataX           String?
+
+  tags       String[]
+  isVisible  Boolean  @default(false)
+  isVerified Boolean  @default(false)
 
   @@index([tags], map: "tags_1")
 }

@@ -9,6 +9,28 @@ import {
 	getStrategiesWithShareUnderlying,
 	sharesToTVL
 } from '../strategies/strategiesController'
+import { getNetwork } from '../../viem/viemClient'
+import { Avs } from '@prisma/client'
+
+// Constant Queries
+const avsFilterQuery = getNetwork().testnet
+	? {
+			OR: [
+				{
+					curatedMetadata: {
+						isVisible: true
+					}
+				},
+				{
+					curatedMetadata: null
+				}
+			]
+	  }
+	: {
+			curatedMetadata: {
+				isVisible: true
+			}
+	  }
 
 /**
  * Route to get a list of all AVSs
@@ -29,11 +51,13 @@ export async function getAllAVS(req: Request, res: Response) {
 		const { skip, take, withTvl } = queryCheck.data
 
 		// Fetch count and record
-		const avsCount = await prisma.avs.count()
+		const avsCount = await prisma.avs.count({ where: avsFilterQuery})
 		const avsRecords = await prisma.avs.findMany({
+			where: avsFilterQuery,
 			skip,
 			take,
 			include: {
+				curatedMetadata: true,
 				operators: {
 					where: { isActive: true },
 					include: {
@@ -65,7 +89,7 @@ export async function getAllAVS(req: Request, res: Response) {
 				const shares = withOperatorShares(avs.operators)
 
 				return {
-					...avs,
+					...withCuratedMetadata(avs),
 					shares,
 					totalOperators,
 					totalStakers,
@@ -107,8 +131,8 @@ export async function getAllAVSAddresses(req: Request, res: Response) {
 		const { skip, take } = queryCheck.data
 
 		// Fetch count and records
-		const avsCount = await prisma.avs.count()
-		const avsRecords = await prisma.avs.findMany({ skip, take })
+		const avsCount = await prisma.avs.count({ where: avsFilterQuery })
+		const avsRecords = await prisma.avs.findMany({ where: avsFilterQuery, skip, take })
 
 		// Simplified map (assuming avs.address is not asynchronous)
 		const data = avsRecords.map((avs) => ({
@@ -153,8 +177,9 @@ export async function getAVS(req: Request, res: Response) {
 		const { withTvl } = req.query
 
 		const avs = await prisma.avs.findUniqueOrThrow({
-			where: { address },
+			where: { address, ...avsFilterQuery },
 			include: {
+				curatedMetadata: true,
 				operators: {
 					where: { isActive: true },
 					include: {
@@ -183,7 +208,7 @@ export async function getAVS(req: Request, res: Response) {
 			: []
 
 		res.send({
-			...avs,
+			...withCuratedMetadata(avs),
 			shares,
 			totalOperators,
 			totalStakers,
@@ -221,7 +246,7 @@ export async function getAVSStakers(req: Request, res: Response) {
 		const { skip, take } = queryCheck.data
 
 		const avs = await prisma.avs.findUniqueOrThrow({
-			where: { address },
+			where: { address, ...avsFilterQuery },
 			include: { operators: true }
 		})
 
@@ -292,7 +317,7 @@ export async function getAVSOperators(req: Request, res: Response) {
 		const { skip, take } = queryCheck.data
 
 		const avs = await prisma.avs.findUniqueOrThrow({
-			where: { address },
+			where: { address, ...avsFilterQuery },
 			include: {
 				operators: {
 					where: { isActive: true }
@@ -354,4 +379,46 @@ function withOperatorShares(avsOperators) {
 		strategyAddress,
 		shares
 	}))
+}
+
+// Helper functions
+function withCuratedMetadata(avs): Avs {
+	// Replace metadata with curated metadata
+	if (avs.curatedMetadata) {
+		avs.metadataName = avs.curatedMetadata.metadataName
+			? avs.curatedMetadata.metadataName
+			: avs.metadataName
+
+		avs.metadataDescription = avs.curatedMetadata.metadataDescription
+			? avs.curatedMetadata.metadataDescription
+			: avs.metadataDescription
+
+		avs.metadataLogo = avs.curatedMetadata.metadataLogo
+			? avs.curatedMetadata.metadataLogo
+			: avs.metadataLogo
+
+		avs.metadataDiscord = avs.curatedMetadata.metadataDiscord
+			? avs.curatedMetadata.metadataDiscord
+			: avs.metadataDiscord
+
+		avs.metadataTelegram = avs.curatedMetadata.metadataTelegram
+			? avs.curatedMetadata.metadataTelegram
+			: avs.metadataTelegram
+
+		avs.metadataWebsite = avs.curatedMetadata.metadataWebsite
+			? avs.curatedMetadata.metadataWebsite
+			: avs.metadataWebsite
+
+		avs.metadataX = avs.curatedMetadata.metadataX
+			? avs.curatedMetadata.metadataX
+			: avs.metadataX
+
+		if (avs.curatedMetadata.tags) {
+			avs.tags = avs.curatedMetadata.tags
+		}
+	}
+
+	avs.curatedMetadata = undefined
+
+	return avs
 }
