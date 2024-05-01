@@ -1,13 +1,14 @@
-import prisma from '../../utils/prismaClient';
-import type { Request, Response } from 'express';
-import { PaginationQuerySchema } from '../../schema/zod/schemas/paginationQuery';
-import { handleAndReturnErrorResponse } from '../../schema/errors';
-import { EthereumAddressSchema } from '../../schema/zod/schemas/base/ethereumAddress';
+import prisma from '../../utils/prismaClient'
+import type { Request, Response } from 'express'
+import { PaginationQuerySchema } from '../../schema/zod/schemas/paginationQuery'
+import { handleAndReturnErrorResponse } from '../../schema/errors'
+import { EthereumAddressSchema } from '../../schema/zod/schemas/base/ethereumAddress'
+import { IMap } from '../../schema/generic'
+import { WithTvlQuerySchema } from '../../schema/zod/schemas/withTvlQuery'
 import {
-    withOperatorTvl,
-    withOperatorTvlAndShares,
-} from '../operators/operatorController';
-import { IMap } from '../../schema/generic';
+	getStrategiesWithShareUnderlying,
+	sharesToTVL
+} from '../strategies/strategiesController'
 
 /**
  * Route to get a list of all AVSs
@@ -16,73 +17,77 @@ import { IMap } from '../../schema/generic';
  * @param res
  */
 export async function getAllAVS(req: Request, res: Response) {
-    // Validate pagination query
-    const result = PaginationQuerySchema.safeParse(req.query);
-    if (!result.success) {
-        return handleAndReturnErrorResponse(req, res, result.error);
-    }
-    const { skip, take } = result.data;
+	// Validate pagination query
+	const queryCheck = PaginationQuerySchema.and(WithTvlQuerySchema).safeParse(
+		req.query
+	)
+	if (!queryCheck.success) {
+		return handleAndReturnErrorResponse(req, res, queryCheck.error)
+	}
 
-    try {
-        // Fetch count and record
-        const avsCount = await prisma.avs.count();
-        const avsRecords = await prisma.avs.findMany({
-            skip,
-            take,
-            include: {
-                operators: {
-                    where: { isActive: true },
-                    include: {
-                        operator: {
-                            include: {
-                                shares: true,
-                            },
-                        },
-                    },
-                },
-            },
-        });
+	try {
+		const { skip, take, withTvl } = queryCheck.data
 
-        const data = await Promise.all(
-            avsRecords.map(async (avs) => {
-                let tvl = 0;
+		// Fetch count and record
+		const avsCount = await prisma.avs.count()
+		const avsRecords = await prisma.avs.findMany({
+			skip,
+			take,
+			include: {
+				operators: {
+					where: { isActive: true },
+					include: {
+						operator: {
+							include: {
+								shares: true
+							}
+						}
+					}
+				}
+			}
+		})
 
-                const totalOperators = avs.operators.length;
-                const totalStakers = await prisma.staker.count({
-                    where: {
-                        operatorAddress: {
-                            in: avs.operators.map((o) => o.operatorAddress),
-                        },
-                    },
-                });
+		const strategiesWithSharesUnderlying = withTvl
+			? await getStrategiesWithShareUnderlying()
+			: []
 
-                avs.operators.map((avsOperator) => {
-                    const operator = withOperatorTvl(avsOperator.operator);
+		const data = await Promise.all(
+			avsRecords.map(async (avs) => {
+				const totalOperators = avs.operators.length
+				const totalStakers = await prisma.staker.count({
+					where: {
+						operatorAddress: {
+							in: avs.operators.map((o) => o.operatorAddress)
+						}
+					}
+				})
 
-                    tvl += operator.tvl;
-                });
+				const shares = withOperatorShares(avs.operators)
 
-                return {
-                    ...avs,
-                    operators: undefined,
-                    tvl,
-                    totalOperators,
-                    totalStakers,
-                };
-            })
-        );
+				return {
+					...avs,
+					shares,
+					totalOperators,
+					totalStakers,
+					tvl: withTvl
+						? sharesToTVL(shares, strategiesWithSharesUnderlying)
+						: undefined,
+					operators: undefined
+				}
+			})
+		)
 
-        res.send({
-            data,
-            meta: {
-                total: avsCount,
-                skip,
-                take,
-            },
-        });
-    } catch (error) {
-        handleAndReturnErrorResponse(req, res, error);
-    }
+		res.send({
+			data,
+			meta: {
+				total: avsCount,
+				skip,
+				take
+			}
+		})
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
 }
 
 /**
@@ -92,36 +97,37 @@ export async function getAllAVS(req: Request, res: Response) {
  * @param res
  */
 export async function getAllAVSAddresses(req: Request, res: Response) {
-    // Validate pagination query
-    const result = PaginationQuerySchema.safeParse(req.query);
-    if (!result.success) {
-        return handleAndReturnErrorResponse(req, res, result.error);
-    }
-    const { skip, take } = result.data;
+	// Validate pagination query
+	const queryCheck = PaginationQuerySchema.safeParse(req.query)
+	if (!queryCheck.success) {
+		return handleAndReturnErrorResponse(req, res, queryCheck.error)
+	}
 
-    try {
-        // Fetch count and records
-        const avsCount = await prisma.avs.count();
-        const avsRecords = await prisma.avs.findMany({ skip, take });
+	try {
+		const { skip, take } = queryCheck.data
 
-        // Simplified map (assuming avs.address is not asynchronous)
-        const data = avsRecords.map((avs) => ({
-            name: avs.metadataName,
-            address: avs.address,
-        }));
+		// Fetch count and records
+		const avsCount = await prisma.avs.count()
+		const avsRecords = await prisma.avs.findMany({ skip, take })
 
-        // Send response with data and metadata
-        res.send({
-            data,
-            meta: {
-                total: avsCount,
-                skip,
-                take,
-            },
-        });
-    } catch (error) {
-        handleAndReturnErrorResponse(req, res, error);
-    }
+		// Simplified map (assuming avs.address is not asynchronous)
+		const data = avsRecords.map((avs) => ({
+			name: avs.metadataName,
+			address: avs.address
+		}))
+
+		// Send response with data and metadata
+		res.send({
+			data,
+			meta: {
+				total: avsCount,
+				skip,
+				take
+			}
+		})
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
 }
 
 /**
@@ -131,75 +137,64 @@ export async function getAllAVSAddresses(req: Request, res: Response) {
  * @param res
  */
 export async function getAVS(req: Request, res: Response) {
-    const { address } = req.params;
+	// Validate query and params
+	const queryCheck = WithTvlQuerySchema.safeParse(req.query)
+	if (!queryCheck.success) {
+		return handleAndReturnErrorResponse(req, res, queryCheck.error)
+	}
 
-    const result = EthereumAddressSchema.safeParse(address);
-    if (!result.success) {
-        return handleAndReturnErrorResponse(req, res, result.error);
-    }
+	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	}
 
-    try {
-        const avs = await prisma.avs.findUniqueOrThrow({
-            where: { address },
-            include: {
-                operators: {
-                    where: { isActive: true },
-                    include: {
-                        operator: {
-                            include: {
-                                shares: true,
-                            },
-                        },
-                    },
-                },
-            },
-        });
+	try {
+		const { address } = req.params
+		const { withTvl } = req.query
 
-        let tvl = 0;
-        const sharesMap: IMap<string, string> = new Map();
-        const totalOperators = avs.operators.length;
-        const totalStakers = await prisma.staker.count({
-            where: {
-                operatorAddress: {
-                    in: avs.operators.map((o) => o.operatorAddress),
-                },
-            },
-        });
+		const avs = await prisma.avs.findUniqueOrThrow({
+			where: { address },
+			include: {
+				operators: {
+					where: { isActive: true },
+					include: {
+						operator: {
+							include: {
+								shares: true
+							}
+						}
+					}
+				}
+			}
+		})
 
-        avs.operators.map((avsOperator) => {
-            const operator = withOperatorTvlAndShares(avsOperator.operator);
+		const totalOperators = avs.operators.length
+		const totalStakers = await prisma.staker.count({
+			where: {
+				operatorAddress: {
+					in: avs.operators.map((o) => o.operatorAddress)
+				}
+			}
+		})
 
-            operator.shares.map((s) => {
-                if (!sharesMap.has(s.strategyAddress)) {
-                    sharesMap.set(s.strategyAddress, '0');
-                }
+		const shares = withOperatorShares(avs.operators)
+		const strategiesWithSharesUnderlying = withTvl
+			? await getStrategiesWithShareUnderlying()
+			: []
 
-                sharesMap.set(
-                    s.strategyAddress,
-                    (
-                        BigInt(sharesMap.get(s.strategyAddress)) +
-                        BigInt(s.shares)
-                    ).toString()
-                );
-            });
-
-            tvl += operator.tvl;
-        });
-
-        res.send({
-            ...avs,
-            shares: Array.from(sharesMap, ([strategyAddress, shares]) => ({
-                strategyAddress,
-                shares,
-            })),
-            tvl,
-            totalOperators,
-            totalStakers,
-            operators: undefined,
-        });
-    } catch (error) {
-        handleAndReturnErrorResponse(req, res, error);
-    }
+		res.send({
+			...avs,
+			shares,
+			totalOperators,
+			totalStakers,
+			tvl: withTvl
+				? sharesToTVL(shares, strategiesWithSharesUnderlying)
+				: undefined,
+			operators: undefined
+		})
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
 }
 
 /**
@@ -210,61 +205,67 @@ export async function getAVS(req: Request, res: Response) {
  * @returns
  */
 export async function getAVSStakers(req: Request, res: Response) {
-    // Validate pagination query
-    const result = PaginationQuerySchema.safeParse(req.query);
-    if (!result.success) {
-        return handleAndReturnErrorResponse(req, res, result.error);
-    }
-    const { skip, take } = result.data;
+	// Validate query and params
+	const queryCheck = PaginationQuerySchema.safeParse(req.query)
+	if (!queryCheck.success) {
+		return handleAndReturnErrorResponse(req, res, queryCheck.error)
+	}
 
-    try {
-        const { id } = req.params;
-        const avs = await prisma.avs.findUniqueOrThrow({
-            where: { address: id },
-            include: { operators: true },
-        });
+	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	}
 
-        const operatorAddresses = avs.operators
-            .filter((o) => o.isActive)
-            .map((o) => o.operatorAddress);
+	try {
+		const { address } = req.params
+		const { skip, take } = queryCheck.data
 
-        const stakersCount = await prisma.staker.count({
-            where: { operatorAddress: { in: operatorAddresses } },
-        });
+		const avs = await prisma.avs.findUniqueOrThrow({
+			where: { address },
+			include: { operators: true }
+		})
 
-        const stakersRecords = await prisma.staker.findMany({
-            where: { operatorAddress: { in: operatorAddresses } },
-            skip,
-            take,
-            include: { shares: true },
-        });
+		const operatorAddresses = avs.operators
+			.filter((o) => o.isActive)
+			.map((o) => o.operatorAddress)
 
-        const data = await Promise.all(
-            stakersRecords.map((staker) => {
-                let tvl = 0;
+		const stakersCount = await prisma.staker.count({
+			where: { operatorAddress: { in: operatorAddresses } }
+		})
 
-                staker.shares.map((ss) => {
-                    tvl += Number(BigInt(ss.shares)) / 1e18;
-                });
+		const stakersRecords = await prisma.staker.findMany({
+			where: { operatorAddress: { in: operatorAddresses } },
+			skip,
+			take,
+			include: { shares: true }
+		})
 
-                return {
-                    ...staker,
-                    tvl,
-                };
-            })
-        );
+		const data = await Promise.all(
+			stakersRecords.map((staker) => {
+				let tvl = 0
 
-        res.send({
-            data,
-            meta: {
-                total: stakersCount,
-                skip,
-                take,
-            },
-        });
-    } catch (error) {
-        handleAndReturnErrorResponse(req, res, error);
-    }
+				staker.shares.map((ss) => {
+					tvl += Number(BigInt(ss.shares)) / 1e18
+				})
+
+				return {
+					...staker,
+					tvl
+				}
+			})
+		)
+
+		res.send({
+			data,
+			meta: {
+				total: stakersCount,
+				skip,
+				take
+			}
+		})
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
 }
 
 /**
@@ -275,53 +276,82 @@ export async function getAVSStakers(req: Request, res: Response) {
  * @returns
  */
 export async function getAVSOperators(req: Request, res: Response) {
-    // Validate pagination query
-    const result = PaginationQuerySchema.safeParse(req.query);
-    if (!result.success) {
-        return handleAndReturnErrorResponse(req, res, result.error);
-    }
-    const { skip, take } = result.data;
+	// Validate query and params
+	const queryCheck = PaginationQuerySchema.safeParse(req.query)
+	if (!queryCheck.success) {
+		return handleAndReturnErrorResponse(req, res, queryCheck.error)
+	}
 
-    try {
-        const { id } = req.params;
-        const avs = await prisma.avs.findUniqueOrThrow({
-            where: { address: id },
-            include: {
-                operators: {
-                    where: { isActive: true },
-                },
-            },
-        });
+	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	}
 
-        const operatorsRecords = await prisma.operator.findMany({
-            where: {
-                address: { in: avs.operators.map((o) => o.operatorAddress) },
-            },
-            skip,
-            take,
-            include: {
-                shares: true,
-                stakers: true,
-            },
-        });
+	try {
+		const { address } = req.params
+		const { skip, take } = queryCheck.data
 
-        const data = operatorsRecords
-            .map((operator) => ({
-                ...operator,
-                stakers: undefined,
-                totalStakers: operator.stakers.length,
-            }))
-            .map((operator) => withOperatorTvl(operator));
+		const avs = await prisma.avs.findUniqueOrThrow({
+			where: { address },
+			include: {
+				operators: {
+					where: { isActive: true }
+				}
+			}
+		})
 
-        res.send({
-            data,
-            meta: {
-                total: avs.operators.length,
-                skip,
-                take,
-            },
-        });
-    } catch (error) {
-        handleAndReturnErrorResponse(req, res, error);
-    }
+		const operatorsRecords = await prisma.operator.findMany({
+			where: {
+				address: { in: avs.operators.map((o) => o.operatorAddress) }
+			},
+			skip,
+			take,
+			include: {
+				shares: {
+					select: { strategyAddress: true, shares: true }
+				},
+				stakers: true
+			}
+		})
+
+		const data = operatorsRecords.map((operator) => ({
+			...operator,
+			stakers: undefined,
+			totalStakers: operator.stakers.length
+		}))
+
+		res.send({
+			data,
+			meta: {
+				total: avs.operators.length,
+				skip,
+				take
+			}
+		})
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+// Helper methods
+function withOperatorShares(avsOperators) {
+	const sharesMap: IMap<string, string> = new Map()
+
+	avsOperators.map((avsOperator) => {
+		avsOperator.operator.shares.map((s) => {
+			if (!sharesMap.has(s.strategyAddress)) {
+				sharesMap.set(s.strategyAddress, '0')
+			}
+
+			sharesMap.set(
+				s.strategyAddress,
+				(BigInt(sharesMap.get(s.strategyAddress)) + BigInt(s.shares)).toString()
+			)
+		})
+	})
+
+	return Array.from(sharesMap, ([strategyAddress, shares]) => ({
+		strategyAddress,
+		shares
+	}))
 }
