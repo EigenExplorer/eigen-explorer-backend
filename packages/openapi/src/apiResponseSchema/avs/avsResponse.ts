@@ -25,7 +25,7 @@ export const AvsDetailsSchema = z.object({
         .default(false)
         .describe('Whether the AVS is visible on the EigenExplorer UI')
         .openapi({ example: true }),
-    isverified: z
+    isVerified: z
         .boolean()
         .optional()
         .default(false)
@@ -71,7 +71,7 @@ export const AllAvsSchema = z.object({
         .default(false)
         .describe('Whether the AVS is visible on the EigenExplorer UI')
         .openapi({ example: true }),
-    isverified: z
+    isVerified: z
         .boolean()
         .optional()
         .default(false)

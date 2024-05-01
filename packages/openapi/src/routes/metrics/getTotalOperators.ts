@@ -3,7 +3,7 @@ import { openApiErrorResponses } from '../../apiResponseSchema/base/errorRespons
 import z from '../../../../api/src/schema/zod';
 
 const TotalOperatorsSchema = z.object({
-    totalAvs: z
+    totalOperators: z
         .number()
         .describe('The total number of AVS operators registered')
         .openapi({ example: 1000000 }),

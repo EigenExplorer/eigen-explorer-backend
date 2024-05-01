@@ -21,7 +21,7 @@ export const getAvsByAddress: ZodOpenApiOperationObject = {
             description: 'The AVS record found.',
             content: {
                 'application/json': {
-                    schema: z.array(AvsDetailsSchema),
+                    schema: AvsDetailsSchema,
                 },
             },
         },

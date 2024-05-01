@@ -8,7 +8,7 @@ const RestakingTvlResponseSchema = z.object({
     tvl: TvlResponseSchema.describe(
         'The value of the combined restaking strategies TVL'
     ),
-    tvlStrategies: z.array(StrategyTvlSchema),
+    tvlStrategies: StrategyTvlSchema,
 });
 
 export const getRestakingTvlMetrics: ZodOpenApiOperationObject = {

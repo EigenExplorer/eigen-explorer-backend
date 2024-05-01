@@ -3,9 +3,9 @@ import { openApiErrorResponses } from '../../apiResponseSchema/base/errorRespons
 import z from '../../../../api/src/schema/zod';
 
 const TotalStakersSchema = z.object({
-    totalAvs: z
+    totalStakers: z
         .number()
-        .describe('The total number of AVS stakerss registered')
+        .describe('The total number of AVS stakers registered')
         .openapi({ example: 1000000 }),
 });
 

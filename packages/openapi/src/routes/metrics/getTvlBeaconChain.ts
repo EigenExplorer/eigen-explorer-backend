@@ -1,12 +1,15 @@
 import { ZodOpenApiOperationObject } from 'zod-openapi';
 import { openApiErrorResponses } from '../../apiResponseSchema/base/errorResponses';
-import { TvlResponseSchema } from '../../apiResponseSchema/metrics/tvlResponse';
+import {
+    BeaconChainTvlResponseSchema,
+    TvlResponseSchema,
+} from '../../apiResponseSchema/metrics/tvlResponse';
 
 export const getBeaconChainTvlMetric: ZodOpenApiOperationObject = {
     operationId: 'getBeaconChainTvlMetric',
     summary: 'Retrieve Beacon Chain restaking TVL',
     description:
-        'Returns the total value locked (TVL) in the Beacon Chain restaking eigen pods.',
+        'Returns the total value locked (TVL) in the Beacon Chain restaking eigen pods',
     tags: ['Metrics'],
     requestParams: {},
     responses: {
@@ -14,9 +17,7 @@ export const getBeaconChainTvlMetric: ZodOpenApiOperationObject = {
             description: 'The value of the Beacon Chain restaking TVL.',
             content: {
                 'application/json': {
-                    schema: TvlResponseSchema.describe(
-                        'The value of the Beacon Chain restaking TVL.'
-                    ),
+                    schema: BeaconChainTvlResponseSchema,
                 },
             },
         },

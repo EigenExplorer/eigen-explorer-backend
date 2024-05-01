@@ -2,6 +2,7 @@ import { openApiErrorResponses } from './apiResponseSchema/base/errorResponses';
 import { createDocument } from 'zod-openapi';
 import { avsRoutes } from './routes/avs';
 import { metricsRoutes } from './routes/metrics';
+import { operatorsRoutes } from './routes/operators';
 
 export const document = createDocument({
     openapi: '3.0.3',
@@ -24,6 +25,7 @@ export const document = createDocument({
     paths: {
         ...metricsRoutes,
         ...avsRoutes,
+        ...operatorsRoutes,
     },
     components: {
         schemas: {},
