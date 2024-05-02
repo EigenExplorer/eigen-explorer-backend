@@ -2,7 +2,8 @@ import { ZodOpenApiOperationObject } from 'zod-openapi';
 import { openApiErrorResponses } from '../../apiResponseSchema/base/errorResponses';
 import z from '../../../../api/src/schema/zod';
 import { EthereumAddressSchema } from '../../../../api/src/schema/zod/schemas/base/ethereumAddress';
-import { IndividualOperatorResponseSchema } from '../../apiResponseSchema/operatorResponse';
+import { OperatorResponseSchema } from '../../apiResponseSchema/operatorResponse';
+import { WithTvlQuerySchema } from '../../../../api/src/schema/zod/schemas/withTvlQuery';
 
 const OperatorAddressParam = z.object({
     address: EthereumAddressSchema.describe(
@@ -16,6 +17,7 @@ export const getOperatorByAddress: ZodOpenApiOperationObject = {
     description: 'Returns an operator record by address.',
     tags: ['Operators'],
     requestParams: {
+        query: WithTvlQuerySchema,
         path: OperatorAddressParam,
     },
     responses: {
@@ -23,7 +25,7 @@ export const getOperatorByAddress: ZodOpenApiOperationObject = {
             description: 'The record of the requested operator.',
             content: {
                 'application/json': {
-                    schema: IndividualOperatorResponseSchema,
+                    schema: OperatorResponseSchema,
                 },
             },
         },

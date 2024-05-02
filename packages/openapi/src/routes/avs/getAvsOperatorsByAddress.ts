@@ -5,6 +5,7 @@ import { ZodOpenApiOperationObject } from 'zod-openapi';
 import { PaginationQuerySchema } from '../../../../api/src/schema/zod/schemas/paginationQuery';
 import { OperatorResponseSchema } from '../../apiResponseSchema/operatorResponse';
 import { PaginationMetaResponsesSchema } from '../../apiResponseSchema/base/paginationMetaResponses';
+import { WithTvlQuerySchema } from '../../../../api/src/schema/zod/schemas/withTvlQuery';
 
 const EthereumAddressParam = z.object({
     address: EthereumAddressSchema,
@@ -15,6 +16,11 @@ const AvsOperatorResponseSchema = z.object({
     meta: PaginationMetaResponsesSchema,
 });
 
+const CombinedQuerySchema = z
+    .object({})
+    .merge(PaginationQuerySchema)
+    .merge(WithTvlQuerySchema);
+
 export const getAvsOperatorsByAddress: ZodOpenApiOperationObject = {
     operationId: 'getAvsOperatorsByAddress',
     summary: 'Retrieve all operators for a given AVS address',
@@ -23,7 +29,7 @@ export const getAvsOperatorsByAddress: ZodOpenApiOperationObject = {
     tags: ['AVS'],
     requestParams: {
         path: EthereumAddressParam,
-        query: PaginationQuerySchema,
+        query: CombinedQuerySchema,
     },
     responses: {
         '200': {

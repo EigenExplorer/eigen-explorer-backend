@@ -2,13 +2,19 @@ import { ZodOpenApiOperationObject } from 'zod-openapi';
 import z from '../../../../api/src/schema/zod';
 import { PaginationQuerySchema } from '../../../../api/src/schema/zod/schemas/paginationQuery';
 import { openApiErrorResponses } from '../../apiResponseSchema/base/errorResponses';
-import { AllAvsSchema } from '../../apiResponseSchema/avs/avsResponse';
+import { AvsSchema } from '../../apiResponseSchema/avs/avsResponse';
 import { PaginationMetaResponsesSchema } from '../../apiResponseSchema/base/paginationMetaResponses';
+import { WithTvlQuerySchema } from '../../../../api/src/schema/zod/schemas/withTvlQuery';
 
 const AvsResponseSchema = z.object({
-    data: z.array(AllAvsSchema),
+    data: z.array(AvsSchema),
     meta: PaginationMetaResponsesSchema,
 });
+
+const CombinedQuerySchema = z
+    .object({})
+    .merge(PaginationQuerySchema)
+    .merge(WithTvlQuerySchema);
 
 export const getAllAvs: ZodOpenApiOperationObject = {
     operationId: 'getAllAvs',
@@ -16,7 +22,7 @@ export const getAllAvs: ZodOpenApiOperationObject = {
     description: 'Returns all AVS records. This endpoint supports pagination.',
     tags: ['AVS'],
     requestParams: {
-        query: PaginationQuerySchema,
+        query: CombinedQuerySchema,
     },
     responses: {
         '200': {

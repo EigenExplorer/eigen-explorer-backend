@@ -549,6 +549,21 @@
               "description": "The number of records to return for pagination",
               "example": 12
             }
+          },
+          {
+            "in": "query",
+            "name": "withTvl",
+            "description": "Toggle whether the route should calculate the TVL from shares",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ],
+              "default": "false",
+              "description": "Toggle whether the route should calculate the TVL from shares",
+              "example": "false"
+            }
           }
         ],
         "responses": {
@@ -569,17 +584,6 @@
                             "pattern": "^0x[a-fA-F0-9]{40}$",
                             "description": "AVS service manager contract address",
                             "example": "0x35f4f28a8d3ff20eed10e087e8f96ea2641e6aa1"
-                          },
-                          "tags": {
-                            "type": "array",
-                            "items": {
-                              "type": "string"
-                            },
-                            "description": "The tags associated with the AVS",
-                            "example": [
-                              "DA",
-                              "DeFi"
-                            ]
                           },
                           "metadataName": {
                             "type": "string",
@@ -626,22 +630,50 @@
                             "description": "The URL of the AVS's X",
                             "example": "https://twitter.com/acme"
                           },
-                          "isVisible": {
-                            "type": "boolean",
-                            "default": false,
-                            "description": "Whether the AVS is visible on the EigenExplorer UI",
-                            "example": true
+                          "tags": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "description": "The tags associated with the AVS",
+                            "example": [
+                              "DA",
+                              "DeFi"
+                            ]
                           },
-                          "isVerified": {
-                            "type": "boolean",
-                            "default": false,
-                            "description": "Whether the AVS has gone through manual verification",
-                            "example": true
-                          },
-                          "tvl": {
-                            "type": "number",
-                            "description": "The total value locked in the AVS",
-                            "example": 1000000
+                          "shares": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "strategyAddress": {
+                                  "type": "string",
+                                  "pattern": "^0x[a-fA-F0-9]{40}$",
+                                  "description": "The contract address of the restaking strategy",
+                                  "example": "0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0"
+                                },
+                                "shares": {
+                                  "type": "string",
+                                  "description": "The amount of shares held in the strategy",
+                                  "example": "1277920000000000000000000"
+                                }
+                              },
+                              "required": [
+                                "strategyAddress",
+                                "shares"
+                              ]
+                            },
+                            "description": "The strategy shares held in the AVS",
+                            "example": [
+                              {
+                                "strategyAddress": "0x93c4b944d05dfe6df7645a86cd2206016c51564d",
+                                "shares": "135064894598947935263152"
+                              },
+                              {
+                                "strategyAddress": "0x54945180db7943c0ed0fee7edab2bd24620256bc",
+                                "shares": "9323641881708650182301"
+                              }
+                            ]
                           },
                           "totalOperators": {
                             "type": "number",
@@ -652,6 +684,44 @@
                             "type": "number",
                             "description": "The total number of stakers staking in the AVS",
                             "example": 10
+                          },
+                          "tvl": {
+                            "type": "object",
+                            "properties": {
+                              "tvl": {
+                                "type": "number",
+                                "description": "The combined TVL of all restaking strategies",
+                                "example": 1000000
+                              },
+                              "tvlRestaking": {
+                                "type": "number",
+                                "description": "The combined TVL of all liquid restaking strategies",
+                                "example": 1000000
+                              },
+                              "tvlWETH": {
+                                "type": "number",
+                                "description": "The TVL of WETH restaking strategy",
+                                "example": 1000000
+                              },
+                              "tvlBeaconChain": {
+                                "type": "number",
+                                "description": "The combined TVL of Beacon Chain restaking strategy",
+                                "example": 1000000
+                              }
+                            },
+                            "required": [
+                              "tvl",
+                              "tvlRestaking",
+                              "tvlWETH",
+                              "tvlBeaconChain"
+                            ],
+                            "description": "The total value locked in the AVS",
+                            "example": {
+                              "tvl": 1000000,
+                              "tvlRestaking": 1000000,
+                              "tvlWETH": 1000000,
+                              "tvlBeaconChain": 1000000
+                            }
                           }
                         },
                         "required": [
@@ -663,9 +733,7 @@
                           "metadataTelegram",
                           "metadataWebsite",
                           "metadataX",
-                          "isVisible",
-                          "isVerified",
-                          "tvl",
+                          "shares",
                           "totalOperators",
                           "totalStakers"
                         ]
@@ -867,6 +935,21 @@
               "pattern": "^0x[a-fA-F0-9]{40}$"
             },
             "required": true
+          },
+          {
+            "in": "query",
+            "name": "withTvl",
+            "description": "Toggle whether the route should calculate the TVL from shares",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ],
+              "default": "false",
+              "description": "Toggle whether the route should calculate the TVL from shares",
+              "example": "false"
+            }
           }
         ],
         "responses": {
@@ -882,17 +965,6 @@
                       "pattern": "^0x[a-fA-F0-9]{40}$",
                       "description": "AVS service manager contract address",
                       "example": "0x35f4f28a8d3ff20eed10e087e8f96ea2641e6aa1"
-                    },
-                    "tags": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      },
-                      "description": "The tags associated with the AVS",
-                      "example": [
-                        "DA",
-                        "DeFi"
-                      ]
                     },
                     "metadataName": {
                       "type": "string",
@@ -939,17 +1011,16 @@
                       "description": "The URL of the AVS's X",
                       "example": "https://twitter.com/acme"
                     },
-                    "isVisible": {
-                      "type": "boolean",
-                      "default": false,
-                      "description": "Whether the AVS is visible on the EigenExplorer UI",
-                      "example": true
-                    },
-                    "isVerified": {
-                      "type": "boolean",
-                      "default": false,
-                      "description": "Whether the AVS has gone through manual verification",
-                      "example": true
+                    "tags": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "The tags associated with the AVS",
+                      "example": [
+                        "DA",
+                        "DeFi"
+                      ]
                     },
                     "shares": {
                       "type": "array",
@@ -973,12 +1044,17 @@
                           "shares"
                         ]
                       },
-                      "description": "The strategy shares held in the AVS"
-                    },
-                    "tvl": {
-                      "type": "number",
-                      "description": "The total value locked in the AVS",
-                      "example": 1000000
+                      "description": "The strategy shares held in the AVS",
+                      "example": [
+                        {
+                          "strategyAddress": "0x93c4b944d05dfe6df7645a86cd2206016c51564d",
+                          "shares": "135064894598947935263152"
+                        },
+                        {
+                          "strategyAddress": "0x54945180db7943c0ed0fee7edab2bd24620256bc",
+                          "shares": "9323641881708650182301"
+                        }
+                      ]
                     },
                     "totalOperators": {
                       "type": "number",
@@ -989,6 +1065,44 @@
                       "type": "number",
                       "description": "The total number of stakers staking in the AVS",
                       "example": 10
+                    },
+                    "tvl": {
+                      "type": "object",
+                      "properties": {
+                        "tvl": {
+                          "type": "number",
+                          "description": "The combined TVL of all restaking strategies",
+                          "example": 1000000
+                        },
+                        "tvlRestaking": {
+                          "type": "number",
+                          "description": "The combined TVL of all liquid restaking strategies",
+                          "example": 1000000
+                        },
+                        "tvlWETH": {
+                          "type": "number",
+                          "description": "The TVL of WETH restaking strategy",
+                          "example": 1000000
+                        },
+                        "tvlBeaconChain": {
+                          "type": "number",
+                          "description": "The combined TVL of Beacon Chain restaking strategy",
+                          "example": 1000000
+                        }
+                      },
+                      "required": [
+                        "tvl",
+                        "tvlRestaking",
+                        "tvlWETH",
+                        "tvlBeaconChain"
+                      ],
+                      "description": "The total value locked in the AVS",
+                      "example": {
+                        "tvl": 1000000,
+                        "tvlRestaking": 1000000,
+                        "tvlWETH": 1000000,
+                        "tvlBeaconChain": 1000000
+                      }
                     }
                   },
                   "required": [
@@ -1000,9 +1114,7 @@
                     "metadataTelegram",
                     "metadataWebsite",
                     "metadataX",
-                    "isVisible",
-                    "isVerified",
-                    "tvl",
+                    "shares",
                     "totalOperators",
                     "totalStakers"
                   ]
@@ -1241,6 +1353,21 @@
               "description": "The number of records to return for pagination",
               "example": 12
             }
+          },
+          {
+            "in": "query",
+            "name": "withTvl",
+            "description": "Toggle whether the route should calculate the TVL from shares",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ],
+              "default": "false",
+              "description": "Toggle whether the route should calculate the TVL from shares",
+              "example": "false"
+            }
           }
         ],
         "responses": {
@@ -1307,15 +1434,82 @@
                             "description": "The URL of the AVS operator's X",
                             "example": "https://twitter.com/acme"
                           },
+                          "shares": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "strategyAddress": {
+                                  "type": "string",
+                                  "pattern": "^0x[a-fA-F0-9]{40}$",
+                                  "description": "The contract address of the restaking strategy",
+                                  "example": "0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0"
+                                },
+                                "shares": {
+                                  "type": "string",
+                                  "description": "The amount of shares held in the strategy",
+                                  "example": "1277920000000000000000000"
+                                }
+                              },
+                              "required": [
+                                "strategyAddress",
+                                "shares"
+                              ]
+                            },
+                            "description": "The strategy shares held in the AVS operator",
+                            "example": [
+                              {
+                                "strategyAddress": "0x93c4b944d05dfe6df7645a86cd2206016c51564d",
+                                "shares": "135064894598947935263152"
+                              },
+                              {
+                                "strategyAddress": "0x54945180db7943c0ed0fee7edab2bd24620256bc",
+                                "shares": "9323641881708650182301"
+                              }
+                            ]
+                          },
                           "totalStakers": {
                             "type": "number",
                             "description": "The total number of stakers opted into the AVS operator",
                             "example": 10
                           },
                           "tvl": {
-                            "type": "number",
+                            "type": "object",
+                            "properties": {
+                              "tvl": {
+                                "type": "number",
+                                "description": "The combined TVL of all restaking strategies",
+                                "example": 1000000
+                              },
+                              "tvlRestaking": {
+                                "type": "number",
+                                "description": "The combined TVL of all liquid restaking strategies",
+                                "example": 1000000
+                              },
+                              "tvlWETH": {
+                                "type": "number",
+                                "description": "The TVL of WETH restaking strategy",
+                                "example": 1000000
+                              },
+                              "tvlBeaconChain": {
+                                "type": "number",
+                                "description": "The combined TVL of Beacon Chain restaking strategy",
+                                "example": 1000000
+                              }
+                            },
+                            "required": [
+                              "tvl",
+                              "tvlRestaking",
+                              "tvlWETH",
+                              "tvlBeaconChain"
+                            ],
                             "description": "The total value locked in the AVS operator",
-                            "example": 1000000
+                            "example": {
+                              "tvl": 1000000,
+                              "tvlRestaking": 1000000,
+                              "tvlWETH": 1000000,
+                              "tvlBeaconChain": 1000000
+                            }
                           }
                         },
                         "required": [
@@ -1327,8 +1521,8 @@
                           "metadataTelegram",
                           "metadataWebsite",
                           "metadataX",
-                          "totalStakers",
-                          "tvl"
+                          "shares",
+                          "totalStakers"
                         ]
                       }
                     },
@@ -1420,6 +1614,21 @@
               "description": "The number of records to return for pagination",
               "example": 12
             }
+          },
+          {
+            "in": "query",
+            "name": "withTvl",
+            "description": "Toggle whether the route should calculate the TVL from shares",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ],
+              "default": "false",
+              "description": "Toggle whether the route should calculate the TVL from shares",
+              "example": "false"
+            }
           }
         ],
         "responses": {
@@ -1486,15 +1695,82 @@
                             "description": "The URL of the AVS operator's X",
                             "example": "https://twitter.com/acme"
                           },
+                          "shares": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "strategyAddress": {
+                                  "type": "string",
+                                  "pattern": "^0x[a-fA-F0-9]{40}$",
+                                  "description": "The contract address of the restaking strategy",
+                                  "example": "0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0"
+                                },
+                                "shares": {
+                                  "type": "string",
+                                  "description": "The amount of shares held in the strategy",
+                                  "example": "1277920000000000000000000"
+                                }
+                              },
+                              "required": [
+                                "strategyAddress",
+                                "shares"
+                              ]
+                            },
+                            "description": "The strategy shares held in the AVS operator",
+                            "example": [
+                              {
+                                "strategyAddress": "0x93c4b944d05dfe6df7645a86cd2206016c51564d",
+                                "shares": "135064894598947935263152"
+                              },
+                              {
+                                "strategyAddress": "0x54945180db7943c0ed0fee7edab2bd24620256bc",
+                                "shares": "9323641881708650182301"
+                              }
+                            ]
+                          },
                           "totalStakers": {
                             "type": "number",
                             "description": "The total number of stakers opted into the AVS operator",
                             "example": 10
                           },
                           "tvl": {
-                            "type": "number",
+                            "type": "object",
+                            "properties": {
+                              "tvl": {
+                                "type": "number",
+                                "description": "The combined TVL of all restaking strategies",
+                                "example": 1000000
+                              },
+                              "tvlRestaking": {
+                                "type": "number",
+                                "description": "The combined TVL of all liquid restaking strategies",
+                                "example": 1000000
+                              },
+                              "tvlWETH": {
+                                "type": "number",
+                                "description": "The TVL of WETH restaking strategy",
+                                "example": 1000000
+                              },
+                              "tvlBeaconChain": {
+                                "type": "number",
+                                "description": "The combined TVL of Beacon Chain restaking strategy",
+                                "example": 1000000
+                              }
+                            },
+                            "required": [
+                              "tvl",
+                              "tvlRestaking",
+                              "tvlWETH",
+                              "tvlBeaconChain"
+                            ],
                             "description": "The total value locked in the AVS operator",
-                            "example": 1000000
+                            "example": {
+                              "tvl": 1000000,
+                              "tvlRestaking": 1000000,
+                              "tvlWETH": 1000000,
+                              "tvlBeaconChain": 1000000
+                            }
                           }
                         },
                         "required": [
@@ -1506,8 +1782,8 @@
                           "metadataTelegram",
                           "metadataWebsite",
                           "metadataX",
-                          "totalStakers",
-                          "tvl"
+                          "shares",
+                          "totalStakers"
                         ]
                       }
                     },
@@ -1589,6 +1865,21 @@
               "example": "0x00107cfdeaddc0a3160ed2f6fedd627f313e7b1b"
             },
             "required": true
+          },
+          {
+            "in": "query",
+            "name": "withTvl",
+            "description": "Toggle whether the route should calculate the TVL from shares",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ],
+              "default": "false",
+              "description": "Toggle whether the route should calculate the TVL from shares",
+              "example": "false"
+            }
           }
         ],
         "responses": {
@@ -1659,29 +1950,73 @@
                             "type": "string",
                             "pattern": "^0x[a-fA-F0-9]{40}$",
                             "description": "The contract address of the restaking strategy",
-                            "example": "0x298afb19a105d59e74658c4c334ff360bade6dd2"
+                            "example": "0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0"
                           },
                           "shares": {
                             "type": "string",
-                            "description": "The amount of shares held in the strategy for this operator",
-                            "example": "40888428658906049"
+                            "description": "The amount of shares held in the strategy",
+                            "example": "1277920000000000000000000"
                           }
                         },
                         "required": [
                           "strategyAddress",
                           "shares"
                         ]
-                      }
-                    },
-                    "tvl": {
-                      "type": "number",
-                      "description": "The total value locked in the AVS operator",
-                      "example": 1000000
+                      },
+                      "description": "The strategy shares held in the AVS operator",
+                      "example": [
+                        {
+                          "strategyAddress": "0x93c4b944d05dfe6df7645a86cd2206016c51564d",
+                          "shares": "135064894598947935263152"
+                        },
+                        {
+                          "strategyAddress": "0x54945180db7943c0ed0fee7edab2bd24620256bc",
+                          "shares": "9323641881708650182301"
+                        }
+                      ]
                     },
                     "totalStakers": {
                       "type": "number",
                       "description": "The total number of stakers opted into the AVS operator",
                       "example": 10
+                    },
+                    "tvl": {
+                      "type": "object",
+                      "properties": {
+                        "tvl": {
+                          "type": "number",
+                          "description": "The combined TVL of all restaking strategies",
+                          "example": 1000000
+                        },
+                        "tvlRestaking": {
+                          "type": "number",
+                          "description": "The combined TVL of all liquid restaking strategies",
+                          "example": 1000000
+                        },
+                        "tvlWETH": {
+                          "type": "number",
+                          "description": "The TVL of WETH restaking strategy",
+                          "example": 1000000
+                        },
+                        "tvlBeaconChain": {
+                          "type": "number",
+                          "description": "The combined TVL of Beacon Chain restaking strategy",
+                          "example": 1000000
+                        }
+                      },
+                      "required": [
+                        "tvl",
+                        "tvlRestaking",
+                        "tvlWETH",
+                        "tvlBeaconChain"
+                      ],
+                      "description": "The total value locked in the AVS operator",
+                      "example": {
+                        "tvl": 1000000,
+                        "tvlRestaking": 1000000,
+                        "tvlWETH": 1000000,
+                        "tvlBeaconChain": 1000000
+                      }
                     }
                   },
                   "required": [
@@ -1694,7 +2029,6 @@
                     "metadataWebsite",
                     "metadataX",
                     "shares",
-                    "tvl",
                     "totalStakers"
                   ]
                 }
