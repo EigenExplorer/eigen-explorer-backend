@@ -302,7 +302,7 @@ export async function getAVSStakers(req: Request, res: Response) {
  */
 export async function getAVSOperators(req: Request, res: Response) {
 	// Validate query and params
-	const queryCheck = PaginationQuerySchema.safeParse(req.query)
+	const queryCheck = PaginationQuerySchema.and(WithTvlQuerySchema).safeParse(req.query)
 	if (!queryCheck.success) {
 		return handleAndReturnErrorResponse(req, res, queryCheck.error)
 	}
@@ -314,7 +314,7 @@ export async function getAVSOperators(req: Request, res: Response) {
 
 	try {
 		const { address } = req.params
-		const { skip, take } = queryCheck.data
+		const { skip, take, withTvl } = queryCheck.data
 
 		const avs = await prisma.avs.findUniqueOrThrow({
 			where: { address, ...avsFilterQuery },
@@ -339,10 +339,17 @@ export async function getAVSOperators(req: Request, res: Response) {
 			}
 		})
 
+		const strategiesWithSharesUnderlying = withTvl
+			? await getStrategiesWithShareUnderlying()
+			: []
+
 		const data = operatorsRecords.map((operator) => ({
 			...operator,
-			stakers: undefined,
-			totalStakers: operator.stakers.length
+			totalStakers: operator.stakers.length,
+			tvl: withTvl
+				? sharesToTVL(operator.shares, strategiesWithSharesUnderlying)
+				: undefined,
+			stakers: undefined
 		}))
 
 		res.send({
