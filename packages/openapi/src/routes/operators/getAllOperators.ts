@@ -4,11 +4,17 @@ import { PaginationQuerySchema } from '../../../../api/src/schema/zod/schemas/pa
 import { openApiErrorResponses } from '../../apiResponseSchema/base/errorResponses';
 import { PaginationMetaResponsesSchema } from '../../apiResponseSchema/base/paginationMetaResponses';
 import { OperatorResponseSchema } from '../../apiResponseSchema/operatorResponse';
+import { WithTvlQuerySchema } from '../../../../api/src/schema/zod/schemas/withTvlQuery';
 
 const AllOperatorsResponseSchema = z.object({
     data: z.array(OperatorResponseSchema),
     meta: PaginationMetaResponsesSchema,
 });
+
+const CombinedQuerySchema = z
+    .object({})
+    .merge(PaginationQuerySchema)
+    .merge(WithTvlQuerySchema);
 
 export const getAllOperators: ZodOpenApiOperationObject = {
     operationId: 'getAllOperators',
@@ -17,7 +23,7 @@ export const getAllOperators: ZodOpenApiOperationObject = {
         'Returns all operator records. This endpoint supports pagination.',
     tags: ['Operators'],
     requestParams: {
-        query: PaginationQuerySchema,
+        query: CombinedQuerySchema,
     },
     responses: {
         '200': {
