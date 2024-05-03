@@ -10,7 +10,7 @@ export interface IMap<K, V> extends Map<K, V> {
 export const baseBlock =
 	process.env.NETWORK && process.env.NETWORK === 'holesky'
 		? 1159609n
-		: 19500000n
+		: 17000000n
 
 export async function loopThroughBlocks(
 	firstBlock: bigint,
