@@ -184,13 +184,9 @@ async function doGetTvlStrategy(strategy: `0x${string}`) {
 }
 
 async function doGetTvlBeaconChain() {
-    const totalViews = await prisma.validator.aggregate({
-        _sum: {
-            effectiveBalance: true,
-        },
-    });
+    const totalValidators = await prisma.validator.count();
 
-    return Number(totalViews._sum.effectiveBalance) / 1e9;
+    return totalValidators * 32;
 }
 
 async function doGetTotalAvsCount() {

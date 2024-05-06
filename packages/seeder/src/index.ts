@@ -7,6 +7,7 @@ import { seedPods } from './seedPods'
 import { seedStakers } from './seedStakers'
 import { getViemClient } from './utils/viemClient'
 import { seedOperatorShares } from './seedOperatorShares'
+import { seedValidators } from './seedValidators'
 
 console.log('Initializing seeder ...')
 
@@ -25,10 +26,25 @@ async function seedEigenDataLoop() {
 		await seedAvsOperators(targetBlock)
 		await seedStakers(targetBlock)
 		await seedOperatorShares(targetBlock)
-		await seedPods(targetBlock)
 
 		await delay(120) // Wait for 2 minutes (120 seconds)
 	}
 }
 
+async function seedEigenPodValidators() {
+	await delay(60)
+	
+	while (true) {
+		const viemClient = getViemClient()
+		const targetBlock = await viemClient.getBlockNumber()
+		console.log('Seeding Eigen Pods Data ...', targetBlock)
+
+		await seedPods(targetBlock)
+		await seedValidators()
+
+		await delay(600) // Wait for 10 minutes (600 seconds)
+	}
+}
+
 seedEigenDataLoop()
+seedEigenPodValidators()
