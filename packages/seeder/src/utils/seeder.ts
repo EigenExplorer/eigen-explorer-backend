@@ -57,7 +57,7 @@ export async function fetchLastSyncBlock(key: string): Promise<bigint> {
 	})
 
 	return lastSyncedBlockData?.value
-		? BigInt(lastSyncedBlockData.value as number)
+		? BigInt(lastSyncedBlockData.value as number) + 1n
 		: baseBlock
 }
 
