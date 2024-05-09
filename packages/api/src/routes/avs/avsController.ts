@@ -12,26 +12,6 @@ import {
 import { getNetwork } from '../../viem/viemClient'
 import { Avs } from '@prisma/client'
 
-// Constant Queries
-const avsFilterQuery = getNetwork().testnet
-	? {
-			OR: [
-				{
-					curatedMetadata: {
-						isVisible: true
-					}
-				},
-				{
-					curatedMetadata: null
-				}
-			]
-	  }
-	: {
-			curatedMetadata: {
-				isVisible: true
-			}
-	  }
-
 /**
  * Route to get a list of all AVSs
  *
@@ -51,9 +31,9 @@ export async function getAllAVS(req: Request, res: Response) {
 		const { skip, take, withTvl } = queryCheck.data
 
 		// Fetch count and record
-		const avsCount = await prisma.avs.count({ where: avsFilterQuery})
+		const avsCount = await prisma.avs.count({ where: getAvsFilterQuery(true) })
 		const avsRecords = await prisma.avs.findMany({
-			where: avsFilterQuery,
+			where: getAvsFilterQuery(true),
 			skip,
 			take,
 			include: {
@@ -131,8 +111,12 @@ export async function getAllAVSAddresses(req: Request, res: Response) {
 		const { skip, take } = queryCheck.data
 
 		// Fetch count and records
-		const avsCount = await prisma.avs.count({ where: avsFilterQuery })
-		const avsRecords = await prisma.avs.findMany({ where: avsFilterQuery, skip, take })
+		const avsCount = await prisma.avs.count({ where: getAvsFilterQuery(true) })
+		const avsRecords = await prisma.avs.findMany({
+			where: getAvsFilterQuery(true),
+			skip,
+			take
+		})
 
 		// Simplified map (assuming avs.address is not asynchronous)
 		const data = avsRecords.map((avs) => ({
@@ -177,7 +161,7 @@ export async function getAVS(req: Request, res: Response) {
 		const { withTvl } = req.query
 
 		const avs = await prisma.avs.findUniqueOrThrow({
-			where: { address, ...avsFilterQuery },
+			where: { address, ...getAvsFilterQuery() },
 			include: {
 				curatedMetadata: true,
 				operators: {
@@ -246,7 +230,7 @@ export async function getAVSStakers(req: Request, res: Response) {
 		const { skip, take } = queryCheck.data
 
 		const avs = await prisma.avs.findUniqueOrThrow({
-			where: { address, ...avsFilterQuery },
+			where: { address, ...getAvsFilterQuery() },
 			include: { operators: true }
 		})
 
@@ -302,7 +286,9 @@ export async function getAVSStakers(req: Request, res: Response) {
  */
 export async function getAVSOperators(req: Request, res: Response) {
 	// Validate query and params
-	const queryCheck = PaginationQuerySchema.and(WithTvlQuerySchema).safeParse(req.query)
+	const queryCheck = PaginationQuerySchema.and(WithTvlQuerySchema).safeParse(
+		req.query
+	)
 	if (!queryCheck.success) {
 		return handleAndReturnErrorResponse(req, res, queryCheck.error)
 	}
@@ -317,7 +303,7 @@ export async function getAVSOperators(req: Request, res: Response) {
 		const { skip, take, withTvl } = queryCheck.data
 
 		const avs = await prisma.avs.findUniqueOrThrow({
-			where: { address, ...avsFilterQuery },
+			where: { address, ...getAvsFilterQuery() },
 			include: {
 				operators: {
 					where: { isActive: true }
@@ -428,4 +414,50 @@ function withCuratedMetadata(avs): Avs {
 	avs.curatedMetadata = undefined
 
 	return avs
+}
+
+export function getAvsFilterQuery(filterName?: boolean) {
+	const queryWithName = filterName
+		? {
+				OR: [
+					{
+						metadataName: { not: '' }
+					},
+					{
+						curatedMetadata: {
+							metadataName: { not: '' }
+						}
+					}
+				]
+		  }
+		: {}
+
+	return getNetwork().testnet
+		? {
+				AND: [
+					queryWithName,
+					{
+						OR: [
+							{
+								curatedMetadata: {
+									isVisible: true
+								}
+							},
+							{
+								curatedMetadata: null
+							}
+						]
+					}
+				]
+		  }
+		: {
+				AND: [
+					queryWithName,
+					{
+						curatedMetadata: {
+							isVisible: true
+						}
+					}
+				]
+		  }
 }
