@@ -4,6 +4,7 @@ import { eigenLayerMainnetStrategyContracts } from '../../data/address/eigenMain
 import { getViemClient } from '../../viem/viemClient'
 import { getEigenContracts } from '../../data/address'
 import { strategyAbi } from '../../data/abi/strategy'
+import { TokenPrices } from '../../utils/tokenPrices'
 
 // ABI path for dynamic imports
 const abiPath = {
@@ -183,7 +184,8 @@ export function sharesToTVL(
 	strategiesWithSharesUnderlying: {
 		strategyAddress: string
 		sharesToUnderlying: number
-	}[]
+	}[],
+	strategyTokenPrices: TokenPrices
 ) {
 	const beaconAddress = '0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0'
 
@@ -206,21 +208,34 @@ export function sharesToTVL(
 			s.strategyAddress.toLowerCase() ===
 			getEigenContracts().Strategies.WETH?.strategyContract.toLowerCase()
 		) {
-			tvlWETH = Number(s.shares) / 1e18
+			const strategyTokenPrice = Object.values(strategyTokenPrices).find(
+				(stp) =>
+					stp.strategyAddress.toLowerCase() === s.strategyAddress.toLowerCase()
+			)
+			if (strategyTokenPrice) {
+				tvlWETH = (Number(s.shares) / 1e18) * strategyTokenPrice.eth
+			} else {
+				tvlWETH = Number(s.shares) / 1e18
+			}
 		} else {
+			const strategyTokenPrice = Object.values(strategyTokenPrices).find(
+				(stp) =>
+					stp.strategyAddress.toLowerCase() === s.strategyAddress.toLowerCase()
+			)
 			const sharesUnderlying = strategiesWithSharesUnderlying.find(
 				(su) =>
 					su.strategyAddress.toLowerCase() === s.strategyAddress.toLowerCase()
 			)
 
-			if (sharesUnderlying) {
-				tvlRestaking =
-					tvlRestaking +
+			if (sharesUnderlying && strategyTokenPrice) {
+				const strategyShares =
 					Number(
 						(BigInt(s.shares) * BigInt(sharesUnderlying.sharesToUnderlying)) /
 							BigInt(1e18)
-					) /
-						1e18
+					) / 1e18
+
+				const strategyTvl = strategyShares * strategyTokenPrice.eth
+				tvlRestaking = tvlRestaking + strategyTvl
 			} else {
 				tvlRestaking = tvlRestaking + Number(s.shares) / 1e18
 			}
@@ -229,8 +244,8 @@ export function sharesToTVL(
 
 	return {
 		tvl: tvlWETH + tvlBeaconChain + tvlRestaking,
-		tvlRestaking,
+		tvlBeaconChain,
 		tvlWETH,
-		tvlBeaconChain
+		tvlRestaking
 	}
 }

@@ -6,6 +6,7 @@ import { strategyAbi } from '../../data/abi/strategy';
 import { getEigenContracts } from '../../data/address';
 import { handleAndReturnErrorResponse } from '../../schema/errors';
 import { getAvsFilterQuery } from '../avs/avsController'
+import { fetchStrategyTokenPrices } from '../../utils/tokenPrices'
 
 /**
  * Route to get explorer metrics
@@ -24,7 +25,7 @@ export async function getMetrics(req: Request, res: Response) {
             tvlBeaconChain: await doGetTvlBeaconChain(),
             totalAvs: await doGetTotalAvsCount(),
             totalOperators: await doGetTotalOperatorCount(),
-            totalStakers: await doGetTotalStakerCount(),
+            totalStakers: await doGetTotalStakerCount()
         });
     } catch (error) {
         handleAndReturnErrorResponse(req, res, error);
