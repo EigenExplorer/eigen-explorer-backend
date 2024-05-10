@@ -5,6 +5,7 @@ import { getViemClient } from '../../viem/viemClient';
 import { strategyAbi } from '../../data/abi/strategy';
 import { getEigenContracts } from '../../data/address';
 import { handleAndReturnErrorResponse } from '../../schema/errors';
+import { getAvsFilterQuery } from '../avs/avsController'
 
 /**
  * Route to get explorer metrics
@@ -190,7 +191,7 @@ async function doGetTvlBeaconChain() {
 }
 
 async function doGetTotalAvsCount() {
-    return await prisma.avs.count();
+    return await prisma.avs.count({ where: getAvsFilterQuery(true) });
 }
 
 async function doGetTotalOperatorCount() {
