@@ -6,7 +6,7 @@ import { logStatus, logRegistry, logCheckup, logSynced, logOutOfSync, logInSync,
 
 const viemClient = getViemClient()
 
-const criticalDowntime = Number(process.env.CRITICAL_DOWNTIME) // When there is no db update by seeder for criticalDowntime (in ms) after an expected update, we consider the issue to be critical
+const criticalDowntime = Number(process.env.CRITICAL_DOWNTIME) // When there is no db update by seeder for criticalDowntime milliseconds after an expected update, we consider the issue to be critical
 const acceptableDelay = Number(process.env.ACCEPTABLE_DELAY)   // Acceptable lag in ms between seeder fetching block data and writing it to db
 
 let outOfSyncKeyStates: Map<string, KeyState> = new Map()   // Registry that holds out of sync keys + data at any given point in time
@@ -45,8 +45,8 @@ function groupKeysByRefreshRate() {
  * For any given group of keys, first checks db to see when the last update was made.
  * Then, it is set on a time schedule to monitor the keys every epoch (as defined in blockSyncKeys).
  * Next checkup is always calculated from the latest updatedAt timestamp. This keeps the monitor in sync with the seeder.
- * If there is no db update by seeder for criticalDowntime (in ms) after an expected update, critical alert is sent every criticalDowntime ms
- * When it's time to perform checkup, retrieves the latest block, waits for acceptableDelay milliseconds and then calls processSyncData().
+ * If there is no db update by seeder for criticalDowntime ms after an expected update, critical alert is sent every criticalDowntime ms
+ * When it's time to perform checkup, retrieves the latest block, waits for acceptableDelay ms and then calls processSyncData().
  * 
  * @param syncKeys
  * @param refreshRate 
@@ -55,7 +55,7 @@ function groupKeysByRefreshRate() {
  */
 async function fetchSyncData(syncKeys: string[], refreshRate: number, index: number, outOfSyncKeys: string[] = []): Promise<void> {
     try {
-        logRegistry(index, refreshRate, syncKeys)
+        logRegistry(index, refreshRate, syncKeys, getNetwork().name)
         let criticalLagCounter = 1
 
         while(true) {
@@ -67,8 +67,8 @@ async function fetchSyncData(syncKeys: string[], refreshRate: number, index: num
             if(earliestTimestamp.getTime() < now.getTime() - refreshRate) {
                 await delay(acceptableDelay)
                 criticalLagCounter++
-                if (criticalLagCounter % (criticalDowntime / acceptableDelay) == 0 ) {    // No db update by seeder for criticalDowntime (in ms) after an expected update
-                    logCritical(index, criticalLagCounter / (criticalDowntime / acceptableDelay))
+                if (criticalLagCounter % (criticalDowntime / acceptableDelay) == 0 ) {    // No db update by seeder for criticalDowntime milliseconds after an expected update
+                    logCritical(index, criticalLagCounter / (criticalDowntime / acceptableDelay), getNetwork().name.toLowerCase())
                 }
                 continue
             } 
@@ -120,11 +120,11 @@ async function processSyncData(syncKeys: string[], results: LastSyncBlockInfo[],
             if (outOfSyncIndex > -1) {  // Previously out of sync key is now synced
                 outOfSyncKeys.splice(outOfSyncIndex, 1)
                 const keyState = outOfSyncKeyStates.get(key)!
-                logSynced(key, keyState.nextFetch.getTime(), keyState.lastSyncedBlock, result.updatedAt.getTime(), latestBlock)
+                logSynced(key, keyState.nextFetch.getTime(), keyState.lastSyncedBlock, result.updatedAt.getTime(), latestBlock, getNetwork().name.toLowerCase())
                 outOfSyncKeyStates.delete(key)
             }
         } else {    // Key is out of sync
-            logOutOfSync(key, latestBlock, result.lastBlock, result.updatedAt)
+            logOutOfSync(key, latestBlock, result.lastBlock, result.updatedAt, getNetwork().name.toLowerCase())
 
             if (!outOfSyncKeys.includes(key)) {
                 newOutOfSyncKeys.push(key)
