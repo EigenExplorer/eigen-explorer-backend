@@ -2,11 +2,13 @@ import 'dotenv/config'
 import { blockSyncKeys } from './data/blockSyncKeys'
 import { getViemClient, getNetwork } from './utils/viemClient'
 import { fetchLastSyncBlockInfo, delay, LastSyncBlockInfo, KeyState } from './utils/monitoring'
-import { logStatus, logRegistry, logCheckup, logSynced, logOutOfSync, logInSync } from './utils/loggers'
+import { logStatus, logRegistry, logCheckup, logSynced, logOutOfSync, logInSync, logCritical } from './utils/loggers'
 
 const viemClient = getViemClient()
 
+const criticalDowntime = Number(process.env.CRITICAL_DOWNTIME) // When there is no db update by seeder for criticalDowntime (in ms) after an expected update, we consider the issue to be critical
 const acceptableDelay = Number(process.env.ACCEPTABLE_DELAY)   // Acceptable lag in ms between seeder fetching block data and writing it to db
+
 let outOfSyncKeyStates: Map<string, KeyState> = new Map()   // Registry that holds out of sync keys + data at any given point in time
 
 /**
@@ -36,13 +38,14 @@ function groupKeysByRefreshRate() {
         }
         groups[refreshRate].push(syncKey)
     })
-
     return groups
 }
 
 /**
  * For any given group of keys, first checks db to see when the last update was made.
  * Then, is set on a time schedule to monitor the keys every epoch (as defined in blockSyncKeys).
+ * Next checkup is always calculated from the latest updatedAt timestamp. This keeps the monitor in sync with the seeder.
+ * If there is no db update by seeder for criticalDowntime (in ms) after an expected update, critical alert is sent every criticalDowntime ms
  * When it's time to perform checkup, retrieves the latest block, waits for acceptableDelay milliseconds and then calls processSyncData().
  * 
  * @param syncKeys
@@ -53,14 +56,27 @@ function groupKeysByRefreshRate() {
 async function fetchSyncData(syncKeys: string[], refreshRate: number, index: number, outOfSyncKeys: string[] = []): Promise<void> {
     try {
         logRegistry(index, refreshRate, syncKeys)
+        let criticalLagCounter = 1
 
         while(true) {
             const results = await Promise.all(syncKeys.map(key => fetchLastSyncBlockInfo(key)))
-            const latestTimestamp = new Date(Math.max(...results.map(result => result.updatedAt.getTime())))
-
+            const earliestTimestamp = new Date(Math.min(...results.map(result => result.updatedAt.getTime())))
             const now = new Date()
+
+            // Keep monitor in sync with seeder in case there's a time delay with the seeder
+            if(earliestTimestamp.getTime() < now.getTime() - refreshRate) {
+                await delay(acceptableDelay)
+                criticalLagCounter++
+                if (criticalLagCounter % (criticalDowntime / acceptableDelay) == 0 ) {    // No db update by seeder for criticalDowntime (in ms) after an expected update
+                    logCritical(index, criticalLagCounter / (criticalDowntime / acceptableDelay))
+                }
+                continue
+            } 
+
+            criticalLagCounter = 1
+            const latestTimestamp = new Date(Math.max(...results.map(result => result.updatedAt.getTime())))
             const nextFetch = new Date(latestTimestamp.getTime() + refreshRate)
-            const fetchInterval = nextFetch.getTime() - now.getTime() > 0 ? nextFetch.getTime() - now.getTime() : refreshRate
+            const fetchInterval = nextFetch.getTime() - now.getTime()
             
             logStatus(index, latestTimestamp, fetchInterval)
 

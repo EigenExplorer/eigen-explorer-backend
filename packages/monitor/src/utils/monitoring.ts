@@ -25,7 +25,7 @@ export async function fetchLastSyncBlockInfo(key: string): Promise<LastSyncBlock
 	})
 
     return {
-        lastBlock: lastSyncedBlockData?.value ? BigInt(lastSyncedBlockData.value as number) + 1n: baseBlock,
+        lastBlock: lastSyncedBlockData?.value ? BigInt(lastSyncedBlockData.value as number) : baseBlock,
     	updatedAt: lastSyncedBlockData?.updatedAt ? new Date(lastSyncedBlockData.updatedAt) : new Date()
     }
 }
