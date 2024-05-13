@@ -43,7 +43,7 @@ function groupKeysByRefreshRate() {
 
 /**
  * For any given group of keys, first checks db to see when the last update was made.
- * Then, is set on a time schedule to monitor the keys every epoch (as defined in blockSyncKeys).
+ * Then, it is set on a time schedule to monitor the keys every epoch (as defined in blockSyncKeys).
  * Next checkup is always calculated from the latest updatedAt timestamp. This keeps the monitor in sync with the seeder.
  * If there is no db update by seeder for criticalDowntime (in ms) after an expected update, critical alert is sent every criticalDowntime ms
  * When it's time to perform checkup, retrieves the latest block, waits for acceptableDelay milliseconds and then calls processSyncData().
