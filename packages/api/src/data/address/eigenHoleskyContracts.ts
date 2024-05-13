@@ -7,6 +7,10 @@ export const eigenHoleskyContracts: EigenContractAddress = {
 	StrategyManager: '0xdfB5f6CE42aAA7830E94ECFCcAd411beF4d4D5b6',
 	EigenPodManager: '0x30770d7E3e71112d7A6b7259542D1f680a70e315',
 	Strategies: {
+		Eigen: {
+			strategyContract: '0x43252609bff8a13dFe5e057097f2f45A24387a84',
+			tokenContract: '0x275cCf9Be51f4a6C94aBa6114cdf2a4c45B9cb27'
+		},
 		WETH: {
 			strategyContract: '0x80528D6e9A2BAbFc766965E0E26d5aB08D9CFaF9',
 			tokenContract: '0x94373a4919B3240D86eA41593D5eBa789FEF3848'
