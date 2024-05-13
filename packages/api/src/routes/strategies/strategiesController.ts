@@ -2,8 +2,13 @@ import type { Request, Response } from 'express'
 import { formatEther } from 'viem'
 import { eigenLayerMainnetStrategyContracts } from '../../data/address/eigenMainnetContracts'
 import { getViemClient } from '../../viem/viemClient'
-import { getEigenContracts } from '../../data/address'
+import {
+	EigenStrategiesContractAddress,
+	getEigenContracts
+} from '../../data/address'
 import { strategyAbi } from '../../data/abi/strategy'
+import { TokenPrices } from '../../utils/tokenPrices'
+import { cacheStore } from 'route-cache'
 
 // ABI path for dynamic imports
 const abiPath = {
@@ -153,9 +158,16 @@ export async function getStrategiesWithShareUnderlying(): Promise<
 > {
 	const viemClient = getViemClient()
 	const strategies = Object.values(getEigenContracts().Strategies)
-
-	return await Promise.all(
+	const sharesUnderlying = await Promise.all(
 		strategies.map(async (s) => {
+			const cachedValue = await cacheStore.get(
+				`sharesUnderlying_${s.strategyContract}`
+			)
+
+			if (cachedValue) {
+				return cachedValue
+			}
+
 			let sharesToUnderlying = 1e18
 
 			try {
@@ -167,12 +179,22 @@ export async function getStrategiesWithShareUnderlying(): Promise<
 				})) as number
 			} catch {}
 
-			return {
+			const strategySharesUnderlying = {
 				strategyAddress: s.strategyContract,
 				sharesToUnderlying
 			}
+
+			await cacheStore.set(
+				`sharesUnderlying_${s.strategyContract}`,
+				strategySharesUnderlying,
+				120_000
+			)
+
+			return strategySharesUnderlying
 		})
 	)
+
+	return sharesUnderlying
 }
 
 export function sharesToTVL(
@@ -183,7 +205,8 @@ export function sharesToTVL(
 	strategiesWithSharesUnderlying: {
 		strategyAddress: string
 		sharesToUnderlying: number
-	}[]
+	}[],
+	strategyTokenPrices: TokenPrices
 ) {
 	const beaconAddress = '0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0'
 
@@ -198,39 +221,56 @@ export function sharesToTVL(
 		? Number(beaconStrategy.shares) / 1e18
 		: 0
 
+	const strategyKeys = Object.keys(getEigenContracts().Strategies)
+	const strategies = Object.values(getEigenContracts().Strategies)
+
 	let tvlRestaking = 0
-	let tvlWETH = 0
+	const tvlStrategies: Map<keyof EigenStrategiesContractAddress, number> =
+		new Map(
+			strategyKeys.map((sk) => [sk as keyof EigenStrategiesContractAddress, 0])
+		)
 
 	restakingStrategies.map((s) => {
-		if (
-			s.strategyAddress.toLowerCase() ===
-			getEigenContracts().Strategies.WETH?.strategyContract.toLowerCase()
-		) {
-			tvlWETH = Number(s.shares) / 1e18
-		} else {
-			const sharesUnderlying = strategiesWithSharesUnderlying.find(
-				(su) =>
-					su.strategyAddress.toLowerCase() === s.strategyAddress.toLowerCase()
+		const foundStrategyIndex = strategies.findIndex(
+			(si) =>
+				si.strategyContract.toLowerCase() === s.strategyAddress.toLowerCase()
+		)
+
+		const strategyTokenPrice = Object.values(strategyTokenPrices).find(
+			(stp) =>
+				stp.strategyAddress.toLowerCase() === s.strategyAddress.toLowerCase()
+		)
+		const sharesUnderlying = strategiesWithSharesUnderlying.find(
+			(su) =>
+				su.strategyAddress.toLowerCase() === s.strategyAddress.toLowerCase()
+		)
+
+		if (foundStrategyIndex !== -1 && sharesUnderlying) {
+			const strategyShares =
+				Number(
+					(BigInt(s.shares) * BigInt(sharesUnderlying.sharesToUnderlying)) /
+						BigInt(1e18)
+				) / 1e18
+
+			tvlStrategies.set(
+				strategyKeys[
+					foundStrategyIndex
+				] as keyof EigenStrategiesContractAddress,
+				strategyShares
 			)
 
-			if (sharesUnderlying) {
-				tvlRestaking =
-					tvlRestaking +
-					Number(
-						(BigInt(s.shares) * BigInt(sharesUnderlying.sharesToUnderlying)) /
-							BigInt(1e18)
-					) /
-						1e18
-			} else {
-				tvlRestaking = tvlRestaking + Number(s.shares) / 1e18
+			if (strategyTokenPrice) {
+				const strategyTvl = strategyShares * strategyTokenPrice.eth
+				tvlRestaking = tvlRestaking + strategyTvl
 			}
 		}
 	})
 
 	return {
-		tvl: tvlWETH + tvlBeaconChain + tvlRestaking,
+		tvl: tvlBeaconChain + tvlRestaking,
+		tvlBeaconChain,
+		tvlWETH: tvlStrategies.has('WETH') ? tvlStrategies.get('WETH') : 0,
 		tvlRestaking,
-		tvlWETH,
-		tvlBeaconChain
+		tvlStrategies: Object.fromEntries(tvlStrategies.entries())
 	}
 }

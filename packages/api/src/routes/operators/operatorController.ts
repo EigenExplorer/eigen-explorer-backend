@@ -7,6 +7,7 @@ import {
 	getStrategiesWithShareUnderlying,
 	sharesToTVL
 } from '../strategies/strategiesController'
+import { fetchStrategyTokenPrices } from '../../utils/tokenPrices'
 
 /**
  * Route to get a list of all operators
@@ -38,6 +39,7 @@ export async function getAllOperators(req: Request, res: Response) {
 			}
 		})
 
+		const strategyTokenPrices = withTvl ? await fetchStrategyTokenPrices() : {}
 		const strategiesWithSharesUnderlying = withTvl
 			? await getStrategiesWithShareUnderlying()
 			: []
@@ -46,7 +48,11 @@ export async function getAllOperators(req: Request, res: Response) {
 			...operator,
 			totalStakers: operator.stakers.length,
 			tvl: withTvl
-				? sharesToTVL(operator.shares, strategiesWithSharesUnderlying)
+				? sharesToTVL(
+						operator.shares,
+						strategiesWithSharesUnderlying,
+						strategyTokenPrices
+				  )
 				: undefined,
 			stakers: undefined
 		}))
@@ -91,6 +97,7 @@ export async function getOperator(req: Request, res: Response) {
 			}
 		})
 
+		const strategyTokenPrices = withTvl ? await fetchStrategyTokenPrices() : {}
 		const strategiesWithSharesUnderlying = withTvl
 			? await getStrategiesWithShareUnderlying()
 			: []
@@ -99,7 +106,11 @@ export async function getOperator(req: Request, res: Response) {
 			...operator,
 			totalStakers: operator.stakers.length,
 			tvl: withTvl
-				? sharesToTVL(operator.shares, strategiesWithSharesUnderlying)
+				? sharesToTVL(
+						operator.shares,
+						strategiesWithSharesUnderlying,
+						strategyTokenPrices
+				  )
 				: undefined,
 			stakers: undefined
 		})

@@ -33,7 +33,7 @@ export function getViemClient(n?: Chain) {
 
 	if (!publicViemClient) {
 		publicViemClient = createPublicClient({
-			cacheTime: 10_000,
+			cacheTime: 120_000,
 			batch: {
 				multicall: true
 			},
