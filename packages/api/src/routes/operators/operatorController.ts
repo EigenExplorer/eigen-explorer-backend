@@ -39,7 +39,7 @@ export async function getAllOperators(req: Request, res: Response) {
 			}
 		})
 
-		const strategyTokenPrices = await fetchStrategyTokenPrices()
+		const strategyTokenPrices = withTvl ? await fetchStrategyTokenPrices() : {}
 		const strategiesWithSharesUnderlying = withTvl
 			? await getStrategiesWithShareUnderlying()
 			: []
@@ -97,7 +97,7 @@ export async function getOperator(req: Request, res: Response) {
 			}
 		})
 
-		const strategyTokenPrices = await fetchStrategyTokenPrices()
+		const strategyTokenPrices = withTvl ? await fetchStrategyTokenPrices() : {}
 		const strategiesWithSharesUnderlying = withTvl
 			? await getStrategiesWithShareUnderlying()
 			: []

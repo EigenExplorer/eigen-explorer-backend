@@ -52,7 +52,7 @@ export async function getAllAVS(req: Request, res: Response) {
 			}
 		})
 
-		const strategyTokenPrices = await fetchStrategyTokenPrices()
+		const strategyTokenPrices = withTvl ? await fetchStrategyTokenPrices() : {}
 		const strategiesWithSharesUnderlying = withTvl
 			? await getStrategiesWithShareUnderlying()
 			: []
@@ -76,7 +76,11 @@ export async function getAllAVS(req: Request, res: Response) {
 					totalOperators,
 					totalStakers,
 					tvl: withTvl
-						? sharesToTVL(shares, strategiesWithSharesUnderlying, strategyTokenPrices)
+						? sharesToTVL(
+								shares,
+								strategiesWithSharesUnderlying,
+								strategyTokenPrices
+						  )
 						: undefined,
 					operators: undefined
 				}
@@ -189,7 +193,7 @@ export async function getAVS(req: Request, res: Response) {
 		})
 
 		const shares = withOperatorShares(avs.operators)
-		const strategyTokenPrices = await fetchStrategyTokenPrices()
+		const strategyTokenPrices = withTvl ? await fetchStrategyTokenPrices() : {}
 		const strategiesWithSharesUnderlying = withTvl
 			? await getStrategiesWithShareUnderlying()
 			: []
@@ -200,7 +204,11 @@ export async function getAVS(req: Request, res: Response) {
 			totalOperators,
 			totalStakers,
 			tvl: withTvl
-				? sharesToTVL(shares, strategiesWithSharesUnderlying, strategyTokenPrices)
+				? sharesToTVL(
+						shares,
+						strategiesWithSharesUnderlying,
+						strategyTokenPrices
+				  )
 				: undefined,
 			operators: undefined
 		})
@@ -328,7 +336,7 @@ export async function getAVSOperators(req: Request, res: Response) {
 			}
 		})
 
-		const strategyTokenPrices = await fetchStrategyTokenPrices()
+		const strategyTokenPrices = withTvl ? await fetchStrategyTokenPrices() : {}
 		const strategiesWithSharesUnderlying = withTvl
 			? await getStrategiesWithShareUnderlying()
 			: []
@@ -337,7 +345,11 @@ export async function getAVSOperators(req: Request, res: Response) {
 			...operator,
 			totalStakers: operator.stakers.length,
 			tvl: withTvl
-				? sharesToTVL(operator.shares, strategiesWithSharesUnderlying, strategyTokenPrices)
+				? sharesToTVL(
+						operator.shares,
+						strategiesWithSharesUnderlying,
+						strategyTokenPrices
+				  )
 				: undefined,
 			stakers: undefined
 		}))
