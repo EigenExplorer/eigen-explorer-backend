@@ -1,19 +1,25 @@
 import z from '../../../../api/src/schema/zod';
-import { StrategyTvlSchema } from './strategyTvlResponse';
+import { StrategyTvlSchema } from '../base/strategyTvlResponse';
 
 export const SummaryMetricsResponseSchema = z.object({
     tvl: z
         .number()
-        .describe('The total value locked in all EigenLayer AVS')
-        .openapi({ example: 10 }),
+        .describe(
+            'The total value locked (TVL) in ETH in the EigenLayer ecosystem'
+        )
+        .openapi({ example: 1000000 }),
     tvlRestaking: z
         .number()
-        .describe('The total value locked in all restaking strategies')
-        .openapi({ example: 5 }),
+        .describe(
+            'The total value locked (TVL) in ETH in all restaking strategies'
+        )
+        .openapi({ example: 1000000 }),
     tvlStrategies: StrategyTvlSchema,
     tvlBeaconChain: z
         .number()
-        .describe('The total value locked in the beacon chain ETH strategy')
+        .describe(
+            'The total value locked (TVL) in ETH in the beacon chain ETH strategy'
+        )
         .openapi({ example: 1000000 }),
     totalAVS: z
         .number()

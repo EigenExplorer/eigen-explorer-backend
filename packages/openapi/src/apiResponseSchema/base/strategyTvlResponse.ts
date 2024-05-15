@@ -2,7 +2,9 @@ import z from '../../../../api/src/schema/zod';
 
 const StrategyTvl = z
     .number()
-    .describe('The total value locked in the strategy')
+    .describe(
+        "The total value locked (TVL) in the strategy, denominated in the strategy's native token"
+    )
     .openapi({ example: 1000000 });
 
 const StrategyName = z
@@ -12,7 +14,9 @@ const StrategyName = z
 
 export const StrategyTvlSchema = z
     .record(StrategyName, StrategyTvl)
-    .describe('The total value locked in each restaking strategy')
+    .describe(
+        "The total value locked (TVL) in each restaking strategy, denominated in the strategy's native token"
+    )
     .openapi({
         example: {
             cbETH: 1000000,

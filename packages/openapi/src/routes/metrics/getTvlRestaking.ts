@@ -2,11 +2,11 @@ import { ZodOpenApiOperationObject } from 'zod-openapi';
 import { openApiErrorResponses } from '../../apiResponseSchema/base/errorResponses';
 import { TvlResponseSchema } from '../../apiResponseSchema/metrics/tvlResponse';
 import z from '../../../../api/src/schema/zod';
-import { StrategyTvlSchema } from '../../apiResponseSchema/metrics/strategyTvlResponse';
+import { StrategyTvlSchema } from '../../apiResponseSchema/base/strategyTvlResponse';
 
 const RestakingTvlResponseSchema = z.object({
     tvl: TvlResponseSchema.describe(
-        'The value of the combined restaking strategies TVL'
+        'The value of the combined restaking strategies TVL in ETH'
     ),
     tvlStrategies: StrategyTvlSchema,
 });

@@ -6,7 +6,7 @@ export const getAllMetrics: ZodOpenApiOperationObject = {
     operationId: 'getAllMetrics',
     summary: 'Retrieve summary metrics',
     description:
-        'Returns summary metrics, including TVLs for both restaking strategies and the beacon chain ETH strategy, as well as the total number of AVS, operators, and stakers.',
+        'Returns summary metrics, including TVLs for both restaking strategies and the Beacon Chain ETH strategy, as well as the total number of AVS, operators, and stakers.',
     tags: ['Metrics'],
     requestParams: {},
     responses: {
