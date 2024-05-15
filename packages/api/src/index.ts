@@ -4,6 +4,7 @@ import express, { type Request, type Response } from 'express';
 import cookieParser from 'cookie-parser';
 import logger from 'morgan';
 import helmet from 'helmet';
+import cors from "cors";
 import apiRouter from './routes';
 import {
     EigenExplorerApiError,
@@ -17,6 +18,7 @@ const app = express();
 
 // App settings
 app.use(helmet());
+app.use(cors({ origin: '*' }))
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
