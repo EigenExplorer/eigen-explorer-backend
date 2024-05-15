@@ -67,7 +67,7 @@ async function fetchSyncData(
 			network: getNetwork().name,
 			refreshRate: refreshRate
 		}
-		let lastSlackAttempt = 0
+		let lastSlackMessage = 0
 		let ifWaited = false
 		const acceptableDelay = acceptableDelays[index - 1]
 
@@ -80,7 +80,7 @@ async function fetchSyncData(
 			const latestTimestamp = new Date(
 				Math.max(...results.map((result) => result.updatedAt.getTime()))
 			)
-            
+
 			const nextFetch = new Date(latestTimestamp.getTime() + refreshRate)
 			const now = new Date()
 			const fetchInterval = nextFetch.getTime() - now.getTime() // If last seeder update was > refreshRate ms ago, fetchInterval will be < 0
@@ -108,15 +108,17 @@ async function fetchSyncData(
 					refreshRate: refreshRate
 				}
 
-				logMonitorStatus(
+				const ifSlackMessage = logMonitorStatus(
 					statusDetails,
 					inSyncKeys,
 					outOfSyncKeys,
-					lastSlackAttempt,
+					lastSlackMessage,
 					coolOffPeriod
 				)
 
-				lastSlackAttempt = new Date().getTime()
+				lastSlackMessage = ifSlackMessage
+					? new Date().getTime()
+					: lastSlackMessage
 				await delay(refreshRate / 2) // Allow buffer time for any keys from previous iteration to sync without disrupting monitor's time schedule.
 				ifWaited = true
 			} else {
