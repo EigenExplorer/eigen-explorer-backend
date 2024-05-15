@@ -80,7 +80,7 @@ async function fetchSyncData(
 			const latestTimestamp = new Date(
 				Math.max(...results.map((result) => result.updatedAt.getTime()))
 			)
-
+            
 			const nextFetch = new Date(latestTimestamp.getTime() + refreshRate)
 			const now = new Date()
 			const fetchInterval = nextFetch.getTime() - now.getTime() // If last seeder update was > refreshRate ms ago, fetchInterval will be < 0
