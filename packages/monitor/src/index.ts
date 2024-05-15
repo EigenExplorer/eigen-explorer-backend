@@ -1,17 +1,20 @@
-import "dotenv/config";
-import { blockSyncKeys } from "./data/blockSyncKeys";
-import { getViemClient, getNetwork } from "./utils/viemClient";
-import { logRegistry, logMonitorStatus } from "./utils/loggers";
+import 'dotenv/config'
+import { blockSyncKeys } from './data/blockSyncKeys'
+import { getViemClient, getNetwork } from './utils/viemClient'
+import { logRegistry, logMonitorStatus } from './utils/loggers'
 import {
 	fetchLastSyncBlockInfo,
 	delay,
 	type LastSyncBlockInfo,
-	type LogDetails,
-} from "./utils/monitoring";
+	type LogDetails
+} from './utils/monitoring'
 
-const viemClient = getViemClient();
-const acceptableDelay = Number(process.env.ACCEPTABLE_DELAY); // Acceptable lag in ms between seeder fetching block data and writing it to db.
-const coolOffPeriod = 600000; // Minimum time in ms between 2 OutOfSync Slack alerts for a given monitor.
+const viemClient = getViemClient()
+const acceptableDelays: number[] = [
+	Number(process.env.ACCEPTABLE_DELAY_1),
+	Number(process.env.ACCEPTABLE_DELAY_2)
+] // Acceptable lag in ms between seeder fetching block data and writing it to db (for each monitor).
+const coolOffPeriod = 600000 // Minimum time in ms between two OutOfSync Slack alerts for a given monitor.
 
 /**
  * Groups keys by how often they are seeded, which is defined in blockSyncKeys.
@@ -19,28 +22,28 @@ const coolOffPeriod = 600000; // Minimum time in ms between 2 OutOfSync Slack al
  * @returns
  */
 function groupKeysByRefreshRate() {
-	const groups: Record<number, string[]> = {};
+	const groups: Record<number, string[]> = {}
 
 	for (const [, value] of Object.entries(blockSyncKeys)) {
-		let refreshRate: number;
-		let syncKey: string;
+		let refreshRate: number
+		let syncKey: string
 
-		if (typeof value === "string") {
-			syncKey = value;
-			refreshRate = 120 * 1000; // Default to 2 minutes
+		if (typeof value === 'string') {
+			syncKey = value
+			refreshRate = 120 * 1000 // Default to 2 minutes
 		} else if (Array.isArray(value)) {
-			syncKey = value[0];
-			refreshRate = value[1] * 1000;
+			syncKey = value[0]
+			refreshRate = value[1] * 1000
 		} else {
-			continue;
+			continue
 		}
 
 		if (!groups[refreshRate]) {
-			groups[refreshRate] = [];
+			groups[refreshRate] = []
 		}
-		groups[refreshRate].push(syncKey);
+		groups[refreshRate].push(syncKey)
 	}
-	return groups;
+	return groups
 }
 
 /**
@@ -56,85 +59,77 @@ function groupKeysByRefreshRate() {
 async function fetchSyncData(
 	syncKeys: string[],
 	refreshRate: number,
-	index: number,
+	index: number
 ): Promise<void> {
 	try {
 		const registryDetails: LogDetails = {
 			index: index,
 			network: getNetwork().name,
-			refreshRate: refreshRate,
-		};
-		let calibrationCounter = 0;
-		let alertCounter = 0;
+			refreshRate: refreshRate
+		}
+		let lastSlackAttempt = 0
+		let ifWaited = false
+		const acceptableDelay = acceptableDelays[index - 1]
 
-		logRegistry(registryDetails, syncKeys);
+		logRegistry(registryDetails, syncKeys)
 
 		while (true) {
 			const results = await Promise.all(
-				syncKeys.map((key) => fetchLastSyncBlockInfo(key)),
-			);
-			const earliestTimestamp = new Date(
-				Math.min(...results.map((result) => result.updatedAt.getTime())),
-			);
-			const now = new Date();
-
-			// Provide time for an unsynced key to get synced. This helps re-calibrate monitor's checkup schedule with the seeder's.
-			// Without this, any unsynced key that doesn't re-sync by the logger's next iteration will likely be reported unsynced perpetually.
-			if (earliestTimestamp.getTime() < now.getTime() - refreshRate) {
-				await delay(acceptableDelay);
-				calibrationCounter++;
-				if (!(calibrationCounter * acceptableDelay === 60000)) {
-					// If key doesn't re-sync for 1 minute, we allow it to proceed and get reported as unsynced.
-					continue;
-				}
-				calibrationCounter = 0;
-			}
-
+				syncKeys.map((key) => fetchLastSyncBlockInfo(key))
+			)
 			const latestTimestamp = new Date(
-				Math.max(...results.map((result) => result.updatedAt.getTime())),
-			);
-			const nextFetch = new Date(latestTimestamp.getTime() + refreshRate);
-			const fetchInterval = nextFetch.getTime() - now.getTime();
+				Math.max(...results.map((result) => result.updatedAt.getTime()))
+			)
 
-			await delay(fetchInterval > 0 ? fetchInterval : 0);
-			const latestBlock = await viemClient.getBlockNumber();
+			const nextFetch = new Date(latestTimestamp.getTime() + refreshRate)
+			const now = new Date()
+			const fetchInterval = nextFetch.getTime() - now.getTime() // If last seeder update was > refreshRate ms ago, fetchInterval will be < 0
 
-			await delay(acceptableDelay);
+			await delay(
+				fetchInterval > 0 ? fetchInterval : ifWaited ? refreshRate / 2 : 0
+			) // If ifWaited is true, the monitor has already implemented a delay of refreshRate/2 ms
+
+			const latestBlock = await viemClient.getBlockNumber()
+			await delay(acceptableDelay)
+
 			const newResults = await Promise.all(
-				syncKeys.map((key) => fetchLastSyncBlockInfo(key)),
-			);
+				syncKeys.map((key) => fetchLastSyncBlockInfo(key))
+			)
 
 			const { inSyncKeys, outOfSyncKeys } = await processSyncData(
 				syncKeys,
 				newResults,
-				latestBlock,
-			);
-			if (!(outOfSyncKeys[0] === "none")) {
+				latestBlock
+			)
+			if (!(outOfSyncKeys[0] === 'none')) {
 				const statusDetails: LogDetails = {
 					index: index,
 					network: getNetwork().name,
-					refreshRate: refreshRate,
-				};
-				alertCounter++;
+					refreshRate: refreshRate
+				}
 
 				logMonitorStatus(
 					statusDetails,
 					inSyncKeys,
 					outOfSyncKeys,
-					alertCounter,
-					coolOffPeriod,
-				);
+					lastSlackAttempt,
+					coolOffPeriod
+				)
+
+				lastSlackAttempt = new Date().getTime()
+				await delay(refreshRate / 2) // Allow buffer time for any keys from previous iteration to sync without disrupting monitor's time schedule.
+				ifWaited = true
 			} else {
-				alertCounter = 0;
+				ifWaited = false
 			}
 		}
 	} catch (error) {
-		console.error("Error during initial synchronization:", error);
+		console.error('Error during initial synchronization:', error)
 	}
 }
 
 /**
- * Checks each key's value in the Settings table (which refers to the latest block it is synced to).
+ * Checks each key's value in the Settings table.
  * Stores keys that are in-sync & out-of-sync in different registries.
  *
  * @param syncKeys
@@ -145,30 +140,28 @@ async function fetchSyncData(
 async function processSyncData(
 	syncKeys: string[],
 	results: LastSyncBlockInfo[],
-	latestBlock: bigint,
+	latestBlock: bigint
 ): Promise<{ inSyncKeys: string[]; outOfSyncKeys: string[] }> {
-	const newInSyncKeys: string[] = [];
-	const newOutOfSyncKeys: string[] = [];
+	const newInSyncKeys: string[] = []
+	const newOutOfSyncKeys: string[] = []
 
 	results.forEach((result, index) => {
-		const key = syncKeys[index];
+		const key = syncKeys[index]
 
 		result.lastBlock === latestBlock ||
 		result.lastBlock === latestBlock - 1n ||
 		result.lastBlock === latestBlock + 1n
 			? newInSyncKeys.push(key)
-			: newOutOfSyncKeys.push(key);
-	});
+			: newOutOfSyncKeys.push(key)
+	})
 
-	newInSyncKeys.length > 0 ? newInSyncKeys : newInSyncKeys.push("none");
-	newOutOfSyncKeys.length > 0
-		? newOutOfSyncKeys
-		: newOutOfSyncKeys.push("none");
+	newInSyncKeys.length > 0 ? newInSyncKeys : newInSyncKeys.push('none')
+	newOutOfSyncKeys.length > 0 ? newOutOfSyncKeys : newOutOfSyncKeys.push('none')
 
 	return {
 		inSyncKeys: newInSyncKeys,
-		outOfSyncKeys: newOutOfSyncKeys,
-	};
+		outOfSyncKeys: newOutOfSyncKeys
+	}
 }
 
 /**
@@ -176,12 +169,12 @@ async function processSyncData(
  *
  */
 function startMonitoring(): void {
-	const groups = groupKeysByRefreshRate();
-	let index = 1;
+	const groups = groupKeysByRefreshRate()
+	let index = 1
 	for (const [refreshRate, syncKeys] of Object.entries(groups)) {
-		fetchSyncData(syncKeys, Number.parseInt(refreshRate, 10), index);
-		index++;
+		fetchSyncData(syncKeys, Number.parseInt(refreshRate, 10), index)
+		index++
 	}
 }
 
-startMonitoring();
+startMonitoring()

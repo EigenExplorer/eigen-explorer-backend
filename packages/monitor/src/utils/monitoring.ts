@@ -1,30 +1,30 @@
-import { getPrismaClient } from "./prismaClient";
+import { getPrismaClient } from './prismaClient'
 
 export interface LastSyncBlockInfo {
-	lastBlock: bigint;
-	updatedAt: Date;
+	lastBlock: bigint
+	updatedAt: Date
 }
 
 export interface LogDetails {
-	index: number;
-	network: string;
-	refreshRate: number;
+	index: number
+	network: string
+	refreshRate: number
 }
 
 export const baseBlock =
-	process.env.NETWORK && process.env.NETWORK === "holesky"
+	process.env.NETWORK && process.env.NETWORK === 'holesky'
 		? 1159609n
-		: 17000000n;
+		: 17000000n
 
 export async function fetchLastSyncBlockInfo(
-	key: string,
+	key: string
 ): Promise<LastSyncBlockInfo> {
-	const prismaClient = getPrismaClient();
+	const prismaClient = getPrismaClient()
 
 	const lastSyncedBlockData = await prismaClient.settings.findUnique({
 		where: { key },
-		select: { value: true, updatedAt: true },
-	});
+		select: { value: true, updatedAt: true }
+	})
 
 	return {
 		lastBlock: lastSyncedBlockData?.value
@@ -32,10 +32,10 @@ export async function fetchLastSyncBlockInfo(
 			: baseBlock,
 		updatedAt: lastSyncedBlockData?.updatedAt
 			? new Date(lastSyncedBlockData.updatedAt)
-			: new Date(),
-	};
+			: new Date()
+	}
 }
 
 export function delay(seconds: number) {
-	return new Promise((resolve) => setTimeout(resolve, seconds));
+	return new Promise((resolve) => setTimeout(resolve, seconds))
 }
