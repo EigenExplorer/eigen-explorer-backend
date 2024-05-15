@@ -4,10 +4,11 @@ import { TvlResponseSchema } from '../../apiResponseSchema/metrics/tvlResponse';
 import z from '../../../../api/src/schema/zod';
 import { StrategyTvlSchema } from '../../apiResponseSchema/base/strategyTvlResponse';
 
-const RestakingTvlResponseSchema = z.object({
-    tvl: TvlResponseSchema.describe(
-        'The value of the combined restaking strategies TVL in ETH'
-    ),
+const RestakingTvlResponseSchema = TvlResponseSchema.extend({
+    tvl: z
+        .number()
+        .describe('The value of the combined restaking strategy TVL in ETH')
+        .openapi({ example: 1000000 }),
     tvlStrategies: StrategyTvlSchema,
 });
 
