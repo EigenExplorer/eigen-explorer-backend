@@ -37,13 +37,17 @@ export const OperatorResponseSchema = z.object({
         .describe('The total number of stakers opted into the AVS operator')
         .openapi({ example: 10 }),
     tvl: TvlSchema.optional()
-        .describe('The total value locked in the AVS operator')
+        .describe('The total value locked (TVL) in the AVS operator')
         .openapi({
             example: {
                 tvl: 1000000,
-                tvlRestaking: 1000000,
-                tvlWETH: 1000000,
                 tvlBeaconChain: 1000000,
+                tvlWETH: 1000000,
+                tvlRestaking: 1000000,
+                tvlStrategies: {
+                    Eigen: 1000000,
+                    cbETH: 2000000,
+                },
             },
         }),
 });

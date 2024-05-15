@@ -46,28 +46,17 @@ export const AvsSchema = z.object({
         .describe('The total number of stakers staking in the AVS')
         .openapi({ example: 10 }),
     tvl: TvlSchema.optional()
-        .describe('The total value locked in the AVS')
+        .describe('The total value locked (TVL) in the AVS')
         .openapi({
             example: {
                 tvl: 1000000,
-                tvlRestaking: 1000000,
-                tvlWETH: 1000000,
                 tvlBeaconChain: 1000000,
+                tvlWETH: 1000000,
+                tvlRestaking: 1000000,
+                tvlStrategies: {
+                    Eigen: 1000000,
+                    cbETH: 2000000,
+                },
             },
         }),
 });
-
-// Deprecated
-// ------------------------------
-// isVisible: z
-// .boolean()
-// .optional()
-// .default(false)
-// .describe('Whether the AVS is visible on the EigenExplorer UI')
-// .openapi({ example: true }),
-// isVerified: z
-// .boolean()
-// .optional()
-// .default(false)
-// .describe('Whether the AVS has gone through manual verification')
-// .openapi({ example: true }),

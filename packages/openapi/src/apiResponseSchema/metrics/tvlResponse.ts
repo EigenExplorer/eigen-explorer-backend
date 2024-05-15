@@ -7,20 +7,22 @@ export const TvlResponseSchema = z.object({
 export const TotalTvlResponseSchema = TvlResponseSchema.extend({
     tvl: z
         .number()
-        .describe('The value of the combined TVL')
+        .describe('The value of the combined TVL in ETH')
         .openapi({ example: 1000000 }),
 });
 
 export const BeaconChainTvlResponseSchema = TvlResponseSchema.extend({
     tvl: z
         .number()
-        .describe('The value of the Beacon Chain restaking TVL')
+        .describe('The value of the Beacon Chain restaking TVL in ETH')
         .openapi({ example: 1000000 }),
 });
 
 export const IndividualStrategyTvlResponseSchema = TvlResponseSchema.extend({
     tvl: z
         .number()
-        .describe('The value of the restaking strategy TVL')
+        .describe(
+            "The value of the restaking strategy TVL, denominated in the strategy's native token"
+        )
         .openapi({ example: 1000000 }),
 });
