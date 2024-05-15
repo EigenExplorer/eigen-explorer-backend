@@ -16,20 +16,21 @@ export function logMonitorStatus(
 ) {
 	const now = new Date().getTime()
 	console.log(
-		`Monitoring Seeder #${statusDetails.index} Status: ${new Date(now)}}`
+		`Monitoring Seeder #${statusDetails.index} Status: ${new Date(now)}`
 	)
 	console.log(`[InSync] => ${inSyncKeys.join(', ')}`)
 	console.log(`[OutOfSync] => ${outOfSyncKeys.join(', ')}`)
 
 	if (now > lastSlackAttempt + coolOffPeriod) {
-		sendSlackMessage(
+		/* sendSlackMessage(
 			`alerts-${statusDetails.network.toLowerCase()}`,
 			`Monitoring Seeder #${statusDetails.index} Status: ${new Date(
 				now
 			)}\n[InSync] => ${inSyncKeys.join(
 				', '
 			)}\n[OutOfSync] => ${outOfSyncKeys.join(', ')}\n`
-		)
+		) */
+		console.log("SLACK\n")
 	}
 
 }
