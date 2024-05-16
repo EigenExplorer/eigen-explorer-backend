@@ -5,6 +5,6 @@ const router = express.Router()
 
 router.get('/', getAllStakers)
 
-router.get('/:id', getStaker)
+router.get('/:address', getStaker)
 
 export default router

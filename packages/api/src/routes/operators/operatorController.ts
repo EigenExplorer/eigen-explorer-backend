@@ -85,10 +85,10 @@ export async function getOperator(req: Request, res: Response) {
 	const { withTvl } = result.data
 
 	try {
-		const { id } = req.params
+		const { address } = req.params
 
 		const operator = await prisma.operator.findUniqueOrThrow({
-			where: { address: id },
+			where: { address: address.toLowerCase() },
 			include: {
 				shares: {
 					select: { strategyAddress: true, shares: true }
