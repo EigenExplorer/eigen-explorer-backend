@@ -167,7 +167,7 @@ export async function getAVS(req: Request, res: Response) {
 		const { withTvl } = req.query
 
 		const avs = await prisma.avs.findUniqueOrThrow({
-			where: { address, ...getAvsFilterQuery() },
+			where: { address: address.toLowerCase(), ...getAvsFilterQuery() },
 			include: {
 				curatedMetadata: true,
 				operators: {
@@ -241,7 +241,7 @@ export async function getAVSStakers(req: Request, res: Response) {
 		const { skip, take } = queryCheck.data
 
 		const avs = await prisma.avs.findUniqueOrThrow({
-			where: { address, ...getAvsFilterQuery() },
+			where: { address: address.toLowerCase(), ...getAvsFilterQuery() },
 			include: { operators: true }
 		})
 
@@ -314,7 +314,7 @@ export async function getAVSOperators(req: Request, res: Response) {
 		const { skip, take, withTvl } = queryCheck.data
 
 		const avs = await prisma.avs.findUniqueOrThrow({
-			where: { address, ...getAvsFilterQuery() },
+			where: { address: address.toLowerCase(), ...getAvsFilterQuery() },
 			include: {
 				operators: {
 					where: { isActive: true }

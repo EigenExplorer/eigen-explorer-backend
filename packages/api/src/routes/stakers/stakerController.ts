@@ -62,10 +62,10 @@ export async function getAllStakers(req: Request, res: Response) {
  */
 export async function getStaker(req: Request, res: Response) {
 	try {
-		const { id } = req.params
+		const { address } = req.params
 
 		const staker = await prisma.staker.findUniqueOrThrow({
-			where: { address: id },
+			where: { address: address.toLowerCase() },
 			include: { shares: true }
 		})
 

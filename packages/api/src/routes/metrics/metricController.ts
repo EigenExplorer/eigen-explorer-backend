@@ -74,17 +74,25 @@ export async function getTvlRestaking(req: Request, res: Response) {
 export async function getTvlRestakingByStrategy(req: Request, res: Response) {
 	try {
 		const { strategy } = req.params
-		const strategies = Object.keys(getEigenContracts().Strategies)
 
-		if (strategy && strategies.indexOf(strategy) !== -1) {
-			const tvl = await doGetTvlStrategy(
-				getEigenContracts().Strategies[strategy].strategyContract
-			)
-
-			res.send({
-				tvl
-			})
+		if (!strategy) {
+			throw new Error('Invalid strategy name.')
 		}
+
+		const strategies = Object.keys(getEigenContracts().Strategies)
+		const foundStrategy = strategies.find(s => s.toLowerCase() === strategy.toLowerCase())
+
+		if (!foundStrategy) {
+			throw new Error('Invalid strategy.')
+		}
+
+		const tvl = await doGetTvlStrategy(
+			getEigenContracts().Strategies[foundStrategy].strategyContract
+		)
+
+		res.send({
+			tvl
+		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
 	}

@@ -95,6 +95,6 @@ router.get('/', routeCache.cacheSeconds(120), getAllOperators)
  *               type: string
  *               example: 'Operator not found.'
  */
-router.get('/:id', routeCache.cacheSeconds(120), getOperator)
+router.get('/:address', routeCache.cacheSeconds(120), getOperator)
 
 export default router
