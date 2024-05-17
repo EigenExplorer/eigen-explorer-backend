@@ -23,12 +23,12 @@ async function seedEigenDataLoop() {
 			console.log('Seeding Eigen Data ...', targetBlock)
 
 			await seedAvs(targetBlock)
-			await seedOperators(targetBlock)
-			await seedAvsOperators(targetBlock)
-			await seedStakers(targetBlock)
-			await seedOperatorShares(targetBlock)
+			// await seedOperators(targetBlock)
+			// await seedAvsOperators(targetBlock)
+			// await seedStakers(targetBlock)
+			// await seedOperatorShares(targetBlock)
 		} catch (error) {
-			console.log('Failed to seed AVS and Opeartors at:', Date.now())
+			console.log('Failed to seed AVS and Operators at:', Date.now())
 		}
 
 		await delay(120) // Wait for 2 minutes (120 seconds)
@@ -55,4 +55,4 @@ async function seedEigenPodValidators() {
 }
 
 seedEigenDataLoop()
-seedEigenPodValidators()
+// seedEigenPodValidators()
