@@ -124,6 +124,22 @@ model Validator {
   withdrawalCredentials String
 }
 
+model Withdrawal {
+  withdrawalRoot String  @id @unique
+  nonce          Int
+  isCompleted    Boolean @default(false)
+
+  stakerAddress     String
+  delegatedTo       String
+  withdrawerAddress String
+  strategies        String[]
+  shares            String[]
+  startBlock        BigInt
+
+  createdAtBlock BigInt
+  updatedAtBlock BigInt
+}
+
 // Collection to store system settings
 model Settings {
   key       String   @id @unique
