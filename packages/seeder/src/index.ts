@@ -31,7 +31,6 @@ async function seedEigenDataLoop() {
 			await seedOperatorShares(targetBlock)
 			await seedQueuedWithdrawals(targetBlock)
 			await seedCompletedWithdrawals(targetBlock)
-
 		} catch (error) {
 			console.log('Failed to seed AVS and Opeartors at:', Date.now())
 		}

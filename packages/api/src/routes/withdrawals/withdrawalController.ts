@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express'
+import { Prisma } from '@prisma/client'
 import prisma from '../../utils/prismaClient'
 import { handleAndReturnErrorResponse } from '../../schema/errors'
 import { WithdrawalListQuerySchema } from '../../schema/zod/schemas/withdrawal'
@@ -24,26 +25,26 @@ export async function getAllWithdrawals(req: Request, res: Response) {
 		result.data
 
 	try {
-		const filterQuery = {}
+		const filterQuery: Prisma.WithdrawalWhereInput = {}
 
 		if (stakerAddress) {
-			filterQuery['stakerAddress'] = stakerAddress.toLowerCase()
+			filterQuery.stakerAddress = stakerAddress.toLowerCase()
 		}
 
 		if (delegatedTo) {
-			filterQuery['delegatedTo'] = delegatedTo.toLowerCase()
+			filterQuery.delegatedTo = delegatedTo.toLowerCase()
 		}
 
 		if (strategyAddress) {
-			filterQuery['strategies'] = { has: strategyAddress.toLowerCase() }
+			filterQuery.strategies = { has: strategyAddress.toLowerCase() }
 		}
 
 		if (status) {
 			switch (status) {
 				case 'queued':
-					filterQuery['isCompleted'] = false
+					filterQuery.isCompleted = false
 					break
-				case 'queued_withdrawable':
+				case 'queued_withdrawable': {
 					const viemClient = getViemClient()
 					const minDelayBlocks = await prisma.settings.findUnique({
 						where: { key: 'withdrawMinDelayBlocks' }
@@ -52,11 +53,12 @@ export async function getAllWithdrawals(req: Request, res: Response) {
 						(await viemClient.getBlockNumber()) -
 						BigInt((minDelayBlocks?.value as string) || 0)
 
-					filterQuery['isCompleted'] = false
-					filterQuery['startBlock'] = { lte: minDelayBlock }
+					filterQuery.isCompleted = false
+					filterQuery.startBlock = { lte: minDelayBlock }
 					break
+				}
 				case 'completed':
-					filterQuery['isCompleted'] = true
+					filterQuery.isCompleted = true
 					break
 			}
 		}

@@ -16,7 +16,10 @@ const blockSyncKey = 'lastSyncedBlock_completedWithdrawals'
  * @param fromBlock
  * @param toBlock
  */
-export async function seedCompletedWithdrawals(toBlock?: bigint, fromBlock?: bigint) {
+export async function seedCompletedWithdrawals(
+	toBlock?: bigint,
+	fromBlock?: bigint
+) {
 	console.log('Seeding Completed Withdrawals ...')
 
 	const viemClient = getViemClient()
@@ -56,16 +59,16 @@ export async function seedCompletedWithdrawals(toBlock?: bigint, fromBlock?: big
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	const dbTransactions: any[] = []
 
-  if (completedWithdrawalList.length > 0) {
-    dbTransactions.push(
-      prismaClient.withdrawal.updateMany({
-        where: { withdrawalRoot: { in: completedWithdrawalList } },
-        data: {
-          isCompleted: true
-        }
-      })
-    )
-  }
+	if (completedWithdrawalList.length > 0) {
+		dbTransactions.push(
+			prismaClient.withdrawal.updateMany({
+				where: { withdrawalRoot: { in: completedWithdrawalList } },
+				data: {
+					isCompleted: true
+				}
+			})
+		)
+	}
 
 	await bulkUpdateDbTransactions(dbTransactions)
 

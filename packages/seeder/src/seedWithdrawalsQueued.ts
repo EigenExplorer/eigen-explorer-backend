@@ -32,7 +32,10 @@ interface Withdrawal {
  * @param fromBlock
  * @param toBlock
  */
-export async function seedQueuedWithdrawals(toBlock?: bigint, fromBlock?: bigint) {
+export async function seedQueuedWithdrawals(
+	toBlock?: bigint,
+	fromBlock?: bigint
+) {
 	console.log('Seeding Queued Withdrawals ...')
 
 	const viemClient = getViemClient()
@@ -48,12 +51,10 @@ export async function seedQueuedWithdrawals(toBlock?: bigint, fromBlock?: bigint
 	await loopThroughBlocks(firstBlock, lastBlock, async (fromBlock, toBlock) => {
 		const logs = await viemClient.getLogs({
 			address: getEigenContracts().DelegationManager,
-			event: parseAbiItem(
-				[
-          'event WithdrawalQueued(bytes32 withdrawalRoot, Withdrawal withdrawal)', 
-          'struct Withdrawal { address staker; address delegatedTo; address withdrawer; uint256 nonce; uint32 startBlock; address[] strategies; uint256[] shares; }'
-        ]
-			),
+			event: parseAbiItem([
+				'event WithdrawalQueued(bytes32 withdrawalRoot, Withdrawal withdrawal)',
+				'struct Withdrawal { address staker; address delegatedTo; address withdrawer; uint256 nonce; uint32 startBlock; address[] strategies; uint256[] shares; }'
+			]),
 			fromBlock,
 			toBlock
 		})
@@ -76,8 +77,10 @@ export async function seedQueuedWithdrawals(toBlock?: bigint, fromBlock?: bigint
 					stakerAddress,
 					delegatedTo,
 					withdrawerAddress,
-					strategies: withdrawal.strategies.map(s => s.toLowerCase()) as string[],
-					shares: withdrawal.shares.map(s => BigInt(s).toString()),
+					strategies: withdrawal.strategies.map((s) =>
+						s.toLowerCase()
+					) as string[],
+					shares: withdrawal.shares.map((s) => BigInt(s).toString()),
 					startBlock: withdrawal.startBlock,
 
 					createdAtBlock: Number(log.blockNumber),
