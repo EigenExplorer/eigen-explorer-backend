@@ -8,6 +8,8 @@ import { seedStakers } from './seedStakers'
 import { getViemClient } from './utils/viemClient'
 import { seedOperatorShares } from './seedOperatorShares'
 import { seedValidators } from './seedValidators'
+import { seedQueuedWithdrawals } from './seedWithdrawalsQueued'
+import { seedCompletedWithdrawals } from './seedWithdrawalsCompleted'
 
 console.log('Initializing seeder ...')
 
@@ -27,6 +29,8 @@ async function seedEigenDataLoop() {
 			await seedAvsOperators(targetBlock)
 			await seedStakers(targetBlock)
 			await seedOperatorShares(targetBlock)
+			await seedQueuedWithdrawals(targetBlock)
+			await seedCompletedWithdrawals(targetBlock)
 		} catch (error) {
 			console.log('Failed to seed AVS and Opeartors at:', Date.now())
 		}
