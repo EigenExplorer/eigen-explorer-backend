@@ -1,6 +1,6 @@
 import { parseAbiItem } from 'viem'
 import { isValidMetadataUrl, validateMetadata } from './utils/metadata'
-import type { EntityMetadata } from './utils/metadata'
+import { type EntityMetadata, defaultMetadata } from './utils/metadata'
 import { getEigenContracts } from './data/address'
 import { getViemClient } from './utils/viemClient'
 import { getPrismaClient } from './utils/prismaClient'
@@ -35,16 +35,6 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 		: await fetchLastSyncBlock(blockSyncKey)
 	const lastBlock = toBlock ? toBlock : await viemClient.getBlockNumber()
 
-	const defaultMetadata: EntityMetadata = {
-		name: '',
-		website: '',
-		description: '',
-		logo: '',
-		x: '',
-		discord: '',
-		telegram: ''
-	}
-
 	// Loop through evm logs
 	await loopThroughBlocks(firstBlock, lastBlock, async (fromBlock, toBlock) => {
 		const logs = await viemClient.getLogs({
@@ -57,26 +47,28 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 		})
 
 		for (const l in logs) {
+			const log = logs[l]
+
+			const avsAddress = String(log.args.avs).toLowerCase()
+			const blockNumber = log.blockNumber.toString()
+			const existingRecord = avsList.get(avsAddress)
+
 			try {
-				const log = logs[l]
-
-				const avsAddress = String(log.args.avs).toLowerCase()
-				const blockNumber = log.blockNumber.toString()
-
 				if (log.args.metadataURI && isValidMetadataUrl(log.args.metadataURI)) {
 					const response = await fetch(log.args.metadataURI)
 					const data = await response.text()
 					const avsMetadata = validateMetadata(data)
 
 					if (avsMetadata) {
-						const existing = avsList.get(avsAddress)
-						if (existing) {
+						if (existingRecord) {
+							// Avs already registered, valid metadata uri
 							avsList.set(avsAddress, {
 								metadata: avsMetadata,
-								createdAtBlock: existing.createdAtBlock,
+								createdAtBlock: existingRecord.createdAtBlock,
 								updatedAtBlock: blockNumber
 							})
 						} else {
+							// Avs not registered, valid metadata uri
 							avsList.set(avsAddress, {
 								metadata: avsMetadata,
 								createdAtBlock: blockNumber,
@@ -84,24 +76,21 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 							})
 						}
 					} else {
-						if (!avsList.has(avsAddress)) {
-							avsList.set(avsAddress, {
-								metadata: defaultMetadata,
-								createdAtBlock: blockNumber,
-								updatedAtBlock: blockNumber
-							})
-						}
+						throw new Error('Missing avs metadata')
 					}
 				} else {
-					if (!avsList.has(avsAddress)) {
-						avsList.set(avsAddress, {
-							metadata: defaultMetadata,
-							createdAtBlock: blockNumber,
-							updatedAtBlock: blockNumber
-						})
-					}
+					throw new Error('Invalid avs metadata uri')
 				}
-			} catch {}
+			} catch (error) {
+				if (!existingRecord) {
+					// Avs not registered, invalid metadata uri
+					avsList.set(avsAddress, {
+						metadata: defaultMetadata,
+						createdAtBlock: blockNumber,
+						updatedAtBlock: blockNumber
+					})
+				} // Ignore case where Avs is already registered and is updated with invalid metadata uri
+			}
 		}
 
 		console.log(
@@ -142,8 +131,8 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 				metadataTelegram: metadata.telegram,
 				metadataWebsite: metadata.website,
 				metadataX: metadata.x,
-				createdAtBlock,
-				updatedAtBlock
+				createdAtBlock: createdAtBlock,
+				updatedAtBlock: updatedAtBlock
 			})
 		}
 
@@ -169,7 +158,7 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 						metadataTelegram: metadata.telegram,
 						metadataWebsite: metadata.website,
 						metadataX: metadata.x,
-						updatedAtBlock
+						updatedAtBlock: updatedAtBlock
 					},
 					create: {
 						address,
@@ -180,8 +169,8 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 						metadataTelegram: metadata.telegram,
 						metadataWebsite: metadata.website,
 						metadataX: metadata.x,
-						createdAtBlock,
-						updatedAtBlock
+						createdAtBlock: createdAtBlock,
+						updatedAtBlock: updatedAtBlock
 					}
 				})
 			)
@@ -190,7 +179,7 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 
 	await bulkUpdateDbTransactions(dbTransactions)
 
-	// Storing last sycned block
+	// Storing last synced block
 	await saveLastSyncBlock(blockSyncKey, lastBlock)
 
 	console.log('Seeded AVS:', avsList.size)
