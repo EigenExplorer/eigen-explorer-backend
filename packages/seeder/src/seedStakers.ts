@@ -3,10 +3,10 @@ import { getEigenContracts } from './data/address'
 import { getViemClient } from './utils/viemClient'
 import { getPrismaClient } from './utils/prismaClient'
 import {
+	type IMap,
 	baseBlock,
 	bulkUpdateDbTransactions,
 	fetchLastSyncBlock,
-	IMap,
 	loopThroughBlocks,
 	saveLastSyncBlock
 } from './utils/seeder'
@@ -23,6 +23,8 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 		{
 			operatorAddress: string | null
 			shares: { shares: bigint; strategyAddress: string }[]
+			createdAtBlock: string
+			updatedAtBlock: string
 		}
 	> = new Map()
 
@@ -70,6 +72,7 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 		for (const l in logs) {
 			const log = logs[l]
 
+			const blockNumber = log.blockNumber.toString()
 			const operatorAddress = String(log.args.operator).toLowerCase()
 			const stakerAddress = String(log.args.staker).toLowerCase()
 
@@ -79,19 +82,28 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 					(s) => s.address.toLowerCase() === stakerAddress.toLowerCase()
 				)
 				if (foundStakerInit) {
+					// Address not in this set of logs but in db
 					stakers.set(stakerAddress, {
 						operatorAddress: foundStakerInit.operatorAddress,
 						shares: foundStakerInit.shares.map((s) => ({
 							...s,
 							shares: BigInt(s.shares)
-						}))
+						})),
+						createdAtBlock: foundStakerInit.createdAtBlock,
+						updatedAtBlock: blockNumber
 					})
 				} else {
+					// Address neither in this set of logs nor in db
 					stakers.set(stakerAddress, {
 						operatorAddress: null,
-						shares: []
+						shares: [],
+						createdAtBlock: blockNumber,
+						updatedAtBlock: blockNumber
 					})
 				}
+			} else {
+				// Address previously found in this set of logs
+				stakers.get(stakerAddress).updatedAtBlock = blockNumber
 			}
 
 			if (log.eventName === 'StakerDelegated') {
@@ -150,7 +162,12 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 		dbTransactions.push(prismaClient.stakerStrategyShares.deleteMany())
 		dbTransactions.push(prismaClient.staker.deleteMany())
 
-		const newStakers: { address: string; operatorAddress: string | null }[] = []
+		const newStakers: {
+			address: string
+			operatorAddress: string | null
+			createdAtBlock: string
+			updatedAtBlock: string
+		}[] = []
 		const newStakerShares: {
 			stakerAddress: string
 			strategyAddress: string
@@ -160,7 +177,9 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 		for (const [stakerAddress, stakerDetails] of stakers) {
 			newStakers.push({
 				address: stakerAddress,
-				operatorAddress: stakerDetails.operatorAddress
+				operatorAddress: stakerDetails.operatorAddress,
+				createdAtBlock: stakerDetails.createdAtBlock,
+				updatedAtBlock: stakerDetails.updatedAtBlock
 			})
 
 			stakerDetails.shares.map((share) => {
@@ -192,10 +211,13 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 					where: { address: stakerAddress },
 					create: {
 						address: stakerAddress,
-						operatorAddress: stakerDetails.operatorAddress
+						operatorAddress: stakerDetails.operatorAddress,
+						createdAtBlock: stakerDetails.createdAtBlock,
+						updatedAtBlock: stakerDetails.updatedAtBlock
 					},
 					update: {
-						operatorAddress: stakerDetails.operatorAddress
+						operatorAddress: stakerDetails.operatorAddress,
+						updatedAtBlock: stakerDetails.updatedAtBlock
 					}
 				})
 			)
