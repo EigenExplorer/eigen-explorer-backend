@@ -9,7 +9,8 @@ datasource db {
 }
 
 model Avs {
-  address             String              @id @unique
+  address String @id @unique
+
   metadataName        String
   metadataDescription String
   metadataDiscord     String?
@@ -17,14 +18,18 @@ model Avs {
   metadataTelegram    String?
   metadataWebsite     String?
   metadataX           String?
-  createdAtBlock      String?
-  updatedAtBlock      String?
-  curatedMetadata     AvsCuratedMetadata?
-  operators           AvsOperator[]
+
+  operators       AvsOperator[]
+  curatedMetadata AvsCuratedMetadata?
+
+  createdAtBlock BigInt
+  updatedAtBlock BigInt
 }
 
 model AvsCuratedMetadata {
-  avsAddress          String   @id @unique
+  avs        Avs    @relation(fields: [avsAddress], references: [address])
+  avsAddress String @id @unique
+
   metadataName        String?
   metadataDescription String?
   metadataDiscord     String?
@@ -32,31 +37,32 @@ model AvsCuratedMetadata {
   metadataTelegram    String?
   metadataWebsite     String?
   metadataX           String?
-  tags                String[]
-  isVisible           Boolean  @default(false)
-  isVerified          Boolean  @default(false)
-  avs                 Avs      @relation(fields: [avsAddress], references: [address], map: "avscuratedmetadata_avsaddress_fkey")
+
+  tags       String[]
+  isVisible  Boolean  @default(false)
+  isVerified Boolean  @default(false)
 
   @@index([tags], map: "tags_1")
 }
 
 model AvsOperator {
+  avs             Avs      @relation(fields: [avsAddress], references: [address])
   avsAddress      String
+  operator        Operator @relation(fields: [operatorAddress], references: [address])
   operatorAddress String
   isActive        Boolean
-  avs             Avs      @relation(fields: [avsAddress], references: [address], map: "avsoperator_avsaddress_fkey")
-  operator        Operator @relation(fields: [operatorAddress], references: [address], map: "avsoperator_operatoraddress_fkey")
 
   @@id([avsAddress, operatorAddress])
 }
 
 model Strategies {
-  address String @id(map: "strategies_pkey")
+  address String @id
   symbol  String
 }
 
 model Operator {
-  address             String                   @id @unique
+  address String @id @unique
+
   metadataName        String
   metadataDescription String
   metadataDiscord     String?
@@ -64,44 +70,52 @@ model Operator {
   metadataTelegram    String?
   metadataWebsite     String?
   metadataX           String?
-  createdAtBlock      String?
-  updatedAtBlock      String?
-  avs                 AvsOperator[]
-  shares              OperatorStrategyShares[]
-  stakers             Staker[]
+
+  avs     AvsOperator[]
+  shares  OperatorStrategyShares[]
+  stakers Staker[]
+
+  createdAtBlock BigInt
+  updatedAtBlock BigInt
 }
 
 model OperatorStrategyShares {
+  Operator        Operator @relation(fields: [operatorAddress], references: [address])
   operatorAddress String
   strategyAddress String
   shares          String
-  Operator        Operator @relation(fields: [operatorAddress], references: [address], map: "operatorstrategyshares_operatoraddress_fkey")
 
   @@id([operatorAddress, strategyAddress])
 }
 
 model Staker {
-  address         String                 @id(map: "staker_pkey") @unique
+  address String @id @unique
+
+  operator        Operator? @relation(fields: [operatorAddress], references: [address])
   operatorAddress String?
-  createdAtBlock  String?
-  updatedAtBlock  String?
-  operator        Operator?              @relation(fields: [operatorAddress], references: [address], map: "staker_operatoraddress_fkey")
-  shares          StakerStrategyShares[]
+
+  shares StakerStrategyShares[]
+
+  createdAtBlock BigInt
+  updatedAtBlock BigInt
 }
 
 model StakerStrategyShares {
+  Staker          Staker @relation(fields: [stakerAddress], references: [address])
   stakerAddress   String
   strategyAddress String
   shares          String
-  Staker          Staker @relation(fields: [stakerAddress], references: [address], map: "stakerstrategyshares_stakeraddress_fkey")
 
-  @@id([stakerAddress, strategyAddress], map: "stakerstrategyshares_pkey")
+  @@id([stakerAddress, strategyAddress])
 }
 
 model Pod {
   address     String @id @unique
   owner       String
-  blockNumber BigInt
+  blockNumber BigInt // @Deprecated, will remove in future release
+
+  createdAtBlock BigInt
+  updatedAtBlock BigInt
 }
 
 model ValidatorRestake {
@@ -109,21 +123,39 @@ model ValidatorRestake {
   validatorIndex BigInt
   blockNumber    BigInt
 
-  @@id([podAddress, validatorIndex], map: "validatorrestake_pkey")
+  @@id([podAddress, validatorIndex])
 }
 
 model Validator {
-  validatorIndex        BigInt  @id(map: "validator_pkey")
-  status                String
+  validatorIndex BigInt @id
+  status         String
+
   balance               BigInt
   effectiveBalance      BigInt
   slashed               Boolean
   withdrawalCredentials String
 }
 
+model Withdrawal {
+  withdrawalRoot String  @id @unique
+  nonce          Int
+  isCompleted    Boolean @default(false)
+
+  stakerAddress     String
+  delegatedTo       String
+  withdrawerAddress String
+  strategies        String[]
+  shares            String[]
+  startBlock        BigInt
+
+  createdAtBlock BigInt
+  updatedAtBlock BigInt
+}
+
+// Collection to store system settings
 model Settings {
-  key       String   @id(map: "settings_pkey") @unique
+  key       String   @id @unique
   value     Json     @db.Json
-  createdAt DateTime @default(now()) @db.Timestamp(6)
-  updatedAt DateTime @updatedAt @db.Timestamp(6)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
