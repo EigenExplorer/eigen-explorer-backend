@@ -6,8 +6,10 @@ import { strategyAbi } from '../../data/abi/strategy'
 import { getEigenContracts } from '../../data/address'
 import { handleAndReturnErrorResponse } from '../../schema/errors'
 import { getAvsFilterQuery } from '../avs/avsController'
+import { getBlockNumberFromDate } from '../../utils/blockNumber'
 import { fetchStrategyTokenPrices } from '../../utils/tokenPrices'
 import { getStrategiesWithShareUnderlying } from '../strategies/strategiesController'
+import { HistoricalCountSchema } from '../../schema/zod/schemas/historicalCountQuery'
 
 /**
  * Route to get explorer metrics
@@ -80,7 +82,9 @@ export async function getTvlRestakingByStrategy(req: Request, res: Response) {
 		}
 
 		const strategies = Object.keys(getEigenContracts().Strategies)
-		const foundStrategy = strategies.find(s => s.toLowerCase() === strategy.toLowerCase())
+		const foundStrategy = strategies.find(
+			(s) => s.toLowerCase() === strategy.toLowerCase()
+		)
 
 		if (!foundStrategy) {
 			throw new Error('Invalid strategy.')
@@ -129,6 +133,26 @@ export async function getTotalStakers(req: Request, res: Response) {
 		res.send({
 			totalStakers
 		})
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+export async function getHistoricalAvsCount(req: Request, res: Response) {
+	const paramCheck = HistoricalCountSchema.safeParse(req.query)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	}
+
+	try {
+		const { frequency, variant, startAt, endAt } = paramCheck.data
+		const data = await doGetHistoricalAvsCount(
+			startAt,
+			endAt,
+			frequency,
+			variant
+		)
+		res.status(200).send({ data })
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
 	}
@@ -236,4 +260,72 @@ async function doGetTotalStakerCount() {
 	})
 
 	return stakers
+}
+
+async function doGetHistoricalAvsCount(
+	startAt: string,
+	endAt: string,
+	frequency: string,
+	variant: string
+) {
+	const viemClient = getViemClient()
+	const chainId = await viemClient.getChainId()
+
+	const startDate = new Date(startAt)
+	const endDate = new Date(endAt)
+
+	const startBlockNumber = await getBlockNumberFromDate(startDate, chainId)
+	const endBlockNumber = await getBlockNumberFromDate(endDate, chainId)
+
+	const avsData = await prisma.avs.findMany({
+		where: {
+			createdAtBlock: {
+				gte: startBlockNumber,
+				lte: endBlockNumber
+			}
+		},
+		orderBy: {
+			createdAtBlock: 'asc'
+		}
+	})
+
+	let tally = 0
+	const results: { ts: string; value: number }[] = []
+	let currentDate = new Date(startDate)
+
+	const timeInterval =
+		{
+			'1h': 3600000,
+			'1d': 86400000,
+			'7d': 604800000
+		}[frequency] || 3600000
+
+	while (currentDate <= endDate) {
+		const nextDate = new Date(currentDate.getTime() + timeInterval)
+		const currentBlockNumber = await getBlockNumberFromDate(
+			currentDate,
+			chainId
+		)
+		const nextBlockNumber = await getBlockNumberFromDate(nextDate, chainId)
+
+		const intervalData = avsData.filter(
+			(avs) =>
+				avs.createdAtBlock >= currentBlockNumber &&
+				avs.createdAtBlock < nextBlockNumber
+		)
+
+		if (variant === 'count') {
+			results.push({
+				ts: currentDate.toISOString(),
+				value: intervalData.length
+			})
+		} else {
+			tally += intervalData.length
+			results.push({ ts: currentDate.toISOString(), value: tally })
+		}
+
+		currentDate = nextDate
+	}
+
+	return results
 }
