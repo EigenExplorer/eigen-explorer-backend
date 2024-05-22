@@ -23,8 +23,8 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 		{
 			operatorAddress: string | null
 			shares: { shares: bigint; strategyAddress: string }[]
-			createdAtBlock: string
-			updatedAtBlock: string
+			createdAtBlock: bigint
+			updatedAtBlock: bigint
 		}
 	> = new Map()
 
@@ -72,7 +72,7 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 		for (const l in logs) {
 			const log = logs[l]
 
-			const blockNumber = log.blockNumber.toString()
+			const blockNumber = BigInt(log.blockNumber)
 			const operatorAddress = String(log.args.operator).toLowerCase()
 			const stakerAddress = String(log.args.staker).toLowerCase()
 
@@ -165,8 +165,8 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 		const newStakers: {
 			address: string
 			operatorAddress: string | null
-			createdAtBlock: string
-			updatedAtBlock: string
+			createdAtBlock: bigint
+			updatedAtBlock: bigint
 		}[] = []
 		const newStakerShares: {
 			stakerAddress: string

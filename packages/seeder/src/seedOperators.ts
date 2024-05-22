@@ -25,7 +25,7 @@ export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 	const prismaClient = getPrismaClient()
 	const operatorList: Map<
 		string,
-		{ metadata: EntityMetadata; createdAtBlock: string; updatedAtBlock: string }
+		{ metadata: EntityMetadata; createdAtBlock: bigint; updatedAtBlock: bigint }
 	> = new Map()
 
 	const firstBlock = fromBlock
@@ -48,7 +48,7 @@ export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 			const log = logs[l]
 
 			const operatorAddress = String(log.args.operator).toLowerCase()
-			const blockNumber = log.blockNumber.toString()
+			const blockNumber = BigInt(log.blockNumber)
 			const existingRecord = operatorList.get(operatorAddress)
 
 			try {
@@ -112,8 +112,8 @@ export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 			metadataTelegram?: string | null
 			metadataWebsite?: string | null
 			metadataX?: string | null
-			createdAtBlock: string
-			updatedAtBlock: string
+			createdAtBlock: bigint
+			updatedAtBlock: bigint
 		}[] = []
 
 		for (const [

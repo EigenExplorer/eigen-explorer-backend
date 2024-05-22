@@ -27,7 +27,7 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 	const prismaClient = getPrismaClient()
 	const avsList: Map<
 		string,
-		{ metadata: EntityMetadata; createdAtBlock: string; updatedAtBlock: string }
+		{ metadata: EntityMetadata; createdAtBlock: bigint; updatedAtBlock: bigint }
 	> = new Map()
 
 	const firstBlock = fromBlock
@@ -50,7 +50,7 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 			const log = logs[l]
 
 			const avsAddress = String(log.args.avs).toLowerCase()
-			const blockNumber = log.blockNumber.toString()
+			const blockNumber = BigInt(log.blockNumber)
 			const existingRecord = avsList.get(avsAddress)
 
 			try {
@@ -114,8 +114,8 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 			metadataTelegram?: string | null
 			metadataWebsite?: string | null
 			metadataX?: string | null
-			createdAtBlock: string
-			updatedAtBlock: string
+			createdAtBlock: bigint
+			updatedAtBlock: bigint
 		}[] = []
 
 		for (const [
