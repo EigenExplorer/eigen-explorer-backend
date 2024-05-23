@@ -24,6 +24,8 @@ model Avs {
 
   createdAtBlock BigInt @default(0)
   updatedAtBlock BigInt @default(0)
+  createdAt      DateTime?      @db.Timestamptz(6)
+  updatedAt      DateTime?      @db.Timestamptz(6)
 }
 
 model AvsCuratedMetadata {
@@ -77,6 +79,8 @@ model Operator {
 
   createdAtBlock BigInt @default(0)
   updatedAtBlock BigInt @default(0)
+  createdAt      DateTime?      @db.Timestamptz(6)
+  updatedAt      DateTime?      @db.Timestamptz(6)
 }
 
 model OperatorStrategyShares {
@@ -98,6 +102,8 @@ model Staker {
 
   createdAtBlock BigInt @default(0)
   updatedAtBlock BigInt @default(0)
+  createdAt      DateTime?      @db.Timestamptz(6)
+  updatedAt      DateTime?      @db.Timestamptz(6)
 }
 
 model StakerStrategyShares {
