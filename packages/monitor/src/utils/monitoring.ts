@@ -36,6 +36,6 @@ export async function fetchLastSyncBlockInfo(
 	}
 }
 
-export function delay(seconds: number) {
-	return new Promise((resolve) => setTimeout(resolve, seconds))
+export function delay(ms: number) {
+	return new Promise((resolve) => setTimeout(resolve, ms))
 }

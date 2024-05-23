@@ -9,13 +9,6 @@ import {
 	type LogDetails
 } from './utils/monitoring'
 
-const viemClient = getViemClient()
-const acceptableDelays: number[] = [
-	Number(process.env.ACCEPTABLE_DELAY_1),
-	Number(process.env.ACCEPTABLE_DELAY_2)
-] // Acceptable lag in ms between seeder fetching block data and writing it to db (for each monitor).
-const coolOffPeriod = 600000 // Minimum time in ms between two OutOfSync Slack alerts for a given monitor.
-
 /**
  * Groups keys by how often they are seeded, which is defined in blockSyncKeys.
  *
@@ -67,9 +60,8 @@ async function fetchSyncData(
 			network: getNetwork().name,
 			refreshRate: refreshRate
 		}
+		let prevOutOfSync = false
 		let lastSlackMessage = 0
-		let ifWaited = false
-		const acceptableDelay = acceptableDelays[index - 1]
 
 		logRegistry(registryDetails, syncKeys)
 
@@ -77,53 +69,44 @@ async function fetchSyncData(
 			const results = await Promise.all(
 				syncKeys.map((key) => fetchLastSyncBlockInfo(key))
 			)
-			const latestTimestamp = new Date(
-				Math.max(...results.map((result) => result.updatedAt.getTime()))
-			)
-
-			const nextFetch = new Date(latestTimestamp.getTime() + refreshRate)
-			const now = new Date()
-			const fetchInterval = nextFetch.getTime() - now.getTime() // If last seeder update was > refreshRate ms ago, fetchInterval will be < 0
-
-			await delay(
-				fetchInterval > 0 ? fetchInterval : ifWaited ? refreshRate / 2 : 0
-			) // If ifWaited is true, the monitor has already implemented a delay of refreshRate/2 ms
-
-			const latestBlock = await viemClient.getBlockNumber()
-			await delay(acceptableDelay)
-
-			const newResults = await Promise.all(
-				syncKeys.map((key) => fetchLastSyncBlockInfo(key))
-			)
 
 			const { inSyncKeys, outOfSyncKeys } = await processSyncData(
 				syncKeys,
-				newResults,
-				latestBlock
+				results,
+				refreshRate
 			)
+
+			const statusDetails: LogDetails = {
+				index: index,
+				network: getNetwork().name,
+				refreshRate: refreshRate
+			}
+
 			if (!(outOfSyncKeys[0] === 'none')) {
-				const statusDetails: LogDetails = {
-					index: index,
-					network: getNetwork().name,
-					refreshRate: refreshRate
-				}
+				prevOutOfSync = true
 
 				const ifSlackMessage = logMonitorStatus(
 					statusDetails,
 					inSyncKeys,
 					outOfSyncKeys,
 					lastSlackMessage,
-					coolOffPeriod
+					600000
 				)
 
 				lastSlackMessage = ifSlackMessage
 					? new Date().getTime()
 					: lastSlackMessage
-				await delay(refreshRate / 2) // Allow buffer time for any keys from previous iteration to sync without disrupting monitor's time schedule.
-				ifWaited = true
 			} else {
-				ifWaited = false
+				lastSlackMessage = 0
+				console.log('[InSync]', inSyncKeys, outOfSyncKeys)
+
+				if (prevOutOfSync) {
+					prevOutOfSync = false
+					logMonitorStatus(statusDetails, inSyncKeys, outOfSyncKeys, 0, 0)
+				}
 			}
+
+			await delay(60000) // Run every 1 minute
 		}
 	} catch (error) {
 		console.error('Error during initial synchronization:', error)
@@ -142,20 +125,21 @@ async function fetchSyncData(
 async function processSyncData(
 	syncKeys: string[],
 	results: LastSyncBlockInfo[],
-	latestBlock: bigint
+	refreshRate: number
 ): Promise<{ inSyncKeys: string[]; outOfSyncKeys: string[] }> {
 	const newInSyncKeys: string[] = []
 	const newOutOfSyncKeys: string[] = []
 
-	results.forEach((result, index) => {
-		const key = syncKeys[index]
+	for (let i = 0; i < syncKeys.length; i++) {
+		const key = syncKeys[i]
+		const result = results[i]
 
-		result.lastBlock === latestBlock ||
-		result.lastBlock === latestBlock - 1n ||
-		result.lastBlock === latestBlock + 1n
-			? newInSyncKeys.push(key)
-			: newOutOfSyncKeys.push(key)
-	})
+		if (new Date().getTime() - result.updatedAt.getTime() >= refreshRate * 2) {
+			newOutOfSyncKeys.push(key)
+		} else {
+			newInSyncKeys.push(key)
+		}
+	}
 
 	newInSyncKeys.length > 0 ? newInSyncKeys : newInSyncKeys.push('none')
 	newOutOfSyncKeys.length > 0 ? newOutOfSyncKeys : newOutOfSyncKeys.push('none')
