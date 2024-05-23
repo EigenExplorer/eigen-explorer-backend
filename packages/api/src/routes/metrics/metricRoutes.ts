@@ -8,7 +8,9 @@ import {
 	getTvlBeaconChain,
 	getTvlRestaking,
 	getTvlRestakingByStrategy,
-	getHistoricalAvsCount
+	getHistoricalAvsCount,
+	getHistoricalOperatorCount,
+	getHistoricalStakerCount
 } from './metricController'
 
 import routeCache from 'route-cache'
@@ -37,6 +39,22 @@ router.get('/total-operators', routeCache.cacheSeconds(120), getTotalOperators)
 
 router.get('/total-stakers', routeCache.cacheSeconds(120), getTotalStakers)
 
-router.get('/historical/avs', routeCache.cacheSeconds(120), getHistoricalAvsCount)
+router.get(
+	'/historical/avs',
+	routeCache.cacheSeconds(120),
+	getHistoricalAvsCount
+)
+
+router.get(
+	'/historical/operator',
+	routeCache.cacheSeconds(120),
+	getHistoricalOperatorCount
+)
+
+router.get(
+	'/historical/staker',
+	routeCache.cacheSeconds(120),
+	getHistoricalStakerCount
+)
 
 export default router

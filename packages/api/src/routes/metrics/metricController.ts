@@ -146,7 +146,50 @@ export async function getHistoricalAvsCount(req: Request, res: Response) {
 
 	try {
 		const { frequency, variant, startAt, endAt } = paramCheck.data
-		const data = await doGetHistoricalAvsCount(
+		const data = await doGetHistoricalCount(
+			'avs',
+			startAt,
+			endAt,
+			frequency,
+			variant
+		)
+		res.status(200).send({ data })
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+export async function getHistoricalOperatorCount(req: Request, res: Response) {
+	const paramCheck = HistoricalCountSchema.safeParse(req.query)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	}
+
+	try {
+		const { frequency, variant, startAt, endAt } = paramCheck.data
+		const data = await doGetHistoricalCount(
+			'operator',
+			startAt,
+			endAt,
+			frequency,
+			variant
+		)
+		res.status(200).send({ data })
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+export async function getHistoricalStakerCount(req: Request, res: Response) {
+	const paramCheck = HistoricalCountSchema.safeParse(req.query)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	}
+
+	try {
+		const { frequency, variant, startAt, endAt } = paramCheck.data
+		const data = await doGetHistoricalCount(
+			'staker',
 			startAt,
 			endAt,
 			frequency,
@@ -268,30 +311,32 @@ async function doGetHistoricalAvsCount(
 	frequency: string,
 	variant: string
 ) {
-	const viemClient = getViemClient()
-	const chainId = await viemClient.getChainId()
-
 	const startDate = new Date(startAt)
 	const endDate = new Date(endAt)
 
-	const startBlockNumber = await getBlockNumberFromDate(startDate, chainId)
-	const endBlockNumber = await getBlockNumberFromDate(endDate, chainId)
-
-	const avsData = await prisma.avs.findMany({
+	const initialTally = await prisma.avs.count({
 		where: {
-			createdAtBlock: {
-				gte: startBlockNumber,
-				lte: endBlockNumber
+			createdAt: {
+				lt: startDate
 			}
-		},
-		orderBy: {
-			createdAtBlock: 'asc'
 		}
 	})
 
-	let tally = 0
+	const avsData = await prisma.avs.findMany({
+		where: {
+			createdAt: {
+				gte: startDate,
+				lte: endDate
+			}
+		},
+		orderBy: {
+			createdAt: 'asc'
+		}
+	})
+
+	let tally = initialTally
 	const results: { ts: string; value: number }[] = []
-	let currentDate = new Date(startDate)
+	let currentDate = startDate.getTime()
 
 	const timeInterval =
 		{
@@ -301,27 +346,102 @@ async function doGetHistoricalAvsCount(
 		}[frequency] || 3600000
 
 	while (currentDate <= endDate) {
-		const nextDate = new Date(currentDate.getTime() + timeInterval)
-		const currentBlockNumber = await getBlockNumberFromDate(
-			currentDate,
-			chainId
-		)
-		const nextBlockNumber = await getBlockNumberFromDate(nextDate, chainId)
+		const nextDate = new Date(currentDate + timeInterval).getTime()
 
 		const intervalData = avsData.filter(
 			(avs) =>
-				avs.createdAtBlock >= currentBlockNumber &&
-				avs.createdAtBlock < nextBlockNumber
+				avs.createdAt.getTime() >= currentDate &&
+				avs.createdAt.getTime() < nextDate
 		)
 
 		if (variant === 'count') {
 			results.push({
-				ts: currentDate.toISOString(),
+				ts: new Date(Number(currentDate)).toISOString(),
 				value: intervalData.length
 			})
 		} else {
 			tally += intervalData.length
-			results.push({ ts: currentDate.toISOString(), value: tally })
+			results.push({
+				ts: new Date(Number(currentDate)).toISOString(),
+				value: tally
+			})
+		}
+
+		currentDate = nextDate
+	}
+
+	return results
+}
+
+async function doGetHistoricalCount(
+	modelName: 'avs' | 'operator' | 'staker',
+	startAt: string,
+	endAt: string,
+	frequency: string,
+	variant: string
+) {
+	const startDate = new Date(startAt)
+	const endDate = new Date(endAt)
+
+	if (!['avs', 'operator', 'staker'].includes(modelName)) {
+		throw new Error('Invalid model name')
+	}
+
+	// biomelint/suspicious/noExplicitAny
+	const model = prisma[modelName] as any
+
+	// Initial tally count
+	const initialTally = await model.count({
+		where: {
+			createdAt: {
+				lt: startDate
+			}
+		}
+	})
+
+	const modelData = await model.findMany({
+		where: {
+			createdAt: {
+				gte: startDate,
+				lte: endDate
+			}
+		},
+		orderBy: {
+			createdAt: 'asc'
+		}
+	})
+
+	let tally = initialTally
+	const results: { ts: string; value: number }[] = []
+	let currentDate = startDate.getTime()
+
+	const timeInterval =
+		{
+			'1h': 3600000,
+			'1d': 86400000,
+			'7d': 604800000
+		}[frequency] || 3600000
+
+	while (currentDate <= endDate.getTime()) {
+		const nextDate = new Date(currentDate + timeInterval).getTime()
+
+		const intervalData = modelData.filter(
+			(data) =>
+				data.createdAt.getTime() >= currentDate &&
+				data.createdAt.getTime() < nextDate
+		)
+
+		if (variant === 'count') {
+			results.push({
+				ts: new Date(Number(currentDate)).toISOString(),
+				value: intervalData.length
+			})
+		} else {
+			tally += intervalData.length
+			results.push({
+				ts: new Date(Number(currentDate)).toISOString(),
+				value: tally
+			})
 		}
 
 		currentDate = nextDate
