@@ -1,3 +1,4 @@
+import prisma from '@prisma/client'
 import { parseAbiItem } from 'viem'
 import { getEigenContracts } from './data/address'
 import { getViemClient } from './utils/viemClient'
@@ -13,22 +14,21 @@ import {
 
 const blockSyncKey = 'lastSyncedBlock_stakers'
 
+interface StakerEntryRecord {
+	operatorAddress: string | null
+	shares: { shares: bigint; strategyAddress: string }[]
+	createdAtBlock: bigint
+	updatedAtBlock: bigint
+	createdAt: Date
+	updatedAt: Date
+}
+
 export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 	console.log('Seeding stakers ...')
 
 	const viemClient = getViemClient()
 	const prismaClient = getPrismaClient()
-	const stakers: IMap<
-		string,
-		{
-			operatorAddress: string | null
-			shares: { shares: bigint; strategyAddress: string }[]
-			createdAtBlock: bigint
-			updatedAtBlock: bigint
-			createdAt: Date
-			updatedAt: Date
-		}
-	> = new Map()
+	const stakers: IMap<string, StakerEntryRecord> = new Map()
 
 	const firstBlock = fromBlock
 		? fromBlock
@@ -172,19 +172,8 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 		dbTransactions.push(prismaClient.stakerStrategyShares.deleteMany())
 		dbTransactions.push(prismaClient.staker.deleteMany())
 
-		const newStakers: {
-			address: string
-			operatorAddress: string | null
-			createdAtBlock: bigint
-			updatedAtBlock: bigint
-			createdAt: Date
-			updatedAt: Date
-		}[] = []
-		const newStakerShares: {
-			stakerAddress: string
-			strategyAddress: string
-			shares: string
-		}[] = []
+		const newStakers: prisma.Staker[] = []
+		const newStakerShares: prisma.StakerStrategyShares[] = []
 
 		for (const [stakerAddress, stakerDetails] of stakers) {
 			newStakers.push({

@@ -1,3 +1,4 @@
+import prisma from '@prisma/client'
 import { parseAbiItem } from 'viem'
 import { getEigenContracts } from './data/address'
 import { getViemClient } from './utils/viemClient'
@@ -22,7 +23,7 @@ export async function seedPods(toBlock?: bigint, fromBlock?: bigint) {
 
 	const viemClient = getViemClient()
 	const prismaClient = getPrismaClient()
-	const podList: { address: string; owner: string; blockNumber: bigint }[] = []
+	const podList: prisma.Pod[] = []
 
 	const firstBlock = fromBlock
 		? fromBlock
@@ -46,10 +47,18 @@ export async function seedPods(toBlock?: bigint, fromBlock?: bigint) {
 			const podAddress = String(log.args.eigenPod).toLowerCase()
 			const podOwner = String(log.args.podOwner).toLowerCase()
 
+			const blockNumber = BigInt(log.blockNumber)
+			const block = await viemClient.getBlock({ blockNumber: blockNumber })
+			const timestamp = new Date(Number(block.timestamp) * 1000)
+
 			podList.push({
 				address: podAddress,
 				owner: podOwner,
-				blockNumber: log.blockNumber
+				blockNumber,
+				createdAtBlock: blockNumber,
+				updatedAtBlock: blockNumber,
+				createdAt: timestamp,
+				updatedAt: timestamp
 			})
 		}
 
@@ -79,12 +88,18 @@ export async function seedPods(toBlock?: bigint, fromBlock?: bigint) {
 					where: { address: pod.address },
 					update: {
 						owner: pod.owner,
-						blockNumber: pod.blockNumber
+						blockNumber: pod.blockNumber,
+						updatedAtBlock: pod.updatedAtBlock,
+						updatedAt: pod.updatedAt
 					},
 					create: {
 						address: pod.address,
 						owner: pod.owner,
-						blockNumber: pod.blockNumber
+						blockNumber: pod.blockNumber,
+						createdAtBlock: pod.createdAtBlock,
+						createdAt: pod.createdAt,
+						updatedAtBlock: pod.updatedAtBlock,
+						updatedAt: pod.updatedAt
 					}
 				})
 			)

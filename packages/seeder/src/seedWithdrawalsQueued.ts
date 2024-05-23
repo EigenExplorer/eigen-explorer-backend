@@ -1,3 +1,4 @@
+import prisma from '@prisma/client'
 import { parseAbiItem } from 'viem'
 import { getEigenContracts } from './data/address'
 import { getViemClient } from './utils/viemClient'
@@ -40,7 +41,7 @@ export async function seedQueuedWithdrawals(
 
 	const viemClient = getViemClient()
 	const prismaClient = getPrismaClient()
-	const queuedWithdrawalList: Withdrawal[] = []
+	const queuedWithdrawalList: prisma.Withdrawal[] = []
 
 	const firstBlock = fromBlock
 		? fromBlock
@@ -65,6 +66,10 @@ export async function seedQueuedWithdrawals(
 			const withdrawalRoot = log.args.withdrawalRoot
 			const withdrawal = log.args.withdrawal
 
+			const blockNumber = BigInt(log.blockNumber)
+			const block = await viemClient.getBlock({ blockNumber: blockNumber })
+			const timestamp = new Date(Number(block.timestamp) * 1000)
+
 			if (withdrawalRoot && withdrawal) {
 				const stakerAddress = withdrawal.staker.toLowerCase()
 				const delegatedTo = withdrawal.delegatedTo.toLowerCase()
@@ -81,10 +86,12 @@ export async function seedQueuedWithdrawals(
 						s.toLowerCase()
 					) as string[],
 					shares: withdrawal.shares.map((s) => BigInt(s).toString()),
-					startBlock: withdrawal.startBlock,
 
-					createdAtBlock: Number(log.blockNumber),
-					updatedAtBlock: Number(log.blockNumber)
+					startBlock: BigInt(withdrawal.startBlock),
+					createdAtBlock: blockNumber,
+					updatedAtBlock: blockNumber,
+					createdAt: timestamp,
+					updatedAt: timestamp
 				})
 			}
 		}

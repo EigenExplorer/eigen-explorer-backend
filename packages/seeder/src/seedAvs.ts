@@ -1,3 +1,4 @@
+import prisma from '@prisma/client'
 import { parseAbiItem } from 'viem'
 import { isValidMetadataUrl, validateMetadata } from './utils/metadata'
 import { type EntityMetadata, defaultMetadata } from './utils/metadata'
@@ -14,6 +15,14 @@ import {
 
 const blockSyncKey = 'lastSyncedBlock_avs'
 
+interface AvsEntryRecord {
+	metadata: EntityMetadata
+	createdAtBlock: bigint
+	updatedAtBlock: bigint
+	createdAt: Date
+	updatedAt: Date
+}
+
 /**
  * Utility function to seed avs
  *
@@ -25,16 +34,7 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 
 	const viemClient = getViemClient()
 	const prismaClient = getPrismaClient()
-	const avsList: Map<
-		string,
-		{
-			metadata: EntityMetadata
-			createdAtBlock: bigint
-			updatedAtBlock: bigint
-			createdAt: Date
-			updatedAt: Date
-		}
-	> = new Map()
+	const avsList: Map<string, AvsEntryRecord> = new Map()
 
 	const firstBlock = fromBlock
 		? fromBlock
@@ -120,20 +120,7 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 	if (firstBlock === baseBlock) {
 		dbTransactions.push(prismaClient.avs.deleteMany())
 
-		const newAvs: {
-			address: string
-			metadataName: string
-			metadataDescription: string
-			metadataDiscord?: string | null
-			metadataLogo?: string | null
-			metadataTelegram?: string | null
-			metadataWebsite?: string | null
-			metadataX?: string | null
-			createdAtBlock: bigint
-			updatedAtBlock: bigint
-			createdAt: Date
-			updatedAt: Date
-		}[] = []
+		const newAvs: prisma.Avs[] = []
 
 		for (const [
 			address,

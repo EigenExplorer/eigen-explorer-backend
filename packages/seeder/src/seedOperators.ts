@@ -1,3 +1,4 @@
+import prisma from '@prisma/client'
 import { getPrismaClient } from './utils/prismaClient'
 import { parseAbiItem } from 'viem'
 import {
@@ -18,21 +19,20 @@ import {
 
 const blockSyncKey = 'lastSyncedBlock_operators'
 
+interface OperatorEntryRecord {
+	metadata: EntityMetadata
+	createdAtBlock: bigint
+	updatedAtBlock: bigint
+	createdAt: Date
+	updatedAt: Date
+}
+
 export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 	console.log('Seeding Operators ...')
 
 	const viemClient = getViemClient()
 	const prismaClient = getPrismaClient()
-	const operatorList: Map<
-		string,
-		{
-			metadata: EntityMetadata
-			createdAtBlock: bigint
-			updatedAtBlock: bigint
-			createdAt: Date
-			updatedAt: Date
-		}
-	> = new Map()
+	const operatorList: Map<string, OperatorEntryRecord> = new Map()
 
 	const firstBlock = fromBlock
 		? fromBlock
@@ -118,20 +118,7 @@ export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 	if (firstBlock === baseBlock) {
 		dbTransactions.push(prismaClient.operator.deleteMany())
 
-		const newOperator: {
-			address: string
-			metadataName: string
-			metadataDescription: string
-			metadataDiscord?: string | null
-			metadataLogo?: string | null
-			metadataTelegram?: string | null
-			metadataWebsite?: string | null
-			metadataX?: string | null
-			createdAtBlock: bigint
-			updatedAtBlock: bigint
-			createdAt: Date
-			updatedAt: Date
-		}[] = []
+		const newOperator: prisma.Operator[] = []
 
 		for (const [
 			address,
