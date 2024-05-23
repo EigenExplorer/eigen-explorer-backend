@@ -27,7 +27,13 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 	const prismaClient = getPrismaClient()
 	const avsList: Map<
 		string,
-		{ metadata: EntityMetadata; createdAtBlock: bigint; updatedAtBlock: bigint }
+		{
+			metadata: EntityMetadata
+			createdAtBlock: bigint
+			updatedAtBlock: bigint
+			createdAt: Date
+			updatedAt: Date
+		}
 	> = new Map()
 
 	const firstBlock = fromBlock
@@ -50,8 +56,11 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 			const log = logs[l]
 
 			const avsAddress = String(log.args.avs).toLowerCase()
-			const blockNumber = BigInt(log.blockNumber)
 			const existingRecord = avsList.get(avsAddress)
+
+			const blockNumber = BigInt(log.blockNumber)
+			const block = await viemClient.getBlock({ blockNumber: blockNumber })
+			const timestamp = new Date(Number(block.timestamp) * 1000)
 
 			try {
 				if (log.args.metadataURI && isValidMetadataUrl(log.args.metadataURI)) {
@@ -65,14 +74,18 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 							avsList.set(avsAddress, {
 								metadata: avsMetadata,
 								createdAtBlock: existingRecord.createdAtBlock,
-								updatedAtBlock: blockNumber
+								updatedAtBlock: blockNumber,
+								createdAt: existingRecord.createdAt,
+								updatedAt: timestamp
 							})
 						} else {
 							// Avs not registered, valid metadata uri
 							avsList.set(avsAddress, {
 								metadata: avsMetadata,
 								createdAtBlock: blockNumber,
-								updatedAtBlock: blockNumber
+								updatedAtBlock: blockNumber,
+								createdAt: timestamp,
+								updatedAt: timestamp
 							})
 						}
 					} else {
@@ -87,7 +100,9 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 					avsList.set(avsAddress, {
 						metadata: defaultMetadata,
 						createdAtBlock: blockNumber,
-						updatedAtBlock: blockNumber
+						updatedAtBlock: blockNumber,
+						createdAt: timestamp,
+						updatedAt: timestamp
 					})
 				} // Ignore case where Avs is already registered and is updated with invalid metadata uri
 			}
@@ -116,11 +131,13 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 			metadataX?: string | null
 			createdAtBlock: bigint
 			updatedAtBlock: bigint
+			createdAt: Date
+			updatedAt: Date
 		}[] = []
 
 		for (const [
 			address,
-			{ metadata, createdAtBlock, updatedAtBlock }
+			{ metadata, createdAtBlock, updatedAtBlock, createdAt, updatedAt }
 		] of avsList) {
 			newAvs.push({
 				address,
@@ -132,7 +149,9 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 				metadataWebsite: metadata.website,
 				metadataX: metadata.x,
 				createdAtBlock: createdAtBlock,
-				updatedAtBlock: updatedAtBlock
+				updatedAtBlock: updatedAtBlock,
+				createdAt: createdAt,
+				updatedAt: updatedAt
 			})
 		}
 
@@ -145,7 +164,7 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 	} else {
 		for (const [
 			address,
-			{ metadata, createdAtBlock, updatedAtBlock }
+			{ metadata, createdAtBlock, updatedAtBlock, createdAt, updatedAt }
 		] of avsList) {
 			dbTransactions.push(
 				prismaClient.avs.upsert({
@@ -158,7 +177,8 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 						metadataTelegram: metadata.telegram,
 						metadataWebsite: metadata.website,
 						metadataX: metadata.x,
-						updatedAtBlock: updatedAtBlock
+						updatedAtBlock: updatedAtBlock,
+						updatedAt: updatedAt
 					},
 					create: {
 						address,
@@ -170,7 +190,9 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 						metadataWebsite: metadata.website,
 						metadataX: metadata.x,
 						createdAtBlock: createdAtBlock,
-						updatedAtBlock: updatedAtBlock
+						updatedAtBlock: updatedAtBlock,
+						createdAt: createdAt,
+						updatedAt: updatedAt
 					}
 				})
 			)

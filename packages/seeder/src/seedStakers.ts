@@ -25,6 +25,8 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 			shares: { shares: bigint; strategyAddress: string }[]
 			createdAtBlock: bigint
 			updatedAtBlock: bigint
+			createdAt: Date
+			updatedAt: Date
 		}
 	> = new Map()
 
@@ -72,9 +74,12 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 		for (const l in logs) {
 			const log = logs[l]
 
-			const blockNumber = BigInt(log.blockNumber)
 			const operatorAddress = String(log.args.operator).toLowerCase()
 			const stakerAddress = String(log.args.staker).toLowerCase()
+
+			const blockNumber = BigInt(log.blockNumber)
+			const block = await viemClient.getBlock({ blockNumber: blockNumber })
+			const timestamp = new Date(Number(block.timestamp) * 1000)
 
 			// Load existing staker shares data
 			if (!stakers.has(stakerAddress)) {
@@ -90,7 +95,9 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 							shares: BigInt(s.shares)
 						})),
 						createdAtBlock: foundStakerInit.createdAtBlock,
-						updatedAtBlock: blockNumber
+						updatedAtBlock: blockNumber,
+						createdAt: foundStakerInit.createdAt,
+						updatedAt: timestamp
 					})
 				} else {
 					// Address neither in this set of logs nor in db
@@ -98,12 +105,15 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 						operatorAddress: null,
 						shares: [],
 						createdAtBlock: blockNumber,
-						updatedAtBlock: blockNumber
+						updatedAtBlock: blockNumber,
+						createdAt: timestamp,
+						updatedAt: timestamp
 					})
 				}
 			} else {
 				// Address previously found in this set of logs
 				stakers.get(stakerAddress).updatedAtBlock = blockNumber
+				stakers.get(stakerAddress).updatedAt = timestamp
 			}
 
 			if (log.eventName === 'StakerDelegated') {
@@ -167,6 +177,8 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 			operatorAddress: string | null
 			createdAtBlock: bigint
 			updatedAtBlock: bigint
+			createdAt: Date
+			updatedAt: Date
 		}[] = []
 		const newStakerShares: {
 			stakerAddress: string
@@ -179,7 +191,9 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 				address: stakerAddress,
 				operatorAddress: stakerDetails.operatorAddress,
 				createdAtBlock: stakerDetails.createdAtBlock,
-				updatedAtBlock: stakerDetails.updatedAtBlock
+				updatedAtBlock: stakerDetails.updatedAtBlock,
+				createdAt: stakerDetails.createdAt,
+				updatedAt: stakerDetails.updatedAt
 			})
 
 			stakerDetails.shares.map((share) => {
@@ -213,11 +227,14 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 						address: stakerAddress,
 						operatorAddress: stakerDetails.operatorAddress,
 						createdAtBlock: stakerDetails.createdAtBlock,
-						updatedAtBlock: stakerDetails.updatedAtBlock
+						updatedAtBlock: stakerDetails.updatedAtBlock,
+						createdAt: stakerDetails.createdAt,
+						updatedAt: stakerDetails.updatedAt
 					},
 					update: {
 						operatorAddress: stakerDetails.operatorAddress,
-						updatedAtBlock: stakerDetails.updatedAtBlock
+						updatedAtBlock: stakerDetails.updatedAtBlock,
+						updatedAt: stakerDetails.updatedAt
 					}
 				})
 			)
