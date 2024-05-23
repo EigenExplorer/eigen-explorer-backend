@@ -22,10 +22,10 @@ model Avs {
   operators       AvsOperator[]
   curatedMetadata AvsCuratedMetadata?
 
-  createdAtBlock BigInt @default(0)
-  updatedAtBlock BigInt @default(0)
-  createdAt      DateTime?      @db.Timestamptz(6)
-  updatedAt      DateTime?      @db.Timestamptz(6)
+  createdAtBlock BigInt   @default(0)
+  updatedAtBlock BigInt   @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now())
 }
 
 model AvsCuratedMetadata {
@@ -77,10 +77,10 @@ model Operator {
   shares  OperatorStrategyShares[]
   stakers Staker[]
 
-  createdAtBlock BigInt @default(0)
-  updatedAtBlock BigInt @default(0)
-  createdAt      DateTime?      @db.Timestamptz(6)
-  updatedAt      DateTime?      @db.Timestamptz(6)
+  createdAtBlock BigInt   @default(0)
+  updatedAtBlock BigInt   @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now())
 }
 
 model OperatorStrategyShares {
@@ -100,10 +100,10 @@ model Staker {
 
   shares StakerStrategyShares[]
 
-  createdAtBlock BigInt @default(0)
-  updatedAtBlock BigInt @default(0)
-  createdAt      DateTime?      @db.Timestamptz(6)
-  updatedAt      DateTime?      @db.Timestamptz(6)
+  createdAtBlock BigInt   @default(0)
+  updatedAtBlock BigInt   @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now())
 }
 
 model StakerStrategyShares {
@@ -120,8 +120,10 @@ model Pod {
   owner       String
   blockNumber BigInt // @Deprecated, will remove in future release
 
-  createdAtBlock BigInt @default(0)
-  updatedAtBlock BigInt @default(0)
+  createdAtBlock BigInt   @default(0)
+  updatedAtBlock BigInt   @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now())
 }
 
 model ValidatorRestake {
@@ -154,8 +156,10 @@ model Withdrawal {
   shares            String[]
   startBlock        BigInt
 
-  createdAtBlock BigInt @default(0)
-  updatedAtBlock BigInt @default(0)
+  createdAtBlock BigInt   @default(0)
+  updatedAtBlock BigInt   @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now())
 }
 
 // Collection to store system settings
