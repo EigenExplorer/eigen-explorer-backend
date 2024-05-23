@@ -1,19 +1,19 @@
 {
-  "name": "eigen-explorer-backend",
-  "private": true,
-  "version": "1.0.0",
-  "license": "Apache-2.0",
-  "workspaces": [
-    "packages/*"
-  ],
-  "scripts": {
-    "format": "npx @biomejs/biome format . --write",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "devDependencies": {
-    "@biomejs/biome": "1.4.1"
-  },
-  "dependencies": {
-    "route-cache": "^0.7.0"
-  }
+	"name": "eigen-explorer-backend",
+	"private": true,
+	"version": "1.0.0",
+	"license": "Apache-2.0",
+	"workspaces": [
+		"packages/*"
+	],
+	"scripts": {
+		"format": "npx @biomejs/biome format . --write",
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "1.4.1"
+	},
+	"dependencies": {
+		"route-cache": "^0.7.0"
+	}
 }

@@ -23,6 +23,9 @@ jobs:
           - dockerfile: ./Dockerfile-Seeder
             image: -seeder
             context: .
+          - dockerfile: ./Dockerfile-Monitor
+            image: -monitor
+            context: .
 
     permissions:
       contents: read
