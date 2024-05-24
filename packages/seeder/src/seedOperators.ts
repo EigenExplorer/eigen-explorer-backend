@@ -1,7 +1,12 @@
+import prisma from '@prisma/client'
 import { getPrismaClient } from './utils/prismaClient'
 import { parseAbiItem } from 'viem'
-import { isValidMetadataUrl, validateMetadata } from './utils/metadata'
-import type { EntityMetadata } from './utils/metadata'
+import {
+	type EntityMetadata,
+	defaultMetadata,
+	isValidMetadataUrl,
+	validateMetadata
+} from './utils/metadata'
 import { getEigenContracts } from './data/address'
 import { getViemClient } from './utils/viemClient'
 import {
@@ -14,12 +19,20 @@ import {
 
 const blockSyncKey = 'lastSyncedBlock_operators'
 
+interface OperatorEntryRecord {
+	metadata: EntityMetadata
+	createdAtBlock: bigint
+	updatedAtBlock: bigint
+	createdAt: Date
+	updatedAt: Date
+}
+
 export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 	console.log('Seeding Operators ...')
 
 	const viemClient = getViemClient()
 	const prismaClient = getPrismaClient()
-	const operatorList: Map<string, EntityMetadata> = new Map()
+	const operatorList: Map<string, OperatorEntryRecord> = new Map()
 
 	const firstBlock = fromBlock
 		? fromBlock
@@ -41,15 +54,38 @@ export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 			const log = logs[l]
 
 			const operatorAddress = String(log.args.operator).toLowerCase()
+			const existingRecord = operatorList.get(operatorAddress)
+
+			const blockNumber = BigInt(log.blockNumber)
+			const block = await viemClient.getBlock({ blockNumber: blockNumber })
+			const timestamp = new Date(Number(block.timestamp) * 1000)
 
 			try {
 				if (log.args.metadataURI && isValidMetadataUrl(log.args.metadataURI)) {
 					const response = await fetch(log.args.metadataURI)
 					const data = await response.text()
-					const metadata = validateMetadata(data)
+					const operatorMetadata = validateMetadata(data)
 
-					if (metadata) {
-						operatorList.set(operatorAddress, metadata)
+					if (operatorMetadata) {
+						if (existingRecord) {
+							// Operator already registered, valid metadata uri
+							operatorList.set(operatorAddress, {
+								metadata: operatorMetadata,
+								createdAtBlock: existingRecord.createdAtBlock,
+								updatedAtBlock: blockNumber,
+								createdAt: existingRecord.createdAt,
+								updatedAt: timestamp
+							})
+						} else {
+							// Operator not registered, valid metadata uri
+							operatorList.set(operatorAddress, {
+								metadata: operatorMetadata,
+								createdAtBlock: blockNumber,
+								updatedAtBlock: blockNumber,
+								createdAt: timestamp,
+								updatedAt: timestamp
+							})
+						}
 					} else {
 						throw new Error('Missing operator metadata')
 					}
@@ -57,15 +93,16 @@ export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 					throw new Error('Invalid operator metadata uri')
 				}
 			} catch (error) {
-				operatorList.set(operatorAddress, {
-					name: '',
-					description: '',
-					discord: '',
-					logo: '',
-					telegram: '',
-					website: '',
-					x: ''
-				})
+				if (!existingRecord) {
+					// Operator not registered, invalid metadata uri
+					operatorList.set(operatorAddress, {
+						metadata: defaultMetadata,
+						createdAtBlock: blockNumber,
+						updatedAtBlock: blockNumber,
+						createdAt: timestamp,
+						updatedAt: timestamp
+					})
+				} // Ignore case where Operator is already registered and is updated with invalid metadata uri
 			}
 		}
 
@@ -81,18 +118,12 @@ export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 	if (firstBlock === baseBlock) {
 		dbTransactions.push(prismaClient.operator.deleteMany())
 
-		const newOperator: {
-			address: string
-			metadataName: string
-			metadataDescription: string
-			metadataDiscord?: string | null
-			metadataLogo?: string | null
-			metadataTelegram?: string | null
-			metadataWebsite?: string | null
-			metadataX?: string | null
-		}[] = []
+		const newOperator: prisma.Operator[] = []
 
-		for (const [address, metadata] of operatorList) {
+		for (const [
+			address,
+			{ metadata, createdAtBlock, updatedAtBlock, createdAt, updatedAt }
+		] of operatorList) {
 			newOperator.push({
 				address,
 				metadataName: metadata.name,
@@ -101,7 +132,11 @@ export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 				metadataDiscord: metadata.discord,
 				metadataTelegram: metadata.telegram,
 				metadataWebsite: metadata.website,
-				metadataX: metadata.x
+				metadataX: metadata.x,
+				createdAtBlock: createdAtBlock,
+				updatedAtBlock: updatedAtBlock,
+				createdAt: createdAt,
+				updatedAt: updatedAt
 			})
 		}
 
@@ -112,7 +147,10 @@ export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 			})
 		)
 	} else {
-		for (const [address, metadata] of operatorList) {
+		for (const [
+			address,
+			{ metadata, createdAtBlock, updatedAtBlock, createdAt, updatedAt }
+		] of operatorList) {
 			dbTransactions.push(
 				prismaClient.operator.upsert({
 					where: { address },
@@ -123,7 +161,9 @@ export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 						metadataDiscord: metadata.discord,
 						metadataTelegram: metadata.telegram,
 						metadataWebsite: metadata.website,
-						metadataX: metadata.x
+						metadataX: metadata.x,
+						updatedAtBlock: updatedAtBlock,
+						updatedAt: updatedAt
 					},
 					create: {
 						address,
@@ -133,7 +173,11 @@ export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 						metadataDiscord: metadata.discord,
 						metadataTelegram: metadata.telegram,
 						metadataWebsite: metadata.website,
-						metadataX: metadata.x
+						metadataX: metadata.x,
+						createdAtBlock: createdAtBlock,
+						updatedAtBlock: updatedAtBlock,
+						createdAt: createdAt,
+						updatedAt: updatedAt
 					}
 				})
 			)

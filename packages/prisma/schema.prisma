@@ -21,6 +21,11 @@ model Avs {
 
   operators       AvsOperator[]
   curatedMetadata AvsCuratedMetadata?
+
+  createdAtBlock BigInt   @default(0)
+  updatedAtBlock BigInt   @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now())
 }
 
 model AvsCuratedMetadata {
@@ -71,6 +76,11 @@ model Operator {
   avs     AvsOperator[]
   shares  OperatorStrategyShares[]
   stakers Staker[]
+
+  createdAtBlock BigInt   @default(0)
+  updatedAtBlock BigInt   @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now())
 }
 
 model OperatorStrategyShares {
@@ -89,6 +99,11 @@ model Staker {
   operatorAddress String?
 
   shares StakerStrategyShares[]
+
+  createdAtBlock BigInt   @default(0)
+  updatedAtBlock BigInt   @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now())
 }
 
 model StakerStrategyShares {
@@ -103,7 +118,12 @@ model StakerStrategyShares {
 model Pod {
   address     String @id @unique
   owner       String
-  blockNumber BigInt
+  blockNumber BigInt // @Deprecated, will remove in future release
+
+  createdAtBlock BigInt   @default(0)
+  updatedAtBlock BigInt   @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now())
 }
 
 model ValidatorRestake {
@@ -136,8 +156,10 @@ model Withdrawal {
   shares            String[]
   startBlock        BigInt
 
-  createdAtBlock BigInt
-  updatedAtBlock BigInt
+  createdAtBlock BigInt   @default(0)
+  updatedAtBlock BigInt   @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now())
 }
 
 // Collection to store system settings
