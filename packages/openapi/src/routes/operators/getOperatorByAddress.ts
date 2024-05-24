@@ -7,7 +7,7 @@ import { WithTvlQuerySchema } from '../../../../api/src/schema/zod/schemas/withT
 
 const OperatorAddressParam = z.object({
     address: EthereumAddressSchema.describe(
-        'The address of the operator.'
+        'The address of the operator'
     ).openapi({ example: '0x00107cfdeaddc0a3160ed2f6fedd627f313e7b1b' }),
 });
 
