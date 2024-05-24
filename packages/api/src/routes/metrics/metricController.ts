@@ -6,7 +6,6 @@ import { strategyAbi } from '../../data/abi/strategy'
 import { getEigenContracts } from '../../data/address'
 import { handleAndReturnErrorResponse } from '../../schema/errors'
 import { getAvsFilterQuery } from '../avs/avsController'
-import { getBlockNumberFromDate } from '../../utils/blockNumber'
 import { fetchStrategyTokenPrices } from '../../utils/tokenPrices'
 import { getStrategiesWithShareUnderlying } from '../strategies/strategiesController'
 import { HistoricalCountSchema } from '../../schema/zod/schemas/historicalCountQuery'
@@ -319,10 +318,9 @@ async function doGetHistoricalCount(
 		throw new Error('Invalid model name')
 	}
 
-	// biomelint/suspicious/noExplicitAny
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	const model = prisma[modelName] as any
 
-	// Initial tally count
 	const initialTally = await model.count({
 		where: {
 			createdAt: {
