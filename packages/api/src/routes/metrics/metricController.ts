@@ -311,8 +311,13 @@ async function doGetHistoricalCount(
 	frequency: string,
 	variant: string
 ) {
-	const startDate = new Date(startAt)
-	const endDate = new Date(endAt)
+	function resetTime(date: Date) {
+		date.setUTCMinutes(0, 0, 0)
+		return date
+	}
+
+	const startDate = resetTime(new Date(startAt))
+	const endDate = resetTime(new Date(endAt))
 
 	if (!['avs', 'operator', 'staker'].includes(modelName)) {
 		throw new Error('Invalid model name')

@@ -46,13 +46,13 @@ router.get(
 )
 
 router.get(
-	'/historical/operator',
+	'/historical/operators',
 	routeCache.cacheSeconds(120),
 	getHistoricalOperatorCount
 )
 
 router.get(
-	'/historical/staker',
+	'/historical/stakers',
 	routeCache.cacheSeconds(120),
 	getHistoricalStakerCount
 )
