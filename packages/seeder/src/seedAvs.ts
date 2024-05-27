@@ -1,4 +1,4 @@
-import prisma from '@prisma/client'
+import type prisma from '@prisma/client'
 import { parseAbiItem } from 'viem'
 import { isValidMetadataUrl, validateMetadata } from './utils/metadata'
 import { type EntityMetadata, defaultMetadata } from './utils/metadata'
@@ -16,6 +16,7 @@ import {
 const blockSyncKey = 'lastSyncedBlock_avs'
 
 interface AvsEntryRecord {
+	metadataUrl: string
 	metadata: EntityMetadata
 	createdAtBlock: bigint
 	updatedAtBlock: bigint
@@ -57,14 +58,15 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 
 			const avsAddress = String(log.args.avs).toLowerCase()
 			const existingRecord = avsList.get(avsAddress)
+			const metadataUrl = log.args.metadataURI
 
 			const blockNumber = BigInt(log.blockNumber)
 			const block = await viemClient.getBlock({ blockNumber: blockNumber })
 			const timestamp = new Date(Number(block.timestamp) * 1000)
 
 			try {
-				if (log.args.metadataURI && isValidMetadataUrl(log.args.metadataURI)) {
-					const response = await fetch(log.args.metadataURI)
+				if (metadataUrl && isValidMetadataUrl(metadataUrl)) {
+					const response = await fetch(metadataUrl)
 					const data = await response.text()
 					const avsMetadata = validateMetadata(data)
 
@@ -72,6 +74,7 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 						if (existingRecord) {
 							// Avs already registered, valid metadata uri
 							avsList.set(avsAddress, {
+								metadataUrl: metadataUrl,
 								metadata: avsMetadata,
 								createdAtBlock: existingRecord.createdAtBlock,
 								updatedAtBlock: blockNumber,
@@ -81,6 +84,7 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 						} else {
 							// Avs not registered, valid metadata uri
 							avsList.set(avsAddress, {
+								metadataUrl: metadataUrl,
 								metadata: avsMetadata,
 								createdAtBlock: blockNumber,
 								updatedAtBlock: blockNumber,
@@ -98,6 +102,7 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 				if (!existingRecord) {
 					// Avs not registered, invalid metadata uri
 					avsList.set(avsAddress, {
+						metadataUrl: '',
 						metadata: defaultMetadata,
 						createdAtBlock: blockNumber,
 						updatedAtBlock: blockNumber,
@@ -124,10 +129,18 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 
 		for (const [
 			address,
-			{ metadata, createdAtBlock, updatedAtBlock, createdAt, updatedAt }
+			{
+				metadataUrl,
+				metadata,
+				createdAtBlock,
+				updatedAtBlock,
+				createdAt,
+				updatedAt
+			}
 		] of avsList) {
 			newAvs.push({
 				address,
+				metadataUrl: metadataUrl,
 				metadataName: metadata.name,
 				metadataDescription: metadata.description,
 				metadataLogo: metadata.logo,
@@ -151,12 +164,20 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 	} else {
 		for (const [
 			address,
-			{ metadata, createdAtBlock, updatedAtBlock, createdAt, updatedAt }
+			{
+				metadataUrl,
+				metadata,
+				createdAtBlock,
+				updatedAtBlock,
+				createdAt,
+				updatedAt
+			}
 		] of avsList) {
 			dbTransactions.push(
 				prismaClient.avs.upsert({
 					where: { address },
 					update: {
+						metadataUrl: metadataUrl,
 						metadataName: metadata.name,
 						metadataDescription: metadata.description,
 						metadataLogo: metadata.logo,
@@ -169,6 +190,7 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 					},
 					create: {
 						address,
+						metadataUrl: metadataUrl,
 						metadataName: metadata.name,
 						metadataDescription: metadata.description,
 						metadataLogo: metadata.logo,
