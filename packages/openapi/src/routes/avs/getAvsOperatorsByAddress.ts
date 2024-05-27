@@ -18,8 +18,8 @@ const AvsOperatorResponseSchema = z.object({
 
 const CombinedQuerySchema = z
     .object({})
-    .merge(PaginationQuerySchema)
-    .merge(WithTvlQuerySchema);
+    .merge(WithTvlQuerySchema)
+    .merge(PaginationQuerySchema);
 
 export const getAvsOperatorsByAddress: ZodOpenApiOperationObject = {
     operationId: 'getAvsOperatorsByAddress',

@@ -522,6 +522,21 @@
         "parameters": [
           {
             "in": "query",
+            "name": "withTvl",
+            "description": "Toggle whether the route should calculate the TVL from shares",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ],
+              "default": "false",
+              "description": "Toggle whether the route should calculate the TVL from shares",
+              "example": "false"
+            }
+          },
+          {
+            "in": "query",
             "name": "skip",
             "description": "The number of records to skip for pagination",
             "schema": {
@@ -540,21 +555,6 @@
               "default": "12",
               "description": "The number of records to return for pagination",
               "example": 12
-            }
-          },
-          {
-            "in": "query",
-            "name": "withTvl",
-            "description": "Toggle whether the route should calculate the TVL from shares",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "true",
-                "false"
-              ],
-              "default": "false",
-              "description": "Toggle whether the route should calculate the TVL from shares",
-              "example": "false"
             }
           }
         ],
@@ -1362,6 +1362,21 @@
           },
           {
             "in": "query",
+            "name": "withTvl",
+            "description": "Toggle whether the route should calculate the TVL from shares",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ],
+              "default": "false",
+              "description": "Toggle whether the route should calculate the TVL from shares",
+              "example": "false"
+            }
+          },
+          {
+            "in": "query",
             "name": "skip",
             "description": "The number of records to skip for pagination",
             "schema": {
@@ -1380,21 +1395,6 @@
               "default": "12",
               "description": "The number of records to return for pagination",
               "example": 12
-            }
-          },
-          {
-            "in": "query",
-            "name": "withTvl",
-            "description": "Toggle whether the route should calculate the TVL from shares",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "true",
-                "false"
-              ],
-              "default": "false",
-              "description": "Toggle whether the route should calculate the TVL from shares",
-              "example": "false"
             }
           }
         ],
@@ -1641,6 +1641,21 @@
         "parameters": [
           {
             "in": "query",
+            "name": "withTvl",
+            "description": "Toggle whether the route should calculate the TVL from shares",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ],
+              "default": "false",
+              "description": "Toggle whether the route should calculate the TVL from shares",
+              "example": "false"
+            }
+          },
+          {
+            "in": "query",
             "name": "skip",
             "description": "The number of records to skip for pagination",
             "schema": {
@@ -1659,21 +1674,6 @@
               "default": "12",
               "description": "The number of records to return for pagination",
               "example": 12
-            }
-          },
-          {
-            "in": "query",
-            "name": "withTvl",
-            "description": "Toggle whether the route should calculate the TVL from shares",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "true",
-                "false"
-              ],
-              "default": "false",
-              "description": "Toggle whether the route should calculate the TVL from shares",
-              "example": "false"
             }
           }
         ],
@@ -1921,11 +1921,11 @@
           {
             "in": "path",
             "name": "address",
-            "description": "The address of the operator.",
+            "description": "The address of the operator",
             "schema": {
               "type": "string",
               "pattern": "^0x[a-fA-F0-9]{40}$",
-              "description": "The address of the operator.",
+              "description": "The address of the operator",
               "example": "0x00107cfdeaddc0a3160ed2f6fedd627f313e7b1b"
             },
             "required": true
@@ -2112,6 +2112,1256 @@
                     "metadataX",
                     "shares",
                     "totalStakers"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/withdrawals": {
+      "get": {
+        "operationId": "getAllWithdrawals",
+        "summary": "Retrieve all withdrawals",
+        "description": "Returns all withdrawal data, including the withdrawal root, nonce, withdrawal status, and other relevant information.",
+        "tags": [
+          "Withdrawals"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "stakerAddress",
+            "description": "The address of the staker",
+            "schema": {
+              "type": "string",
+              "pattern": "^0x[a-fA-F0-9]{40}$",
+              "description": "The address of the staker",
+              "example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
+            }
+          },
+          {
+            "in": "query",
+            "name": "delegatedTo",
+            "description": "The address of the operator to which the stake is delegated",
+            "schema": {
+              "type": "string",
+              "pattern": "^0x[a-fA-F0-9]{40}$",
+              "description": "The address of the operator to which the stake is delegated",
+              "example": "0x5accc90436492f24e6af278569691e2c942a676d"
+            }
+          },
+          {
+            "in": "query",
+            "name": "strategyAddress",
+            "description": "The contract address of the restaking strategy",
+            "schema": {
+              "type": "string",
+              "pattern": "^0x[a-fA-F0-9]{40}$",
+              "description": "The contract address of the restaking strategy",
+              "example": "0x0fe4f44bee93503346a3ac9ee5a26b130a5796d6"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "description": "The status of the withdrawal",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "queued",
+                "queued_withdrawable",
+                "completed"
+              ],
+              "description": "The status of the withdrawal",
+              "example": "queued"
+            }
+          },
+          {
+            "in": "query",
+            "name": "skip",
+            "description": "The number of records to skip for pagination",
+            "schema": {
+              "type": "string",
+              "default": "0",
+              "description": "The number of records to skip for pagination",
+              "example": 0
+            }
+          },
+          {
+            "in": "query",
+            "name": "take",
+            "description": "The number of records to return for pagination",
+            "schema": {
+              "type": "string",
+              "default": "12",
+              "description": "The number of records to return for pagination",
+              "example": 12
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The list of withdrawals.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "withdrawalRoot": {
+                            "type": "string",
+                            "description": "The root hash of the withdrawal",
+                            "example": "0x9e6728ef0a8ad6009107a886047aae35bc5ed7deaa68580b0d1f8f67e3e5ed31"
+                          },
+                          "nonce": {
+                            "type": "number",
+                            "description": "The nonce of the withdrawal",
+                            "example": 0
+                          },
+                          "isCompleted": {
+                            "type": "boolean",
+                            "description": "Indicates if the withdrawal is completed",
+                            "example": false
+                          },
+                          "stakerAddress": {
+                            "type": "string",
+                            "description": "The address of the staker",
+                            "example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
+                          },
+                          "delegatedTo": {
+                            "type": "string",
+                            "description": "The operator address to which staking is delegated",
+                            "example": "0x0000000000000000000000000000000000000000"
+                          },
+                          "withdrawerAddress": {
+                            "type": "string",
+                            "description": "The address of the withdrawer",
+                            "example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
+                          },
+                          "shares": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "strategyAddress": {
+                                  "type": "string",
+                                  "pattern": "^0x[a-fA-F0-9]{40}$",
+                                  "description": "The contract address of the restaking strategy",
+                                  "example": "0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0"
+                                },
+                                "shares": {
+                                  "type": "string",
+                                  "description": "The amount of shares held in the strategy",
+                                  "example": "1277920000000000000000000"
+                                }
+                              },
+                              "required": [
+                                "strategyAddress",
+                                "shares"
+                              ]
+                            },
+                            "description": "The list of strategy shares",
+                            "example": [
+                              {
+                                "strategyAddress": "0x93c4b944d05dfe6df7645a86cd2206016c51564d",
+                                "shares": "1000288824523326631"
+                              }
+                            ]
+                          },
+                          "startBlock": {
+                            "type": "number",
+                            "description": "The block number when the withdrawal was queued",
+                            "example": 19912470
+                          },
+                          "createdAtBlock": {
+                            "type": "number",
+                            "description": "The block number when the withdrawal was recorded by EigenExplorer",
+                            "example": 19912470
+                          },
+                          "updatedAtBlock": {
+                            "type": "number",
+                            "description": "The block number when the withdrawal was last updated",
+                            "example": 19912470
+                          }
+                        },
+                        "required": [
+                          "withdrawalRoot",
+                          "nonce",
+                          "isCompleted",
+                          "stakerAddress",
+                          "delegatedTo",
+                          "withdrawerAddress",
+                          "shares",
+                          "startBlock",
+                          "createdAtBlock",
+                          "updatedAtBlock"
+                        ]
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "total": {
+                          "type": "number",
+                          "description": "Total number of records in the database",
+                          "example": 30
+                        },
+                        "skip": {
+                          "type": "number",
+                          "description": "The number of skiped records for this query",
+                          "example": 0
+                        },
+                        "take": {
+                          "type": "number",
+                          "description": "The number of records returned for this query",
+                          "example": 12
+                        }
+                      },
+                      "required": [
+                        "total",
+                        "skip",
+                        "take"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/withdrawals/{withdrawalRoot}": {
+      "get": {
+        "operationId": "getWithdrawalByWithdrawalRoot",
+        "summary": "Retrieve withdrawal by withdrawal root",
+        "description": "Returns the withdrawal data by withdrawal root.",
+        "tags": [
+          "Withdrawals"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "withdrawalRoot",
+            "description": "The root hash of the withdrawal",
+            "schema": {
+              "type": "string",
+              "description": "The root hash of the withdrawal",
+              "example": "0x9e6728ef0a8ad6009107a886047aae35bc5ed7deaa68580b0d1f8f67e3e5ed31"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The requested withdrawal record.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "withdrawalRoot": {
+                      "type": "string",
+                      "description": "The root hash of the withdrawal",
+                      "example": "0x9e6728ef0a8ad6009107a886047aae35bc5ed7deaa68580b0d1f8f67e3e5ed31"
+                    },
+                    "nonce": {
+                      "type": "number",
+                      "description": "The nonce of the withdrawal",
+                      "example": 0
+                    },
+                    "isCompleted": {
+                      "type": "boolean",
+                      "description": "Indicates if the withdrawal is completed",
+                      "example": false
+                    },
+                    "stakerAddress": {
+                      "type": "string",
+                      "description": "The address of the staker",
+                      "example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
+                    },
+                    "delegatedTo": {
+                      "type": "string",
+                      "description": "The operator address to which staking is delegated",
+                      "example": "0x0000000000000000000000000000000000000000"
+                    },
+                    "withdrawerAddress": {
+                      "type": "string",
+                      "description": "The address of the withdrawer",
+                      "example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
+                    },
+                    "shares": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "strategyAddress": {
+                            "type": "string",
+                            "pattern": "^0x[a-fA-F0-9]{40}$",
+                            "description": "The contract address of the restaking strategy",
+                            "example": "0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0"
+                          },
+                          "shares": {
+                            "type": "string",
+                            "description": "The amount of shares held in the strategy",
+                            "example": "1277920000000000000000000"
+                          }
+                        },
+                        "required": [
+                          "strategyAddress",
+                          "shares"
+                        ]
+                      },
+                      "description": "The list of strategy shares",
+                      "example": [
+                        {
+                          "strategyAddress": "0x93c4b944d05dfe6df7645a86cd2206016c51564d",
+                          "shares": "1000288824523326631"
+                        }
+                      ]
+                    },
+                    "startBlock": {
+                      "type": "number",
+                      "description": "The block number when the withdrawal was queued",
+                      "example": 19912470
+                    },
+                    "createdAtBlock": {
+                      "type": "number",
+                      "description": "The block number when the withdrawal was recorded by EigenExplorer",
+                      "example": 19912470
+                    },
+                    "updatedAtBlock": {
+                      "type": "number",
+                      "description": "The block number when the withdrawal was last updated",
+                      "example": 19912470
+                    }
+                  },
+                  "required": [
+                    "withdrawalRoot",
+                    "nonce",
+                    "isCompleted",
+                    "stakerAddress",
+                    "delegatedTo",
+                    "withdrawerAddress",
+                    "shares",
+                    "startBlock",
+                    "createdAtBlock",
+                    "updatedAtBlock"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/stakers/{address}/withdrawals": {
+      "get": {
+        "operationId": "getStakerWithdrawals",
+        "summary": "Retrieve all withdrawals by staker address",
+        "description": "Returns all withdrawal data of the requested staker, including the withdrawal root, nonce, withdrawal status, and other relevant information.",
+        "tags": [
+          "Stakers"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "address",
+            "description": "The address of the staker",
+            "schema": {
+              "type": "string",
+              "pattern": "^0x[a-fA-F0-9]{40}$",
+              "description": "The address of the staker",
+              "example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "total",
+            "description": "Total number of records in the database",
+            "schema": {
+              "type": "number",
+              "description": "Total number of records in the database",
+              "example": 30
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "skip",
+            "description": "The number of skiped records for this query",
+            "schema": {
+              "type": "number",
+              "description": "The number of skiped records for this query",
+              "example": 0
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "take",
+            "description": "The number of records returned for this query",
+            "schema": {
+              "type": "number",
+              "description": "The number of records returned for this query",
+              "example": 12
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The list of withdrawals.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "withdrawalRoot": {
+                            "type": "string",
+                            "description": "The root hash of the withdrawal",
+                            "example": "0x9e6728ef0a8ad6009107a886047aae35bc5ed7deaa68580b0d1f8f67e3e5ed31"
+                          },
+                          "nonce": {
+                            "type": "number",
+                            "description": "The nonce of the withdrawal",
+                            "example": 0
+                          },
+                          "isCompleted": {
+                            "type": "boolean",
+                            "description": "Indicates if the withdrawal is completed",
+                            "example": false
+                          },
+                          "stakerAddress": {
+                            "type": "string",
+                            "description": "The address of the staker",
+                            "example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
+                          },
+                          "delegatedTo": {
+                            "type": "string",
+                            "description": "The operator address to which staking is delegated",
+                            "example": "0x0000000000000000000000000000000000000000"
+                          },
+                          "withdrawerAddress": {
+                            "type": "string",
+                            "description": "The address of the withdrawer",
+                            "example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
+                          },
+                          "shares": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "strategyAddress": {
+                                  "type": "string",
+                                  "pattern": "^0x[a-fA-F0-9]{40}$",
+                                  "description": "The contract address of the restaking strategy",
+                                  "example": "0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0"
+                                },
+                                "shares": {
+                                  "type": "string",
+                                  "description": "The amount of shares held in the strategy",
+                                  "example": "1277920000000000000000000"
+                                }
+                              },
+                              "required": [
+                                "strategyAddress",
+                                "shares"
+                              ]
+                            },
+                            "description": "The list of strategy shares",
+                            "example": [
+                              {
+                                "strategyAddress": "0x93c4b944d05dfe6df7645a86cd2206016c51564d",
+                                "shares": "1000288824523326631"
+                              }
+                            ]
+                          },
+                          "startBlock": {
+                            "type": "number",
+                            "description": "The block number when the withdrawal was queued",
+                            "example": 19912470
+                          },
+                          "createdAtBlock": {
+                            "type": "number",
+                            "description": "The block number when the withdrawal was recorded by EigenExplorer",
+                            "example": 19912470
+                          },
+                          "updatedAtBlock": {
+                            "type": "number",
+                            "description": "The block number when the withdrawal was last updated",
+                            "example": 19912470
+                          }
+                        },
+                        "required": [
+                          "withdrawalRoot",
+                          "nonce",
+                          "isCompleted",
+                          "stakerAddress",
+                          "delegatedTo",
+                          "withdrawerAddress",
+                          "shares",
+                          "startBlock",
+                          "createdAtBlock",
+                          "updatedAtBlock"
+                        ]
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "total": {
+                          "type": "number",
+                          "description": "Total number of records in the database",
+                          "example": 30
+                        },
+                        "skip": {
+                          "type": "number",
+                          "description": "The number of skiped records for this query",
+                          "example": 0
+                        },
+                        "take": {
+                          "type": "number",
+                          "description": "The number of records returned for this query",
+                          "example": 12
+                        }
+                      },
+                      "required": [
+                        "total",
+                        "skip",
+                        "take"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/stakers/{address}/withdrawals/queued": {
+      "get": {
+        "operationId": "getQueuedStakerWithdrawals",
+        "summary": "Retrieve queued withdrawals by staker address",
+        "description": "Returns all queued withdrawal data of the requested staker.",
+        "tags": [
+          "Stakers"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "address",
+            "description": "The address of the staker",
+            "schema": {
+              "type": "string",
+              "pattern": "^0x[a-fA-F0-9]{40}$",
+              "description": "The address of the staker",
+              "example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "total",
+            "description": "Total number of records in the database",
+            "schema": {
+              "type": "number",
+              "description": "Total number of records in the database",
+              "example": 30
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "skip",
+            "description": "The number of skiped records for this query",
+            "schema": {
+              "type": "number",
+              "description": "The number of skiped records for this query",
+              "example": 0
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "take",
+            "description": "The number of records returned for this query",
+            "schema": {
+              "type": "number",
+              "description": "The number of records returned for this query",
+              "example": 12
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The list of queued withdrawals.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "withdrawalRoot": {
+                            "type": "string",
+                            "description": "The root hash of the withdrawal",
+                            "example": "0x9e6728ef0a8ad6009107a886047aae35bc5ed7deaa68580b0d1f8f67e3e5ed31"
+                          },
+                          "nonce": {
+                            "type": "number",
+                            "description": "The nonce of the withdrawal",
+                            "example": 0
+                          },
+                          "isCompleted": {
+                            "type": "boolean",
+                            "description": "Indicates if the withdrawal is completed",
+                            "example": false
+                          },
+                          "stakerAddress": {
+                            "type": "string",
+                            "description": "The address of the staker",
+                            "example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
+                          },
+                          "delegatedTo": {
+                            "type": "string",
+                            "description": "The operator address to which staking is delegated",
+                            "example": "0x0000000000000000000000000000000000000000"
+                          },
+                          "withdrawerAddress": {
+                            "type": "string",
+                            "description": "The address of the withdrawer",
+                            "example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
+                          },
+                          "shares": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "strategyAddress": {
+                                  "type": "string",
+                                  "pattern": "^0x[a-fA-F0-9]{40}$",
+                                  "description": "The contract address of the restaking strategy",
+                                  "example": "0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0"
+                                },
+                                "shares": {
+                                  "type": "string",
+                                  "description": "The amount of shares held in the strategy",
+                                  "example": "1277920000000000000000000"
+                                }
+                              },
+                              "required": [
+                                "strategyAddress",
+                                "shares"
+                              ]
+                            },
+                            "description": "The list of strategy shares",
+                            "example": [
+                              {
+                                "strategyAddress": "0x93c4b944d05dfe6df7645a86cd2206016c51564d",
+                                "shares": "1000288824523326631"
+                              }
+                            ]
+                          },
+                          "startBlock": {
+                            "type": "number",
+                            "description": "The block number when the withdrawal was queued",
+                            "example": 19912470
+                          },
+                          "createdAtBlock": {
+                            "type": "number",
+                            "description": "The block number when the withdrawal was recorded by EigenExplorer",
+                            "example": 19912470
+                          },
+                          "updatedAtBlock": {
+                            "type": "number",
+                            "description": "The block number when the withdrawal was last updated",
+                            "example": 19912470
+                          }
+                        },
+                        "required": [
+                          "withdrawalRoot",
+                          "nonce",
+                          "isCompleted",
+                          "stakerAddress",
+                          "delegatedTo",
+                          "withdrawerAddress",
+                          "shares",
+                          "startBlock",
+                          "createdAtBlock",
+                          "updatedAtBlock"
+                        ]
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "total": {
+                          "type": "number",
+                          "description": "Total number of records in the database",
+                          "example": 30
+                        },
+                        "skip": {
+                          "type": "number",
+                          "description": "The number of skiped records for this query",
+                          "example": 0
+                        },
+                        "take": {
+                          "type": "number",
+                          "description": "The number of records returned for this query",
+                          "example": 12
+                        }
+                      },
+                      "required": [
+                        "total",
+                        "skip",
+                        "take"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/stakers/{address}/withdrawals/queued_withdrawable": {
+      "get": {
+        "operationId": "getQueuedWithdrawableStakerWithdrawals",
+        "summary": "Retrieve queued and withdrawable withdrawals by staker address",
+        "description": "Returns all queued and withdrawable withdrawal data of the requested staker.",
+        "tags": [
+          "Stakers"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "address",
+            "description": "The address of the staker",
+            "schema": {
+              "type": "string",
+              "pattern": "^0x[a-fA-F0-9]{40}$",
+              "description": "The address of the staker",
+              "example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "total",
+            "description": "Total number of records in the database",
+            "schema": {
+              "type": "number",
+              "description": "Total number of records in the database",
+              "example": 30
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "skip",
+            "description": "The number of skiped records for this query",
+            "schema": {
+              "type": "number",
+              "description": "The number of skiped records for this query",
+              "example": 0
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "take",
+            "description": "The number of records returned for this query",
+            "schema": {
+              "type": "number",
+              "description": "The number of records returned for this query",
+              "example": 12
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The list of queued and withdrawable withdrawals.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "withdrawalRoot": {
+                            "type": "string",
+                            "description": "The root hash of the withdrawal",
+                            "example": "0x9e6728ef0a8ad6009107a886047aae35bc5ed7deaa68580b0d1f8f67e3e5ed31"
+                          },
+                          "nonce": {
+                            "type": "number",
+                            "description": "The nonce of the withdrawal",
+                            "example": 0
+                          },
+                          "isCompleted": {
+                            "type": "boolean",
+                            "description": "Indicates if the withdrawal is completed",
+                            "example": false
+                          },
+                          "stakerAddress": {
+                            "type": "string",
+                            "description": "The address of the staker",
+                            "example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
+                          },
+                          "delegatedTo": {
+                            "type": "string",
+                            "description": "The operator address to which staking is delegated",
+                            "example": "0x0000000000000000000000000000000000000000"
+                          },
+                          "withdrawerAddress": {
+                            "type": "string",
+                            "description": "The address of the withdrawer",
+                            "example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
+                          },
+                          "shares": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "strategyAddress": {
+                                  "type": "string",
+                                  "pattern": "^0x[a-fA-F0-9]{40}$",
+                                  "description": "The contract address of the restaking strategy",
+                                  "example": "0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0"
+                                },
+                                "shares": {
+                                  "type": "string",
+                                  "description": "The amount of shares held in the strategy",
+                                  "example": "1277920000000000000000000"
+                                }
+                              },
+                              "required": [
+                                "strategyAddress",
+                                "shares"
+                              ]
+                            },
+                            "description": "The list of strategy shares",
+                            "example": [
+                              {
+                                "strategyAddress": "0x93c4b944d05dfe6df7645a86cd2206016c51564d",
+                                "shares": "1000288824523326631"
+                              }
+                            ]
+                          },
+                          "startBlock": {
+                            "type": "number",
+                            "description": "The block number when the withdrawal was queued",
+                            "example": 19912470
+                          },
+                          "createdAtBlock": {
+                            "type": "number",
+                            "description": "The block number when the withdrawal was recorded by EigenExplorer",
+                            "example": 19912470
+                          },
+                          "updatedAtBlock": {
+                            "type": "number",
+                            "description": "The block number when the withdrawal was last updated",
+                            "example": 19912470
+                          }
+                        },
+                        "required": [
+                          "withdrawalRoot",
+                          "nonce",
+                          "isCompleted",
+                          "stakerAddress",
+                          "delegatedTo",
+                          "withdrawerAddress",
+                          "shares",
+                          "startBlock",
+                          "createdAtBlock",
+                          "updatedAtBlock"
+                        ]
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "total": {
+                          "type": "number",
+                          "description": "Total number of records in the database",
+                          "example": 30
+                        },
+                        "skip": {
+                          "type": "number",
+                          "description": "The number of skiped records for this query",
+                          "example": 0
+                        },
+                        "take": {
+                          "type": "number",
+                          "description": "The number of records returned for this query",
+                          "example": 12
+                        }
+                      },
+                      "required": [
+                        "total",
+                        "skip",
+                        "take"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/stakers/{address}/withdrawals/completed": {
+      "get": {
+        "operationId": "getCompletedStakerWithdrawals",
+        "summary": "Retrieve completed withdrawals by staker address",
+        "description": "Returns all completed withdrawal data of the requested staker.",
+        "tags": [
+          "Stakers"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "address",
+            "description": "The address of the staker",
+            "schema": {
+              "type": "string",
+              "pattern": "^0x[a-fA-F0-9]{40}$",
+              "description": "The address of the staker",
+              "example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "total",
+            "description": "Total number of records in the database",
+            "schema": {
+              "type": "number",
+              "description": "Total number of records in the database",
+              "example": 30
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "skip",
+            "description": "The number of skiped records for this query",
+            "schema": {
+              "type": "number",
+              "description": "The number of skiped records for this query",
+              "example": 0
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "take",
+            "description": "The number of records returned for this query",
+            "schema": {
+              "type": "number",
+              "description": "The number of records returned for this query",
+              "example": 12
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The list of completed withdrawals.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "withdrawalRoot": {
+                            "type": "string",
+                            "description": "The root hash of the withdrawal",
+                            "example": "0x9e6728ef0a8ad6009107a886047aae35bc5ed7deaa68580b0d1f8f67e3e5ed31"
+                          },
+                          "nonce": {
+                            "type": "number",
+                            "description": "The nonce of the withdrawal",
+                            "example": 0
+                          },
+                          "isCompleted": {
+                            "type": "boolean",
+                            "description": "Indicates if the withdrawal is completed",
+                            "example": false
+                          },
+                          "stakerAddress": {
+                            "type": "string",
+                            "description": "The address of the staker",
+                            "example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
+                          },
+                          "delegatedTo": {
+                            "type": "string",
+                            "description": "The operator address to which staking is delegated",
+                            "example": "0x0000000000000000000000000000000000000000"
+                          },
+                          "withdrawerAddress": {
+                            "type": "string",
+                            "description": "The address of the withdrawer",
+                            "example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
+                          },
+                          "shares": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "strategyAddress": {
+                                  "type": "string",
+                                  "pattern": "^0x[a-fA-F0-9]{40}$",
+                                  "description": "The contract address of the restaking strategy",
+                                  "example": "0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0"
+                                },
+                                "shares": {
+                                  "type": "string",
+                                  "description": "The amount of shares held in the strategy",
+                                  "example": "1277920000000000000000000"
+                                }
+                              },
+                              "required": [
+                                "strategyAddress",
+                                "shares"
+                              ]
+                            },
+                            "description": "The list of strategy shares",
+                            "example": [
+                              {
+                                "strategyAddress": "0x93c4b944d05dfe6df7645a86cd2206016c51564d",
+                                "shares": "1000288824523326631"
+                              }
+                            ]
+                          },
+                          "startBlock": {
+                            "type": "number",
+                            "description": "The block number when the withdrawal was queued",
+                            "example": 19912470
+                          },
+                          "createdAtBlock": {
+                            "type": "number",
+                            "description": "The block number when the withdrawal was recorded by EigenExplorer",
+                            "example": 19912470
+                          },
+                          "updatedAtBlock": {
+                            "type": "number",
+                            "description": "The block number when the withdrawal was last updated",
+                            "example": 19912470
+                          }
+                        },
+                        "required": [
+                          "withdrawalRoot",
+                          "nonce",
+                          "isCompleted",
+                          "stakerAddress",
+                          "delegatedTo",
+                          "withdrawerAddress",
+                          "shares",
+                          "startBlock",
+                          "createdAtBlock",
+                          "updatedAtBlock"
+                        ]
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "total": {
+                          "type": "number",
+                          "description": "Total number of records in the database",
+                          "example": 30
+                        },
+                        "skip": {
+                          "type": "number",
+                          "description": "The number of skiped records for this query",
+                          "example": 0
+                        },
+                        "take": {
+                          "type": "number",
+                          "description": "The number of records returned for this query",
+                          "example": 12
+                        }
+                      },
+                      "required": [
+                        "total",
+                        "skip",
+                        "take"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
                   ]
                 }
               }
