@@ -19,7 +19,8 @@ model Avs {
   metadataTelegram    String?
   metadataWebsite     String?
   metadataX           String?
-
+  isMetadataSynced    Boolean @default(false)
+  
   operators       AvsOperator[]
   curatedMetadata AvsCuratedMetadata?
 
@@ -74,6 +75,7 @@ model Operator {
   metadataTelegram    String?
   metadataWebsite     String?
   metadataX           String?
+  isMetadataSynced    Boolean @default(false)
 
   avs     AvsOperator[]
   shares  OperatorStrategyShares[]

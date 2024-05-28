@@ -10,7 +10,8 @@ import {
 	bulkUpdateDbTransactions,
 	fetchLastSyncBlock,
 	loopThroughBlocks,
-	saveLastSyncBlock
+	saveLastSyncBlock,
+	fetchWithTimeout
 } from './utils/seeder'
 
 const blockSyncKey = 'lastSyncedBlock_avs'
@@ -18,6 +19,7 @@ const blockSyncKey = 'lastSyncedBlock_avs'
 interface AvsEntryRecord {
 	metadataUrl: string
 	metadata: EntityMetadata
+	isMetadataSynced: boolean
 	createdAtBlock: bigint
 	updatedAtBlock: bigint
 	createdAt: Date
@@ -66,8 +68,8 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 
 			try {
 				if (metadataUrl && isValidMetadataUrl(metadataUrl)) {
-					const response = await fetch(metadataUrl)
-					const data = await response.text()
+					const response = await fetchWithTimeout(metadataUrl)
+					const data = response ? await response.text() : ''
 					const avsMetadata = validateMetadata(data)
 
 					if (avsMetadata) {
@@ -76,6 +78,7 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 							avsList.set(avsAddress, {
 								metadataUrl: metadataUrl,
 								metadata: avsMetadata,
+								isMetadataSynced: true,
 								createdAtBlock: existingRecord.createdAtBlock,
 								updatedAtBlock: blockNumber,
 								createdAt: existingRecord.createdAt,
@@ -86,6 +89,7 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 							avsList.set(avsAddress, {
 								metadataUrl: metadataUrl,
 								metadata: avsMetadata,
+								isMetadataSynced: true,
 								createdAtBlock: blockNumber,
 								updatedAtBlock: blockNumber,
 								createdAt: timestamp,
@@ -102,14 +106,26 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 				if (!existingRecord) {
 					// Avs not registered, invalid metadata uri
 					avsList.set(avsAddress, {
-						metadataUrl: '',
+						metadataUrl: metadataUrl ? metadataUrl : '',
 						metadata: defaultMetadata,
+						isMetadataSynced: false,
 						createdAtBlock: blockNumber,
 						updatedAtBlock: blockNumber,
 						createdAt: timestamp,
 						updatedAt: timestamp
 					})
-				} // Ignore case where Avs is already registered and is updated with invalid metadata uri
+				} else {
+					// Avs is already registered, invalid metadata uri
+					avsList.set(avsAddress, {
+						metadataUrl: metadataUrl ? metadataUrl : '',
+						metadata: existingRecord.metadata,
+						isMetadataSynced: false,
+						createdAtBlock: existingRecord.createdAtBlock,
+						updatedAtBlock: blockNumber,
+						createdAt: existingRecord.createdAt,
+						updatedAt: timestamp
+					})
+				}
 			}
 		}
 
@@ -132,6 +148,7 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 			{
 				metadataUrl,
 				metadata,
+				isMetadataSynced,
 				createdAtBlock,
 				updatedAtBlock,
 				createdAt,
@@ -148,6 +165,7 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 				metadataTelegram: metadata.telegram,
 				metadataWebsite: metadata.website,
 				metadataX: metadata.x,
+				isMetadataSynced: isMetadataSynced,
 				createdAtBlock: createdAtBlock,
 				updatedAtBlock: updatedAtBlock,
 				createdAt: createdAt,
@@ -167,6 +185,7 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 			{
 				metadataUrl,
 				metadata,
+				isMetadataSynced,
 				createdAtBlock,
 				updatedAtBlock,
 				createdAt,
@@ -185,6 +204,7 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 						metadataTelegram: metadata.telegram,
 						metadataWebsite: metadata.website,
 						metadataX: metadata.x,
+						isMetadataSynced: isMetadataSynced,
 						updatedAtBlock: updatedAtBlock,
 						updatedAt: updatedAt
 					},
@@ -198,6 +218,7 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 						metadataTelegram: metadata.telegram,
 						metadataWebsite: metadata.website,
 						metadataX: metadata.x,
+						isMetadataSynced: isMetadataSynced,
 						createdAtBlock: createdAtBlock,
 						updatedAtBlock: updatedAtBlock,
 						createdAt: createdAt,

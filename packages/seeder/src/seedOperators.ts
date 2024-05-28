@@ -14,7 +14,8 @@ import {
 	bulkUpdateDbTransactions,
 	fetchLastSyncBlock,
 	loopThroughBlocks,
-	saveLastSyncBlock
+	saveLastSyncBlock,
+	fetchWithTimeout
 } from './utils/seeder'
 
 const blockSyncKey = 'lastSyncedBlock_operators'
@@ -22,6 +23,7 @@ const blockSyncKey = 'lastSyncedBlock_operators'
 interface OperatorEntryRecord {
 	metadataUrl: string
 	metadata: EntityMetadata
+	isMetadataSynced: boolean
 	createdAtBlock: bigint
 	updatedAtBlock: bigint
 	createdAt: Date
@@ -64,8 +66,8 @@ export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 
 			try {
 				if (metadataUrl && isValidMetadataUrl(metadataUrl)) {
-					const response = await fetch(metadataUrl)
-					const data = await response.text()
+					const response = await fetchWithTimeout(metadataUrl)
+					const data = response ? await response.text() : ''
 					const operatorMetadata = validateMetadata(data)
 
 					if (operatorMetadata) {
@@ -74,6 +76,7 @@ export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 							operatorList.set(operatorAddress, {
 								metadataUrl: metadataUrl,
 								metadata: operatorMetadata,
+								isMetadataSynced: true,
 								createdAtBlock: existingRecord.createdAtBlock,
 								updatedAtBlock: blockNumber,
 								createdAt: existingRecord.createdAt,
@@ -84,6 +87,7 @@ export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 							operatorList.set(operatorAddress, {
 								metadataUrl: metadataUrl,
 								metadata: operatorMetadata,
+								isMetadataSynced: true,
 								createdAtBlock: blockNumber,
 								updatedAtBlock: blockNumber,
 								createdAt: timestamp,
@@ -100,14 +104,26 @@ export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 				if (!existingRecord) {
 					// Operator not registered, invalid metadata uri
 					operatorList.set(operatorAddress, {
-						metadataUrl: '',
+						metadataUrl: metadataUrl ? metadataUrl : '',
 						metadata: defaultMetadata,
+						isMetadataSynced: false,
 						createdAtBlock: blockNumber,
 						updatedAtBlock: blockNumber,
 						createdAt: timestamp,
 						updatedAt: timestamp
 					})
-				} // Ignore case where Operator is already registered and is updated with invalid metadata uri
+				} else {
+					// Ignore case where Operator is already registered and is updated with invalid metadata uri
+					operatorList.set(operatorAddress, {
+						metadataUrl: metadataUrl ? metadataUrl : '',
+						metadata: existingRecord.metadata,
+						isMetadataSynced: false,
+						createdAtBlock: existingRecord.createdAtBlock,
+						updatedAtBlock: blockNumber,
+						createdAt: existingRecord.createdAt,
+						updatedAt: timestamp
+					})
+				}
 			}
 		}
 
@@ -130,6 +146,7 @@ export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 			{
 				metadataUrl,
 				metadata,
+				isMetadataSynced,
 				createdAtBlock,
 				updatedAtBlock,
 				createdAt,
@@ -146,6 +163,7 @@ export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 				metadataTelegram: metadata.telegram,
 				metadataWebsite: metadata.website,
 				metadataX: metadata.x,
+				isMetadataSynced: isMetadataSynced,
 				createdAtBlock: createdAtBlock,
 				updatedAtBlock: updatedAtBlock,
 				createdAt: createdAt,
@@ -165,6 +183,7 @@ export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 			{
 				metadataUrl,
 				metadata,
+				isMetadataSynced,
 				createdAtBlock,
 				updatedAtBlock,
 				createdAt,
@@ -183,6 +202,7 @@ export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 						metadataTelegram: metadata.telegram,
 						metadataWebsite: metadata.website,
 						metadataX: metadata.x,
+						isMetadataSynced: isMetadataSynced,
 						updatedAtBlock: updatedAtBlock,
 						updatedAt: updatedAt
 					},
@@ -196,6 +216,7 @@ export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 						metadataTelegram: metadata.telegram,
 						metadataWebsite: metadata.website,
 						metadataX: metadata.x,
+						isMetadataSynced: isMetadataSynced,
 						createdAtBlock: createdAtBlock,
 						updatedAtBlock: updatedAtBlock,
 						createdAt: createdAt,
