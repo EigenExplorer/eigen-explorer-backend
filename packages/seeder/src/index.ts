@@ -11,6 +11,7 @@ import { seedValidators } from './seedValidators'
 import { seedQueuedWithdrawals } from './seedWithdrawalsQueued'
 import { seedCompletedWithdrawals } from './seedWithdrawalsCompleted'
 import { monitorAvsMetadata } from './monitors/avsMetadata'
+import { monitorOperatorMetadata } from './monitors/operatorMetadata'
 
 console.log('Initializing seeder ...')
 
@@ -33,8 +34,9 @@ async function seedEigenDataLoop() {
 			await seedQueuedWithdrawals(targetBlock)
 			await seedCompletedWithdrawals(targetBlock)
 			await monitorAvsMetadata()
+			await monitorOperatorMetadata()
 		} catch (error) {
-			console.log('Failed to seed AVS and Opeartors at:', Date.now())
+			console.log('Failed to seed AVS and Operators at:', Date.now())
 		}
 
 		await delay(120) // Wait for 2 minutes (120 seconds)

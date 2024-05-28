@@ -3,8 +3,8 @@ import type { EntityMetadata } from '../utils/metadata'
 import { fetchWithTimeout, bulkUpdateDbTransactions } from '../utils/seeder'
 import { isValidMetadataUrl, validateMetadata } from '../utils/metadata'
 
-export async function monitorAvsMetadata() {
-	console.log('Monitoring AVS Metadata...')
+export async function monitorOperatorMetadata() {
+	console.log('Monitoring Operator Metadata...')
 
 	const prismaClient = getPrismaClient()
 	const metadataList: Map<string, EntityMetadata> = new Map()
@@ -13,7 +13,7 @@ export async function monitorAvsMetadata() {
 	const take = 100
 
 	while (true) {
-		const avsEntries = await prismaClient.avs.findMany({
+		const operatorEntries = await prismaClient.operator.findMany({
 			where: {
 				isMetadataSynced: false
 			},
@@ -24,24 +24,24 @@ export async function monitorAvsMetadata() {
 			}
 		})
 
-		if (avsEntries.length === 0) {
+		if (operatorEntries.length === 0) {
 			break
 		}
 
-		for (const record of avsEntries) {
+		for (const record of operatorEntries) {
 			try {
 				if (record.metadataUrl && isValidMetadataUrl(record.metadataUrl)) {
 					const response = await fetchWithTimeout(record.metaDataUrl, 60000)
 					const data = response ? await response.text() : ''
-					const avsMetadata = validateMetadata(data)
+					const operatorMetadata = validateMetadata(data)
 
-					if (avsMetadata) {
-						metadataList.set(record.address, avsMetadata)
+					if (operatorMetadata) {
+						metadataList.set(record.address, operatorMetadata)
 					} else {
-						throw new Error('Invalid avs metadata uri')
+						throw new Error('Invalid operator metadata uri')
 					}
 				} else {
-					throw new Error('Invalid avs metadata uri')
+					throw new Error('Invalid operator metadata uri')
 				}
 			} catch (error) {}
 		}
@@ -54,7 +54,7 @@ export async function monitorAvsMetadata() {
 
 	for (const [address, metadata] of metadataList) {
 		dbTransactions.push(
-			prismaClient.avs.update({
+			prismaClient.operator.update({
 				where: { address },
 				data: {
 					metadataName: metadata.name,

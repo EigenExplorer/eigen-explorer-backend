@@ -88,7 +88,7 @@ export async function fetchWithTimeout(
 		}
 		return response
 	} catch (error) {
-		console.error('Fetch failed:', error)
+		console.error('Fetch failed')
 		return null
 	}
 }
