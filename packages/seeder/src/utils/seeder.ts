@@ -73,7 +73,7 @@ export async function saveLastSyncBlock(key: string, blockNumber: bigint) {
 
 export async function fetchWithTimeout(
 	url: string,
-	timeout = 10000
+	timeout = 20000
 ): Promise<Response | null> {
 	const timeoutPromise = new Promise<null>((resolve) =>
 		setTimeout(() => resolve(null), timeout)
