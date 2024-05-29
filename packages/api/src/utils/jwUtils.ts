@@ -10,8 +10,6 @@ export function authenticateJWT(
 	next: NextFunction
 ) {
 	const token = req.header('Authorization')?.split(' ')[1]
-	console.log('token: ', token)
-	console.log('JWT_SECRET: ', JWT_SECRET)
 
 	if (!token) {
 		return res

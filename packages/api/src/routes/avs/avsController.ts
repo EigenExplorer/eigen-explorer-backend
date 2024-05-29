@@ -80,7 +80,7 @@ export async function getAllAVS(req: Request, res: Response) {
 								shares,
 								strategiesWithSharesUnderlying,
 								strategyTokenPrices
-						  )
+							)
 						: undefined,
 					operators: undefined
 				}
@@ -208,7 +208,7 @@ export async function getAVS(req: Request, res: Response) {
 						shares,
 						strategiesWithSharesUnderlying,
 						strategyTokenPrices
-				  )
+					)
 				: undefined,
 			operators: undefined
 		})
@@ -349,7 +349,7 @@ export async function getAVSOperators(req: Request, res: Response) {
 						operator.shares,
 						strategiesWithSharesUnderlying,
 						strategyTokenPrices
-				  )
+					)
 				: undefined,
 			stakers: undefined
 		}))
@@ -445,7 +445,7 @@ export function getAvsFilterQuery(filterName?: boolean) {
 						}
 					}
 				]
-		  }
+			}
 		: {}
 
 	return getNetwork().testnet
@@ -465,7 +465,7 @@ export function getAvsFilterQuery(filterName?: boolean) {
 						]
 					}
 				]
-		  }
+			}
 		: {
 				AND: [
 					queryWithName,
@@ -475,5 +475,26 @@ export function getAvsFilterQuery(filterName?: boolean) {
 						}
 					}
 				]
-		  }
+			}
+}
+
+/**
+ * Route to invalidate the metadata of a given address
+ *
+ * @param req
+ * @param res
+ */
+export async function invalidateMetadata(req: Request, res: Response) {
+	const { address } = req.params
+
+	try {
+		await prisma.avs.update({
+			where: { address: address.toLowerCase() },
+			data: { isMetadataSynced: false }
+		})
+
+		res.send({ message: 'Metadata invalidated successfully.' })
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
 }
