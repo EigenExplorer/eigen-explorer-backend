@@ -74,21 +74,19 @@ export async function saveLastSyncBlock(key: string, blockNumber: bigint) {
 export async function fetchWithTimeout(
 	url: string,
 	timeout = 20000
-): Promise<Response | null> {
-	const timeoutPromise = new Promise<null>((resolve) =>
-		setTimeout(() => resolve(null), timeout)
-	)
+): Promise<Response> {
+	const controller = new AbortController()
+	const timeoutId = setTimeout(() => controller.abort(), timeout)
 
 	try {
-		const fetchPromise = fetch(url)
-		const response = await Promise.race([fetchPromise, timeoutPromise])
-		if (response === null) {
-			console.log('Fetch timed out')
-			return null
-		}
+		const response = await fetch(url, { signal: controller.signal })
 		return response
 	} catch (error) {
-		console.error('Fetch failed')
-		return null
+		if (error.name === 'AbortError') {
+			throw new Error('Request timed out')
+		}
+		throw error
+	} finally {
+		clearTimeout(timeoutId)
 	}
 }

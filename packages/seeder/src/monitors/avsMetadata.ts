@@ -31,7 +31,7 @@ export async function monitorAvsMetadata() {
 		for (const record of avsEntries) {
 			try {
 				if (record.metadataUrl && isValidMetadataUrl(record.metadataUrl)) {
-					const response = await fetchWithTimeout(record.metaDataUrl, 60000)
+					const response = await fetchWithTimeout(record.metadataUrl, 60000)
 					const data = response ? await response.text() : ''
 					const avsMetadata = validateMetadata(data)
 
@@ -72,5 +72,5 @@ export async function monitorAvsMetadata() {
 
 	await bulkUpdateDbTransactions(dbTransactions)
 
-	console.log('Updated records :', metadataList.size)
+	console.log('Updated AVS metadatas: ', metadataList.size)
 }
