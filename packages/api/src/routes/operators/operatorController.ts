@@ -52,7 +52,7 @@ export async function getAllOperators(req: Request, res: Response) {
 						operator.shares,
 						strategiesWithSharesUnderlying,
 						strategyTokenPrices
-				  )
+					)
 				: undefined,
 			stakers: undefined
 		}))
@@ -110,10 +110,31 @@ export async function getOperator(req: Request, res: Response) {
 						operator.shares,
 						strategiesWithSharesUnderlying,
 						strategyTokenPrices
-				  )
+					)
 				: undefined,
 			stakers: undefined
 		})
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+/**
+ * Route to invalidate the metadata of a given address
+ *
+ * @param req
+ * @param res
+ */
+export async function invalidateMetadata(req: Request, res: Response) {
+	const { address } = req.params
+
+	try {
+		await prisma.operator.update({
+			where: { address: address.toLowerCase() },
+			data: { isMetadataSynced: false }
+		})
+
+		res.send({ message: 'Metadata invalidated successfully.' })
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
 	}

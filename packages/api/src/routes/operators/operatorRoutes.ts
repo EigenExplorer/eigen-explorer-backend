@@ -1,7 +1,12 @@
 import express from 'express'
-import { getAllOperators, getOperator } from './operatorController'
+import {
+	getAllOperators,
+	getOperator,
+	invalidateMetadata
+} from './operatorController'
+import { authenticateJWT } from '../../utils/jwUtils'
 
-import routeCache from "route-cache";
+import routeCache from 'route-cache'
 
 const router = express.Router()
 
@@ -96,5 +101,14 @@ router.get('/', routeCache.cacheSeconds(120), getAllOperators)
  *               example: 'Operator not found.'
  */
 router.get('/:address', routeCache.cacheSeconds(120), getOperator)
+
+// For internal use
+
+router.get(
+	'/:address/invalidateMetadata',
+	authenticateJWT,
+	routeCache.cacheSeconds(120),
+	invalidateMetadata
+)
 
 export default router

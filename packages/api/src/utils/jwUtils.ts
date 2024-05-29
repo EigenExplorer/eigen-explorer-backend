@@ -1,0 +1,28 @@
+import 'dotenv/config'
+import jwt from 'jsonwebtoken'
+import { Request, Response, NextFunction } from 'express'
+
+const JWT_SECRET = process.env.JWT_SECRET || ''
+
+export function authenticateJWT(
+	req: Request,
+	res: Response,
+	next: NextFunction
+) {
+	const token = req.header('Authorization')?.split(' ')[1]
+	console.log('token: ', token)
+	console.log('JWT_SECRET: ', JWT_SECRET)
+
+	if (!token) {
+		return res
+			.status(401)
+			.json({ message: 'Access denied. No token provided.' })
+	}
+
+	try {
+		jwt.verify(token, JWT_SECRET)
+		next()
+	} catch (error) {
+		res.status(400).json({ message: 'Invalid token.' })
+	}
+}
