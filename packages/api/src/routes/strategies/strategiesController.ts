@@ -229,6 +229,10 @@ export function sharesToTVL(
 		new Map(
 			strategyKeys.map((sk) => [sk as keyof EigenStrategiesContractAddress, 0])
 		)
+	const tvlStrategiesEth: Map<keyof EigenStrategiesContractAddress, number> =
+		new Map(
+			strategyKeys.map((sk) => [sk as keyof EigenStrategiesContractAddress, 0])
+		)
 
 	restakingStrategies.map((s) => {
 		const foundStrategyIndex = strategies.findIndex(
@@ -261,6 +265,14 @@ export function sharesToTVL(
 
 			if (strategyTokenPrice) {
 				const strategyTvl = strategyShares * strategyTokenPrice.eth
+
+				tvlStrategiesEth.set(
+					strategyKeys[
+						foundStrategyIndex
+					] as keyof EigenStrategiesContractAddress,
+					strategyTvl
+				)
+
 				tvlRestaking = tvlRestaking + strategyTvl
 			}
 		}
@@ -271,6 +283,7 @@ export function sharesToTVL(
 		tvlBeaconChain,
 		tvlWETH: tvlStrategies.has('WETH') ? tvlStrategies.get('WETH') : 0,
 		tvlRestaking,
-		tvlStrategies: Object.fromEntries(tvlStrategies.entries())
+		tvlStrategies: Object.fromEntries(tvlStrategies.entries()),
+		tvlStrategiesEth: Object.fromEntries(tvlStrategiesEth.entries())
 	}
 }
