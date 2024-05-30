@@ -33,8 +33,6 @@ async function seedEigenDataLoop() {
 			await seedOperatorShares(targetBlock)
 			await seedQueuedWithdrawals(targetBlock)
 			await seedCompletedWithdrawals(targetBlock)
-			await monitorAvsMetadata()
-			await monitorOperatorMetadata()
 		} catch (error) {
 			console.log('Failed to seed AVS and Operators at:', Date.now())
 		}
@@ -62,5 +60,19 @@ async function seedEigenPodValidators() {
 	}
 }
 
+async function monitorDBLoop() {
+	while (true) {
+		try {
+			await monitorAvsMetadata()
+			await monitorOperatorMetadata()
+		} catch (error) {
+			console.log('Failed to monitor DB at: ', Date.now())
+		}
+
+		await delay(420) // Wait for 7 minutes (420 seconds)
+	}
+}
+
 seedEigenDataLoop()
 seedEigenPodValidators()
+monitorDBLoop()

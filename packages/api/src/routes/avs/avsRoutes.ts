@@ -7,7 +7,7 @@ import {
 	getAVSStakers,
 	invalidateMetadata
 } from './avsController'
-import { authenticateJWT } from '../../utils/jwUtils'
+import { authenticateJWT } from '../../utils/jwtUtils'
 
 import routeCache from 'route-cache'
 
@@ -25,7 +25,7 @@ router.get('/:address/stakers', routeCache.cacheSeconds(120), getAVSStakers)
 router.get('/:address/operators', routeCache.cacheSeconds(120), getAVSOperators)
 
 router.get(
-	'/:address/invalidateMetadata',
+	'/:address/invalidate-metadata',
 	authenticateJWT,
 	routeCache.cacheSeconds(120),
 	invalidateMetadata

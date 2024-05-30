@@ -31,7 +31,7 @@ export async function monitorOperatorMetadata() {
 		for (const record of operatorEntries) {
 			try {
 				if (record.metadataUrl && isValidMetadataUrl(record.metadataUrl)) {
-					const response = await fetchWithTimeout(record.metadataUrl, 60000)
+					const response = await fetchWithTimeout(record.metadataUrl)
 					const data = response ? await response.text() : ''
 					const operatorMetadata = validateMetadata(data)
 

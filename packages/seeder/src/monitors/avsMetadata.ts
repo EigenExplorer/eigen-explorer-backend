@@ -31,7 +31,7 @@ export async function monitorAvsMetadata() {
 		for (const record of avsEntries) {
 			try {
 				if (record.metadataUrl && isValidMetadataUrl(record.metadataUrl)) {
-					const response = await fetchWithTimeout(record.metadataUrl, 60000)
+					const response = await fetchWithTimeout(record.metadataUrl)
 					const data = response ? await response.text() : ''
 					const avsMetadata = validateMetadata(data)
 

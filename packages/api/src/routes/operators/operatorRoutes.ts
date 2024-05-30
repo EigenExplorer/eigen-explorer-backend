@@ -4,7 +4,7 @@ import {
 	getOperator,
 	invalidateMetadata
 } from './operatorController'
-import { authenticateJWT } from '../../utils/jwUtils'
+import { authenticateJWT } from '../../utils/jwtUtils'
 
 import routeCache from 'route-cache'
 
@@ -105,7 +105,7 @@ router.get('/:address', routeCache.cacheSeconds(120), getOperator)
 // For internal use
 
 router.get(
-	'/:address/invalidateMetadata',
+	'/:address/invalidate-metadata',
 	authenticateJWT,
 	routeCache.cacheSeconds(120),
 	invalidateMetadata

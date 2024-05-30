@@ -58,33 +58,42 @@ export async function getAllAVS(req: Request, res: Response) {
 			: []
 
 		const data = await Promise.all(
-			avsRecords.map(async (avs) => {
-				const totalOperators = avs.operators.length
-				const totalStakers = await prisma.staker.count({
-					where: {
-						operatorAddress: {
-							in: avs.operators.map((o) => o.operatorAddress)
+			avsRecords.map(
+				async ({
+					createdAtBlock,
+					updatedAtBlock,
+					isMetadataSynced,
+					...avs
+				}) => {
+					const totalOperators = avs.operators.length
+					const totalStakers = await prisma.staker.count({
+						where: {
+							operatorAddress: {
+								in: avs.operators.map((o) => o.operatorAddress)
+							}
 						}
+					})
+
+					const shares = withOperatorShares(avs.operators)
+
+					return {
+						...withCuratedMetadata(avs),
+						createdAtBlock: createdAtBlock.toString(),
+						updatedAtBlock: updatedAtBlock.toString(),
+						shares,
+						totalOperators,
+						totalStakers,
+						tvl: withTvl
+							? sharesToTVL(
+									shares,
+									strategiesWithSharesUnderlying,
+									strategyTokenPrices
+								)
+							: undefined,
+						operators: undefined
 					}
-				})
-
-				const shares = withOperatorShares(avs.operators)
-
-				return {
-					...withCuratedMetadata(avs),
-					shares,
-					totalOperators,
-					totalStakers,
-					tvl: withTvl
-						? sharesToTVL(
-								shares,
-								strategiesWithSharesUnderlying,
-								strategyTokenPrices
-							)
-						: undefined,
-					operators: undefined
 				}
-			})
+			)
 		)
 
 		res.send({
@@ -183,11 +192,13 @@ export async function getAVS(req: Request, res: Response) {
 			}
 		})
 
-		const totalOperators = avs.operators.length
+		const { createdAtBlock, updatedAtBlock, isMetadataSynced, ...avsResponse } =
+			avs
+		const totalOperators = avsResponse.operators.length
 		const totalStakers = await prisma.staker.count({
 			where: {
 				operatorAddress: {
-					in: avs.operators.map((o) => o.operatorAddress)
+					in: avsResponse.operators.map((o) => o.operatorAddress)
 				}
 			}
 		})
@@ -199,7 +210,9 @@ export async function getAVS(req: Request, res: Response) {
 			: []
 
 		res.send({
-			...withCuratedMetadata(avs),
+			...withCuratedMetadata(avsResponse),
+			createdAtBlock: createdAtBlock.toString(),
+			updatedAtBlock: updatedAtBlock.toString(),
 			shares,
 			totalOperators,
 			totalStakers,
@@ -367,6 +380,36 @@ export async function getAVSOperators(req: Request, res: Response) {
 	}
 }
 
+/**
+ * Route to invalidate the metadata of a given address
+ *
+ * @param req
+ * @param res
+ */
+export async function invalidateMetadata(req: Request, res: Response) {
+	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	}
+
+	try {
+		const { address } = req.params
+
+		const updateResult = await prisma.avs.updateMany({
+			where: { address: address.toLowerCase() },
+			data: { isMetadataSynced: false }
+		})
+
+		if (updateResult.count === 0) {
+			throw new Error('Address not found.')
+		}
+
+		res.send({ message: 'Metadata invalidated successfully.' })
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
 // Helper methods
 function withOperatorShares(avsOperators) {
 	const sharesMap: IMap<string, string> = new Map()
@@ -476,34 +519,4 @@ export function getAvsFilterQuery(filterName?: boolean) {
 					}
 				]
 			}
-}
-
-/**
- * Route to invalidate the metadata of a given address
- *
- * @param req
- * @param res
- */
-export async function invalidateMetadata(req: Request, res: Response) {
-	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
-	if (!paramCheck.success) {
-		return handleAndReturnErrorResponse(req, res, paramCheck.error)
-	}
-
-	try {
-		const { address } = req.params
-
-		const updateResult = await prisma.avs.updateMany({
-			where: { address: address.toLowerCase() },
-			data: { isMetadataSynced: false }
-		})
-
-		if (updateResult.count === 0) {
-			throw new Error('Address not found.')
-		}
-
-		res.send({ message: 'Metadata invalidated successfully.' })
-	} catch (error) {
-		handleAndReturnErrorResponse(req, res, error)
-	}
 }

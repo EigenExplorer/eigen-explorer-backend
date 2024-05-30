@@ -45,18 +45,22 @@ export async function getAllOperators(req: Request, res: Response) {
 			? await getStrategiesWithShareUnderlying()
 			: []
 
-		const operators = operatorRecords.map((operator) => ({
-			...operator,
-			totalStakers: operator.stakers.length,
-			tvl: withTvl
-				? sharesToTVL(
-						operator.shares,
-						strategiesWithSharesUnderlying,
-						strategyTokenPrices
-					)
-				: undefined,
-			stakers: undefined
-		}))
+		const operators = operatorRecords.map(
+			({ createdAtBlock, updatedAtBlock, isMetadataSynced, ...operator }) => ({
+				...operator,
+				createdAtBlock: createdAtBlock.toString(),
+				updatedAtBlock: updatedAtBlock.toString(),
+				totalStakers: operator.stakers.length,
+				tvl: withTvl
+					? sharesToTVL(
+							operator.shares,
+							strategiesWithSharesUnderlying,
+							strategyTokenPrices
+						)
+					: undefined,
+				stakers: undefined
+			})
+		)
 
 		res.send({
 			data: operators,
@@ -103,8 +107,17 @@ export async function getOperator(req: Request, res: Response) {
 			? await getStrategiesWithShareUnderlying()
 			: []
 
+		const {
+			createdAtBlock,
+			updatedAtBlock,
+			isMetadataSynced,
+			...operatorResponse
+		} = operator
+
 		res.send({
-			...operator,
+			...operatorResponse,
+			createdAtBlock: createdAtBlock.toString(),
+			updatedAtBlock: updatedAtBlock.toString(),
 			totalStakers: operator.stakers.length,
 			tvl: withTvl
 				? sharesToTVL(
