@@ -485,13 +485,22 @@ export function getAvsFilterQuery(filterName?: boolean) {
  * @param res
  */
 export async function invalidateMetadata(req: Request, res: Response) {
-	const { address } = req.params
+	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	}
 
 	try {
-		await prisma.avs.update({
+		const { address } = req.params
+
+		const updateResult = await prisma.avs.updateMany({
 			where: { address: address.toLowerCase() },
 			data: { isMetadataSynced: false }
 		})
+
+		if (updateResult.count === 0) {
+			throw new Error('Address not found.')
+		}
 
 		res.send({ message: 'Metadata invalidated successfully.' })
 	} catch (error) {
