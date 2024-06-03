@@ -116,14 +116,14 @@ model StakerStrategyShares {
 }
 
 model Deposit {
-  txHash          String      @id
-  staker          String      
+  txHash          String  @id unique
+  stakerAddress   String      
   token           String
   strategy        String
   shares          String
 
-  blockNumber BigInt    @default(0)
-  timestamp   DateTime  @default(now())
+  createdAtBlock  BigInt    @default(0)
+  createdAt       DateTime  @default(now())
 }
 
 model Pod {
