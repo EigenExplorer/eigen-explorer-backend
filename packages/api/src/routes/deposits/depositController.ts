@@ -53,7 +53,7 @@ export async function getAllDeposits(req: Request, res: Response) {
 		const data = depositRecords.map((deposit) => {
 			return {
 				...deposit,
-				createdAtBlock: Number(deposit.createdAtBlock),
+				createdAtBlock: Number(deposit.createdAtBlock)
 			}
 		})
 
