@@ -116,10 +116,10 @@ model StakerStrategyShares {
 }
 
 model Deposit {
-  txHash          String  @id unique
+  txHash          String  @id @unique
   stakerAddress   String      
-  token           String
-  strategy        String
+  tokenAddress    String
+  strategyAddress String
   shares          String
 
   createdAtBlock  BigInt    @default(0)

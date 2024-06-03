@@ -19,8 +19,8 @@ interface DepositEntryRecord {
 	token: string
 	strategy: string
 	shares: string
-	blockNumber: bigint
-	timestamp: Date
+	createdAtBlock: bigint
+	createdAt: Date
 }
 
 /**
@@ -62,12 +62,12 @@ export async function seedDeposits(toBlock?: bigint, fromBlock?: bigint) {
 
 				depositList.push({
 					txHash: String(log.transactionHash).toLowerCase(),
-					staker: String(log.args.staker).toLowerCase(),
-					token: String(log.args.token).toLowerCase(),
-					strategy: String(log.args.strategy).toLowerCase(),
+					stakerAddress: String(log.args.staker).toLowerCase(),
+					tokenAddress: String(log.args.token).toLowerCase(),
+					strategyAddress: String(log.args.strategy).toLowerCase(),
 					shares: String(log.args.shares),
-					blockNumber: blockNumber,
-					timestamp: timestamp
+					createdAtBlock: blockNumber,
+					createdAt: timestamp
 				})
 			} catch (error) {
 				console.log('Failed to seed deposit: ', error)
@@ -90,21 +90,21 @@ export async function seedDeposits(toBlock?: bigint, fromBlock?: bigint) {
 
 		for (const {
 			txHash,
-			staker,
-			token,
-			strategy,
+			stakerAddress,
+			tokenAddress,
+			strategyAddress,
 			shares,
-			blockNumber,
-			timestamp
+			createdAtBlock,
+			createdAt
 		} of depositList) {
 			newDeposit.push({
 				txHash,
-				staker,
-				token,
-				strategy,
+				stakerAddress,
+				tokenAddress,
+				strategyAddress,
 				shares,
-				blockNumber,
-				timestamp
+				createdAtBlock,
+				createdAt
 			})
 		}
 
@@ -117,12 +117,12 @@ export async function seedDeposits(toBlock?: bigint, fromBlock?: bigint) {
 	} else {
 		for (const {
 			txHash,
-			staker,
-			token,
-			strategy,
+			stakerAddress,
+			tokenAddress,
+			strategyAddress,
 			shares,
-			blockNumber,
-			timestamp
+			createdAtBlock,
+			createdAt
 		} of depositList) {
 			dbTransactions.push(
 				prismaClient.deposit.upsert({
@@ -130,12 +130,12 @@ export async function seedDeposits(toBlock?: bigint, fromBlock?: bigint) {
 					update: {},
 					create: {
 						txHash,
-						staker,
-						token,
-						strategy,
+						stakerAddress,
+						tokenAddress,
+						strategyAddress,
 						shares,
-						blockNumber,
-						timestamp
+						createdAtBlock,
+						createdAt
 					}
 				})
 			)
