@@ -9,6 +9,7 @@ import {
 import { strategyAbi } from '../../data/abi/strategy'
 import { TokenPrices } from '../../utils/tokenPrices'
 import { cacheStore } from 'route-cache'
+import { serviceManagerUIAbi } from '../../data/abi/serviceManagerUIAbi'
 
 // ABI path for dynamic imports
 const abiPath = {
@@ -286,4 +287,22 @@ export function sharesToTVL(
 		tvlStrategies: Object.fromEntries(tvlStrategies.entries()),
 		tvlStrategiesEth: Object.fromEntries(tvlStrategiesEth.entries())
 	}
+}
+
+export async function getRestakeableStrategies(
+	avsAddress: string
+): Promise<string[]> {
+	try {
+		const viemClient = getViemClient()
+
+		const strategies = (await viemClient.readContract({
+			address: avsAddress as `0x${string}`,
+			abi: serviceManagerUIAbi,
+			functionName: 'getRestakeableStrategies'
+		})) as string[]
+
+		return strategies.map(s => s.toLowerCase())
+	} catch (error) {}
+
+	return []
 }
