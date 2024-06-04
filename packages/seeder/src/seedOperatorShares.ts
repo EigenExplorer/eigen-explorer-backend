@@ -1,5 +1,3 @@
-import { parseAbiItem } from 'viem'
-import { getEigenContracts } from './data/address'
 import { getViemClient } from './utils/viemClient'
 import { getPrismaClient } from './utils/prismaClient'
 import {
@@ -7,7 +5,6 @@ import {
 	bulkUpdateDbTransactions,
 	fetchLastSyncBlock,
 	IMap,
-	loopThroughBlocks,
 	saveLastSyncBlock
 } from './utils/seeder'
 
@@ -32,93 +29,104 @@ export async function seedOperatorShares(toBlock?: bigint, fromBlock?: bigint) {
 		await prismaClient.operatorStrategyShares.deleteMany()
 	}
 
-	// Loop through evm logs
-	await loopThroughBlocks(firstBlock, lastBlock, async (fromBlock, toBlock) => {
-		const logs = await viemClient.getLogs({
-			address: getEigenContracts().DelegationManager,
-			events: [
-				parseAbiItem(
-					'event OperatorSharesIncreased(address indexed operator, address staker, address strategy, uint256 shares)'
-				),
-				parseAbiItem(
-					'event OperatorSharesDecreased(address indexed operator, address staker, address strategy, uint256 shares)'
-				)
-			],
-			fromBlock,
-			toBlock
-		})
-
-		// Operators list
-		const operatorAddresses = logs.map((l) =>
-			String(l.args.operator).toLowerCase()
-		)
-
-		const operatorInit = await prismaClient.operator.findMany({
-			where: { address: { in: operatorAddresses } },
-			include: {
-				shares: true
-			}
-		})
-
-		for (const l in logs) {
-			const log = logs[l]
-
-			const operatorAddress = String(log.args.operator).toLowerCase()
-			const strategyAddress = String(log.args.strategy).toLowerCase()
-			const shares = log.args.shares
-			if (!shares) continue
-
-			// Load existing staker shares data
-			if (!operatorShares.has(operatorAddress)) {
-				const foundOperatorInit = operatorInit.find(
-					(o) => o.address.toLowerCase() === operatorAddress.toLowerCase()
-				)
-				if (foundOperatorInit) {
-					operatorShares.set(
-						operatorAddress,
-						foundOperatorInit.shares.map((o) => ({
-							...o,
-							shares: BigInt(o.shares)
-						}))
-					)
-				} else {
-					operatorShares.set(operatorAddress, [])
+	const logsOperatorSharesIncreased =
+		await prismaClient.eventLogs_OperatorSharesIncreased
+			.findMany({
+				where: {
+					blockNumber: {
+						gte: fromBlock,
+						lte: toBlock
+					}
 				}
-			}
+			})
+			.then((logs) =>
+				logs.map((log) => ({ ...log, eventName: 'OperatorSharesIncreased' }))
+			)
 
-			let foundSharesIndex = operatorShares
+	const logsOperatorSharesDecreased =
+		await prismaClient.eventLogs_OperatorSharesDecreased
+			.findMany({
+				where: {
+					blockNumber: {
+						gte: fromBlock,
+						lte: toBlock
+					}
+				}
+			})
+			.then((logs) =>
+				logs.map((log) => ({ ...log, eventName: 'OperatorSharesDecreased' }))
+			)
+
+	const logs = [...logsOperatorSharesIncreased, ...logsOperatorSharesDecreased]
+
+	// Operators list
+	const operatorAddresses = logs.map((l) => String(l.operator).toLowerCase())
+
+	const operatorInit = await prismaClient.operator.findMany({
+		where: { address: { in: operatorAddresses } },
+		include: {
+			shares: true
+		}
+	})
+
+	for (const l in logs) {
+		const log = logs[l]
+
+		const operatorAddress = String(log.operator).toLowerCase()
+		const strategyAddress = String(log.strategy).toLowerCase()
+		const shares = BigInt(log.shares)
+		if (!shares) continue
+
+		// Load existing staker shares data
+		if (!operatorShares.has(operatorAddress)) {
+			const foundOperatorInit = operatorInit.find(
+				(o) => o.address.toLowerCase() === operatorAddress.toLowerCase()
+			)
+			if (foundOperatorInit) {
+				operatorShares.set(
+					operatorAddress,
+					foundOperatorInit.shares.map((o) => ({
+						...o,
+						shares: BigInt(o.shares)
+					}))
+				)
+			} else {
+				operatorShares.set(operatorAddress, [])
+			}
+		}
+
+		let foundSharesIndex = operatorShares
+			.get(operatorAddress)
+			.findIndex(
+				(os) =>
+					os.strategyAddress.toLowerCase() === strategyAddress.toLowerCase()
+			)
+
+		if (foundSharesIndex !== undefined && foundSharesIndex === -1) {
+			operatorShares
+				.get(operatorAddress)
+				.push({ shares: 0n, strategyAddress: strategyAddress })
+
+			foundSharesIndex = operatorShares
 				.get(operatorAddress)
 				.findIndex(
 					(os) =>
 						os.strategyAddress.toLowerCase() === strategyAddress.toLowerCase()
 				)
-
-			if (foundSharesIndex !== undefined && foundSharesIndex === -1) {
-				operatorShares
-					.get(operatorAddress)
-					.push({ shares: 0n, strategyAddress: strategyAddress })
-
-				foundSharesIndex = operatorShares
-					.get(operatorAddress)
-					.findIndex(
-						(os) =>
-							os.strategyAddress.toLowerCase() === strategyAddress.toLowerCase()
-					)
-			}
-
-			if (log.eventName === 'OperatorSharesIncreased') {
-				operatorShares.get(operatorAddress)[foundSharesIndex].shares =
-					operatorShares.get(operatorAddress)[foundSharesIndex].shares + shares
-			} else if (log.eventName === 'OperatorSharesDecreased') {
-				operatorShares.get(operatorAddress)[foundSharesIndex].shares =
-					operatorShares.get(operatorAddress)[foundSharesIndex].shares - shares
-			}
 		}
 
-		console.log(
-			`Operator shares updated between blocks ${fromBlock} ${toBlock}: ${logs.length}`
-		)
-	})
+		if (log.eventName === 'OperatorSharesIncreased') {
+			operatorShares.get(operatorAddress)[foundSharesIndex].shares =
+				operatorShares.get(operatorAddress)[foundSharesIndex].shares + shares
+		} else if (log.eventName === 'OperatorSharesDecreased') {
+			operatorShares.get(operatorAddress)[foundSharesIndex].shares =
+				operatorShares.get(operatorAddress)[foundSharesIndex].shares - shares
+		}
+	}
+
+	console.log(
+		`Operator shares updated between blocks ${fromBlock} ${toBlock}: ${logs.length}`
+	)
 
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	const dbTransactions: any[] = []

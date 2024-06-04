@@ -1,12 +1,9 @@
-import { parseAbiItem } from 'viem'
 import { getViemClient } from './utils/viemClient'
-import { getEigenContracts } from './data/address'
 import { getPrismaClient } from './utils/prismaClient'
 import {
 	baseBlock,
 	bulkUpdateDbTransactions,
 	fetchLastSyncBlock,
-	loopThroughBlocks,
 	saveLastSyncBlock
 } from './utils/seeder'
 
@@ -31,34 +28,30 @@ export async function seedAvsOperators(toBlock?: bigint, fromBlock?: bigint) {
 
 	avs.map((a) => avsOperatorsList.set(a.address, new Map()))
 
-	// Loop through evm logs
-	await loopThroughBlocks(firstBlock, lastBlock, async (fromBlock, toBlock) => {
-		const logs = await viemClient.getLogs({
-			address: getEigenContracts().AVSDirectory,
-			event: parseAbiItem(
-				'event OperatorAVSRegistrationStatusUpdated(address indexed operator, address indexed avs, uint8 status)'
-			),
-			fromBlock,
-			toBlock
+	const logs =
+		await prismaClient.eventLogs_OperatorAVSRegistrationStatusUpdated.findMany({
+			where: {
+				blockNumber: {
+					gte: fromBlock,
+					lte: toBlock
+				}
+			}
 		})
 
-		for (const l in logs) {
-			const log = logs[l]
+	for (const l in logs) {
+		const log = logs[l]
 
-			const avsAddress = String(log.args.avs).toLowerCase()
-			const operatorAddress = String(log.args.operator).toLowerCase()
+		const avsAddress = String(log.avs).toLowerCase()
+		const operatorAddress = String(log.operator).toLowerCase()
 
-			if (avsOperatorsList.has(avsAddress)) {
-				avsOperatorsList
-					.get(avsAddress)
-					?.set(operatorAddress, log.args.status || 0)
-			}
+		if (avsOperatorsList.has(avsAddress)) {
+			avsOperatorsList.get(avsAddress)?.set(operatorAddress, log.status || 0)
 		}
+	}
 
-		console.log(
-			`Avs operators updated between blocks ${fromBlock} ${toBlock}: ${logs.length}`
-		)
-	})
+	console.log(
+		`Avs operators updated between blocks ${fromBlock} ${toBlock}: ${logs.length}`
+	)
 
 	// Prepare db transaction object
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>

@@ -6,6 +6,8 @@ import { seedOperators } from './seedOperators'
 import { seedPods } from './seedPods'
 import { seedStakers } from './seedStakers'
 import { getViemClient } from './utils/viemClient'
+import { seedBlockData } from './events/seedBlockData'
+import { seedEventLogs } from './events/seedEventLogs'
 import { seedOperatorShares } from './seedOperatorShares'
 import { seedValidators } from './seedValidators'
 import { seedQueuedWithdrawals } from './seedWithdrawalsQueued'
@@ -17,11 +19,30 @@ function delay(seconds: number) {
 	return new Promise((resolve) => setTimeout(resolve, seconds * 1000))
 }
 
-async function seedEigenDataLoop() {
+async function seedEventLogsLoop() {
 	while (true) {
 		try {
 			const viemClient = getViemClient()
 			const targetBlock = await viemClient.getBlockNumber()
+			console.log('Seeding Block & Log Data ...', targetBlock)
+
+			await seedBlockData(targetBlock)
+			await seedEventLogs(targetBlock)
+		} catch (error) {
+			console.log('Failed to seed Block and Log Data at:', Date.now())
+			console.log(error)
+		}
+
+		await delay(90)
+	}
+}
+
+async function seedEigenDataLoop() {
+	while (true) {
+		try {
+			const viemClient = getViemClient()
+			const targetBlock = await viemClient.getBlockNumber() // TODO: get targetBlock from Settings (lastSyncBlock_logs)
+
 			console.log('Seeding Eigen Data ...', targetBlock)
 
 			await seedAvs(targetBlock)
@@ -58,5 +79,6 @@ async function seedEigenPodValidators() {
 	}
 }
 
+seedEventLogsLoop()
 seedEigenDataLoop()
 seedEigenPodValidators()
