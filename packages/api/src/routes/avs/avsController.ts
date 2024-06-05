@@ -6,6 +6,7 @@ import { EthereumAddressSchema } from '../../schema/zod/schemas/base/ethereumAdd
 import { IMap } from '../../schema/generic'
 import { WithTvlQuerySchema } from '../../schema/zod/schemas/withTvlQuery'
 import {
+	getRestakeableStrategies,
 	getStrategiesWithShareUnderlying,
 	sharesToTVL
 } from '../strategies/strategiesController'
@@ -59,6 +60,10 @@ export async function getAllAVS(req: Request, res: Response) {
 
 		const data = await Promise.all(
 			avsRecords.map(async (avs) => {
+				const restakeableStrategies = await getRestakeableStrategies(
+					avs.address
+				)
+
 				const totalOperators = avs.operators.length
 				const totalStakers = await prisma.staker.count({
 					where: {
@@ -68,7 +73,11 @@ export async function getAllAVS(req: Request, res: Response) {
 					}
 				})
 
-				const shares = withOperatorShares(avs.operators)
+				const shares = withOperatorShares(avs.operators).filter(
+					(s) =>
+						restakeableStrategies.indexOf(s.strategyAddress.toLowerCase()) !==
+						-1
+				)
 
 				return {
 					...withCuratedMetadata(avs),
@@ -192,7 +201,11 @@ export async function getAVS(req: Request, res: Response) {
 			}
 		})
 
-		const shares = withOperatorShares(avs.operators)
+		const restakeableStrategies = await getRestakeableStrategies(avs.address)
+		const shares = withOperatorShares(avs.operators).filter(
+			(s) =>
+				restakeableStrategies.indexOf(s.strategyAddress.toLowerCase()) !== -1
+		)
 		const strategyTokenPrices = withTvl ? await fetchStrategyTokenPrices() : {}
 		const strategiesWithSharesUnderlying = withTvl
 			? await getStrategiesWithShareUnderlying()
@@ -336,23 +349,31 @@ export async function getAVSOperators(req: Request, res: Response) {
 			}
 		})
 
+		const restakeableStrategies = await getRestakeableStrategies(avs.address)
 		const strategyTokenPrices = withTvl ? await fetchStrategyTokenPrices() : {}
 		const strategiesWithSharesUnderlying = withTvl
 			? await getStrategiesWithShareUnderlying()
 			: []
 
-		const data = operatorsRecords.map((operator) => ({
-			...operator,
-			totalStakers: operator.stakers.length,
-			tvl: withTvl
-				? sharesToTVL(
-						operator.shares,
-						strategiesWithSharesUnderlying,
-						strategyTokenPrices
-				  )
-				: undefined,
-			stakers: undefined
-		}))
+		const data = operatorsRecords.map((operator) => {
+			const shares = operator.shares.filter(
+				(s) => restakeableStrategies.indexOf(s.strategyAddress) !== -1
+			)
+
+			return {
+				...operator,
+				shares,
+				totalStakers: operator.stakers.length,
+				tvl: withTvl
+					? sharesToTVL(
+							shares,
+							strategiesWithSharesUnderlying,
+							strategyTokenPrices
+					  )
+					: undefined,
+				stakers: undefined
+			}
+		})
 
 		res.send({
 			data,
