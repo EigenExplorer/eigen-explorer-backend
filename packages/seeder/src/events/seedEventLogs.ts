@@ -31,7 +31,7 @@ import {
 const blockSyncKey = 'lastSyncedBlock_logs'
 
 /**
- * Utility function to seed avs
+ * Utility function to seed logs for 8 events
  *
  * @param fromBlock
  * @param toBlock
@@ -72,7 +72,7 @@ export async function seedEventLogs(toBlock?: bigint, fromBlock?: bigint) {
 	const lastBlock = toBlock ? toBlock : await viemClient.getBlockNumber()
 	const blockData = await getBlockDataFromDB(firstBlock, lastBlock)
 
-	// Loop through evm logs
+	// Loop through evm logs for all 8 events from 3 contracts
 	await loopThroughBlocks(firstBlock, lastBlock, async (fromBlock, toBlock) => {
 		try {
 			const logs = await viemClient.getLogs({
@@ -111,6 +111,7 @@ export async function seedEventLogs(toBlock?: bigint, fromBlock?: bigint) {
 				toBlock
 			})
 
+			// For each event, setup different lists containing event data
 			for (const l in logs) {
 				const log = logs[l]
 
@@ -209,7 +210,7 @@ export async function seedEventLogs(toBlock?: bigint, fromBlock?: bigint) {
 		} catch (error) {}
 	})
 
-	// Prepare db transaction object
+	// Update all EventLog tables with the respective event log data
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	let dbTransactions: any[] = []
 	const flag = firstBlock === baseBlock
@@ -247,7 +248,7 @@ export async function seedEventLogs(toBlock?: bigint, fromBlock?: bigint) {
 		flag
 	)
 
-	// Storing last synced block
+	// Store last synced block
 	await saveLastSyncBlock(blockSyncKey, lastBlock)
 
 	console.log('Seeded AVSMetadataURIUpdated:', avsMetadataURIUpdatedList.size)

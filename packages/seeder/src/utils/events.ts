@@ -61,10 +61,10 @@ export interface StakerUndelegatedLog {
 export async function updateTableAVSMetadataURIUpdated(
 	dbTransactions: any[],
 	avsMetadataURIUpdatedList: Map<TransactionLog, AVSMetadataURIUpdatedLog>,
-	dropTable: boolean = false
+	deleteAll: boolean = false
 ) {
 	try {
-		if (dropTable) {
+		if (deleteAll) {
 			dbTransactions.push(
 				prismaClient.eventLogs_AVSMetadataURIUpdated.deleteMany()
 			)
@@ -147,10 +147,10 @@ export async function updateTableOperatorAVSRegistrationStatusUpdated(
 		TransactionLog,
 		OperatorAVSRegistrationStatusUpdatedLog
 	>,
-	dropTable: boolean = false
+	deleteAll: boolean = false
 ) {
 	try {
-		if (dropTable) {
+		if (deleteAll) {
 			dbTransactions.push(
 				prismaClient.eventLogs_OperatorAVSRegistrationStatusUpdated.deleteMany()
 			)
@@ -235,10 +235,10 @@ export async function updateTableOperatorMetadataURIUpdated(
 		TransactionLog,
 		OperatorMetadataURIUpdatedLog
 	>,
-	dropTable: boolean = false
+	deleteAll: boolean = false
 ) {
 	try {
-		if (dropTable) {
+		if (deleteAll) {
 			dbTransactions.push(
 				prismaClient.eventLogs_OperatorMetadataURIUpdated.deleteMany()
 			)
@@ -318,10 +318,10 @@ export async function updateTableOperatorMetadataURIUpdated(
 export async function updateTableOperatorSharesIncreased(
 	dbTransactions: any[],
 	operatorSharesIncreasedList: Map<TransactionLog, OperatorSharesIncreasedLog>,
-	dropTable: boolean = false
+	deleteAll: boolean = false
 ) {
 	try {
-		if (dropTable) {
+		if (deleteAll) {
 			dbTransactions.push(
 				prismaClient.eventLogs_OperatorSharesIncreased.deleteMany()
 			)
@@ -405,10 +405,10 @@ export async function updateTableOperatorSharesIncreased(
 export async function updateTableOperatorSharesDecreased(
 	dbTransactions: any[],
 	operatorSharesDecreasedList: Map<TransactionLog, OperatorSharesDecreasedLog>,
-	dropTable: boolean = false
+	deleteAll: boolean = false
 ) {
 	try {
-		if (dropTable) {
+		if (deleteAll) {
 			dbTransactions.push(
 				prismaClient.eventLogs_OperatorSharesDecreased.deleteMany()
 			)
@@ -492,10 +492,10 @@ export async function updateTableOperatorSharesDecreased(
 export async function updateTablePodDeployed(
 	dbTransactions: any[],
 	podDeployedList: Map<TransactionLog, PodDeployedLog>,
-	dropTable: boolean = false
+	deleteAll: boolean = false
 ) {
 	try {
-		if (dropTable) {
+		if (deleteAll) {
 			dbTransactions.push(prismaClient.eventLogs_PodDeployed.deleteMany())
 
 			const newPodDeployed: prisma.EventLogs_PodDeployed[] = []
@@ -572,10 +572,10 @@ export async function updateTablePodDeployed(
 export async function updateTableStakerDelegated(
 	dbTransactions: any[],
 	stakerDelegatedList: Map<TransactionLog, StakerDelegatedLog>,
-	dropTable: boolean = false
+	deleteAll: boolean = false
 ) {
 	try {
-		if (dropTable) {
+		if (deleteAll) {
 			dbTransactions.push(prismaClient.eventLogs_StakerDelegated.deleteMany())
 
 			const newStakerDelegated: prisma.EventLogs_StakerDelegated[] = []
@@ -652,10 +652,10 @@ export async function updateTableStakerDelegated(
 export async function updateTableStakerUndelegated(
 	dbTransactions: any[],
 	stakerUndelegatedList: Map<TransactionLog, StakerUndelegatedLog>,
-	dropTable: boolean = false
+	deleteAll: boolean = false
 ) {
 	try {
-		if (dropTable) {
+		if (deleteAll) {
 			dbTransactions.push(prismaClient.eventLogs_StakerUndelegated.deleteMany())
 
 			const newStakerUndelegated: prisma.EventLogs_StakerUndelegated[] = []
