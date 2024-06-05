@@ -239,7 +239,9 @@ export async function getAVS(req: Request, res: Response) {
  */
 export async function getAVSStakers(req: Request, res: Response) {
 	// Validate query and params
-	const queryCheck = PaginationQuerySchema.safeParse(req.query)
+	const queryCheck = PaginationQuerySchema.and(WithTvlQuerySchema).safeParse(
+		req.query
+	)
 	if (!queryCheck.success) {
 		return handleAndReturnErrorResponse(req, res, queryCheck.error)
 	}
@@ -251,7 +253,7 @@ export async function getAVSStakers(req: Request, res: Response) {
 
 	try {
 		const { address } = req.params
-		const { skip, take } = queryCheck.data
+		const { skip, take, withTvl } = queryCheck.data
 
 		const avs = await prisma.avs.findUniqueOrThrow({
 			where: { address: address.toLowerCase(), ...getAvsFilterQuery() },
@@ -273,23 +275,24 @@ export async function getAVSStakers(req: Request, res: Response) {
 			include: { shares: true }
 		})
 
-		const data = await Promise.all(
-			stakersRecords.map((staker) => {
-				let tvl = 0
+		const strategyTokenPrices = withTvl ? await fetchStrategyTokenPrices() : {}
+		const strategiesWithSharesUnderlying = withTvl
+			? await getStrategiesWithShareUnderlying()
+			: []
 
-				staker.shares.map((ss) => {
-					tvl += Number(BigInt(ss.shares)) / 1e18
-				})
-
-				return {
-					...staker,
-					tvl
-				}
-			})
-		)
+		const stakers = stakersRecords.map((staker) => ({
+			...staker,
+			tvl: withTvl
+				? sharesToTVL(
+						staker.shares,
+						strategiesWithSharesUnderlying,
+						strategyTokenPrices
+				  )
+				: undefined
+		}))
 
 		res.send({
-			data,
+			data: stakers,
 			meta: {
 				total: stakersCount,
 				skip,
