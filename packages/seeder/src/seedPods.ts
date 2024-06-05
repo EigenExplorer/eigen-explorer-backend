@@ -30,8 +30,8 @@ export async function seedPods(toBlock?: bigint, fromBlock?: bigint) {
 	const logs = await prismaClient.eventLogs_PodDeployed.findMany({
 		where: {
 			blockNumber: {
-				gte: fromBlock,
-				lte: toBlock
+				gte: firstBlock,
+				lte: lastBlock
 			}
 		}
 	})
@@ -43,7 +43,7 @@ export async function seedPods(toBlock?: bigint, fromBlock?: bigint) {
 		const podOwner = String(log.podOwner).toLowerCase()
 
 		const blockNumber = BigInt(log.blockNumber)
-		const timestamp = new Date(Number(log.blockTime) * 1000)
+		const timestamp = log.blockTime
 
 		podList.push({
 			address: podAddress,

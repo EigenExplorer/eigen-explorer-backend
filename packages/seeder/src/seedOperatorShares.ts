@@ -4,7 +4,7 @@ import {
 	baseBlock,
 	bulkUpdateDbTransactions,
 	fetchLastSyncBlock,
-	IMap,
+	type IMap,
 	saveLastSyncBlock
 } from './utils/seeder'
 
@@ -34,8 +34,8 @@ export async function seedOperatorShares(toBlock?: bigint, fromBlock?: bigint) {
 			.findMany({
 				where: {
 					blockNumber: {
-						gte: fromBlock,
-						lte: toBlock
+						gte: firstBlock,
+						lte: lastBlock
 					}
 				}
 			})
@@ -48,8 +48,8 @@ export async function seedOperatorShares(toBlock?: bigint, fromBlock?: bigint) {
 			.findMany({
 				where: {
 					blockNumber: {
-						gte: fromBlock,
-						lte: toBlock
+						gte: firstBlock,
+						lte: lastBlock
 					}
 				}
 			})
@@ -74,7 +74,7 @@ export async function seedOperatorShares(toBlock?: bigint, fromBlock?: bigint) {
 
 		const operatorAddress = String(log.operator).toLowerCase()
 		const strategyAddress = String(log.strategy).toLowerCase()
-		const shares = BigInt(log.shares)
+		const shares = log.shares
 		if (!shares) continue
 
 		// Load existing staker shares data
@@ -117,10 +117,12 @@ export async function seedOperatorShares(toBlock?: bigint, fromBlock?: bigint) {
 
 		if (log.eventName === 'OperatorSharesIncreased') {
 			operatorShares.get(operatorAddress)[foundSharesIndex].shares =
-				operatorShares.get(operatorAddress)[foundSharesIndex].shares + shares
+				operatorShares.get(operatorAddress)[foundSharesIndex].shares +
+				BigInt(shares)
 		} else if (log.eventName === 'OperatorSharesDecreased') {
 			operatorShares.get(operatorAddress)[foundSharesIndex].shares =
-				operatorShares.get(operatorAddress)[foundSharesIndex].shares - shares
+				operatorShares.get(operatorAddress)[foundSharesIndex].shares -
+				BigInt(shares)
 		}
 	}
 

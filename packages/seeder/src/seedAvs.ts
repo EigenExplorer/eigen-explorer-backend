@@ -41,8 +41,8 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 	const logs = await prismaClient.eventLogs_AVSMetadataURIUpdated.findMany({
 		where: {
 			blockNumber: {
-				gte: fromBlock,
-				lte: toBlock
+				gte: firstBlock,
+				lte: lastBlock
 			}
 		}
 	})
@@ -54,7 +54,7 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 		const existingRecord = avsList.get(avsAddress)
 
 		const blockNumber = BigInt(log.blockNumber)
-		const timestamp = new Date(Number(log.blockTime) * 1000)
+		const timestamp = log.blockTime
 
 		try {
 			if (log.metadataURI && isValidMetadataUrl(log.metadataURI)) {
@@ -102,7 +102,7 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 		}
 	}
 	console.log(
-		`Avs registered between blocks ${fromBlock} ${toBlock}: ${logs.length}`
+		`Avs registered between blocks ${firstBlock} ${lastBlock}: ${logs.length}`
 	)
 
 	// Prepare db transaction object

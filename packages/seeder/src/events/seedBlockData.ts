@@ -1,4 +1,4 @@
-import prisma from '@prisma/client'
+import type prisma from '@prisma/client'
 import { getPrismaClient } from '../utils/prismaClient'
 import { getViemClient } from '../utils/viemClient'
 import {
@@ -23,21 +23,35 @@ export async function seedBlockData(toBlock?: bigint, fromBlock?: bigint) {
 		: await fetchLastSyncBlock(blockSyncKey)
 	const lastBlock = toBlock ? toBlock : await viemClient.getBlockNumber()
 
-	// Loop through evm logs
+	// Retrieve blocks in batches and extract timestamps
 	await loopThroughBlocks(firstBlock, lastBlock, async (fromBlock, toBlock) => {
-		let firstBlock = fromBlock
-		while (firstBlock <= toBlock) {
-			try {
-				const blockNumber = firstBlock
-				const block = await viemClient.getBlock({ blockNumber: blockNumber })
+		let currentBlock = fromBlock
+
+		while (currentBlock <= toBlock) {
+			const lastBlockInBatch = currentBlock + 98n // Batches of 99
+			const effectiveLastBlock =
+				lastBlockInBatch > toBlock ? toBlock : lastBlockInBatch
+
+			// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+			const promises: any[] = []
+			for (
+				let blockNumber = currentBlock;
+				blockNumber <= effectiveLastBlock;
+				blockNumber++
+			) {
+				promises.push(viemClient.getBlock({ blockNumber: blockNumber }))
+			}
+			const blocks = await Promise.all(promises)
+			for (const block of blocks) {
 				const timestamp = new Date(Number(block.timestamp) * 1000)
+				blockList.set(block.number, timestamp)
+			}
 
-				blockList.set(blockNumber, timestamp)
-
-				firstBlock = firstBlock + 1n
-			} catch {}
+			console.log(
+				`Retrieved Block Data for ${currentBlock} - ${effectiveLastBlock}`
+			)
+			currentBlock = effectiveLastBlock + 1n
 		}
-		console.log(`Block Data added for blocks between ${fromBlock} & ${toBlock}`)
 	})
 
 	// Prepare db transaction object

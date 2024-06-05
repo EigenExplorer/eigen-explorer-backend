@@ -12,8 +12,11 @@ import { seedOperatorShares } from './seedOperatorShares'
 import { seedValidators } from './seedValidators'
 import { seedQueuedWithdrawals } from './seedWithdrawalsQueued'
 import { seedCompletedWithdrawals } from './seedWithdrawalsCompleted'
+import { fetchLastSyncBlock } from './utils/seeder'
 
 console.log('Initializing seeder ...')
+
+const blockSyncKey = 'lastSyncedBlock_logs'
 
 function delay(seconds: number) {
 	return new Promise((resolve) => setTimeout(resolve, seconds * 1000))
@@ -24,7 +27,7 @@ async function seedEventLogsLoop() {
 		try {
 			const viemClient = getViemClient()
 			const targetBlock = await viemClient.getBlockNumber()
-			console.log('Seeding Block & Log Data ...', targetBlock)
+			console.log('Seeding Block and Log Data ...', targetBlock)
 
 			await seedBlockData(targetBlock)
 			await seedEventLogs(targetBlock)
@@ -33,15 +36,18 @@ async function seedEventLogsLoop() {
 			console.log(error)
 		}
 
-		await delay(90)
+		await delay(90) // Wait for 1.5 minutes (90 seconds)
 	}
 }
 
 async function seedEigenDataLoop() {
 	while (true) {
 		try {
-			const viemClient = getViemClient()
-			const targetBlock = await viemClient.getBlockNumber() // TODO: get targetBlock from Settings (lastSyncBlock_logs)
+			const targetBlock = await fetchLastSyncBlock(blockSyncKey)
+			if (targetBlock <= 1159609n) {
+				delay(60)
+				continue
+			}
 
 			console.log('Seeding Eigen Data ...', targetBlock)
 
@@ -54,6 +60,7 @@ async function seedEigenDataLoop() {
 			await seedCompletedWithdrawals(targetBlock)
 		} catch (error) {
 			console.log('Failed to seed AVS and Opeartors at:', Date.now())
+			console.log(error)
 		}
 
 		await delay(120) // Wait for 2 minutes (120 seconds)
@@ -65,8 +72,12 @@ async function seedEigenPodValidators() {
 
 	while (true) {
 		try {
-			const viemClient = getViemClient()
-			const targetBlock = await viemClient.getBlockNumber()
+			const targetBlock = await fetchLastSyncBlock(blockSyncKey)
+			if (!targetBlock) {
+				delay(60)
+				continue
+			}
+
 			console.log('Seeding Eigen Pods Data ...', targetBlock)
 
 			await seedPods(targetBlock)

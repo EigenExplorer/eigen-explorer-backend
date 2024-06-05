@@ -1,4 +1,4 @@
-import prisma from '@prisma/client'
+import type prisma from '@prisma/client'
 import { getPrismaClient } from './utils/prismaClient'
 import {
 	type EntityMetadata,
@@ -40,8 +40,8 @@ export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 		{
 			where: {
 				blockNumber: {
-					gte: fromBlock,
-					lte: toBlock
+					gte: firstBlock,
+					lte: lastBlock
 				}
 			}
 		}
@@ -54,7 +54,7 @@ export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 		const existingRecord = operatorList.get(operatorAddress)
 
 		const blockNumber = BigInt(log.blockNumber)
-		const timestamp = new Date(Number(log.blockTime) * 1000)
+		const timestamp = log.blockTime
 
 		try {
 			if (log.metadataURI && isValidMetadataUrl(log.metadataURI)) {
@@ -103,7 +103,7 @@ export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 	}
 
 	console.log(
-		`Operators registered between blocks ${fromBlock} ${toBlock}: ${logs.length}`
+		`Operators registered between blocks ${firstBlock} ${lastBlock}: ${logs.length}`
 	)
 
 	// Prepare db transaction object

@@ -43,8 +43,8 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 		.findMany({
 			where: {
 				blockNumber: {
-					gte: fromBlock,
-					lte: toBlock
+					gte: firstBlock,
+					lte: lastBlock
 				}
 			}
 		})
@@ -56,8 +56,8 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 		.findMany({
 			where: {
 				blockNumber: {
-					gte: fromBlock,
-					lte: toBlock
+					gte: firstBlock,
+					lte: lastBlock
 				}
 			}
 		})
@@ -70,8 +70,8 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 			.findMany({
 				where: {
 					blockNumber: {
-						gte: fromBlock,
-						lte: toBlock
+						gte: firstBlock,
+						lte: lastBlock
 					}
 				}
 			})
@@ -84,8 +84,8 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 			.findMany({
 				where: {
 					blockNumber: {
-						gte: fromBlock,
-						lte: toBlock
+						gte: firstBlock,
+						lte: lastBlock
 					}
 				}
 			})
@@ -116,7 +116,7 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 		const stakerAddress = String(log.staker).toLowerCase()
 
 		const blockNumber = BigInt(log.blockNumber)
-		const timestamp = new Date(Number(log.blockTime) * 1000)
+		const timestamp = log.blockTime
 
 		// Load existing staker shares data
 		if (!stakers.has(stakerAddress)) {
@@ -162,7 +162,7 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 			log.eventName === 'OperatorSharesDecreased'
 		) {
 			const strategyAddress = String(log.strategy).toLowerCase()
-			const shares = BigInt(log.shares)
+			const shares = log.shares
 			if (!shares) continue
 
 			let foundSharesIndex = stakers
@@ -185,10 +185,12 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 
 			if (log.eventName === 'OperatorSharesIncreased') {
 				stakers.get(stakerAddress).shares[foundSharesIndex].shares =
-					stakers.get(stakerAddress).shares[foundSharesIndex].shares + shares
+					stakers.get(stakerAddress).shares[foundSharesIndex].shares +
+					BigInt(shares)
 			} else if (log.eventName === 'OperatorSharesDecreased') {
 				stakers.get(stakerAddress).shares[foundSharesIndex].shares =
-					stakers.get(stakerAddress).shares[foundSharesIndex].shares - shares
+					stakers.get(stakerAddress).shares[foundSharesIndex].shares -
+					BigInt(shares)
 			}
 		}
 	}
