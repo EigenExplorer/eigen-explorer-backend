@@ -1,5 +1,5 @@
-import prisma from '@prisma/client'
-import { getViemClient } from './utils/viemClient'
+import type prisma from '@prisma/client'
+import { fetchLastLogBlock } from './utils/events'
 import { getPrismaClient } from './utils/prismaClient'
 import {
 	baseBlock,
@@ -18,14 +18,13 @@ const blockSyncKey = 'lastSyncedBlock_pods'
 export async function seedPods(toBlock?: bigint, fromBlock?: bigint) {
 	console.log('Seeding Pods ...')
 
-	const viemClient = getViemClient()
 	const prismaClient = getPrismaClient()
 	const podList: prisma.Pod[] = []
 
 	const firstBlock = fromBlock
 		? fromBlock
 		: await fetchLastSyncBlock(blockSyncKey)
-	const lastBlock = toBlock ? toBlock : await viemClient.getBlockNumber()
+	const lastBlock = toBlock ? toBlock : await fetchLastLogBlock()
 
 	const logs = await prismaClient.eventLogs_PodDeployed.findMany({
 		where: {

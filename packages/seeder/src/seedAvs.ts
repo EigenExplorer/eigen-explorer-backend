@@ -1,8 +1,9 @@
-import prisma from '@prisma/client'
+import type prisma from '@prisma/client'
 import { isValidMetadataUrl, validateMetadata } from './utils/metadata'
 import { type EntityMetadata, defaultMetadata } from './utils/metadata'
 import { getViemClient } from './utils/viemClient'
 import { getPrismaClient } from './utils/prismaClient'
+import { fetchLastLogBlock } from './utils/events'
 import {
 	baseBlock,
 	bulkUpdateDbTransactions,
@@ -36,7 +37,7 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 	const firstBlock = fromBlock
 		? fromBlock
 		: await fetchLastSyncBlock(blockSyncKey)
-	const lastBlock = toBlock ? toBlock : await viemClient.getBlockNumber()
+	const lastBlock = toBlock ? toBlock : await fetchLastLogBlock()
 
 	const logs = await prismaClient.eventLogs_AVSMetadataURIUpdated.findMany({
 		where: {

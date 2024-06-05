@@ -6,7 +6,7 @@ import {
 	isValidMetadataUrl,
 	validateMetadata
 } from './utils/metadata'
-import { getViemClient } from './utils/viemClient'
+import { fetchLastLogBlock } from './utils/events'
 import {
 	baseBlock,
 	bulkUpdateDbTransactions,
@@ -27,14 +27,13 @@ interface OperatorEntryRecord {
 export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 	console.log('Seeding Operators ...')
 
-	const viemClient = getViemClient()
 	const prismaClient = getPrismaClient()
 	const operatorList: Map<string, OperatorEntryRecord> = new Map()
 
 	const firstBlock = fromBlock
 		? fromBlock
 		: await fetchLastSyncBlock(blockSyncKey)
-	const lastBlock = toBlock ? toBlock : await viemClient.getBlockNumber()
+	const lastBlock = toBlock ? toBlock : await fetchLastLogBlock()
 
 	const logs = await prismaClient.eventLogs_OperatorMetadataURIUpdated.findMany(
 		{

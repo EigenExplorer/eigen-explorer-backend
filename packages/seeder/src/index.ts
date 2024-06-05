@@ -6,18 +6,15 @@ import { seedOperators } from './seedOperators'
 import { seedPods } from './seedPods'
 import { seedStakers } from './seedStakers'
 import { getViemClient } from './utils/viemClient'
-import { baseBlock } from './utils/seeder'
 import { seedBlockData } from './events/seedBlockData'
 import { seedEventLogs } from './events/seedEventLogs'
 import { seedOperatorShares } from './seedOperatorShares'
 import { seedValidators } from './seedValidators'
 import { seedQueuedWithdrawals } from './seedWithdrawalsQueued'
 import { seedCompletedWithdrawals } from './seedWithdrawalsCompleted'
-import { fetchLastSyncBlock } from './utils/seeder'
+import { fetchLastLogBlock } from './utils/events'
 
 console.log('Initializing seeder ...')
-
-const blockSyncKey = 'lastSyncedBlock_logs'
 
 function delay(seconds: number) {
 	return new Promise((resolve) => setTimeout(resolve, seconds * 1000))
@@ -44,8 +41,8 @@ async function seedEventLogsLoop() {
 async function seedEigenDataLoop() {
 	while (true) {
 		try {
-			const targetBlock = await fetchLastSyncBlock(blockSyncKey)
-			if (targetBlock === baseBlock) {
+			const targetBlock = await fetchLastLogBlock()
+			if (!targetBlock) {
 				delay(60)
 				continue
 			}
@@ -73,8 +70,8 @@ async function seedEigenPodValidators() {
 
 	while (true) {
 		try {
-			const targetBlock = await fetchLastSyncBlock(blockSyncKey)
-			if (targetBlock === baseBlock) {
+			const targetBlock = await fetchLastLogBlock()
+			if (!targetBlock) {
 				delay(60)
 				continue
 			}

@@ -1,14 +1,11 @@
-import prisma from '@prisma/client'
-import { parseAbiItem } from 'viem'
-import { getEigenContracts } from './data/address'
-import { getViemClient } from './utils/viemClient'
+import type prisma from '@prisma/client'
+import { fetchLastLogBlock } from './utils/events'
 import { getPrismaClient } from './utils/prismaClient'
 import {
 	type IMap,
 	baseBlock,
 	bulkUpdateDbTransactions,
 	fetchLastSyncBlock,
-	loopThroughBlocks,
 	saveLastSyncBlock
 } from './utils/seeder'
 
@@ -26,14 +23,13 @@ interface StakerEntryRecord {
 export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 	console.log('Seeding stakers ...')
 
-	const viemClient = getViemClient()
 	const prismaClient = getPrismaClient()
 	const stakers: IMap<string, StakerEntryRecord> = new Map()
 
 	const firstBlock = fromBlock
 		? fromBlock
 		: await fetchLastSyncBlock(blockSyncKey)
-	const lastBlock = toBlock ? toBlock : await viemClient.getBlockNumber()
+	const lastBlock = toBlock ? toBlock : await fetchLastLogBlock()
 
 	if (firstBlock === baseBlock) {
 		await prismaClient.stakerStrategyShares.deleteMany()
@@ -62,7 +58,7 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 			}
 		})
 		.then((logs) =>
-			logs.map((log) => ({ ...log, eventName: 'OperatorSharesIncreased' }))
+			logs.map((log) => ({ ...log, eventName: 'StakerUndelegated' }))
 		)
 
 	const logsOperatorSharesIncreased =
@@ -76,7 +72,7 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 				}
 			})
 			.then((logs) =>
-				logs.map((log) => ({ ...log, eventName: 'OperatorSharesDecreased' }))
+				logs.map((log) => ({ ...log, eventName: 'OperatorSharesIncreased' }))
 			)
 
 	const logsOperatorSharesDecreased =

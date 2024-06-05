@@ -1,4 +1,4 @@
-import { getViemClient } from './utils/viemClient'
+import { fetchLastLogBlock } from './utils/events'
 import { getPrismaClient } from './utils/prismaClient'
 import {
 	baseBlock,
@@ -12,14 +12,13 @@ const blockSyncKey = 'lastSyncedBlock_avsOperators'
 export async function seedAvsOperators(toBlock?: bigint, fromBlock?: bigint) {
 	console.log('Seeding AVS Operators ...')
 
-	const viemClient = getViemClient()
 	const prismaClient = getPrismaClient()
 	const avsOperatorsList: Map<string, Map<string, number>> = new Map()
 
 	const firstBlock = fromBlock
 		? fromBlock
 		: await fetchLastSyncBlock(blockSyncKey)
-	const lastBlock = toBlock ? toBlock : await viemClient.getBlockNumber()
+	const lastBlock = toBlock ? toBlock : await fetchLastLogBlock()
 
 	// Load initial operator staker state
 	const avs = await prismaClient.avs.findMany({

@@ -410,7 +410,7 @@ export async function updateTableStakerUndelegated(
 	await bulkUpdateDbTransactions(dbTransactions)
 }
 
-export async function getBlockDataFromDB(fromBlock: bigint, toBlock: bigint) {
+export async function getBlockDataFromDb(fromBlock: bigint, toBlock: bigint) {
 	const blockData = await prismaClient.evm_BlockData.findMany({
 		where: {
 			number: {
@@ -428,4 +428,16 @@ export async function getBlockDataFromDB(fromBlock: bigint, toBlock: bigint) {
 	})
 
 	return new Map(blockData.map((block) => [block.number, block.timestamp]))
+}
+
+export async function fetchLastLogBlock(): Promise<bigint> {
+	const prismaClient = getPrismaClient()
+
+	const lastSyncedBlockData = await prismaClient.settings.findUnique({
+		where: { key: 'lastSyncedBlock_logs' }
+	})
+
+	return lastSyncedBlockData?.value
+		? BigInt(lastSyncedBlockData.value as number)
+		: 0n
 }

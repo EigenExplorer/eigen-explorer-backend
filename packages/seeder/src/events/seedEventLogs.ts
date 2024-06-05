@@ -16,7 +16,7 @@ import {
 	type PodDeployedLog,
 	type StakerDelegatedLog,
 	type StakerUndelegatedLog,
-	getBlockDataFromDB,
+	getBlockDataFromDb,
 	updateTableAVSMetadataURIUpdated,
 	updateTableOperatorAVSRegistrationStatusUpdated,
 	updateTableOperatorMetadataURIUpdated,
@@ -69,7 +69,7 @@ export async function seedEventLogs(toBlock?: bigint, fromBlock?: bigint) {
 		? fromBlock
 		: await fetchLastSyncBlock(blockSyncKey)
 	const lastBlock = toBlock ? toBlock : await viemClient.getBlockNumber()
-	const blockData = await getBlockDataFromDB(firstBlock, lastBlock)
+	const blockData = await getBlockDataFromDb(firstBlock, lastBlock)
 
 	// Loop through evm logs for all 8 events from 3 contracts
 	await loopThroughBlocks(firstBlock, lastBlock, async (fromBlock, toBlock) => {

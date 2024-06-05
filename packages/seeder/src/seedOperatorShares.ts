@@ -1,5 +1,5 @@
-import { getViemClient } from './utils/viemClient'
 import { getPrismaClient } from './utils/prismaClient'
+import { fetchLastLogBlock } from './utils/events'
 import {
 	baseBlock,
 	bulkUpdateDbTransactions,
@@ -13,7 +13,6 @@ const blockSyncKey = 'lastSyncedBlock_operatorShares'
 export async function seedOperatorShares(toBlock?: bigint, fromBlock?: bigint) {
 	console.log('Seeding operator shares ...')
 
-	const viemClient = getViemClient()
 	const prismaClient = getPrismaClient()
 	const operatorShares: IMap<
 		string,
@@ -23,7 +22,7 @@ export async function seedOperatorShares(toBlock?: bigint, fromBlock?: bigint) {
 	const firstBlock = fromBlock
 		? fromBlock
 		: await fetchLastSyncBlock(blockSyncKey)
-	const lastBlock = toBlock ? toBlock : await viemClient.getBlockNumber()
+	const lastBlock = toBlock ? toBlock : await fetchLastLogBlock()
 
 	if (firstBlock === baseBlock) {
 		await prismaClient.operatorStrategyShares.deleteMany()
