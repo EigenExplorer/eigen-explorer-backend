@@ -1,82 +1,58 @@
-import type prisma from '@prisma/client'
+import prisma from '@prisma/client'
 import { getPrismaClient } from '../utils/prismaClient'
 import { getViemClient } from '../utils/viemClient'
-import {
-	bulkUpdateDbTransactions,
-	fetchLastSyncBlock,
-	loopThroughBlocks,
-	saveLastSyncBlock
-} from '../utils/seeder'
-
-const blockSyncKey = 'lastSyncedBlock_blockdata'
+import { baseBlock, loopThroughBlocks } from '../utils/seeder'
 
 export async function seedBlockData(toBlock?: bigint, fromBlock?: bigint) {
 	console.log('Seeding Block Data ...')
 
 	const viemClient = getViemClient()
 	const prismaClient = getPrismaClient()
-	const blockList: Map<bigint, Date> = new Map()
+
+	const lastKnownBlock = await prismaClient.evm_BlockData.findFirst({
+		orderBy: { number: 'desc' }
+	})
 
 	const firstBlock = fromBlock
 		? fromBlock
-		: await fetchLastSyncBlock(blockSyncKey)
+		: lastKnownBlock
+		  ? lastKnownBlock.number
+		  : baseBlock
+
 	const lastBlock = toBlock ? toBlock : await viemClient.getBlockNumber()
 
 	// Retrieve blocks in batches and extract timestamps
-	await loopThroughBlocks(firstBlock, lastBlock, async (fromBlock, toBlock) => {
-		let currentBlock = fromBlock
-
-		while (currentBlock <= toBlock) {
-			const lastBlockInBatch = currentBlock + 98n // Batches of 99
-			const effectiveLastBlock =
-				lastBlockInBatch > toBlock ? toBlock : lastBlockInBatch
-
+	await loopThroughBlocks(
+		firstBlock,
+		lastBlock,
+		async (fromBlock, toBlock) => {
 			// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 			const promises: any[] = []
-			for (
-				let blockNumber = currentBlock;
-				blockNumber <= effectiveLastBlock;
-				blockNumber++
-			) {
+			for (let blockNumber = fromBlock; blockNumber <= toBlock; blockNumber++) {
 				promises.push(viemClient.getBlock({ blockNumber: blockNumber }))
 			}
+
 			const blocks = await Promise.all(promises)
+			const newBlockData: prisma.Evm_BlockData[] = []
+
 			for (const block of blocks) {
 				const timestamp = new Date(Number(block.timestamp) * 1000)
-				blockList.set(block.number, timestamp)
+
+				newBlockData.push({
+					number: block.number,
+					timestamp
+				})
 			}
 
-			console.log(
-				`Retrieved Block Data for ${currentBlock} - ${effectiveLastBlock}`
-			)
-			currentBlock = effectiveLastBlock + 1n
-		}
-	})
+			await prismaClient.evm_BlockData.createMany({
+				data: newBlockData,
+				skipDuplicates: true
+			})
 
-	// Prepare db transaction object
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-	const dbTransactions: any[] = []
-
-	const newBlockData: prisma.Evm_BlockData[] = []
-
-	for (const [number, timestamp] of blockList) {
-		newBlockData.push({
-			number,
-			timestamp
-		})
-	}
-
-	dbTransactions.push(
-		prismaClient.evm_BlockData.createMany({
-			data: newBlockData,
-			skipDuplicates: true
-		})
+			console.log(`Retrieved Block Data for ${fromBlock} - ${toBlock}`)
+		},
+		99n
 	)
 
-	await bulkUpdateDbTransactions(dbTransactions)
-
-	// Storing last sycned block
-	await saveLastSyncBlock(blockSyncKey, lastBlock)
-
-	console.log('Seeded BlockData:', blockList.size)
+	console.log('Seeded Block Data:', Number(lastBlock - firstBlock))
 }

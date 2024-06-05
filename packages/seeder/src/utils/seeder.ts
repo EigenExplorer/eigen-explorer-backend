@@ -15,13 +15,15 @@ export const baseBlock =
 export async function loopThroughBlocks(
 	firstBlock: bigint,
 	lastBlock: bigint,
-	cb: (fromBlock: bigint, toBlock: bigint) => Promise<void>
+	cb: (fromBlock: bigint, toBlock: bigint) => Promise<void>,
+	defaultBatchSize?: bigint,
 ) {
+	const batchSize = defaultBatchSize ? defaultBatchSize : 9999n
 	let currentBlock = firstBlock
 	let nextBlock = firstBlock
 
 	while (nextBlock < lastBlock) {
-		nextBlock = currentBlock + 4999n
+		nextBlock = currentBlock + batchSize
 		if (nextBlock >= lastBlock) nextBlock = lastBlock
 
 		await cb(currentBlock, nextBlock)
@@ -69,4 +71,26 @@ export async function saveLastSyncBlock(key: string, blockNumber: bigint) {
 		update: { value: Number(blockNumber) },
 		create: { key: key, value: Number(blockNumber) }
 	})
+}
+
+export async function getBlockDataFromDb(fromBlock: bigint, toBlock: bigint) {
+	const prismaClient = getPrismaClient()
+
+	const blockData = await prismaClient.evm_BlockData.findMany({
+		where: {
+			number: {
+				gte: BigInt(fromBlock),
+				lte: BigInt(toBlock)
+			}
+		},
+		select: {
+			number: true,
+			timestamp: true
+		},
+		orderBy: {
+			number: 'asc'
+		}
+	})
+
+	return new Map(blockData.map((block) => [block.number, block.timestamp]))
 }

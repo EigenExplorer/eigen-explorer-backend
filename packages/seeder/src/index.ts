@@ -34,28 +34,28 @@ async function seedEventLogsLoop() {
 			console.log(error)
 		}
 
-		await delay(90) // Wait for 1.5 minutes (90 seconds)
+		await delay(60)
 	}
 }
 
 async function seedEigenDataLoop() {
+	await delay(60)
+
 	while (true) {
 		try {
 			const targetBlock = await fetchLastLogBlock()
-			if (!targetBlock) {
-				delay(60)
-				continue
+
+			if (targetBlock) {
+				console.log('Seeding Eigen Data ...', targetBlock)
+
+				await seedAvs(targetBlock)
+				await seedOperators(targetBlock)
+				await seedAvsOperators(targetBlock)
+				await seedStakers(targetBlock)
+				await seedOperatorShares(targetBlock)
+				await seedQueuedWithdrawals(targetBlock)
+				await seedCompletedWithdrawals(targetBlock)
 			}
-
-			console.log('Seeding Eigen Data ...', targetBlock)
-
-			await seedAvs(targetBlock)
-			await seedOperators(targetBlock)
-			await seedAvsOperators(targetBlock)
-			await seedStakers(targetBlock)
-			await seedOperatorShares(targetBlock)
-			await seedQueuedWithdrawals(targetBlock)
-			await seedCompletedWithdrawals(targetBlock)
 		} catch (error) {
 			console.log('Failed to seed AVS and Opeartors at:', Date.now())
 			console.log(error)
@@ -71,15 +71,13 @@ async function seedEigenPodValidators() {
 	while (true) {
 		try {
 			const targetBlock = await fetchLastLogBlock()
-			if (!targetBlock) {
-				delay(60)
-				continue
+
+			if (targetBlock) {
+				console.log('Seeding Eigen Pods Data ...', targetBlock)
+
+				await seedPods(targetBlock)
+				await seedValidators()
 			}
-
-			console.log('Seeding Eigen Pods Data ...', targetBlock)
-
-			await seedPods(targetBlock)
-			await seedValidators()
 		} catch (error) {
 			console.log('Failed to seed validators at block:', Date.now())
 		}
