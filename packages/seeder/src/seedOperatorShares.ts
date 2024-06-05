@@ -127,7 +127,7 @@ export async function seedOperatorShares(toBlock?: bigint, fromBlock?: bigint) {
 	}
 
 	console.log(
-		`Operator shares updated between blocks ${fromBlock} ${toBlock}: ${logs.length}`
+		`Operator shares updated between blocks ${firstBlock} ${lastBlock}: ${logs.length}`
 	)
 
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>

@@ -2,7 +2,6 @@ import type prisma from '@prisma/client'
 import { getPrismaClient } from '../utils/prismaClient'
 import { getViemClient } from '../utils/viemClient'
 import {
-	baseBlock,
 	bulkUpdateDbTransactions,
 	fetchLastSyncBlock,
 	loopThroughBlocks,
@@ -58,38 +57,21 @@ export async function seedBlockData(toBlock?: bigint, fromBlock?: bigint) {
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	const dbTransactions: any[] = []
 
-	if (firstBlock === baseBlock) {
-		dbTransactions.push(prismaClient.evm_BlockData.deleteMany())
+	const newBlockData: prisma.Evm_BlockData[] = []
 
-		const newBlockData: prisma.Evm_BlockData[] = []
-
-		for (const [number, timestamp] of blockList) {
-			newBlockData.push({
-				number,
-				timestamp
-			})
-		}
-
-		dbTransactions.push(
-			prismaClient.evm_BlockData.createMany({
-				data: newBlockData,
-				skipDuplicates: true
-			})
-		)
-	} else {
-		for (const [number, timestamp] of blockList) {
-			dbTransactions.push(
-				prismaClient.evm_BlockData.upsert({
-					where: { number },
-					update: {},
-					create: {
-						number,
-						timestamp
-					}
-				})
-			)
-		}
+	for (const [number, timestamp] of blockList) {
+		newBlockData.push({
+			number,
+			timestamp
+		})
 	}
+
+	dbTransactions.push(
+		prismaClient.evm_BlockData.createMany({
+			data: newBlockData,
+			skipDuplicates: true
+		})
+	)
 
 	await bulkUpdateDbTransactions(dbTransactions)
 

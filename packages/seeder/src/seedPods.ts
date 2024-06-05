@@ -57,7 +57,7 @@ export async function seedPods(toBlock?: bigint, fromBlock?: bigint) {
 	}
 
 	console.log(
-		`Pods deployed between blocks ${fromBlock} ${toBlock}: ${logs.length}`
+		`Pods deployed between blocks ${firstBlock} ${lastBlock}: ${logs.length}`
 	)
 
 	// Prepare db transaction object

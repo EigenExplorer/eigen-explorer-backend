@@ -162,7 +162,7 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 			log.eventName === 'OperatorSharesDecreased'
 		) {
 			const strategyAddress = String(log.strategy).toLowerCase()
-			const shares = log.shares
+			const shares = BigInt(log.shares)
 			if (!shares) continue
 
 			let foundSharesIndex = stakers
@@ -185,18 +185,16 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 
 			if (log.eventName === 'OperatorSharesIncreased') {
 				stakers.get(stakerAddress).shares[foundSharesIndex].shares =
-					stakers.get(stakerAddress).shares[foundSharesIndex].shares +
-					BigInt(shares)
+					stakers.get(stakerAddress).shares[foundSharesIndex].shares + shares
 			} else if (log.eventName === 'OperatorSharesDecreased') {
 				stakers.get(stakerAddress).shares[foundSharesIndex].shares =
-					stakers.get(stakerAddress).shares[foundSharesIndex].shares -
-					BigInt(shares)
+					stakers.get(stakerAddress).shares[foundSharesIndex].shares - shares
 			}
 		}
 	}
 
 	console.log(
-		`Stakers deployed between blocks ${fromBlock} ${toBlock}: ${logs.length}`
+		`Stakers deployed between blocks ${firstBlock} ${lastBlock}: ${logs.length}`
 	)
 
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>

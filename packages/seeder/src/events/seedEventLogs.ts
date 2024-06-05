@@ -2,7 +2,6 @@ import { parseAbiItem } from 'viem'
 import { getEigenContracts } from '../data/address'
 import { getViemClient } from '../utils/viemClient'
 import {
-	baseBlock,
 	fetchLastSyncBlock,
 	loopThroughBlocks,
 	saveLastSyncBlock
@@ -127,30 +126,33 @@ export async function seedEventLogs(toBlock?: bigint, fromBlock?: bigint) {
 				switch (log.eventName) {
 					case 'AVSMetadataURIUpdated': {
 						const eventData: AVSMetadataURIUpdatedLog = {
-							avs: String(log.args.avs).toLowerCase(),
-							metadataURI: String(log.args.metadataURI).toLowerCase()
+							avs: log.args.avs,
+							metadataURI: log.args.metadataURI
 						}
 						avsMetadataURIUpdatedList.set(transactionData, eventData)
+						break
 					}
 
 					case 'OperatorAVSRegistrationStatusUpdated': {
 						const eventData: OperatorAVSRegistrationStatusUpdatedLog = {
-							operator: String(log.args.operator).toLowerCase(),
-							avs: String(log.args.avs).toLowerCase(),
+							operator: log.args.operator,
+							avs: log.args.avs,
 							status: log.args.status || 0
 						}
 						operatorAVSRegistrationStatusUpdatedList.set(
 							transactionData,
 							eventData
 						)
+						break
 					}
 
 					case 'OperatorMetadataURIUpdated': {
 						const eventData: OperatorMetadataURIUpdatedLog = {
-							operator: String(log.args.operator).toLowerCase(),
-							metadataURI: String(log.args.metadataURI).toLowerCase()
+							operator: log.args.operator,
+							metadataURI: log.args.metadataURI
 						}
 						operatorMetadataURIUpdatedList.set(transactionData, eventData)
+						break
 					}
 
 					case 'OperatorSharesIncreased': {
@@ -158,12 +160,13 @@ export async function seedEventLogs(toBlock?: bigint, fromBlock?: bigint) {
 						if (!shares) continue
 
 						const eventData: OperatorSharesIncreasedLog = {
-							operator: String(log.args.operator).toLowerCase(),
-							staker: String(log.args.staker).toLowerCase(),
-							strategy: String(log.args.strategy).toLowerCase(),
+							operator: log.args.operator,
+							staker: log.args.staker,
+							strategy: log.args.strategy,
 							shares: shares.toString()
 						}
 						operatorSharesIncreasedList.set(transactionData, eventData)
+						break
 					}
 
 					case 'OperatorSharesDecreased': {
@@ -171,34 +174,40 @@ export async function seedEventLogs(toBlock?: bigint, fromBlock?: bigint) {
 						if (!shares) continue
 
 						const eventData: OperatorSharesDecreasedLog = {
-							operator: String(log.args.operator).toLowerCase(),
-							staker: String(log.args.staker).toLowerCase(),
-							strategy: String(log.args.strategy).toLowerCase(),
+							operator: log.args.operator,
+							staker: log.args.staker,
+							strategy: log.args.strategy,
 							shares: shares.toString()
 						}
 						operatorSharesDecreasedList.set(transactionData, eventData)
+						break
 					}
 
 					case 'PodDeployed': {
 						const eventData: PodDeployedLog = {
-							eigenPod: String(log.args.eigenPod).toLowerCase(),
-							podOwner: String(log.args.podOwner).toLowerCase()
+							eigenPod: log.args.eigenPod,
+							podOwner: log.args.podOwner
 						}
 						podDeployedList.set(transactionData, eventData)
+						break
 					}
 
 					case 'StakerDelegated': {
+						const staker = log.args.staker
+						if (!staker) continue
+
 						const eventData: StakerDelegatedLog = {
-							staker: String(log.args.staker).toLowerCase(),
-							operator: String(log.args.operator).toLowerCase()
+							staker: staker,
+							operator: log.args.operator
 						}
 						stakerDelegatedList.set(transactionData, eventData)
+						break
 					}
 
 					case 'StakerUndelegated': {
 						const eventData: StakerUndelegatedLog = {
-							staker: String(log.args.staker).toLowerCase(),
-							operator: String(log.args.operator).toLowerCase()
+							staker: log.args.staker,
+							operator: log.args.operator
 						}
 						stakerUndelegatedList.set(transactionData, eventData)
 					}
@@ -212,41 +221,31 @@ export async function seedEventLogs(toBlock?: bigint, fromBlock?: bigint) {
 
 	// Update all EventLog tables with the respective event log data
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-	let dbTransactions: any[] = []
-	const flag = firstBlock === baseBlock
+	const dbTransactions: any[] = []
 
 	await updateTableAVSMetadataURIUpdated(
 		dbTransactions,
-		avsMetadataURIUpdatedList,
-		flag
+		avsMetadataURIUpdatedList
 	)
 	await updateTableOperatorAVSRegistrationStatusUpdated(
 		dbTransactions,
-		operatorAVSRegistrationStatusUpdatedList,
-		flag
+		operatorAVSRegistrationStatusUpdatedList
 	)
 	await updateTableOperatorMetadataURIUpdated(
 		dbTransactions,
-		operatorMetadataURIUpdatedList,
-		flag
+		operatorMetadataURIUpdatedList
 	)
 	await updateTableOperatorSharesIncreased(
 		dbTransactions,
-		operatorSharesIncreasedList,
-		flag
+		operatorSharesIncreasedList
 	)
 	await updateTableOperatorSharesDecreased(
 		dbTransactions,
-		operatorSharesDecreasedList,
-		flag
+		operatorSharesDecreasedList
 	)
-	await updateTablePodDeployed(dbTransactions, podDeployedList, flag)
-	await updateTableStakerDelegated(dbTransactions, stakerDelegatedList, flag)
-	await updateTableStakerUndelegated(
-		dbTransactions,
-		stakerUndelegatedList,
-		flag
-	)
+	await updateTablePodDeployed(dbTransactions, podDeployedList)
+	await updateTableStakerDelegated(dbTransactions, stakerDelegatedList)
+	await updateTableStakerUndelegated(dbTransactions, stakerUndelegatedList)
 
 	// Store last synced block
 	await saveLastSyncBlock(blockSyncKey, lastBlock)

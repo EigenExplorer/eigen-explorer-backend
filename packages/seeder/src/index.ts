@@ -6,6 +6,7 @@ import { seedOperators } from './seedOperators'
 import { seedPods } from './seedPods'
 import { seedStakers } from './seedStakers'
 import { getViemClient } from './utils/viemClient'
+import { baseBlock } from './utils/seeder'
 import { seedBlockData } from './events/seedBlockData'
 import { seedEventLogs } from './events/seedEventLogs'
 import { seedOperatorShares } from './seedOperatorShares'
@@ -44,7 +45,7 @@ async function seedEigenDataLoop() {
 	while (true) {
 		try {
 			const targetBlock = await fetchLastSyncBlock(blockSyncKey)
-			if (targetBlock <= 1159609n) {
+			if (targetBlock === baseBlock) {
 				delay(60)
 				continue
 			}
@@ -73,7 +74,7 @@ async function seedEigenPodValidators() {
 	while (true) {
 		try {
 			const targetBlock = await fetchLastSyncBlock(blockSyncKey)
-			if (!targetBlock) {
+			if (targetBlock === baseBlock) {
 				delay(60)
 				continue
 			}

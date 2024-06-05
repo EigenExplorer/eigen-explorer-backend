@@ -1,4 +1,4 @@
-import prisma from '@prisma/client'
+import type prisma from '@prisma/client'
 import { getPrismaClient } from '../utils/prismaClient'
 import { bulkUpdateDbTransactions } from '../utils/seeder'
 
@@ -14,716 +14,397 @@ export interface TransactionLog {
 }
 
 export interface AVSMetadataURIUpdatedLog {
-	avs: string
-	metadataURI: string
+	avs: `0x${string}` | undefined
+	metadataURI: string | undefined
 }
 
 export interface OperatorAVSRegistrationStatusUpdatedLog {
-	operator: string
-	avs: string
+	operator: `0x${string}` | undefined
+	avs: `0x${string}` | undefined
 	status: number
 }
 
 export interface OperatorMetadataURIUpdatedLog {
-	operator: string
-	metadataURI: string
+	operator: `0x${string}` | undefined
+	metadataURI: string | undefined
 }
 
 export interface OperatorSharesIncreasedLog {
-	operator: string
-	staker: string
-	strategy: string
+	operator: `0x${string}` | undefined
+	staker: `0x${string}` | undefined
+	strategy: `0x${string}` | undefined
 	shares: string
 }
 
 export interface OperatorSharesDecreasedLog {
-	operator: string
-	staker: string
-	strategy: string
+	operator: `0x${string}` | undefined
+	staker: `0x${string}` | undefined
+	strategy: `0x${string}` | undefined
 	shares: string
 }
 
 export interface PodDeployedLog {
-	eigenPod: string
-	podOwner: string
+	eigenPod: `0x${string}` | undefined
+	podOwner: `0x${string}` | undefined
 }
 
 export interface StakerDelegatedLog {
-	staker: string
-	operator: string
+	staker: `0x${string}` | undefined
+	operator: `0x${string}` | undefined
 }
 
 export interface StakerUndelegatedLog {
-	staker: string
-	operator: string
+	staker: `0x${string}` | undefined
+	operator: `0x${string}` | undefined
 }
 
 export async function updateTableAVSMetadataURIUpdated(
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	dbTransactions: any[],
-	avsMetadataURIUpdatedList: Map<TransactionLog, AVSMetadataURIUpdatedLog>,
-	deleteAll: boolean = false
+	avsMetadataURIUpdatedList: Map<TransactionLog, AVSMetadataURIUpdatedLog>
 ) {
 	try {
-		if (deleteAll) {
-			dbTransactions.push(
-				prismaClient.eventLogs_AVSMetadataURIUpdated.deleteMany()
-			)
+		const newAvsMetadataURIUpdated: prisma.EventLogs_AVSMetadataURIUpdated[] =
+			[]
 
-			const newAvsMetadataURIUpdated: prisma.EventLogs_AVSMetadataURIUpdated[] =
-				[]
-
-			for (const [
-				{
-					address,
-					transactionHash,
-					transactionIndex,
-					blockNumber,
-					blockHash,
-					blockTime
-				},
-				{ avs, metadataURI }
-			] of avsMetadataURIUpdatedList) {
-				newAvsMetadataURIUpdated.push({
-					address,
-					transactionHash,
-					transactionIndex,
-					blockNumber,
-					blockHash,
-					blockTime,
-					avs,
-					metadataURI
-				})
-			}
-
-			dbTransactions.push(
-				prismaClient.eventLogs_AVSMetadataURIUpdated.createMany({
-					data: newAvsMetadataURIUpdated,
-					skipDuplicates: true
-				})
-			)
-		} else {
-			for (const [
-				{
-					address,
-					transactionHash,
-					transactionIndex,
-					blockNumber,
-					blockHash,
-					blockTime
-				},
-				{ avs, metadataURI }
-			] of avsMetadataURIUpdatedList) {
-				dbTransactions.push(
-					prismaClient.eventLogs_AVSMetadataURIUpdated.upsert({
-						where: {
-							transactionHash_transactionIndex: {
-								transactionHash: transactionHash,
-								transactionIndex: transactionIndex
-							}
-						},
-						update: {},
-						create: {
-							address,
-							transactionHash,
-							transactionIndex,
-							blockNumber,
-							blockHash,
-							blockTime,
-							avs,
-							metadataURI
-						}
-					})
-				)
-			}
+		for (const [
+			{
+				address,
+				transactionHash,
+				transactionIndex,
+				blockNumber,
+				blockHash,
+				blockTime
+			},
+			{ avs, metadataURI }
+		] of avsMetadataURIUpdatedList) {
+			newAvsMetadataURIUpdated.push({
+				address,
+				transactionHash,
+				transactionIndex,
+				blockNumber,
+				blockHash,
+				blockTime,
+				avs,
+				metadataURI
+			})
 		}
+
+		dbTransactions.push(
+			prismaClient.eventLogs_AVSMetadataURIUpdated.createMany({
+				data: newAvsMetadataURIUpdated,
+				skipDuplicates: true
+			})
+		)
 	} catch {}
 
 	await bulkUpdateDbTransactions(dbTransactions)
 }
 
 export async function updateTableOperatorAVSRegistrationStatusUpdated(
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	dbTransactions: any[],
 	operatorAVSRegistrationStatusUpdatedList: Map<
 		TransactionLog,
 		OperatorAVSRegistrationStatusUpdatedLog
-	>,
-	deleteAll: boolean = false
+	>
 ) {
 	try {
-		if (deleteAll) {
-			dbTransactions.push(
-				prismaClient.eventLogs_OperatorAVSRegistrationStatusUpdated.deleteMany()
-			)
+		const newOperatorAVSRegistrationStatusUpdated: prisma.EventLogs_OperatorAVSRegistrationStatusUpdated[] =
+			[]
 
-			const newOperatorAVSRegistrationStatusUpdated: prisma.EventLogs_OperatorAVSRegistrationStatusUpdated[] =
-				[]
-
-			for (const [
-				{
-					address,
-					transactionHash,
-					transactionIndex,
-					blockNumber,
-					blockHash,
-					blockTime
-				},
-				{ operator, avs, status }
-			] of operatorAVSRegistrationStatusUpdatedList) {
-				newOperatorAVSRegistrationStatusUpdated.push({
-					address,
-					transactionHash,
-					transactionIndex,
-					blockNumber,
-					blockHash,
-					blockTime,
-					operator,
-					avs,
-					status
-				})
-			}
-
-			dbTransactions.push(
-				prismaClient.eventLogs_OperatorAVSRegistrationStatusUpdated.createMany({
-					data: newOperatorAVSRegistrationStatusUpdated,
-					skipDuplicates: true
-				})
-			)
-		} else {
-			for (const [
-				{
-					address,
-					transactionHash,
-					transactionIndex,
-					blockNumber,
-					blockHash,
-					blockTime
-				},
-				{ operator, avs, status }
-			] of operatorAVSRegistrationStatusUpdatedList) {
-				dbTransactions.push(
-					prismaClient.eventLogs_OperatorAVSRegistrationStatusUpdated.upsert({
-						where: {
-							transactionHash_transactionIndex: {
-								transactionHash: transactionHash,
-								transactionIndex: transactionIndex
-							}
-						},
-						update: {},
-						create: {
-							address,
-							transactionHash,
-							transactionIndex,
-							blockNumber,
-							blockHash,
-							blockTime,
-							operator,
-							avs,
-							status
-						}
-					})
-				)
-			}
+		for (const [
+			{
+				address,
+				transactionHash,
+				transactionIndex,
+				blockNumber,
+				blockHash,
+				blockTime
+			},
+			{ operator, avs, status }
+		] of operatorAVSRegistrationStatusUpdatedList) {
+			newOperatorAVSRegistrationStatusUpdated.push({
+				address,
+				transactionHash,
+				transactionIndex,
+				blockNumber,
+				blockHash,
+				blockTime,
+				operator,
+				avs,
+				status
+			})
 		}
+
+		dbTransactions.push(
+			prismaClient.eventLogs_OperatorAVSRegistrationStatusUpdated.createMany({
+				data: newOperatorAVSRegistrationStatusUpdated,
+				skipDuplicates: true
+			})
+		)
 	} catch {}
 
 	await bulkUpdateDbTransactions(dbTransactions)
 }
 
 export async function updateTableOperatorMetadataURIUpdated(
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	dbTransactions: any[],
 	operatorMetadataURIUpdatedList: Map<
 		TransactionLog,
 		OperatorMetadataURIUpdatedLog
-	>,
-	deleteAll: boolean = false
+	>
 ) {
 	try {
-		if (deleteAll) {
-			dbTransactions.push(
-				prismaClient.eventLogs_OperatorMetadataURIUpdated.deleteMany()
-			)
+		const newOperatorMetadataURIUpdated: prisma.EventLogs_OperatorMetadataURIUpdated[] =
+			[]
 
-			const newOperatorMetadataURIUpdated: prisma.EventLogs_OperatorMetadataURIUpdated[] =
-				[]
-
-			for (const [
-				{
-					address,
-					transactionHash,
-					transactionIndex,
-					blockNumber,
-					blockHash,
-					blockTime
-				},
-				{ operator, metadataURI }
-			] of operatorMetadataURIUpdatedList) {
-				newOperatorMetadataURIUpdated.push({
-					address,
-					transactionHash,
-					transactionIndex,
-					blockNumber,
-					blockHash,
-					blockTime,
-					operator,
-					metadataURI
-				})
-			}
-
-			dbTransactions.push(
-				prismaClient.eventLogs_OperatorMetadataURIUpdated.createMany({
-					data: newOperatorMetadataURIUpdated,
-					skipDuplicates: true
-				})
-			)
-		} else {
-			for (const [
-				{
-					address,
-					transactionHash,
-					transactionIndex,
-					blockNumber,
-					blockHash,
-					blockTime
-				},
-				{ operator, metadataURI }
-			] of operatorMetadataURIUpdatedList) {
-				dbTransactions.push(
-					prismaClient.eventLogs_OperatorMetadataURIUpdated.upsert({
-						where: {
-							transactionHash_transactionIndex: {
-								transactionHash: transactionHash,
-								transactionIndex: transactionIndex
-							}
-						},
-						update: {},
-						create: {
-							address,
-							transactionHash,
-							transactionIndex,
-							blockNumber,
-							blockHash,
-							blockTime,
-							operator,
-							metadataURI
-						}
-					})
-				)
-			}
+		for (const [
+			{
+				address,
+				transactionHash,
+				transactionIndex,
+				blockNumber,
+				blockHash,
+				blockTime
+			},
+			{ operator, metadataURI }
+		] of operatorMetadataURIUpdatedList) {
+			newOperatorMetadataURIUpdated.push({
+				address,
+				transactionHash,
+				transactionIndex,
+				blockNumber,
+				blockHash,
+				blockTime,
+				operator,
+				metadataURI
+			})
 		}
+
+		dbTransactions.push(
+			prismaClient.eventLogs_OperatorMetadataURIUpdated.createMany({
+				data: newOperatorMetadataURIUpdated,
+				skipDuplicates: true
+			})
+		)
 	} catch {}
 
 	await bulkUpdateDbTransactions(dbTransactions)
 }
 
 export async function updateTableOperatorSharesIncreased(
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	dbTransactions: any[],
-	operatorSharesIncreasedList: Map<TransactionLog, OperatorSharesIncreasedLog>,
-	deleteAll: boolean = false
+	operatorSharesIncreasedList: Map<TransactionLog, OperatorSharesIncreasedLog>
 ) {
 	try {
-		if (deleteAll) {
-			dbTransactions.push(
-				prismaClient.eventLogs_OperatorSharesIncreased.deleteMany()
-			)
+		const newOperatorSharesIncreased: prisma.EventLogs_OperatorSharesIncreased[] =
+			[]
 
-			const newOperatorSharesIncreased: prisma.EventLogs_OperatorSharesIncreased[] =
-				[]
-
-			for (const [
-				{
-					address,
-					transactionHash,
-					transactionIndex,
-					blockNumber,
-					blockHash,
-					blockTime
-				},
-				{ operator, staker, strategy, shares }
-			] of operatorSharesIncreasedList) {
-				newOperatorSharesIncreased.push({
-					address,
-					transactionHash,
-					transactionIndex,
-					blockNumber,
-					blockHash,
-					blockTime,
-					operator,
-					staker,
-					strategy,
-					shares
-				})
-			}
-
-			dbTransactions.push(
-				prismaClient.eventLogs_OperatorSharesIncreased.createMany({
-					data: newOperatorSharesIncreased,
-					skipDuplicates: true
-				})
-			)
-		} else {
-			for (const [
-				{
-					address,
-					transactionHash,
-					transactionIndex,
-					blockNumber,
-					blockHash,
-					blockTime
-				},
-				{ operator, staker, strategy, shares }
-			] of operatorSharesIncreasedList) {
-				dbTransactions.push(
-					prismaClient.eventLogs_OperatorSharesIncreased.upsert({
-						where: {
-							transactionHash_transactionIndex: {
-								transactionHash: transactionHash,
-								transactionIndex: transactionIndex
-							}
-						},
-						update: {},
-						create: {
-							address,
-							transactionHash,
-							transactionIndex,
-							blockNumber,
-							blockHash,
-							blockTime,
-							operator,
-							staker,
-							strategy,
-							shares
-						}
-					})
-				)
-			}
+		for (const [
+			{
+				address,
+				transactionHash,
+				transactionIndex,
+				blockNumber,
+				blockHash,
+				blockTime
+			},
+			{ operator, staker, strategy, shares }
+		] of operatorSharesIncreasedList) {
+			newOperatorSharesIncreased.push({
+				address,
+				transactionHash,
+				transactionIndex,
+				blockNumber,
+				blockHash,
+				blockTime,
+				operator,
+				staker,
+				strategy,
+				shares
+			})
 		}
+
+		dbTransactions.push(
+			prismaClient.eventLogs_OperatorSharesIncreased.createMany({
+				data: newOperatorSharesIncreased,
+				skipDuplicates: true
+			})
+		)
 	} catch {}
 
 	await bulkUpdateDbTransactions(dbTransactions)
 }
 
 export async function updateTableOperatorSharesDecreased(
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	dbTransactions: any[],
-	operatorSharesDecreasedList: Map<TransactionLog, OperatorSharesDecreasedLog>,
-	deleteAll: boolean = false
+	operatorSharesDecreasedList: Map<TransactionLog, OperatorSharesDecreasedLog>
 ) {
 	try {
-		if (deleteAll) {
-			dbTransactions.push(
-				prismaClient.eventLogs_OperatorSharesDecreased.deleteMany()
-			)
+		const newOperatorSharesDecreased: prisma.EventLogs_OperatorSharesDecreased[] =
+			[]
 
-			const newOperatorSharesDecreased: prisma.EventLogs_OperatorSharesDecreased[] =
-				[]
-
-			for (const [
-				{
-					address,
-					transactionHash,
-					transactionIndex,
-					blockNumber,
-					blockHash,
-					blockTime
-				},
-				{ operator, staker, strategy, shares }
-			] of operatorSharesDecreasedList) {
-				newOperatorSharesDecreased.push({
-					address,
-					transactionHash,
-					transactionIndex,
-					blockNumber,
-					blockHash,
-					blockTime,
-					operator,
-					staker,
-					strategy,
-					shares
-				})
-			}
-
-			dbTransactions.push(
-				prismaClient.eventLogs_OperatorSharesDecreased.createMany({
-					data: newOperatorSharesDecreased,
-					skipDuplicates: true
-				})
-			)
-		} else {
-			for (const [
-				{
-					address,
-					transactionHash,
-					transactionIndex,
-					blockNumber,
-					blockHash,
-					blockTime
-				},
-				{ operator, staker, strategy, shares }
-			] of operatorSharesDecreasedList) {
-				dbTransactions.push(
-					prismaClient.eventLogs_OperatorSharesDecreased.upsert({
-						where: {
-							transactionHash_transactionIndex: {
-								transactionHash: transactionHash,
-								transactionIndex: transactionIndex
-							}
-						},
-						update: {},
-						create: {
-							address,
-							transactionHash,
-							transactionIndex,
-							blockNumber,
-							blockHash,
-							blockTime,
-							operator,
-							staker,
-							strategy,
-							shares
-						}
-					})
-				)
-			}
+		for (const [
+			{
+				address,
+				transactionHash,
+				transactionIndex,
+				blockNumber,
+				blockHash,
+				blockTime
+			},
+			{ operator, staker, strategy, shares }
+		] of operatorSharesDecreasedList) {
+			newOperatorSharesDecreased.push({
+				address,
+				transactionHash,
+				transactionIndex,
+				blockNumber,
+				blockHash,
+				blockTime,
+				operator,
+				staker,
+				strategy,
+				shares
+			})
 		}
+
+		dbTransactions.push(
+			prismaClient.eventLogs_OperatorSharesDecreased.createMany({
+				data: newOperatorSharesDecreased,
+				skipDuplicates: true
+			})
+		)
 	} catch {}
 
 	await bulkUpdateDbTransactions(dbTransactions)
 }
 
 export async function updateTablePodDeployed(
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	dbTransactions: any[],
-	podDeployedList: Map<TransactionLog, PodDeployedLog>,
-	deleteAll: boolean = false
+	podDeployedList: Map<TransactionLog, PodDeployedLog>
 ) {
 	try {
-		if (deleteAll) {
-			dbTransactions.push(prismaClient.eventLogs_PodDeployed.deleteMany())
+		const newPodDeployed: prisma.EventLogs_PodDeployed[] = []
 
-			const newPodDeployed: prisma.EventLogs_PodDeployed[] = []
-
-			for (const [
-				{
-					address,
-					transactionHash,
-					transactionIndex,
-					blockNumber,
-					blockHash,
-					blockTime
-				},
-				{ eigenPod, podOwner }
-			] of podDeployedList) {
-				newPodDeployed.push({
-					address,
-					transactionHash,
-					transactionIndex,
-					blockNumber,
-					blockHash,
-					blockTime,
-					eigenPod,
-					podOwner
-				})
-			}
-
-			dbTransactions.push(
-				prismaClient.eventLogs_PodDeployed.createMany({
-					data: newPodDeployed,
-					skipDuplicates: true
-				})
-			)
-		} else {
-			for (const [
-				{
-					address,
-					transactionHash,
-					transactionIndex,
-					blockNumber,
-					blockHash,
-					blockTime
-				},
-				{ eigenPod, podOwner }
-			] of podDeployedList) {
-				dbTransactions.push(
-					prismaClient.eventLogs_PodDeployed.upsert({
-						where: {
-							transactionHash_transactionIndex: {
-								transactionHash: transactionHash,
-								transactionIndex: transactionIndex
-							}
-						},
-						update: {},
-						create: {
-							address,
-							transactionHash,
-							transactionIndex,
-							blockNumber,
-							blockHash,
-							blockTime,
-							eigenPod,
-							podOwner
-						}
-					})
-				)
-			}
+		for (const [
+			{
+				address,
+				transactionHash,
+				transactionIndex,
+				blockNumber,
+				blockHash,
+				blockTime
+			},
+			{ eigenPod, podOwner }
+		] of podDeployedList) {
+			newPodDeployed.push({
+				address,
+				transactionHash,
+				transactionIndex,
+				blockNumber,
+				blockHash,
+				blockTime,
+				eigenPod,
+				podOwner
+			})
 		}
+
+		dbTransactions.push(
+			prismaClient.eventLogs_PodDeployed.createMany({
+				data: newPodDeployed,
+				skipDuplicates: true
+			})
+		)
 	} catch {}
 
 	await bulkUpdateDbTransactions(dbTransactions)
 }
 
 export async function updateTableStakerDelegated(
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	dbTransactions: any[],
-	stakerDelegatedList: Map<TransactionLog, StakerDelegatedLog>,
-	deleteAll: boolean = false
+	stakerDelegatedList: Map<TransactionLog, StakerDelegatedLog>
 ) {
 	try {
-		if (deleteAll) {
-			dbTransactions.push(prismaClient.eventLogs_StakerDelegated.deleteMany())
+		const newStakerDelegated: prisma.EventLogs_StakerDelegated[] = []
 
-			const newStakerDelegated: prisma.EventLogs_StakerDelegated[] = []
-
-			for (const [
-				{
-					address,
-					transactionHash,
-					transactionIndex,
-					blockNumber,
-					blockHash,
-					blockTime
-				},
-				{ staker, operator }
-			] of stakerDelegatedList) {
-				newStakerDelegated.push({
-					address,
-					transactionHash,
-					transactionIndex,
-					blockNumber,
-					blockHash,
-					blockTime,
-					staker,
-					operator
-				})
-			}
-
-			dbTransactions.push(
-				prismaClient.eventLogs_StakerDelegated.createMany({
-					data: newStakerDelegated,
-					skipDuplicates: true
-				})
-			)
-		} else {
-			for (const [
-				{
-					address,
-					transactionHash,
-					transactionIndex,
-					blockNumber,
-					blockHash,
-					blockTime
-				},
-				{ staker, operator }
-			] of stakerDelegatedList) {
-				dbTransactions.push(
-					prismaClient.eventLogs_StakerDelegated.upsert({
-						where: {
-							transactionHash_transactionIndex: {
-								transactionHash: transactionHash,
-								transactionIndex: transactionIndex
-							}
-						},
-						update: {},
-						create: {
-							address,
-							transactionHash,
-							transactionIndex,
-							blockNumber,
-							blockHash,
-							blockTime,
-							staker,
-							operator
-						}
-					})
-				)
-			}
+		for (const [
+			{
+				address,
+				transactionHash,
+				transactionIndex,
+				blockNumber,
+				blockHash,
+				blockTime
+			},
+			{ staker, operator }
+		] of stakerDelegatedList) {
+			newStakerDelegated.push({
+				address,
+				transactionHash,
+				transactionIndex,
+				blockNumber,
+				blockHash,
+				blockTime,
+				staker,
+				operator
+			})
 		}
+
+		dbTransactions.push(
+			prismaClient.eventLogs_StakerDelegated.createMany({
+				data: newStakerDelegated,
+				skipDuplicates: true
+			})
+		)
 	} catch {}
 
 	await bulkUpdateDbTransactions(dbTransactions)
 }
 
 export async function updateTableStakerUndelegated(
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	dbTransactions: any[],
-	stakerUndelegatedList: Map<TransactionLog, StakerUndelegatedLog>,
-	deleteAll: boolean = false
+	stakerUndelegatedList: Map<TransactionLog, StakerUndelegatedLog>
 ) {
 	try {
-		if (deleteAll) {
-			dbTransactions.push(prismaClient.eventLogs_StakerUndelegated.deleteMany())
+		const newStakerUndelegated: prisma.EventLogs_StakerUndelegated[] = []
 
-			const newStakerUndelegated: prisma.EventLogs_StakerUndelegated[] = []
-
-			for (const [
-				{
-					address,
-					transactionHash,
-					transactionIndex,
-					blockNumber,
-					blockHash,
-					blockTime
-				},
-				{ staker, operator }
-			] of stakerUndelegatedList) {
-				newStakerUndelegated.push({
-					address,
-					transactionHash,
-					transactionIndex,
-					blockNumber,
-					blockHash,
-					blockTime,
-					staker,
-					operator
-				})
-			}
-
-			dbTransactions.push(
-				prismaClient.eventLogs_StakerUndelegated.createMany({
-					data: newStakerUndelegated,
-					skipDuplicates: true
-				})
-			)
-		} else {
-			for (const [
-				{
-					address,
-					transactionHash,
-					transactionIndex,
-					blockNumber,
-					blockHash,
-					blockTime
-				},
-				{ staker, operator }
-			] of stakerUndelegatedList) {
-				dbTransactions.push(
-					prismaClient.eventLogs_StakerUndelegated.upsert({
-						where: {
-							transactionHash_transactionIndex: {
-								transactionHash: transactionHash,
-								transactionIndex: transactionIndex
-							}
-						},
-						update: {},
-						create: {
-							address,
-							transactionHash,
-							transactionIndex,
-							blockNumber,
-							blockHash,
-							blockTime,
-							staker,
-							operator
-						}
-					})
-				)
-			}
+		for (const [
+			{
+				address,
+				transactionHash,
+				transactionIndex,
+				blockNumber,
+				blockHash,
+				blockTime
+			},
+			{ staker, operator }
+		] of stakerUndelegatedList) {
+			newStakerUndelegated.push({
+				address,
+				transactionHash,
+				transactionIndex,
+				blockNumber,
+				blockHash,
+				blockTime,
+				staker,
+				operator
+			})
 		}
+
+		dbTransactions.push(
+			prismaClient.eventLogs_StakerUndelegated.createMany({
+				data: newStakerUndelegated,
+				skipDuplicates: true
+			})
+		)
 	} catch {}
 
 	await bulkUpdateDbTransactions(dbTransactions)

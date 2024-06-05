@@ -50,7 +50,7 @@ export async function seedAvsOperators(toBlock?: bigint, fromBlock?: bigint) {
 	}
 
 	console.log(
-		`Avs operators updated between blocks ${fromBlock} ${toBlock}: ${logs.length}`
+		`Avs operators updated between blocks ${firstBlock} ${lastBlock}: ${logs.length}`
 	)
 
 	// Prepare db transaction object
