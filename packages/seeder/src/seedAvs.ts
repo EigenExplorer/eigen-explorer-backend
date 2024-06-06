@@ -37,6 +37,12 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 		? toBlock
 		: await fetchLastSyncBlock(blockSyncKeyLogs)
 
+	// Bail early if there is no block diff to sync
+	if (lastBlock - firstBlock <= 0) {
+		console.log(`AVS in sync ${firstBlock} - ${lastBlock}`)
+		return
+	}
+
 	console.log(`Seeding AVS from ${firstBlock} - ${lastBlock}`)
 
 	const logs = await prismaClient.eventLogs_AVSMetadataURIUpdated.findMany({

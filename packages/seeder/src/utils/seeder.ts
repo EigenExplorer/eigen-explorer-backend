@@ -18,7 +18,7 @@ export async function loopThroughBlocks(
 	cb: (fromBlock: bigint, toBlock: bigint) => Promise<void>,
 	defaultBatchSize?: bigint
 ) {
-	const batchSize = defaultBatchSize ? defaultBatchSize : 9999n
+	const batchSize = defaultBatchSize ? defaultBatchSize : 4999n
 	let currentBlock = firstBlock
 	let nextBlock = firstBlock
 
@@ -62,7 +62,7 @@ export async function fetchLastSyncBlock(key: string): Promise<bigint> {
 	})
 
 	return lastSyncedBlockData?.value
-		? BigInt(lastSyncedBlockData.value as number) + 1n
+		? BigInt(lastSyncedBlockData.value as number)
 		: baseBlock
 }
 

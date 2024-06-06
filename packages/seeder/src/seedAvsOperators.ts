@@ -16,7 +16,15 @@ export async function seedAvsOperators(toBlock?: bigint, fromBlock?: bigint) {
 	const firstBlock = fromBlock
 		? fromBlock
 		: await fetchLastSyncBlock(blockSyncKey)
-	const lastBlock = toBlock ? toBlock : await fetchLastSyncBlock(blockSyncKeyLogs)
+	const lastBlock = toBlock
+		? toBlock
+		: await fetchLastSyncBlock(blockSyncKeyLogs)
+
+	// Bail early if there is no block diff to sync
+	if (lastBlock - firstBlock <= 0) {
+		console.log(`AVSOperators in sync ${firstBlock} - ${lastBlock}`)
+		return
+	}
 
 	console.log(`Seeding AVSOperators from ${firstBlock} - ${lastBlock}`)
 

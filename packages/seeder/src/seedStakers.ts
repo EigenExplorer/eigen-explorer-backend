@@ -27,7 +27,15 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 	const firstBlock = fromBlock
 		? fromBlock
 		: await fetchLastSyncBlock(blockSyncKey)
-	const lastBlock = toBlock ? toBlock : await fetchLastSyncBlock(blockSyncKeyLogs)
+	const lastBlock = toBlock
+		? toBlock
+		: await fetchLastSyncBlock(blockSyncKeyLogs)
+
+	// Bail early if there is no block diff to sync
+	if (lastBlock - firstBlock <= 0) {
+		console.log(`Stakers in sync ${firstBlock} - ${lastBlock}`)
+		return
+	}
 
 	console.log(`Seeding Stakers from ${firstBlock} - ${lastBlock}`)
 
@@ -45,7 +53,12 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 			}
 		})
 		.then((logs) =>
-			logs.map((log) => ({ ...log, shares: '', strategy: '', eventName: 'StakerDelegated' }))
+			logs.map((log) => ({
+				...log,
+				shares: '',
+				strategy: '',
+				eventName: 'StakerDelegated'
+			}))
 		)
 
 	const logsStakerUndelegated = await prismaClient.eventLogs_StakerUndelegated
@@ -58,7 +71,12 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 			}
 		})
 		.then((logs) =>
-			logs.map((log) => ({ ...log, shares: '', strategy: '', eventName: 'StakerUndelegated' }))
+			logs.map((log) => ({
+				...log,
+				shares: '',
+				strategy: '',
+				eventName: 'StakerUndelegated'
+			}))
 		)
 
 	const logsOperatorSharesIncreased =
@@ -72,7 +90,12 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 				}
 			})
 			.then((logs) =>
-				logs.map((log) => ({ ...log, shares: log.shares, strategy: log.strategy, eventName: 'OperatorSharesIncreased' }))
+				logs.map((log) => ({
+					...log,
+					shares: log.shares,
+					strategy: log.strategy,
+					eventName: 'OperatorSharesIncreased'
+				}))
 			)
 
 	const logsOperatorSharesDecreased =
@@ -86,7 +109,12 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 				}
 			})
 			.then((logs) =>
-				logs.map((log) => ({ ...log, shares: log.shares, strategy: log.strategy, eventName: 'OperatorSharesDecreased' }))
+				logs.map((log) => ({
+					...log,
+					shares: log.shares,
+					strategy: log.strategy,
+					eventName: 'OperatorSharesDecreased'
+				}))
 			)
 
 	const logs = [
