@@ -1,23 +1,20 @@
-import prisma from '@prisma/client'
+import type prisma from '@prisma/client'
 import { getPrismaClient } from './utils/prismaClient'
-import { parseAbiItem } from 'viem'
 import {
 	type EntityMetadata,
 	defaultMetadata,
 	isValidMetadataUrl,
 	validateMetadata
 } from './utils/metadata'
-import { getEigenContracts } from './data/address'
-import { getViemClient } from './utils/viemClient'
 import {
 	baseBlock,
 	bulkUpdateDbTransactions,
 	fetchLastSyncBlock,
-	loopThroughBlocks,
 	saveLastSyncBlock
 } from './utils/seeder'
 
 const blockSyncKey = 'lastSyncedBlock_operators'
+const blockSyncKeyLogs = 'lastSyncedBlock_logs_operators'
 
 interface OperatorEntryRecord {
 	metadata: EntityMetadata
@@ -28,88 +25,89 @@ interface OperatorEntryRecord {
 }
 
 export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
-	console.log('Seeding Operators ...')
-
-	const viemClient = getViemClient()
 	const prismaClient = getPrismaClient()
 	const operatorList: Map<string, OperatorEntryRecord> = new Map()
 
 	const firstBlock = fromBlock
 		? fromBlock
 		: await fetchLastSyncBlock(blockSyncKey)
-	const lastBlock = toBlock ? toBlock : await viemClient.getBlockNumber()
+	const lastBlock = toBlock
+		? toBlock
+		: await fetchLastSyncBlock(blockSyncKeyLogs)
 
-	// Loop through evm logs
-	await loopThroughBlocks(firstBlock, lastBlock, async (fromBlock, toBlock) => {
-		const logs = await viemClient.getLogs({
-			address: getEigenContracts().DelegationManager,
-			event: parseAbiItem(
-				'event OperatorMetadataURIUpdated(address indexed operator, string metadataURI)'
-			),
-			fromBlock,
-			toBlock
-		})
+	// Bail early if there is no block diff to sync
+	if (lastBlock - firstBlock <= 0) {
+		console.log(
+			`[In Sync] [Data] Operator MetadataURI from: ${firstBlock} to: ${lastBlock}`
+		)
+		return
+	}
 
-		for (const l in logs) {
-			const log = logs[l]
-
-			const operatorAddress = String(log.args.operator).toLowerCase()
-			const existingRecord = operatorList.get(operatorAddress)
-
-			const blockNumber = BigInt(log.blockNumber)
-			const block = await viemClient.getBlock({ blockNumber: blockNumber })
-			const timestamp = new Date(Number(block.timestamp) * 1000)
-
-			try {
-				if (log.args.metadataURI && isValidMetadataUrl(log.args.metadataURI)) {
-					const response = await fetch(log.args.metadataURI)
-					const data = await response.text()
-					const operatorMetadata = validateMetadata(data)
-
-					if (operatorMetadata) {
-						if (existingRecord) {
-							// Operator already registered, valid metadata uri
-							operatorList.set(operatorAddress, {
-								metadata: operatorMetadata,
-								createdAtBlock: existingRecord.createdAtBlock,
-								updatedAtBlock: blockNumber,
-								createdAt: existingRecord.createdAt,
-								updatedAt: timestamp
-							})
-						} else {
-							// Operator not registered, valid metadata uri
-							operatorList.set(operatorAddress, {
-								metadata: operatorMetadata,
-								createdAtBlock: blockNumber,
-								updatedAtBlock: blockNumber,
-								createdAt: timestamp,
-								updatedAt: timestamp
-							})
-						}
-					} else {
-						throw new Error('Missing operator metadata')
-					}
-				} else {
-					throw new Error('Invalid operator metadata uri')
+	const logs = await prismaClient.eventLogs_OperatorMetadataURIUpdated.findMany(
+		{
+			where: {
+				blockNumber: {
+					gt: firstBlock,
+					lte: lastBlock
 				}
-			} catch (error) {
-				if (!existingRecord) {
-					// Operator not registered, invalid metadata uri
-					operatorList.set(operatorAddress, {
-						metadata: defaultMetadata,
-						createdAtBlock: blockNumber,
-						updatedAtBlock: blockNumber,
-						createdAt: timestamp,
-						updatedAt: timestamp
-					})
-				} // Ignore case where Operator is already registered and is updated with invalid metadata uri
 			}
 		}
+	)
 
-		console.log(
-			`Operators registered between blocks ${fromBlock} ${toBlock}: ${logs.length}`
-		)
-	})
+	for (const l in logs) {
+		const log = logs[l]
+
+		const operatorAddress = String(log.operator).toLowerCase()
+		const existingRecord = operatorList.get(operatorAddress)
+
+		const blockNumber = BigInt(log.blockNumber)
+		const timestamp = log.blockTime
+
+		try {
+			if (log.metadataURI && isValidMetadataUrl(log.metadataURI)) {
+				const response = await fetch(log.metadataURI)
+				const data = await response.text()
+				const operatorMetadata = validateMetadata(data)
+
+				if (operatorMetadata) {
+					if (existingRecord) {
+						// Operator already registered, valid metadata uri
+						operatorList.set(operatorAddress, {
+							metadata: operatorMetadata,
+							createdAtBlock: existingRecord.createdAtBlock,
+							updatedAtBlock: blockNumber,
+							createdAt: existingRecord.createdAt,
+							updatedAt: timestamp
+						})
+					} else {
+						// Operator not registered, valid metadata uri
+						operatorList.set(operatorAddress, {
+							metadata: operatorMetadata,
+							createdAtBlock: blockNumber,
+							updatedAtBlock: blockNumber,
+							createdAt: timestamp,
+							updatedAt: timestamp
+						})
+					}
+				} else {
+					throw new Error('Missing operator metadata')
+				}
+			} else {
+				throw new Error('Invalid operator metadata uri')
+			}
+		} catch (error) {
+			if (!existingRecord) {
+				// Operator not registered, invalid metadata uri
+				operatorList.set(operatorAddress, {
+					metadata: defaultMetadata,
+					createdAtBlock: blockNumber,
+					updatedAtBlock: blockNumber,
+					createdAt: timestamp,
+					updatedAt: timestamp
+				})
+			} // Ignore case where Operator is already registered and is updated with invalid metadata uri
+		}
+	}
 
 	// Prepare db transaction object
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
@@ -184,10 +182,11 @@ export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 		}
 	}
 
-	await bulkUpdateDbTransactions(dbTransactions)
+	await bulkUpdateDbTransactions(
+		dbTransactions,
+		`[Data] Operator MetadataURI from: ${firstBlock} to: ${lastBlock} size: ${operatorList.size}`
+	)
 
-	// Storing last sycned block
+	// Storing last synced block
 	await saveLastSyncBlock(blockSyncKey, lastBlock)
-
-	console.log('Seeded operators:', operatorList.size)
 }
