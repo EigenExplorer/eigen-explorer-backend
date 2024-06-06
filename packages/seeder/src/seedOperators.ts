@@ -31,7 +31,9 @@ export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 	const firstBlock = fromBlock
 		? fromBlock
 		: await fetchLastSyncBlock(blockSyncKey)
-	const lastBlock = toBlock ? toBlock : await fetchLastSyncBlock(blockSyncKeyLogs)
+	const lastBlock = toBlock
+		? toBlock
+		: await fetchLastSyncBlock(blockSyncKeyLogs)
 
 	console.log(`Seeding Operators from ${firstBlock} - ${lastBlock}`)
 
@@ -55,8 +57,6 @@ export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 		const blockNumber = BigInt(log.blockNumber)
 		const timestamp = log.blockTime
 
-
-		/* Commented out for testing until merge with #75
 		try {
 			if (log.metadataURI && isValidMetadataUrl(log.metadataURI)) {
 				const response = await fetch(log.metadataURI)
@@ -100,7 +100,7 @@ export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 					updatedAt: timestamp
 				})
 			} // Ignore case where Operator is already registered and is updated with invalid metadata uri
-		}*/
+		}
 
 		// Seeding without metadata
 		if (existingRecord) {
