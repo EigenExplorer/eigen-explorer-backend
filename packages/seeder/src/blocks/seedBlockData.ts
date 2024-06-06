@@ -1,11 +1,13 @@
 import prisma from '@prisma/client'
 import { getPrismaClient } from '../utils/prismaClient'
 import { getViemClient } from '../utils/viemClient'
-import { baseBlock, loopThroughBlocks } from '../utils/seeder'
+import {
+	baseBlock,
+	bulkUpdateDbTransactions,
+	loopThroughBlocks
+} from '../utils/seeder'
 
 export async function seedBlockData(toBlock?: bigint, fromBlock?: bigint) {
-	console.log('Seeding Block Data ...')
-
 	const viemClient = getViemClient()
 	const prismaClient = getPrismaClient()
 
@@ -44,15 +46,18 @@ export async function seedBlockData(toBlock?: bigint, fromBlock?: bigint) {
 				})
 			}
 
-			await prismaClient.evm_BlockData.createMany({
-				data: newBlockData,
-				skipDuplicates: true
-			})
-
-			console.log(`Retrieved Block Data for ${fromBlock} - ${toBlock}`)
+			await bulkUpdateDbTransactions(
+				[
+					prismaClient.evm_BlockData.createMany({
+						data: newBlockData,
+						skipDuplicates: true
+					})
+				],
+				`Block data from: ${fromBlock} to: ${toBlock} size: ${Number(
+					toBlock - fromBlock
+				)}`
+			)
 		},
 		99n
 	)
-
-	console.log('Seeded Block Data:', Number(lastBlock - firstBlock))
 }

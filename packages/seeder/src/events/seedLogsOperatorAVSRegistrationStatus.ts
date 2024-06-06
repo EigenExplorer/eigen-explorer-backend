@@ -18,16 +18,12 @@ const blockSyncKeyLogs = 'lastSyncedBlock_logs_avsOperators'
  * @param fromBlock
  * @param toBlock
  */
-export async function seedLogsOperatorAVSRegistrationStatus(toBlock?: bigint, fromBlock?: bigint) {
-	console.log('Seeding Event Logs for OperatorAVSRegistrationStatusUpdated...')
-
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-	const dbTransactions: any[] = []
-
+export async function seedLogsOperatorAVSRegistrationStatus(
+	toBlock?: bigint,
+	fromBlock?: bigint
+) {
 	const viemClient = getViemClient()
 	const prismaClient = getPrismaClient()
-
-	const logsOperatorAVSRegistrationStatusUpdated: prisma.EventLogs_OperatorAVSRegistrationStatusUpdated[] = []
 
 	const firstBlock = fromBlock
 		? fromBlock
@@ -35,13 +31,19 @@ export async function seedLogsOperatorAVSRegistrationStatus(toBlock?: bigint, fr
 	const lastBlock = toBlock ? toBlock : await viemClient.getBlockNumber()
 	const blockData = await getBlockDataFromDb(firstBlock, lastBlock)
 
+	let totalSeeded = 0
+
 	// Loop through evm logs
 	await loopThroughBlocks(firstBlock, lastBlock, async (fromBlock, toBlock) => {
 		try {
+			// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+			const dbTransactions: any[] = []
+
+			const logsOperatorAVSRegistrationStatusUpdated: prisma.EventLogs_OperatorAVSRegistrationStatusUpdated[] =
+				[]
+
 			const logs = await viemClient.getLogs({
-				address: [
-					getEigenContracts().AVSDirectory
-				],
+				address: [getEigenContracts().AVSDirectory],
 				events: [
 					parseAbiItem(
 						'event OperatorAVSRegistrationStatusUpdated(address indexed operator, address indexed avs, uint8 status)'
@@ -55,8 +57,8 @@ export async function seedLogsOperatorAVSRegistrationStatus(toBlock?: bigint, fr
 			for (const l in logs) {
 				const log = logs[l]
 
-                logsOperatorAVSRegistrationStatusUpdated.push({
-                    address: log.address,
+				logsOperatorAVSRegistrationStatusUpdated.push({
+					address: log.address,
 					transactionHash: log.transactionHash,
 					transactionIndex: log.transactionIndex,
 					blockNumber: BigInt(log.blockNumber),
@@ -65,8 +67,8 @@ export async function seedLogsOperatorAVSRegistrationStatus(toBlock?: bigint, fr
 					operator: String(log.args.operator),
 					avs: String(log.args.avs),
 					status: Number(log.args.status)
-                })
-            }
+				})
+			}
 
 			dbTransactions.push(
 				prismaClient.eventLogs_OperatorAVSRegistrationStatusUpdated.createMany({
@@ -85,11 +87,14 @@ export async function seedLogsOperatorAVSRegistrationStatus(toBlock?: bigint, fr
 			)
 
 			// Update database
-			await bulkUpdateDbTransactions(dbTransactions)
+			const seedLength = logsOperatorAVSRegistrationStatusUpdated.length
+
+			await bulkUpdateDbTransactions(
+				dbTransactions,
+				`Operator Registration from: ${fromBlock} to: ${toBlock} size: ${seedLength}`
+			)
+
+			totalSeeded += seedLength
 		} catch (error) {}
 	})
-
-	console.log(
-		`Seeded OperatorAVSRegistrationStatusUpdated logs between blocks ${firstBlock} ${lastBlock}: ${logsOperatorAVSRegistrationStatusUpdated.length}`
-	)
 }

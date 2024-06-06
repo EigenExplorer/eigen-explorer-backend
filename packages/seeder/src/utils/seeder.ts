@@ -16,7 +16,7 @@ export async function loopThroughBlocks(
 	firstBlock: bigint,
 	lastBlock: bigint,
 	cb: (fromBlock: bigint, toBlock: bigint) => Promise<void>,
-	defaultBatchSize?: bigint,
+	defaultBatchSize?: bigint
 ) {
 	const batchSize = defaultBatchSize ? defaultBatchSize : 9999n
 	let currentBlock = firstBlock
@@ -34,21 +34,24 @@ export async function loopThroughBlocks(
 	return lastBlock
 }
 
-// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-export async function bulkUpdateDbTransactions(dbTransactions: any[]) {
+export async function bulkUpdateDbTransactions(
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+	dbTransactions: any[],
+	label?: string
+) {
 	const prismaClient = getPrismaClient()
 	const chunkSize = 1000
 
 	let i = 0
-	console.log('Updating db transactions', dbTransactions.length)
+	console.time(`[DB Write (${dbTransactions.length})] ${label || ''}`)
 
 	for (const chunk of chunkArray(dbTransactions, chunkSize)) {
-		console.time(`Updating db transactions ${i}, size: ${chunk.length}`)
 		await prismaClient.$transaction(chunk)
-		console.timeEnd(`Updating db transactions ${i}, size: ${chunk.length}`)
 
 		i++
 	}
+
+	console.timeEnd(`[DB Write (${dbTransactions.length})] ${label || ''}`)
 }
 
 export async function fetchLastSyncBlock(key: string): Promise<bigint> {

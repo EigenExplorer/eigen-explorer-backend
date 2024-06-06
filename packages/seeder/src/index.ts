@@ -43,7 +43,7 @@ async function seedEventLogsLoop() {
 			console.log(error)
 		}
 
-		await delay(60)
+		await delay(30)
 	}
 }
 
@@ -61,7 +61,6 @@ async function seedEigenDataLoop() {
 			await seedOperatorShares()
 			await seedQueuedWithdrawals()
 			await seedCompletedWithdrawals()
-
 		} catch (error) {
 			console.log('Failed to seed AVS and Operators at:', Date.now())
 			console.log(error)

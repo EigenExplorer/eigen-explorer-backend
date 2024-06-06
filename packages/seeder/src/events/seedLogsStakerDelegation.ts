@@ -18,17 +18,12 @@ const blockSyncKeyLogs = 'lastSyncedBlock_logs_stakers'
  * @param fromBlock
  * @param toBlock
  */
-export async function seedLogsStakerDelegation(toBlock?: bigint, fromBlock?: bigint) {
-	console.log('Seeding Event Logs for StakerDelegated and StakerUndelegated...')
-	
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-	const dbTransactions: any[] = []
-
+export async function seedLogsStakerDelegation(
+	toBlock?: bigint,
+	fromBlock?: bigint
+) {
 	const viemClient = getViemClient()
 	const prismaClient = getPrismaClient()
-
-	const logsStakerDelegated: prisma.EventLogs_StakerDelegated[] = []
-    const logsStakerUndelegated: prisma.EventLogs_StakerUndelegated[] = []
 
 	const firstBlock = fromBlock
 		? fromBlock
@@ -36,20 +31,26 @@ export async function seedLogsStakerDelegation(toBlock?: bigint, fromBlock?: big
 	const lastBlock = toBlock ? toBlock : await viemClient.getBlockNumber()
 	const blockData = await getBlockDataFromDb(firstBlock, lastBlock)
 
+	let totalSeeded = 0
+
 	// Loop through evm logs
 	await loopThroughBlocks(firstBlock, lastBlock, async (fromBlock, toBlock) => {
 		try {
+			// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+			const dbTransactions: any[] = []
+
+			const logsStakerDelegated: prisma.EventLogs_StakerDelegated[] = []
+			const logsStakerUndelegated: prisma.EventLogs_StakerUndelegated[] = []
+
 			const logs = await viemClient.getLogs({
-				address: [
-					getEigenContracts().DelegationManager
-				],
+				address: [getEigenContracts().DelegationManager],
 				events: [
 					parseAbiItem(
 						'event StakerDelegated(address indexed staker, address indexed operator)'
 					),
 					parseAbiItem(
 						'event StakerUndelegated(address indexed staker, address indexed operator)'
-					),
+					)
 				],
 				fromBlock,
 				toBlock
@@ -59,28 +60,28 @@ export async function seedLogsStakerDelegation(toBlock?: bigint, fromBlock?: big
 			for (const l in logs) {
 				const log = logs[l]
 
-                logsStakerDelegated.push({
-                    address: log.address,
+				logsStakerDelegated.push({
+					address: log.address,
 					transactionHash: log.transactionHash,
 					transactionIndex: log.transactionIndex,
 					blockNumber: BigInt(log.blockNumber),
 					blockHash: log.blockHash,
 					blockTime: blockData.get(log.blockNumber) || new Date(0),
-                    staker: String(log.args.staker),
-                    operator: String(log.args.operator)
-                })
+					staker: String(log.args.staker),
+					operator: String(log.args.operator)
+				})
 
-                logsStakerUndelegated.push({
-                    address: log.address,
+				logsStakerUndelegated.push({
+					address: log.address,
 					transactionHash: log.transactionHash,
 					transactionIndex: log.transactionIndex,
 					blockNumber: BigInt(log.blockNumber),
 					blockHash: log.blockHash,
 					blockTime: blockData.get(log.blockNumber) || new Date(0),
-                    staker: String(log.args.staker),
-                    operator: String(log.args.operator)
-                })
-            }
+					staker: String(log.args.staker),
+					operator: String(log.args.operator)
+				})
+			}
 
 			dbTransactions.push(
 				prismaClient.eventLogs_StakerDelegated.createMany({
@@ -89,7 +90,7 @@ export async function seedLogsStakerDelegation(toBlock?: bigint, fromBlock?: big
 				})
 			)
 
-            dbTransactions.push(
+			dbTransactions.push(
 				prismaClient.eventLogs_StakerUndelegated.createMany({
 					data: logsStakerUndelegated,
 					skipDuplicates: true
@@ -106,14 +107,15 @@ export async function seedLogsStakerDelegation(toBlock?: bigint, fromBlock?: big
 			)
 
 			// Update database
-			await bulkUpdateDbTransactions(dbTransactions)
+			const seedLength =
+				logsStakerDelegated.length + logsStakerUndelegated.length
+
+			await bulkUpdateDbTransactions(
+				dbTransactions,
+				`Staker Delegation from: ${fromBlock} to: ${toBlock} size: ${seedLength}`
+			)
+
+			totalSeeded += seedLength
 		} catch (error) {}
 	})
-
-	console.log(
-		`Seeded StakerDelegated logs between blocks ${firstBlock} ${lastBlock}: ${logsStakerDelegated.length}`
-	)
-	console.log(
-		`Seeded StakerUndelegated logs between blocks ${firstBlock} ${lastBlock}: ${logsStakerUndelegated.length}`
-	)
 }

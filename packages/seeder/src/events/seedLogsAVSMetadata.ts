@@ -18,16 +18,12 @@ const blockSyncKeyLogs = 'lastSyncedBlock_logs_avs'
  * @param fromBlock
  * @param toBlock
  */
-export async function seedLogsAVSMetadata(toBlock?: bigint, fromBlock?: bigint) {
-	console.log('Seeding Event Logs for AVSMetadataURIUpdated...')
-	
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-	const dbTransactions: any[] = []
-
+export async function seedLogsAVSMetadata(
+	toBlock?: bigint,
+	fromBlock?: bigint
+) {
 	const viemClient = getViemClient()
 	const prismaClient = getPrismaClient()
-
-	const logsAVSMetadataURIUpdated: prisma.EventLogs_AVSMetadataURIUpdated[] = []
 
 	const firstBlock = fromBlock
 		? fromBlock
@@ -35,13 +31,18 @@ export async function seedLogsAVSMetadata(toBlock?: bigint, fromBlock?: bigint) 
 	const lastBlock = toBlock ? toBlock : await viemClient.getBlockNumber()
 	const blockData = await getBlockDataFromDb(firstBlock, lastBlock)
 
+	let totalSeeded = 0
+
 	// Loop through evm logs
 	await loopThroughBlocks(firstBlock, lastBlock, async (fromBlock, toBlock) => {
 		try {
+			// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+			const dbTransactions: any[] = []
+			const logsAVSMetadataURIUpdated: prisma.EventLogs_AVSMetadataURIUpdated[] =
+				[]
+
 			const logs = await viemClient.getLogs({
-				address: [
-					getEigenContracts().AVSDirectory
-				],
+				address: [getEigenContracts().AVSDirectory],
 				events: [
 					parseAbiItem(
 						'event AVSMetadataURIUpdated(address indexed avs, string metadataURI)'
@@ -55,17 +56,17 @@ export async function seedLogsAVSMetadata(toBlock?: bigint, fromBlock?: bigint) 
 			for (const l in logs) {
 				const log = logs[l]
 
-                logsAVSMetadataURIUpdated.push({
-                    address: log.address,
+				logsAVSMetadataURIUpdated.push({
+					address: log.address,
 					transactionHash: log.transactionHash,
 					transactionIndex: log.transactionIndex,
 					blockNumber: BigInt(log.blockNumber),
 					blockHash: log.blockHash,
 					blockTime: blockData.get(log.blockNumber) || new Date(0),
-                    avs: String(log.args.avs),
-                    metadataURI: String(log.args.metadataURI)
-                })
-            }
+					avs: String(log.args.avs),
+					metadataURI: String(log.args.metadataURI)
+				})
+			}
 
 			dbTransactions.push(
 				prismaClient.eventLogs_AVSMetadataURIUpdated.createMany({
@@ -84,11 +85,14 @@ export async function seedLogsAVSMetadata(toBlock?: bigint, fromBlock?: bigint) 
 			)
 
 			// Update database
-			await bulkUpdateDbTransactions(dbTransactions)
+			const seedLength = logsAVSMetadataURIUpdated.length
+
+			await bulkUpdateDbTransactions(
+				dbTransactions,
+				`AVS Metadata from: ${fromBlock} to: ${toBlock} size: ${seedLength}`
+			)
+
+			totalSeeded += seedLength
 		} catch (error) {}
 	})
-
-	console.log(
-		`Seeded AVSMetadataURIUpdated logs between blocks ${firstBlock} ${lastBlock}: ${logsAVSMetadataURIUpdated.length}`
-	)
 }

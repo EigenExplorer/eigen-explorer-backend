@@ -18,16 +18,12 @@ const blockSyncKeyLogs = 'lastSyncedBlock_logs_operators'
  * @param fromBlock
  * @param toBlock
  */
-export async function seedLogsOperatorMetadata(toBlock?: bigint, fromBlock?: bigint) {
-	console.log('Seeding Event Logs for OperatorMetadataURIUpdated...')
-
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-	const dbTransactions: any[] = []
-
+export async function seedLogsOperatorMetadata(
+	toBlock?: bigint,
+	fromBlock?: bigint
+) {
 	const viemClient = getViemClient()
 	const prismaClient = getPrismaClient()
-
-	const logsOperatorMetadataURIUpdated: prisma.EventLogs_OperatorMetadataURIUpdated[] = []
 
 	const firstBlock = fromBlock
 		? fromBlock
@@ -35,13 +31,18 @@ export async function seedLogsOperatorMetadata(toBlock?: bigint, fromBlock?: big
 	const lastBlock = toBlock ? toBlock : await viemClient.getBlockNumber()
 	const blockData = await getBlockDataFromDb(firstBlock, lastBlock)
 
+	let totalSeeded = 0
+
 	// Loop through evm logs
 	await loopThroughBlocks(firstBlock, lastBlock, async (fromBlock, toBlock) => {
 		try {
+			// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+			const dbTransactions: any[] = []
+			const logsOperatorMetadataURIUpdated: prisma.EventLogs_OperatorMetadataURIUpdated[] =
+				[]
+
 			const logs = await viemClient.getLogs({
-				address: [
-					getEigenContracts().DelegationManager
-				],
+				address: [getEigenContracts().DelegationManager],
 				events: [
 					parseAbiItem(
 						'event OperatorMetadataURIUpdated(address indexed operator, string metadataURI)'
@@ -55,17 +56,17 @@ export async function seedLogsOperatorMetadata(toBlock?: bigint, fromBlock?: big
 			for (const l in logs) {
 				const log = logs[l]
 
-                logsOperatorMetadataURIUpdated.push({
-                    address: log.address,
+				logsOperatorMetadataURIUpdated.push({
+					address: log.address,
 					transactionHash: log.transactionHash,
 					transactionIndex: log.transactionIndex,
 					blockNumber: BigInt(log.blockNumber),
 					blockHash: log.blockHash,
 					blockTime: blockData.get(log.blockNumber) || new Date(0),
-                    operator: String(log.args.operator),
-                    metadataURI: String(log.args.metadataURI)
-                })
-            }
+					operator: String(log.args.operator),
+					metadataURI: String(log.args.metadataURI)
+				})
+			}
 
 			dbTransactions.push(
 				prismaClient.eventLogs_OperatorMetadataURIUpdated.createMany({
@@ -84,11 +85,14 @@ export async function seedLogsOperatorMetadata(toBlock?: bigint, fromBlock?: big
 			)
 
 			// Update database
-			await bulkUpdateDbTransactions(dbTransactions)
+			const seedLength = logsOperatorMetadataURIUpdated.length
+			
+			await bulkUpdateDbTransactions(
+				dbTransactions,
+				`Operator Metadata from: ${fromBlock} to: ${toBlock} size: ${seedLength}`
+			)
+
+			totalSeeded += seedLength
 		} catch (error) {}
 	})
-
-	console.log(
-		`Seeded OperatorMetadataURIUpdated logs between blocks ${firstBlock} ${lastBlock}: ${logsOperatorMetadataURIUpdated.length}`
-	)
 }
