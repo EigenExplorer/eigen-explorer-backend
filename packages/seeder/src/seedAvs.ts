@@ -1,7 +1,6 @@
 import type prisma from '@prisma/client'
 import { isValidMetadataUrl, validateMetadata } from './utils/metadata'
 import { type EntityMetadata, defaultMetadata } from './utils/metadata'
-import { getViemClient } from './utils/viemClient'
 import { getPrismaClient } from './utils/prismaClient'
 import { fetchLastLogBlock } from './utils/events'
 import {
@@ -30,7 +29,6 @@ interface AvsEntryRecord {
 export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 	console.log('Seeding AVS ...')
 
-	const viemClient = getViemClient()
 	const prismaClient = getPrismaClient()
 	const avsList: Map<string, AvsEntryRecord> = new Map()
 
