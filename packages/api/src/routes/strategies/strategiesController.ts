@@ -9,6 +9,7 @@ import {
 import { strategyAbi } from '../../data/abi/strategy'
 import { TokenPrices } from '../../utils/tokenPrices'
 import { cacheStore } from 'route-cache'
+import { serviceManagerUIAbi } from '../../data/abi/serviceManagerUIAbi'
 
 // ABI path for dynamic imports
 const abiPath = {
@@ -229,6 +230,10 @@ export function sharesToTVL(
 		new Map(
 			strategyKeys.map((sk) => [sk as keyof EigenStrategiesContractAddress, 0])
 		)
+	const tvlStrategiesEth: Map<keyof EigenStrategiesContractAddress, number> =
+		new Map(
+			strategyKeys.map((sk) => [sk as keyof EigenStrategiesContractAddress, 0])
+		)
 
 	restakingStrategies.map((s) => {
 		const foundStrategyIndex = strategies.findIndex(
@@ -261,6 +266,14 @@ export function sharesToTVL(
 
 			if (strategyTokenPrice) {
 				const strategyTvl = strategyShares * strategyTokenPrice.eth
+
+				tvlStrategiesEth.set(
+					strategyKeys[
+						foundStrategyIndex
+					] as keyof EigenStrategiesContractAddress,
+					strategyTvl
+				)
+
 				tvlRestaking = tvlRestaking + strategyTvl
 			}
 		}
@@ -271,6 +284,25 @@ export function sharesToTVL(
 		tvlBeaconChain,
 		tvlWETH: tvlStrategies.has('WETH') ? tvlStrategies.get('WETH') : 0,
 		tvlRestaking,
-		tvlStrategies: Object.fromEntries(tvlStrategies.entries())
+		tvlStrategies: Object.fromEntries(tvlStrategies.entries()),
+		tvlStrategiesEth: Object.fromEntries(tvlStrategiesEth.entries())
 	}
+}
+
+export async function getRestakeableStrategies(
+	avsAddress: string
+): Promise<string[]> {
+	try {
+		const viemClient = getViemClient()
+
+		const strategies = (await viemClient.readContract({
+			address: avsAddress as `0x${string}`,
+			abi: serviceManagerUIAbi,
+			functionName: 'getRestakeableStrategies'
+		})) as string[]
+
+		return strategies.map(s => s.toLowerCase())
+	} catch (error) {}
+
+	return []
 }
