@@ -31,7 +31,7 @@ export async function seedAvsOperators(toBlock?: bigint, fromBlock?: bigint) {
 		await prismaClient.eventLogs_OperatorAVSRegistrationStatusUpdated.findMany({
 			where: {
 				blockNumber: {
-					gte: firstBlock,
+					gt: firstBlock,
 					lte: lastBlock
 				}
 			}

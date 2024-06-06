@@ -29,7 +29,7 @@ export async function seedPods(toBlock?: bigint, fromBlock?: bigint) {
 	const logs = await prismaClient.eventLogs_PodDeployed.findMany({
 		where: {
 			blockNumber: {
-				gte: firstBlock,
+				gt: firstBlock,
 				lte: lastBlock
 			}
 		}

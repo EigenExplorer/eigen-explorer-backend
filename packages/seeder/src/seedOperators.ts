@@ -41,7 +41,7 @@ export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 		{
 			where: {
 				blockNumber: {
-					gte: firstBlock,
+					gt: firstBlock,
 					lte: lastBlock
 				}
 			}
@@ -101,28 +101,8 @@ export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 				})
 			} // Ignore case where Operator is already registered and is updated with invalid metadata uri
 		}
-
-		// Seeding without metadata
-		if (existingRecord) {
-			// Operator already registered
-			operatorList.set(operatorAddress, {
-				metadata: defaultMetadata,
-				createdAtBlock: existingRecord.createdAtBlock,
-				updatedAtBlock: blockNumber,
-				createdAt: existingRecord.createdAt,
-				updatedAt: timestamp
-			})
-		} else {
-			// Operator not registered
-			operatorList.set(operatorAddress, {
-				metadata: defaultMetadata,
-				createdAtBlock: blockNumber,
-				updatedAtBlock: blockNumber,
-				createdAt: timestamp,
-				updatedAt: timestamp
-			})
-		}
 	}
+	
 	console.log(
 		`Operators registered between blocks ${firstBlock} ${lastBlock}: ${logs.length}`
 	)

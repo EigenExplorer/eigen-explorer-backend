@@ -42,7 +42,7 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 	const logs = await prismaClient.eventLogs_AVSMetadataURIUpdated.findMany({
 		where: {
 			blockNumber: {
-				gte: firstBlock,
+				gt: firstBlock,
 				lte: lastBlock
 			}
 		}
@@ -100,27 +100,6 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 					updatedAt: timestamp
 				})
 			} // Ignore case where Avs is already registered and is updated with invalid metadata uri
-		}
-
-		// Seeding without metadata
-		if (existingRecord) {
-			// Avs already registered
-			avsList.set(avsAddress, {
-				metadata: defaultMetadata,
-				createdAtBlock: existingRecord.createdAtBlock,
-				updatedAtBlock: blockNumber,
-				createdAt: existingRecord.createdAt,
-				updatedAt: timestamp
-			})
-		} else {
-			// Avs not registered
-			avsList.set(avsAddress, {
-				metadata: defaultMetadata,
-				createdAtBlock: blockNumber,
-				updatedAtBlock: blockNumber,
-				createdAt: timestamp,
-				updatedAt: timestamp
-			})
 		}
 	}
 
