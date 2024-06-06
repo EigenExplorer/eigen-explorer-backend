@@ -45,6 +45,7 @@ export async function seedEventLogs(toBlock?: bigint, fromBlock?: bigint) {
 		[]
 	const logsStakerDelegated: prisma.EventLogs_StakerDelegated[] = []
 	const logsStakerUndelegated: prisma.EventLogs_StakerUndelegated[] = []
+	const logsDeposit: prisma.EventLogs_Deposit[] = []
 
 	const firstBlock = fromBlock
 		? fromBlock
@@ -88,6 +89,9 @@ export async function seedEventLogs(toBlock?: bigint, fromBlock?: bigint) {
 					),
 					parseAbiItem(
 						'event StakerUndelegated(address indexed staker, address indexed operator)'
+					),
+					parseAbiItem(
+						'event Deposit(address staker, address token, address strategy, uint256 shares)'
 					)
 				],
 				fromBlock,
@@ -182,6 +186,17 @@ export async function seedEventLogs(toBlock?: bigint, fromBlock?: bigint) {
 							staker: String(log.args.staker),
 							operator: String(log.args.operator)
 						})
+						break
+					}
+
+					case 'Deposit': {
+						logsDeposit.push({
+							...transactionData,
+							staker: String(log.args.staker),
+							token: String(log.args.token),
+							strategy: String(log.args.strategy),
+							shares: String(log.args.shares)
+						})
 					}
 				}
 			}
@@ -233,6 +248,13 @@ export async function seedEventLogs(toBlock?: bigint, fromBlock?: bigint) {
 			dbTransactions.push(
 				prismaClient.eventLogs_StakerUndelegated.createMany({
 					data: logsStakerUndelegated,
+					skipDuplicates: true
+				})
+			)
+
+			dbTransactions.push(
+				prismaClient.eventLogs_Deposit.createMany({
+					data: logsDeposit,
 					skipDuplicates: true
 				})
 			)

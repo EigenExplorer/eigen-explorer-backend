@@ -305,6 +305,24 @@ model EventLogs_OperatorSharesDecreased {
   @@index([staker, operator])
 }
 
+model EventLogs_Deposit {
+  address String
+
+  transactionHash  String
+  transactionIndex Int
+  blockNumber      BigInt
+  blockHash        String
+  blockTime        DateTime
+
+  staker   String
+  token    String
+  strategy String
+  shares   String
+
+  @@id([transactionHash, transactionIndex])
+  @@index([staker, strategy])
+}
+
 // Misc
 
 model Evm_BlockData {
