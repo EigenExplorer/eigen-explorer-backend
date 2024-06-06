@@ -1,0 +1,119 @@
+import prisma from '@prisma/client'
+import { parseAbiItem } from 'viem'
+import { getEigenContracts } from '../data/address'
+import { getViemClient } from '../utils/viemClient'
+import {
+	bulkUpdateDbTransactions,
+	fetchLastSyncBlock,
+	getBlockDataFromDb,
+	loopThroughBlocks
+} from '../utils/seeder'
+import { getPrismaClient } from '../utils/prismaClient'
+
+const blockSyncKeyLogs = 'lastSyncedBlock_logs_stakers'
+
+/**
+ * Utility function to seed event logs
+ *
+ * @param fromBlock
+ * @param toBlock
+ */
+export async function seedLogsStakerDelegation(toBlock?: bigint, fromBlock?: bigint) {
+	console.log('Seeding Event Logs for StakerDelegated and StakerUndelegated...')
+	
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+	const dbTransactions: any[] = []
+
+	const viemClient = getViemClient()
+	const prismaClient = getPrismaClient()
+
+	const logsStakerDelegated: prisma.EventLogs_StakerDelegated[] = []
+    const logsStakerUndelegated: prisma.EventLogs_StakerUndelegated[] = []
+
+	const firstBlock = fromBlock
+		? fromBlock
+		: await fetchLastSyncBlock(blockSyncKeyLogs)
+	const lastBlock = toBlock ? toBlock : await viemClient.getBlockNumber()
+	const blockData = await getBlockDataFromDb(firstBlock, lastBlock)
+
+	// Loop through evm logs
+	await loopThroughBlocks(firstBlock, lastBlock, async (fromBlock, toBlock) => {
+		try {
+			const logs = await viemClient.getLogs({
+				address: [
+					getEigenContracts().DelegationManager
+				],
+				events: [
+					parseAbiItem(
+						'event StakerDelegated(address indexed staker, address indexed operator)'
+					),
+					parseAbiItem(
+						'event StakerUndelegated(address indexed staker, address indexed operator)'
+					),
+				],
+				fromBlock,
+				toBlock
+			})
+
+			// Setup a list containing event data
+			for (const l in logs) {
+				const log = logs[l]
+
+                logsStakerDelegated.push({
+                    address: log.address,
+					transactionHash: log.transactionHash,
+					transactionIndex: log.transactionIndex,
+					blockNumber: BigInt(log.blockNumber),
+					blockHash: log.blockHash,
+					blockTime: blockData.get(log.blockNumber) || new Date(0),
+                    staker: String(log.args.staker),
+                    operator: String(log.args.operator)
+                })
+
+                logsStakerUndelegated.push({
+                    address: log.address,
+					transactionHash: log.transactionHash,
+					transactionIndex: log.transactionIndex,
+					blockNumber: BigInt(log.blockNumber),
+					blockHash: log.blockHash,
+					blockTime: blockData.get(log.blockNumber) || new Date(0),
+                    staker: String(log.args.staker),
+                    operator: String(log.args.operator)
+                })
+            }
+
+			dbTransactions.push(
+				prismaClient.eventLogs_StakerDelegated.createMany({
+					data: logsStakerDelegated,
+					skipDuplicates: true
+				})
+			)
+
+            dbTransactions.push(
+				prismaClient.eventLogs_StakerUndelegated.createMany({
+					data: logsStakerUndelegated,
+					skipDuplicates: true
+				})
+			)
+
+			// Store last synced block
+			dbTransactions.push(
+				prismaClient.settings.upsert({
+					where: { key: blockSyncKeyLogs },
+					update: { value: Number(toBlock) },
+					create: { key: blockSyncKeyLogs, value: Number(toBlock) }
+				})
+			)
+
+			// Update database
+			await bulkUpdateDbTransactions(dbTransactions)
+		} catch (error) {}
+	})
+
+	console.log(
+		`Seeded StakerDelegated logs between blocks ${firstBlock} ${lastBlock}: ${logsStakerDelegated.length}`
+	)
+	console.log(
+		`Seeded StakerUndelegated logs between blocks ${firstBlock} ${lastBlock}: ${logsStakerUndelegated.length}`
+	)
+}

@@ -1,5 +1,4 @@
 import type prisma from '@prisma/client'
-import { fetchLastLogBlock } from './utils/events'
 import { getPrismaClient } from './utils/prismaClient'
 import {
 	type IMap,
@@ -10,6 +9,7 @@ import {
 } from './utils/seeder'
 
 const blockSyncKey = 'lastSyncedBlock_stakers'
+const blockSyncKeyLogs = 'lastSyncedBlock_logs_stakers'
 
 interface StakerEntryRecord {
 	operatorAddress: string | null
@@ -21,15 +21,15 @@ interface StakerEntryRecord {
 }
 
 export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
-	console.log('Seeding stakers ...')
-
 	const prismaClient = getPrismaClient()
 	const stakers: IMap<string, StakerEntryRecord> = new Map()
 
 	const firstBlock = fromBlock
 		? fromBlock
 		: await fetchLastSyncBlock(blockSyncKey)
-	const lastBlock = toBlock ? toBlock : await fetchLastLogBlock()
+	const lastBlock = toBlock ? toBlock : await fetchLastSyncBlock(blockSyncKeyLogs)
+
+	console.log(`Seeding Stakers from ${firstBlock} - ${lastBlock}`)
 
 	if (firstBlock === baseBlock) {
 		await prismaClient.stakerStrategyShares.deleteMany()

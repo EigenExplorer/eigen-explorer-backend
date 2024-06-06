@@ -2,7 +2,6 @@ import type prisma from '@prisma/client'
 import { isValidMetadataUrl, validateMetadata } from './utils/metadata'
 import { type EntityMetadata, defaultMetadata } from './utils/metadata'
 import { getPrismaClient } from './utils/prismaClient'
-import { fetchLastLogBlock } from './utils/events'
 import {
 	baseBlock,
 	bulkUpdateDbTransactions,
@@ -11,6 +10,7 @@ import {
 } from './utils/seeder'
 
 const blockSyncKey = 'lastSyncedBlock_avs'
+const blockSyncKeyLogs = 'lastSyncedBlock_logs_avs'
 
 interface AvsEntryRecord {
 	metadata: EntityMetadata
@@ -27,15 +27,15 @@ interface AvsEntryRecord {
  * @param toBlock
  */
 export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
-	console.log('Seeding AVS ...')
-
 	const prismaClient = getPrismaClient()
 	const avsList: Map<string, AvsEntryRecord> = new Map()
 
 	const firstBlock = fromBlock
 		? fromBlock
 		: await fetchLastSyncBlock(blockSyncKey)
-	const lastBlock = toBlock ? toBlock : await fetchLastLogBlock()
+	const lastBlock = toBlock ? toBlock : await fetchLastSyncBlock(blockSyncKeyLogs)
+
+	console.log(`Seeding AVS from ${firstBlock} - ${lastBlock}`)
 
 	const logs = await prismaClient.eventLogs_AVSMetadataURIUpdated.findMany({
 		where: {
@@ -55,6 +55,8 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 		const blockNumber = BigInt(log.blockNumber)
 		const timestamp = log.blockTime
 
+		
+		/* Commented out for testing until merge with #75
 		try {
 			if (log.metadataURI && isValidMetadataUrl(log.metadataURI)) {
 				const response = await fetch(log.metadataURI)
@@ -98,11 +100,33 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 					updatedAt: timestamp
 				})
 			} // Ignore case where Avs is already registered and is updated with invalid metadata uri
+		} */
+
+		// Seeding without metadata
+		if (existingRecord) {
+			// Avs already registered
+			avsList.set(avsAddress, {
+				metadata: defaultMetadata,
+				createdAtBlock: existingRecord.createdAtBlock,
+				updatedAtBlock: blockNumber,
+				createdAt: existingRecord.createdAt,
+				updatedAt: timestamp
+			})
+		} else {
+			// Avs not registered
+			avsList.set(avsAddress, {
+				metadata: defaultMetadata,
+				createdAtBlock: blockNumber,
+				updatedAtBlock: blockNumber,
+				createdAt: timestamp,
+				updatedAt: timestamp
+			})
 		}
 	}
+
 	console.log(
 		`Avs registered between blocks ${firstBlock} ${lastBlock}: ${logs.length}`
-	)
+	) 
 
 	// Prepare db transaction object
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>

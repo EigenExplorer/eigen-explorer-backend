@@ -1,4 +1,3 @@
-import { fetchLastLogBlock } from './utils/events'
 import { getPrismaClient } from './utils/prismaClient'
 import {
 	baseBlock,
@@ -8,17 +7,18 @@ import {
 } from './utils/seeder'
 
 const blockSyncKey = 'lastSyncedBlock_avsOperators'
+const blockSyncKeyLogs = 'lastSyncedBlock_logs_avsOperators'
 
 export async function seedAvsOperators(toBlock?: bigint, fromBlock?: bigint) {
-	console.log('Seeding AVS Operators ...')
-
 	const prismaClient = getPrismaClient()
 	const avsOperatorsList: Map<string, Map<string, number>> = new Map()
 
 	const firstBlock = fromBlock
 		? fromBlock
 		: await fetchLastSyncBlock(blockSyncKey)
-	const lastBlock = toBlock ? toBlock : await fetchLastLogBlock()
+	const lastBlock = toBlock ? toBlock : await fetchLastSyncBlock(blockSyncKeyLogs)
+
+	console.log(`Seeding AVSOperators from ${firstBlock} - ${lastBlock}`)
 
 	// Load initial operator staker state
 	const avs = await prismaClient.avs.findMany({

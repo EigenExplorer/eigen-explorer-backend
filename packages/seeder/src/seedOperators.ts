@@ -6,7 +6,6 @@ import {
 	isValidMetadataUrl,
 	validateMetadata
 } from './utils/metadata'
-import { fetchLastLogBlock } from './utils/events'
 import {
 	baseBlock,
 	bulkUpdateDbTransactions,
@@ -15,6 +14,7 @@ import {
 } from './utils/seeder'
 
 const blockSyncKey = 'lastSyncedBlock_operators'
+const blockSyncKeyLogs = 'lastSyncedBlock_logs_operators'
 
 interface OperatorEntryRecord {
 	metadata: EntityMetadata
@@ -25,15 +25,15 @@ interface OperatorEntryRecord {
 }
 
 export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
-	console.log('Seeding Operators ...')
-
 	const prismaClient = getPrismaClient()
 	const operatorList: Map<string, OperatorEntryRecord> = new Map()
 
 	const firstBlock = fromBlock
 		? fromBlock
 		: await fetchLastSyncBlock(blockSyncKey)
-	const lastBlock = toBlock ? toBlock : await fetchLastLogBlock()
+	const lastBlock = toBlock ? toBlock : await fetchLastSyncBlock(blockSyncKeyLogs)
+
+	console.log(`Seeding Operators from ${firstBlock} - ${lastBlock}`)
 
 	const logs = await prismaClient.eventLogs_OperatorMetadataURIUpdated.findMany(
 		{
@@ -55,6 +55,8 @@ export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 		const blockNumber = BigInt(log.blockNumber)
 		const timestamp = log.blockTime
 
+
+		/* Commented out for testing until merge with #75
 		try {
 			if (log.metadataURI && isValidMetadataUrl(log.metadataURI)) {
 				const response = await fetch(log.metadataURI)
@@ -98,9 +100,29 @@ export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 					updatedAt: timestamp
 				})
 			} // Ignore case where Operator is already registered and is updated with invalid metadata uri
+		}*/
+
+		// Seeding without metadata
+		if (existingRecord) {
+			// Operator already registered
+			operatorList.set(operatorAddress, {
+				metadata: defaultMetadata,
+				createdAtBlock: existingRecord.createdAtBlock,
+				updatedAtBlock: blockNumber,
+				createdAt: existingRecord.createdAt,
+				updatedAt: timestamp
+			})
+		} else {
+			// Operator not registered
+			operatorList.set(operatorAddress, {
+				metadata: defaultMetadata,
+				createdAtBlock: blockNumber,
+				updatedAtBlock: blockNumber,
+				createdAt: timestamp,
+				updatedAt: timestamp
+			})
 		}
 	}
-
 	console.log(
 		`Operators registered between blocks ${firstBlock} ${lastBlock}: ${logs.length}`
 	)
@@ -180,7 +202,7 @@ export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 
 	await bulkUpdateDbTransactions(dbTransactions)
 
-	// Storing last sycned block
+	// Storing last synced block
 	await saveLastSyncBlock(blockSyncKey, lastBlock)
 
 	console.log('Seeded operators:', operatorList.size)

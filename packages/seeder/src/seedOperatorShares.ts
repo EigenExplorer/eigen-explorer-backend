@@ -1,5 +1,4 @@
 import { getPrismaClient } from './utils/prismaClient'
-import { fetchLastLogBlock } from './utils/events'
 import {
 	baseBlock,
 	bulkUpdateDbTransactions,
@@ -9,10 +8,9 @@ import {
 } from './utils/seeder'
 
 const blockSyncKey = 'lastSyncedBlock_operatorShares'
+const blockSyncKeyLogs = 'lastSyncedBlock_logs_operatorShares'
 
 export async function seedOperatorShares(toBlock?: bigint, fromBlock?: bigint) {
-	console.log('Seeding operator shares ...')
-
 	const prismaClient = getPrismaClient()
 	const operatorShares: IMap<
 		string,
@@ -22,7 +20,9 @@ export async function seedOperatorShares(toBlock?: bigint, fromBlock?: bigint) {
 	const firstBlock = fromBlock
 		? fromBlock
 		: await fetchLastSyncBlock(blockSyncKey)
-	const lastBlock = toBlock ? toBlock : await fetchLastLogBlock()
+	const lastBlock = toBlock ? toBlock : await fetchLastSyncBlock(blockSyncKeyLogs)
+
+	console.log(`Seeding Operator Shares from ${firstBlock} - ${lastBlock}`)
 
 	if (firstBlock === baseBlock) {
 		await prismaClient.operatorStrategyShares.deleteMany()
