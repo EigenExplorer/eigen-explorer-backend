@@ -45,7 +45,7 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 			}
 		})
 		.then((logs) =>
-			logs.map((log) => ({ ...log, eventName: 'StakerDelegated' }))
+			logs.map((log) => ({ ...log, shares: '', strategy: '', eventName: 'StakerDelegated' }))
 		)
 
 	const logsStakerUndelegated = await prismaClient.eventLogs_StakerUndelegated
@@ -58,7 +58,7 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 			}
 		})
 		.then((logs) =>
-			logs.map((log) => ({ ...log, eventName: 'StakerUndelegated' }))
+			logs.map((log) => ({ ...log, shares: '', strategy: '', eventName: 'StakerUndelegated' }))
 		)
 
 	const logsOperatorSharesIncreased =
@@ -72,7 +72,7 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 				}
 			})
 			.then((logs) =>
-				logs.map((log) => ({ ...log, eventName: 'OperatorSharesIncreased' }))
+				logs.map((log) => ({ ...log, shares: log.shares, strategy: log.strategy, eventName: 'OperatorSharesIncreased' }))
 			)
 
 	const logsOperatorSharesDecreased =
@@ -86,7 +86,7 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 				}
 			})
 			.then((logs) =>
-				logs.map((log) => ({ ...log, eventName: 'OperatorSharesDecreased' }))
+				logs.map((log) => ({ ...log, shares: log.shares, strategy: log.strategy, eventName: 'OperatorSharesDecreased' }))
 			)
 
 	const logs = [
