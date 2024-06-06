@@ -22,11 +22,11 @@ export async function seedAvsOperators(toBlock?: bigint, fromBlock?: bigint) {
 
 	// Bail early if there is no block diff to sync
 	if (lastBlock - firstBlock <= 0) {
-		console.log(`AVSOperators in sync ${firstBlock} - ${lastBlock}`)
+		console.log(
+			`[In Sync] [Data] AVS Operators from: ${firstBlock} to: ${lastBlock}`
+		)
 		return
 	}
-
-	console.log(`Seeding AVSOperators from ${firstBlock} - ${lastBlock}`)
 
 	// Load initial operator staker state
 	const avs = await prismaClient.avs.findMany({
@@ -55,10 +55,6 @@ export async function seedAvsOperators(toBlock?: bigint, fromBlock?: bigint) {
 			avsOperatorsList.get(avsAddress)?.set(operatorAddress, log.status || 0)
 		}
 	}
-
-	console.log(
-		`Avs operators updated between blocks ${firstBlock} ${lastBlock}: ${logs.length}`
-	)
 
 	// Prepare db transaction object
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
@@ -111,10 +107,11 @@ export async function seedAvsOperators(toBlock?: bigint, fromBlock?: bigint) {
 		}
 	}
 
-	await bulkUpdateDbTransactions(dbTransactions)
+	await bulkUpdateDbTransactions(
+		dbTransactions,
+		`[Data] AVS Operator from: ${firstBlock} to: ${lastBlock} size: ${avsOperatorsList.size}`
+	)
 
 	// Storing last sycned block
 	await saveLastSyncBlock(blockSyncKey, lastBlock)
-
-	console.log('Seeded AVS Operators:', avsOperatorsList.size)
 }

@@ -31,8 +31,6 @@ export async function seedLogsOperatorAVSRegistrationStatus(
 	const lastBlock = toBlock ? toBlock : await viemClient.getBlockNumber()
 	const blockData = await getBlockDataFromDb(firstBlock, lastBlock)
 
-	let totalSeeded = 0
-
 	// Loop through evm logs
 	await loopThroughBlocks(firstBlock, lastBlock, async (fromBlock, toBlock) => {
 		try {
@@ -91,10 +89,8 @@ export async function seedLogsOperatorAVSRegistrationStatus(
 
 			await bulkUpdateDbTransactions(
 				dbTransactions,
-				`Operator Registration from: ${fromBlock} to: ${toBlock} size: ${seedLength}`
+				`[Logs] Operator Registration from: ${fromBlock} to: ${toBlock} size: ${seedLength}`
 			)
-
-			totalSeeded += seedLength
 		} catch (error) {}
 	})
 }

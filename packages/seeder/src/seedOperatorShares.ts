@@ -26,11 +26,11 @@ export async function seedOperatorShares(toBlock?: bigint, fromBlock?: bigint) {
 
 	// Bail early if there is no block diff to sync
 	if (lastBlock - firstBlock <= 0) {
-		console.log(`Operator Shares in sync ${firstBlock} - ${lastBlock}`)
+		console.log(
+			`[In Sync] [Data] Operator Shares from: ${firstBlock} to: ${lastBlock}`
+		)
 		return
 	}
-
-	console.log(`Seeding Operator Shares from ${firstBlock} - ${lastBlock}`)
 
 	if (firstBlock === baseBlock) {
 		await prismaClient.operatorStrategyShares.deleteMany()
@@ -133,10 +133,6 @@ export async function seedOperatorShares(toBlock?: bigint, fromBlock?: bigint) {
 		}
 	}
 
-	console.log(
-		`Operator shares updated between blocks ${firstBlock} ${lastBlock}: ${logs.length}`
-	)
-
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	const dbTransactions: any[] = []
 
@@ -191,10 +187,11 @@ export async function seedOperatorShares(toBlock?: bigint, fromBlock?: bigint) {
 		}
 	}
 
-	await bulkUpdateDbTransactions(dbTransactions)
+	await bulkUpdateDbTransactions(
+		dbTransactions,
+		`[Data] Operator Shares from: ${firstBlock} to: ${lastBlock} size: ${operatorShares.size}`
+	)
 
 	// Storing last sycned block
 	await saveLastSyncBlock(blockSyncKey, lastBlock)
-
-	console.log('Seeded operator shares:', operatorShares.size)
 }

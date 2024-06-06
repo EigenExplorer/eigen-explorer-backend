@@ -39,11 +39,11 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 
 	// Bail early if there is no block diff to sync
 	if (lastBlock - firstBlock <= 0) {
-		console.log(`AVS in sync ${firstBlock} - ${lastBlock}`)
+		console.log(
+			`[In Sync] [Data] AVS MetadataURI from: ${firstBlock} to: ${lastBlock}`
+		)
 		return
 	}
-
-	console.log(`Seeding AVS from ${firstBlock} - ${lastBlock}`)
 
 	const logs = await prismaClient.eventLogs_AVSMetadataURIUpdated.findMany({
 		where: {
@@ -108,10 +108,6 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 			} // Ignore case where Avs is already registered and is updated with invalid metadata uri
 		}
 	}
-
-	console.log(
-		`Avs registered between blocks ${firstBlock} ${lastBlock}: ${logs.length}`
-	)
 
 	// Prepare db transaction object
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
@@ -186,10 +182,11 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 		}
 	}
 
-	await bulkUpdateDbTransactions(dbTransactions)
+	await bulkUpdateDbTransactions(
+		dbTransactions,
+		`[Data] AVS MetadataURI from: ${firstBlock} to: ${lastBlock} size: ${avsList.size}`
+	)
 
 	// Storing last synced block
 	await saveLastSyncBlock(blockSyncKey, lastBlock)
-
-	console.log('Seeded AVS:', avsList.size)
 }

@@ -31,8 +31,6 @@ export async function seedLogsWithdrawalQueued(
 	const lastBlock = toBlock ? toBlock : await viemClient.getBlockNumber()
 	const blockData = await getBlockDataFromDb(firstBlock, lastBlock)
 
-	let totalSeeded = 0
-
 	// Loop through evm logs
 	await loopThroughBlocks(firstBlock, lastBlock, async (fromBlock, toBlock) => {
 		try {
@@ -94,10 +92,8 @@ export async function seedLogsWithdrawalQueued(
 
 			await bulkUpdateDbTransactions(
 				dbTransactions,
-				`Withdrawal Queued from: ${fromBlock} to: ${toBlock} size: ${seedLength}`
+				`[Logs] Withdrawal Queued from: ${fromBlock} to: ${toBlock} size: ${seedLength}`
 			)
-
-			totalSeeded += seedLength
 		} catch (error) {}
 	})
 }

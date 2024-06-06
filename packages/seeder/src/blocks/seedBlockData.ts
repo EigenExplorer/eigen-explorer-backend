@@ -53,7 +53,7 @@ export async function seedBlockData(toBlock?: bigint, fromBlock?: bigint) {
 						skipDuplicates: true
 					})
 				],
-				`Block data from: ${fromBlock} to: ${toBlock} size: ${Number(
+				`[Meta] Block data from: ${fromBlock} to: ${toBlock} size: ${Number(
 					toBlock - fromBlock
 				)}`
 			)

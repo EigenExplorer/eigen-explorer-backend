@@ -31,7 +31,7 @@ async function seedEigenDataLoop() {
 		try {
 			const viemClient = getViemClient()
 			const targetBlock = await viemClient.getBlockNumber()
-			console.log('Seeding Data ...', targetBlock)
+			console.log('\nSeeding Data ...', targetBlock)
 
 			await seedBlockData(targetBlock)
 			await seedLogsAVSMetadata(targetBlock)
@@ -55,7 +55,7 @@ async function seedEigenDataLoop() {
 			console.log(error)
 		}
 
-		await delay(30)
+		await delay(60)
 	}
 }
 
@@ -64,7 +64,7 @@ async function seedEigenPodValidators() {
 
 	while (true) {
 		try {
-			console.log('Seeding Eigen Pods Data ...')
+			console.log('\nSeeding Eigen Pods Data ...')
 
 			await seedPods()
 			await seedValidators()

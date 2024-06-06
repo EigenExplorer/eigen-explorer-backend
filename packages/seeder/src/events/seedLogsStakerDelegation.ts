@@ -112,10 +112,8 @@ export async function seedLogsStakerDelegation(
 
 			await bulkUpdateDbTransactions(
 				dbTransactions,
-				`Staker Delegation from: ${fromBlock} to: ${toBlock} size: ${seedLength}`
+				`[Logs] Staker Delegation from: ${fromBlock} to: ${toBlock} size: ${seedLength}`
 			)
-
-			totalSeeded += seedLength
 		} catch (error) {}
 	})
 }

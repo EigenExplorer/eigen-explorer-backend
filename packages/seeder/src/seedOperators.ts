@@ -37,11 +37,11 @@ export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 
 	// Bail early if there is no block diff to sync
 	if (lastBlock - firstBlock <= 0) {
-		console.log(`Operators in sync ${firstBlock} - ${lastBlock}`)
+		console.log(
+			`[In Sync] [Data] Operator MetadataURI from: ${firstBlock} to: ${lastBlock}`
+		)
 		return
 	}
-
-	console.log(`Seeding Operators from ${firstBlock} - ${lastBlock}`)
 
 	const logs = await prismaClient.eventLogs_OperatorMetadataURIUpdated.findMany(
 		{
@@ -108,10 +108,6 @@ export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 			} // Ignore case where Operator is already registered and is updated with invalid metadata uri
 		}
 	}
-
-	console.log(
-		`Operators registered between blocks ${firstBlock} ${lastBlock}: ${logs.length}`
-	)
 
 	// Prepare db transaction object
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
@@ -186,10 +182,11 @@ export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 		}
 	}
 
-	await bulkUpdateDbTransactions(dbTransactions)
+	await bulkUpdateDbTransactions(
+		dbTransactions,
+		`[Data] Operator MetadataURI from: ${firstBlock} to: ${lastBlock} size: ${operatorList.size}`
+	)
 
 	// Storing last synced block
 	await saveLastSyncBlock(blockSyncKey, lastBlock)
-
-	console.log('Seeded operators:', operatorList.size)
 }

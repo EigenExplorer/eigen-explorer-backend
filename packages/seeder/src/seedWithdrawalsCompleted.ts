@@ -29,11 +29,11 @@ export async function seedCompletedWithdrawals(
 
 	// Bail early if there is no block diff to sync
 	if (lastBlock - firstBlock <= 0) {
-		console.log(`Completed Withdrawals in sync ${firstBlock} - ${lastBlock}`)
+		console.log(
+			`[In Sync] [Data] Completed Withdrawal from: ${firstBlock} to: ${lastBlock}`
+		)
 		return
 	}
-
-	console.log(`Seeding Completed Withdrawals from ${firstBlock} - ${lastBlock}`)
 
 	const logs = await prismaClient.eventLogs_WithdrawalCompleted.findMany({
 		where: {
@@ -54,10 +54,6 @@ export async function seedCompletedWithdrawals(
 		}
 	}
 
-	console.log(
-		`Withdrawals completed between blocks ${firstBlock} ${lastBlock}: ${logs.length}`
-	)
-
 	// Prepare db transaction object
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	const dbTransactions: any[] = []
@@ -73,10 +69,11 @@ export async function seedCompletedWithdrawals(
 		)
 	}
 
-	await bulkUpdateDbTransactions(dbTransactions)
+	await bulkUpdateDbTransactions(
+		dbTransactions,
+		`[Data] Completed Withdrawal from: ${firstBlock} to: ${lastBlock} size: ${completedWithdrawalList.length}`
+	)
 
 	// // Storing last sycned block
 	await saveLastSyncBlock(blockSyncKey, lastBlock)
-
-	console.log('Seeded Completed Withdrawals:', completedWithdrawalList.length)
 }

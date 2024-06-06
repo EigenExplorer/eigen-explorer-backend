@@ -33,11 +33,9 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 
 	// Bail early if there is no block diff to sync
 	if (lastBlock - firstBlock <= 0) {
-		console.log(`Stakers in sync ${firstBlock} - ${lastBlock}`)
+		console.log(`[In Sync] [Data] Stakers from: ${firstBlock} to: ${lastBlock}`)
 		return
 	}
-
-	console.log(`Seeding Stakers from ${firstBlock} - ${lastBlock}`)
 
 	if (firstBlock === baseBlock) {
 		await prismaClient.stakerStrategyShares.deleteMany()
@@ -217,10 +215,6 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 		}
 	}
 
-	console.log(
-		`Stakers deployed between blocks ${firstBlock} ${lastBlock}: ${logs.length}`
-	)
-
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	const dbTransactions: any[] = []
 
@@ -308,10 +302,11 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 		}
 	}
 
-	await bulkUpdateDbTransactions(dbTransactions)
+	await bulkUpdateDbTransactions(
+		dbTransactions,
+		`[Data] Stakers from: ${firstBlock} to: ${lastBlock} size: ${stakers.size}`
+	)
 
 	// Storing last sycned block
 	await saveLastSyncBlock(blockSyncKey, lastBlock)
-
-	console.log('Seeded stakers:', stakers.size)
 }

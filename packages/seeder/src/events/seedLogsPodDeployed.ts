@@ -31,8 +31,6 @@ export async function seedLogsPodDeployed(
 	const lastBlock = toBlock ? toBlock : await viemClient.getBlockNumber()
 	const blockData = await getBlockDataFromDb(firstBlock, lastBlock)
 
-	let totalSeeded = 0
-
 	// Loop through evm logs
 	await loopThroughBlocks(firstBlock, lastBlock, async (fromBlock, toBlock) => {
 		try {
@@ -89,10 +87,8 @@ export async function seedLogsPodDeployed(
 
 			await bulkUpdateDbTransactions(
 				dbTransactions,
-				`Pod Deployed from: ${fromBlock} to: ${toBlock} size: ${seedLength}`
+				`[Logs] Pod Deployed from: ${fromBlock} to: ${toBlock} size: ${seedLength}`
 			)
-
-			totalSeeded += seedLength
 		} catch (error) {}
 	})
 }

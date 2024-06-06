@@ -28,11 +28,9 @@ export async function seedPods(toBlock?: bigint, fromBlock?: bigint) {
 
 	// Bail early if there is no block diff to sync
 	if (lastBlock - firstBlock <= 0) {
-		console.log(`Pods in sync ${firstBlock} - ${lastBlock}`)
+		console.log(`[In Sync] [Data] Pods from: ${firstBlock} to: ${lastBlock}`)
 		return
 	}
-
-	console.log(`Seeding Pods from ${firstBlock} - ${lastBlock}`)
 
 	const logs = await prismaClient.eventLogs_PodDeployed.findMany({
 		where: {
@@ -62,10 +60,6 @@ export async function seedPods(toBlock?: bigint, fromBlock?: bigint) {
 			updatedAt: timestamp
 		})
 	}
-
-	console.log(
-		`Pods deployed between blocks ${firstBlock} ${lastBlock}: ${logs.length}`
-	)
 
 	// Prepare db transaction object
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
@@ -106,10 +100,11 @@ export async function seedPods(toBlock?: bigint, fromBlock?: bigint) {
 		})
 	}
 
-	await bulkUpdateDbTransactions(dbTransactions)
+	await bulkUpdateDbTransactions(
+		dbTransactions,
+		`[Data] AVS MetadataURI from: ${firstBlock} to: ${lastBlock} size: ${podList.length}`
+	)
 
 	// Storing last sycned block
 	await saveLastSyncBlock(blockSyncKey, lastBlock)
-
-	console.log('Seeded Pods:', podList.length)
 }

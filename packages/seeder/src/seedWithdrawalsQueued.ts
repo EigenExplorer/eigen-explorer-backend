@@ -30,11 +30,9 @@ export async function seedQueuedWithdrawals(
 
 	// Bail early if there is no block diff to sync
 	if (lastBlock - firstBlock <= 0) {
-		console.log(`Queued Withdrawals in sync ${firstBlock} - ${lastBlock}`)
+		console.log(`[In Sync] [Data] Queued Withdrawal from: ${firstBlock} to: ${lastBlock}`)
 		return
 	}
-
-	console.log(`Seeding Queued Withdrawals from ${firstBlock} - ${lastBlock}`)
 
 	const logs = await prismaClient.eventLogs_WithdrawalQueued.findMany({
 		where: {
@@ -77,10 +75,6 @@ export async function seedQueuedWithdrawals(
 		}
 	}
 
-	console.log(
-		`Withdrawals queued between blocks ${firstBlock} ${lastBlock}: ${logs.length}`
-	)
-
 	// Prepare db transaction object
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	const dbTransactions: any[] = []
@@ -94,10 +88,8 @@ export async function seedQueuedWithdrawals(
 		)
 	}
 
-	await bulkUpdateDbTransactions(dbTransactions)
+	await bulkUpdateDbTransactions(dbTransactions, `[Data] Queued Withdrawal from: ${firstBlock} to: ${lastBlock} size: ${queuedWithdrawalList.length}`)
 
 	// // Storing last sycned block
 	await saveLastSyncBlock(blockSyncKey, lastBlock)
-
-	console.log('Seeded Queued Withdrawals:', queuedWithdrawalList.length)
 }
