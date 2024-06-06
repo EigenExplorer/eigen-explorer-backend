@@ -33,7 +33,9 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 	const firstBlock = fromBlock
 		? fromBlock
 		: await fetchLastSyncBlock(blockSyncKey)
-	const lastBlock = toBlock ? toBlock : await fetchLastSyncBlock(blockSyncKeyLogs)
+	const lastBlock = toBlock
+		? toBlock
+		: await fetchLastSyncBlock(blockSyncKeyLogs)
 
 	console.log(`Seeding AVS from ${firstBlock} - ${lastBlock}`)
 
@@ -55,8 +57,6 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 		const blockNumber = BigInt(log.blockNumber)
 		const timestamp = log.blockTime
 
-		
-		/* Commented out for testing until merge with #75
 		try {
 			if (log.metadataURI && isValidMetadataUrl(log.metadataURI)) {
 				const response = await fetch(log.metadataURI)
@@ -100,7 +100,7 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 					updatedAt: timestamp
 				})
 			} // Ignore case where Avs is already registered and is updated with invalid metadata uri
-		} */
+		}
 
 		// Seeding without metadata
 		if (existingRecord) {
@@ -126,7 +126,7 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 
 	console.log(
 		`Avs registered between blocks ${firstBlock} ${lastBlock}: ${logs.length}`
-	) 
+	)
 
 	// Prepare db transaction object
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
