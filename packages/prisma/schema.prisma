@@ -305,9 +305,46 @@ model EventLogs_OperatorSharesDecreased {
   @@index([staker, operator])
 }
 
+model EventLogs_WithdrawalQueued {
+  address String
+
+  transactionHash  String
+  transactionIndex Int
+  blockNumber      BigInt
+  blockHash        String
+  blockTime        DateTime
+
+  withdrawalRoot String
+  staker         String
+  delegatedTo    String
+  withdrawer     String
+  nonce          BigInt
+  startBlock     BigInt
+  strategies     String[]
+  shares         String[]
+
+  @@id([transactionHash, transactionIndex])
+  @@index([withdrawalRoot])
+}
+
+model EventLogs_WithdrawalCompleted {
+  address String
+
+  transactionHash  String
+  transactionIndex Int
+  blockNumber      BigInt
+  blockHash        String
+  blockTime        DateTime
+
+  withdrawalRoot String
+
+  @@id([transactionHash, transactionIndex])
+  @@index([withdrawalRoot])
+}
+
 // Misc
 
 model Evm_BlockData {
-  number    BigInt @id
+  number    BigInt   @id
   timestamp DateTime
 }

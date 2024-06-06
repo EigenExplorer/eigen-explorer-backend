@@ -17,6 +17,8 @@ import { seedOperatorShares } from './seedOperatorShares'
 import { seedValidators } from './seedValidators'
 import { seedQueuedWithdrawals } from './seedWithdrawalsQueued'
 import { seedCompletedWithdrawals } from './seedWithdrawalsCompleted'
+import { seedLogsWithdrawalQueued } from './events/seedLogsWithdrawalQueued'
+import { seedLogsWithdrawalCompleted } from './events/seedLogsWithdrawalCompleted'
 
 console.log('Initializing seeder ...')
 
@@ -24,12 +26,12 @@ function delay(seconds: number) {
 	return new Promise((resolve) => setTimeout(resolve, seconds * 1000))
 }
 
-async function seedEventLogsLoop() {
+async function seedEigenDataLoop() {
 	while (true) {
 		try {
 			const viemClient = getViemClient()
 			const targetBlock = await viemClient.getBlockNumber()
-			console.log('Seeding Block and Log Data ...', targetBlock)
+			console.log('Seeding Data ...', targetBlock)
 
 			await seedBlockData(targetBlock)
 			await seedLogsAVSMetadata(targetBlock)
@@ -38,21 +40,8 @@ async function seedEventLogsLoop() {
 			await seedLogsOperatorShares(targetBlock)
 			await seedLogsStakerDelegation(targetBlock)
 			await seedLogsPodDeployed(targetBlock)
-		} catch (error) {
-			console.log('Failed to seed Block and Log Data at:', Date.now())
-			console.log(error)
-		}
-
-		await delay(30)
-	}
-}
-
-async function seedEigenDataLoop() {
-	await delay(60)
-
-	while (true) {
-		try {
-			console.log('Seeding Eigen Data ...')
+			await seedLogsWithdrawalQueued(targetBlock)
+			await seedLogsWithdrawalCompleted(targetBlock)
 
 			await seedAvs()
 			await seedOperators()
@@ -62,16 +51,16 @@ async function seedEigenDataLoop() {
 			await seedQueuedWithdrawals()
 			await seedCompletedWithdrawals()
 		} catch (error) {
-			console.log('Failed to seed AVS and Operators at:', Date.now())
+			console.log('Failed to seed data at:', Date.now())
 			console.log(error)
 		}
 
-		await delay(120) // Wait for 2 minutes (120 seconds)
+		await delay(30)
 	}
 }
 
 async function seedEigenPodValidators() {
-	await delay(60)
+	await delay(120)
 
 	while (true) {
 		try {
@@ -88,6 +77,5 @@ async function seedEigenPodValidators() {
 	}
 }
 
-seedEventLogsLoop()
 seedEigenDataLoop()
 seedEigenPodValidators()
