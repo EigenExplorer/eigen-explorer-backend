@@ -80,7 +80,7 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 				createdAt: timestamp, // Will be omitted in upsert if avs exists in db
 				updatedAt: timestamp
 			})
-		} 
+		}
 	}
 
 	// Prepare db transaction object
@@ -94,7 +94,15 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 
 		for (const [
 			address,
-			{ metadataUrl, metadata, isMetadataSynced, createdAtBlock, updatedAtBlock, createdAt, updatedAt }
+			{
+				metadataUrl,
+				metadata,
+				isMetadataSynced,
+				createdAtBlock,
+				updatedAtBlock,
+				createdAt,
+				updatedAt
+			}
 		] of avsList) {
 			newAvs.push({
 				address,
@@ -123,7 +131,15 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 	} else {
 		for (const [
 			address,
-			{ metadataUrl, metadata, isMetadataSynced, createdAtBlock, updatedAtBlock, createdAt, updatedAt }
+			{
+				metadataUrl,
+				metadata,
+				isMetadataSynced,
+				createdAtBlock,
+				updatedAtBlock,
+				createdAt,
+				updatedAt
+			}
 		] of avsList) {
 			dbTransactions.push(
 				prismaClient.avs.upsert({

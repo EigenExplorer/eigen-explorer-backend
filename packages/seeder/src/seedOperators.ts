@@ -82,7 +82,7 @@ export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 				createdAt: timestamp,
 				updatedAt: timestamp
 			})
-		}	
+		}
 	}
 
 	// Prepare db transaction object
@@ -96,7 +96,15 @@ export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 
 		for (const [
 			address,
-			{ metadataUrl, metadata, isMetadataSynced, createdAtBlock, updatedAtBlock, createdAt, updatedAt }
+			{
+				metadataUrl,
+				metadata,
+				isMetadataSynced,
+				createdAtBlock,
+				updatedAtBlock,
+				createdAt,
+				updatedAt
+			}
 		] of operatorList) {
 			newOperator.push({
 				address,
@@ -125,7 +133,15 @@ export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 	} else {
 		for (const [
 			address,
-			{ metadataUrl, metadata, isMetadataSynced, createdAtBlock, updatedAtBlock, createdAt, updatedAt }
+			{
+				metadataUrl,
+				metadata,
+				isMetadataSynced,
+				createdAtBlock,
+				updatedAtBlock,
+				createdAt,
+				updatedAt
+			}
 		] of operatorList) {
 			dbTransactions.push(
 				prismaClient.operator.upsert({
