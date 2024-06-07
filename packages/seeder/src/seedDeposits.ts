@@ -1,151 +1,75 @@
 import prisma from '@prisma/client'
-import { parseAbiItem } from 'viem'
-import { getEigenContracts } from './data/address'
-import { getViemClient } from './utils/viemClient'
 import { getPrismaClient } from './utils/prismaClient'
 import {
-	baseBlock,
 	bulkUpdateDbTransactions,
 	fetchLastSyncBlock,
-	loopThroughBlocks,
 	saveLastSyncBlock
 } from './utils/seeder'
 
 const blockSyncKey = 'lastSyncedBlock_deposit'
+const blockSyncKeyLogs = 'lastSyncedBlock_logs_deposit'
 
-interface DepositEntryRecord {
-	txHash: string
-	staker: string
-	token: string
-	strategy: string
-	shares: string
-	createdAtBlock: bigint
-	createdAt: Date
-}
-
-/**
- * Utility function to seed deposits from Deposit events emmited by StrategyManager
- *
- * @param fromBlock
- * @param toBlock
- */
 export async function seedDeposits(toBlock?: bigint, fromBlock?: bigint) {
-	console.log('Seeding Deposits ...')
-
-	const viemClient = getViemClient()
 	const prismaClient = getPrismaClient()
-	const depositList: DepositEntryRecord[] = []
+	const depositList: prisma.Deposit[] = []
 
 	const firstBlock = fromBlock
 		? fromBlock
 		: await fetchLastSyncBlock(blockSyncKey)
-	const lastBlock = toBlock ? toBlock : await viemClient.getBlockNumber()
+	const lastBlock = toBlock
+		? toBlock
+		: await fetchLastSyncBlock(blockSyncKeyLogs)
 
-	// Loop through evm logs
-	await loopThroughBlocks(firstBlock, lastBlock, async (fromBlock, toBlock) => {
-		const logs = await viemClient.getLogs({
-			address: getEigenContracts().StrategyManager,
-			event: parseAbiItem(
-				'event Deposit(address staker, address token, address strategy, uint256 shares)'
-			),
-			fromBlock,
-			toBlock
-		})
+	// Bail early if there is no block diff to sync
+	if (lastBlock - firstBlock <= 0) {
+		console.log(`[In Sync] [Data] Deposit from: ${firstBlock} to: ${lastBlock}`)
+		return
+	}
 
-		for (const l in logs) {
-			const log = logs[l]
-
-			try {
-				const blockNumber = BigInt(log.blockNumber)
-				const block = await viemClient.getBlock({ blockNumber: blockNumber })
-				const timestamp = new Date(Number(block.timestamp) * 1000)
-
-				depositList.push({
-					txHash: String(log.transactionHash).toLowerCase(),
-					stakerAddress: String(log.args.staker).toLowerCase(),
-					tokenAddress: String(log.args.token).toLowerCase(),
-					strategyAddress: String(log.args.strategy).toLowerCase(),
-					shares: String(log.args.shares),
-					createdAtBlock: blockNumber,
-					createdAt: timestamp
-				})
-			} catch (error) {
-				console.log('Failed to seed deposit: ', error)
+	const logs = await prismaClient.eventLogs_Deposit.findMany({
+		where: {
+			blockNumber: {
+				gt: firstBlock,
+				lte: lastBlock
 			}
 		}
-
-		console.log(
-			`Deposits registered between blocks ${fromBlock} ${toBlock}: ${logs.length}`
-		)
 	})
+
+	for (const l in logs) {
+		const log = logs[l]
+
+		const blockNumber = BigInt(log.blockNumber)
+		const timestamp = log.blockTime
+
+		depositList.push({
+			transactionHash: log.transactionHash.toLowerCase(),
+			stakerAddress: log.staker.toLowerCase(),
+			tokenAddress: log.token.toLowerCase(),
+			strategyAddress: log.strategy.toLowerCase(),
+			shares: log.shares,
+			createdAtBlock: blockNumber,
+			createdAt: timestamp
+		})
+	}
 
 	// Prepare db transaction object
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	const dbTransactions: any[] = []
 
-	if (firstBlock === baseBlock) {
-		dbTransactions.push(prismaClient.deposit.deleteMany())
-
-		const newDeposit: prisma.Deposit[] = []
-
-		for (const {
-			txHash,
-			stakerAddress,
-			tokenAddress,
-			strategyAddress,
-			shares,
-			createdAtBlock,
-			createdAt
-		} of depositList) {
-			newDeposit.push({
-				txHash,
-				stakerAddress,
-				tokenAddress,
-				strategyAddress,
-				shares,
-				createdAtBlock,
-				createdAt
-			})
-		}
-
+	if (depositList.length > 0) {
 		dbTransactions.push(
 			prismaClient.deposit.createMany({
-				data: newDeposit,
+				data: depositList,
 				skipDuplicates: true
 			})
 		)
-	} else {
-		for (const {
-			txHash,
-			stakerAddress,
-			tokenAddress,
-			strategyAddress,
-			shares,
-			createdAtBlock,
-			createdAt
-		} of depositList) {
-			dbTransactions.push(
-				prismaClient.deposit.upsert({
-					where: { txHash },
-					update: {},
-					create: {
-						txHash,
-						stakerAddress,
-						tokenAddress,
-						strategyAddress,
-						shares,
-						createdAtBlock,
-						createdAt
-					}
-				})
-			)
-		}
 	}
 
-	await bulkUpdateDbTransactions(dbTransactions)
+	await bulkUpdateDbTransactions(
+		dbTransactions,
+		`[Data] Deposit from: ${firstBlock} to: ${lastBlock} size: ${depositList.length}`
+	)
 
 	// Storing last synced block
 	await saveLastSyncBlock(blockSyncKey, lastBlock)
-
-	console.log('Seeded Deposits:', depositList.length)
 }

@@ -116,7 +116,7 @@ model StakerStrategyShares {
 }
 
 model Deposit {
-  txHash          String  @id @unique
+  transactionHash String  @id @unique
   stakerAddress   String      
   tokenAddress    String
   strategyAddress String
@@ -351,6 +351,24 @@ model EventLogs_WithdrawalCompleted {
 
   @@id([transactionHash, transactionIndex])
   @@index([withdrawalRoot])
+}
+
+model EventLogs_Deposit {
+  address String
+
+  transactionHash  String
+  transactionIndex Int
+  blockNumber      BigInt
+  blockHash        String
+  blockTime        DateTime
+
+  staker   String
+  token    String
+  strategy String
+  shares   String
+
+  @@id([transactionHash, transactionIndex])
+  @@index([staker])
 }
 
 // Misc
