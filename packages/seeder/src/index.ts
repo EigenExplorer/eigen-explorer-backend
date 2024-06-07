@@ -19,6 +19,8 @@ import { seedQueuedWithdrawals } from './seedWithdrawalsQueued'
 import { seedCompletedWithdrawals } from './seedWithdrawalsCompleted'
 import { seedLogsWithdrawalQueued } from './events/seedLogsWithdrawalQueued'
 import { seedLogsWithdrawalCompleted } from './events/seedLogsWithdrawalCompleted'
+import { monitorAvsMetadata } from './monitors/avsMetadata'
+import { monitorOperatorMetadata } from './monitors/operatorMetadata'
 
 console.log('Initializing seeder ...')
 
@@ -77,5 +79,19 @@ async function seedEigenPodValidators() {
 	}
 }
 
+async function monitorMetadatas() {
+	while (true) {
+		try {
+			await monitorAvsMetadata()
+			await monitorOperatorMetadata()
+		} catch (error) {
+			console.log('Failed to monitor metadatas at: ', Date.now())
+		}
+
+		await delay(420) // Wait for 7 minutes (420 seconds)
+	}
+}
+
 seedEigenDataLoop()
 seedEigenPodValidators()
+monitorMetadatas()

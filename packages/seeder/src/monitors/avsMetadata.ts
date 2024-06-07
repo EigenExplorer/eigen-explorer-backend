@@ -20,7 +20,7 @@ export async function monitorAvsMetadata() {
 			take: take,
 			skip: skip,
 			orderBy: {
-				createdAtBlock: 'asc'
+				createdAtBlock: 'desc'
 			}
 		})
 

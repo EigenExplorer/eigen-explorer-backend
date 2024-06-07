@@ -20,7 +20,7 @@ import { getPrismaClient } from '../utils/prismaClient'
  			take: take,
  			skip: skip,
  			orderBy: {
- 				createdAtBlock: 'asc'
+ 				createdAtBlock: 'desc'
  			}
  		})
 
