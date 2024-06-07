@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express'
 import prisma from '../../utils/prismaClient'
 import { PaginationQuerySchema } from '../../schema/zod/schemas/paginationQuery'
+import { EthereumAddressSchema } from '../../schema/zod/schemas/base/ethereumAddress'
 import { WithTvlQuerySchema } from '../../schema/zod/schemas/withTvlQuery'
 import { handleAndReturnErrorResponse } from '../../schema/errors'
 import {
@@ -46,6 +47,8 @@ export async function getAllOperators(req: Request, res: Response) {
 
 		const operators = operatorRecords.map((operator) => ({
 			...operator,
+			createdAtBlock: operator.createdAtBlock.toString(),
+			updatedAtBlock: operator.updatedAtBlock.toString(),
 			totalStakers: operator.stakers.length,
 			tvl: withTvl
 				? sharesToTVL(
@@ -54,7 +57,9 @@ export async function getAllOperators(req: Request, res: Response) {
 						strategyTokenPrices
 				  )
 				: undefined,
-			stakers: undefined
+			stakers: undefined,
+			metadataUrl: undefined,
+			isMetadataSynced: undefined
 		}))
 
 		res.send({
@@ -87,7 +92,7 @@ export async function getOperator(req: Request, res: Response) {
 	try {
 		const { address } = req.params
 
-		const operator = await prisma.operator.findUniqueOrThrow({
+		const operator  = await prisma.operator.findUniqueOrThrow({
 			where: { address: address.toLowerCase() },
 			include: {
 				shares: {
@@ -102,8 +107,11 @@ export async function getOperator(req: Request, res: Response) {
 			? await getStrategiesWithShareUnderlying()
 			: []
 
+
 		res.send({
 			...operator,
+			createdAtBlock: operator.createdAtBlock.toString(),
+			updatedAtBlock: operator.updatedAtBlock.toString(),
 			totalStakers: operator.stakers.length,
 			tvl: withTvl
 				? sharesToTVL(
@@ -112,8 +120,40 @@ export async function getOperator(req: Request, res: Response) {
 						strategyTokenPrices
 				  )
 				: undefined,
-			stakers: undefined
+			stakers: undefined,
+			metadataUrl: undefined,
+			isMetadataSynced: undefined
 		})
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+/**
+  * Protected route to invalidate the metadata of a given address
+  *
+  * @param req
+  * @param res
+  */
+export async function invalidateMetadata(req: Request, res: Response) {
+	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	}
+
+	try {
+		const { address } = req.params
+
+		const updateResult = await prisma.operator.updateMany({
+			where: { address: address.toLowerCase() },
+			data: { isMetadataSynced: false }
+		})
+
+		if (updateResult.count === 0) {
+			throw new Error('Address not found.')
+		}
+
+		res.send({ message: 'Metadata invalidated successfully.' })
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
 	}
