@@ -1,18 +1,15 @@
-import prisma from '@prisma/client'
-import { parseAbiItem } from 'viem'
-import { getEigenContracts } from './data/address'
-import { getViemClient } from './utils/viemClient'
+import type prisma from '@prisma/client'
 import { getPrismaClient } from './utils/prismaClient'
 import {
 	type IMap,
 	baseBlock,
 	bulkUpdateDbTransactions,
 	fetchLastSyncBlock,
-	loopThroughBlocks,
 	saveLastSyncBlock
 } from './utils/seeder'
 
 const blockSyncKey = 'lastSyncedBlock_stakers'
+const blockSyncKeyLogs = 'lastSyncedBlock_logs_stakers'
 
 interface StakerEntryRecord {
 	operatorAddress: string | null
@@ -24,145 +21,199 @@ interface StakerEntryRecord {
 }
 
 export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
-	console.log('Seeding stakers ...')
-
-	const viemClient = getViemClient()
 	const prismaClient = getPrismaClient()
 	const stakers: IMap<string, StakerEntryRecord> = new Map()
 
 	const firstBlock = fromBlock
 		? fromBlock
 		: await fetchLastSyncBlock(blockSyncKey)
-	const lastBlock = toBlock ? toBlock : await viemClient.getBlockNumber()
+	const lastBlock = toBlock
+		? toBlock
+		: await fetchLastSyncBlock(blockSyncKeyLogs)
+
+	// Bail early if there is no block diff to sync
+	if (lastBlock - firstBlock <= 0) {
+		console.log(`[In Sync] [Data] Stakers from: ${firstBlock} to: ${lastBlock}`)
+		return
+	}
 
 	if (firstBlock === baseBlock) {
 		await prismaClient.stakerStrategyShares.deleteMany()
 	}
 
-	// Loop through evm logs
-	await loopThroughBlocks(firstBlock, lastBlock, async (fromBlock, toBlock) => {
-		// Fetch logs
-		const logs = await viemClient.getLogs({
-			address: getEigenContracts().DelegationManager,
-			events: [
-				parseAbiItem(
-					'event StakerDelegated(address indexed staker, address indexed operator)'
-				),
-				parseAbiItem(
-					'event StakerUndelegated(address indexed staker, address indexed operator)'
-				),
-				parseAbiItem(
-					'event OperatorSharesIncreased(address indexed operator, address staker, address strategy, uint256 shares)'
-				),
-				parseAbiItem(
-					'event OperatorSharesDecreased(address indexed operator, address staker, address strategy, uint256 shares)'
-				)
-			],
-			fromBlock,
-			toBlock
-		})
-
-		// Stakers list
-		const stakerAddresses = logs.map((l) => String(l.args.staker).toLowerCase())
-		const stakerInit = await prismaClient.staker.findMany({
-			where: { address: { in: stakerAddresses } },
-			include: {
-				shares: true
+	const logsStakerDelegated = await prismaClient.eventLogs_StakerDelegated
+		.findMany({
+			where: {
+				blockNumber: {
+					gt: firstBlock,
+					lte: lastBlock
+				}
 			}
 		})
+		.then((logs) =>
+			logs.map((log) => ({
+				...log,
+				shares: '',
+				strategy: '',
+				eventName: 'StakerDelegated'
+			}))
+		)
 
-		for (const l in logs) {
-			const log = logs[l]
-
-			const operatorAddress = String(log.args.operator).toLowerCase()
-			const stakerAddress = String(log.args.staker).toLowerCase()
-
-			const blockNumber = BigInt(log.blockNumber)
-			const block = await viemClient.getBlock({ blockNumber: blockNumber })
-			const timestamp = new Date(Number(block.timestamp) * 1000)
-
-			// Load existing staker shares data
-			if (!stakers.has(stakerAddress)) {
-				const foundStakerInit = stakerInit.find(
-					(s) => s.address.toLowerCase() === stakerAddress.toLowerCase()
-				)
-				if (foundStakerInit) {
-					// Address not in this set of logs but in db
-					stakers.set(stakerAddress, {
-						operatorAddress: foundStakerInit.operatorAddress,
-						shares: foundStakerInit.shares.map((s) => ({
-							...s,
-							shares: BigInt(s.shares)
-						})),
-						createdAtBlock: foundStakerInit.createdAtBlock,
-						updatedAtBlock: blockNumber,
-						createdAt: foundStakerInit.createdAt,
-						updatedAt: timestamp
-					})
-				} else {
-					// Address neither in this set of logs nor in db
-					stakers.set(stakerAddress, {
-						operatorAddress: null,
-						shares: [],
-						createdAtBlock: blockNumber,
-						updatedAtBlock: blockNumber,
-						createdAt: timestamp,
-						updatedAt: timestamp
-					})
+	const logsStakerUndelegated = await prismaClient.eventLogs_StakerUndelegated
+		.findMany({
+			where: {
+				blockNumber: {
+					gte: firstBlock,
+					lte: lastBlock
 				}
+			}
+		})
+		.then((logs) =>
+			logs.map((log) => ({
+				...log,
+				shares: '',
+				strategy: '',
+				eventName: 'StakerUndelegated'
+			}))
+		)
+
+	const logsOperatorSharesIncreased =
+		await prismaClient.eventLogs_OperatorSharesIncreased
+			.findMany({
+				where: {
+					blockNumber: {
+						gte: firstBlock,
+						lte: lastBlock
+					}
+				}
+			})
+			.then((logs) =>
+				logs.map((log) => ({
+					...log,
+					shares: log.shares,
+					strategy: log.strategy,
+					eventName: 'OperatorSharesIncreased'
+				}))
+			)
+
+	const logsOperatorSharesDecreased =
+		await prismaClient.eventLogs_OperatorSharesDecreased
+			.findMany({
+				where: {
+					blockNumber: {
+						gte: firstBlock,
+						lte: lastBlock
+					}
+				}
+			})
+			.then((logs) =>
+				logs.map((log) => ({
+					...log,
+					shares: log.shares,
+					strategy: log.strategy,
+					eventName: 'OperatorSharesDecreased'
+				}))
+			)
+
+	const logs = [
+		...logsStakerDelegated,
+		...logsStakerUndelegated,
+		...logsOperatorSharesIncreased,
+		...logsOperatorSharesDecreased
+	]
+
+	// Stakers list
+	const stakerAddresses = logs.map((l) => String(l.staker).toLowerCase())
+	const stakerInit = await prismaClient.staker.findMany({
+		where: { address: { in: stakerAddresses } },
+		include: {
+			shares: true
+		}
+	})
+
+	for (const l in logs) {
+		const log = logs[l]
+
+		const operatorAddress = String(log.operator).toLowerCase()
+		const stakerAddress = String(log.staker).toLowerCase()
+
+		const blockNumber = BigInt(log.blockNumber)
+		const timestamp = log.blockTime
+
+		// Load existing staker shares data
+		if (!stakers.has(stakerAddress)) {
+			const foundStakerInit = stakerInit.find(
+				(s) => s.address.toLowerCase() === stakerAddress.toLowerCase()
+			)
+			if (foundStakerInit) {
+				// Address not in this set of logs but in db
+				stakers.set(stakerAddress, {
+					operatorAddress: foundStakerInit.operatorAddress,
+					shares: foundStakerInit.shares.map((s) => ({
+						...s,
+						shares: BigInt(s.shares)
+					})),
+					createdAtBlock: foundStakerInit.createdAtBlock,
+					updatedAtBlock: blockNumber,
+					createdAt: foundStakerInit.createdAt,
+					updatedAt: timestamp
+				})
 			} else {
-				// Address previously found in this set of logs
-				stakers.get(stakerAddress).updatedAtBlock = blockNumber
-				stakers.get(stakerAddress).updatedAt = timestamp
+				// Address neither in this set of logs nor in db
+				stakers.set(stakerAddress, {
+					operatorAddress: null,
+					shares: [],
+					createdAtBlock: blockNumber,
+					updatedAtBlock: blockNumber,
+					createdAt: timestamp,
+					updatedAt: timestamp
+				})
 			}
-
-			if (log.eventName === 'StakerDelegated') {
-				stakers.get(stakerAddress).operatorAddress = operatorAddress
-			} else if (log.eventName === 'StakerUndelegated') {
-				stakers.get(stakerAddress).operatorAddress = null
-			} else if (
-				log.eventName === 'OperatorSharesIncreased' ||
-				log.eventName === 'OperatorSharesDecreased'
-			) {
-				const strategyAddress = String(log.args.strategy).toLowerCase()
-				const shares = log.args.shares
-				if (!shares) continue
-
-				let foundSharesIndex = stakers
-					.get(stakerAddress)
-					.shares.findIndex(
-						(ss) =>
-							ss.strategyAddress.toLowerCase() === strategyAddress.toLowerCase()
-					)
-
-				if (foundSharesIndex !== undefined && foundSharesIndex === -1) {
-					stakers
-						.get(stakerAddress)
-						.shares.push({ shares: 0n, strategyAddress })
-
-					foundSharesIndex = stakers
-						.get(stakerAddress)
-						.shares.findIndex(
-							(os) =>
-								os.strategyAddress.toLowerCase() ===
-								strategyAddress.toLowerCase()
-						)
-				}
-
-				if (log.eventName === 'OperatorSharesIncreased') {
-					stakers.get(stakerAddress).shares[foundSharesIndex].shares =
-						stakers.get(stakerAddress).shares[foundSharesIndex].shares + shares
-				} else if (log.eventName === 'OperatorSharesDecreased') {
-					stakers.get(stakerAddress).shares[foundSharesIndex].shares =
-						stakers.get(stakerAddress).shares[foundSharesIndex].shares - shares
-				}
-			}
+		} else {
+			// Address previously found in this set of logs
+			stakers.get(stakerAddress).updatedAtBlock = blockNumber
+			stakers.get(stakerAddress).updatedAt = timestamp
 		}
 
-		console.log(
-			`Stakers deployed between blocks ${fromBlock} ${toBlock}: ${logs.length}`
-		)
-	})
+		if (log.eventName === 'StakerDelegated') {
+			stakers.get(stakerAddress).operatorAddress = operatorAddress
+		} else if (log.eventName === 'StakerUndelegated') {
+			stakers.get(stakerAddress).operatorAddress = null
+		} else if (
+			log.eventName === 'OperatorSharesIncreased' ||
+			log.eventName === 'OperatorSharesDecreased'
+		) {
+			const strategyAddress = String(log.strategy).toLowerCase()
+			const shares = BigInt(log.shares)
+			if (!shares) continue
+
+			let foundSharesIndex = stakers
+				.get(stakerAddress)
+				.shares.findIndex(
+					(ss) =>
+						ss.strategyAddress.toLowerCase() === strategyAddress.toLowerCase()
+				)
+
+			if (foundSharesIndex !== undefined && foundSharesIndex === -1) {
+				stakers.get(stakerAddress).shares.push({ shares: 0n, strategyAddress })
+
+				foundSharesIndex = stakers
+					.get(stakerAddress)
+					.shares.findIndex(
+						(os) =>
+							os.strategyAddress.toLowerCase() === strategyAddress.toLowerCase()
+					)
+			}
+
+			if (log.eventName === 'OperatorSharesIncreased') {
+				stakers.get(stakerAddress).shares[foundSharesIndex].shares =
+					stakers.get(stakerAddress).shares[foundSharesIndex].shares + shares
+			} else if (log.eventName === 'OperatorSharesDecreased') {
+				stakers.get(stakerAddress).shares[foundSharesIndex].shares =
+					stakers.get(stakerAddress).shares[foundSharesIndex].shares - shares
+			}
+		}
+	}
 
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	const dbTransactions: any[] = []
@@ -251,10 +302,11 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 		}
 	}
 
-	await bulkUpdateDbTransactions(dbTransactions)
+	await bulkUpdateDbTransactions(
+		dbTransactions,
+		`[Data] Stakers from: ${firstBlock} to: ${lastBlock} size: ${stakers.size}`
+	)
 
 	// Storing last sycned block
 	await saveLastSyncBlock(blockSyncKey, lastBlock)
-
-	console.log('Seeded stakers:', stakers.size)
 }

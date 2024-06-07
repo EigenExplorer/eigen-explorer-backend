@@ -8,6 +8,7 @@ import { handleAndReturnErrorResponse } from '../../schema/errors'
 import { getAvsFilterQuery } from '../avs/avsController'
 import { fetchStrategyTokenPrices } from '../../utils/tokenPrices'
 import { getStrategiesWithShareUnderlying } from '../strategies/strategiesController'
+import { HistoricalCountSchema } from '../../schema/zod/schemas/historicalCountQuery'
 
 /**
  * Route to get explorer metrics
@@ -80,7 +81,9 @@ export async function getTvlRestakingByStrategy(req: Request, res: Response) {
 		}
 
 		const strategies = Object.keys(getEigenContracts().Strategies)
-		const foundStrategy = strategies.find(s => s.toLowerCase() === strategy.toLowerCase())
+		const foundStrategy = strategies.find(
+			(s) => s.toLowerCase() === strategy.toLowerCase()
+		)
 
 		if (!foundStrategy) {
 			throw new Error('Invalid strategy.')
@@ -129,6 +132,69 @@ export async function getTotalStakers(req: Request, res: Response) {
 		res.send({
 			totalStakers
 		})
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+export async function getHistoricalAvsCount(req: Request, res: Response) {
+	const paramCheck = HistoricalCountSchema.safeParse(req.query)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	}
+
+	try {
+		const { frequency, variant, startAt, endAt } = paramCheck.data
+		const data = await doGetHistoricalCount(
+			'avs',
+			startAt,
+			endAt,
+			frequency,
+			variant
+		)
+		res.status(200).send({ data })
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+export async function getHistoricalOperatorCount(req: Request, res: Response) {
+	const paramCheck = HistoricalCountSchema.safeParse(req.query)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	}
+
+	try {
+		const { frequency, variant, startAt, endAt } = paramCheck.data
+		const data = await doGetHistoricalCount(
+			'operator',
+			startAt,
+			endAt,
+			frequency,
+			variant
+		)
+		res.status(200).send({ data })
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+export async function getHistoricalStakerCount(req: Request, res: Response) {
+	const paramCheck = HistoricalCountSchema.safeParse(req.query)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	}
+
+	try {
+		const { frequency, variant, startAt, endAt } = paramCheck.data
+		const data = await doGetHistoricalCount(
+			'staker',
+			startAt,
+			endAt,
+			frequency,
+			variant
+		)
+		res.status(200).send({ data })
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
 	}
@@ -236,4 +302,85 @@ async function doGetTotalStakerCount() {
 	})
 
 	return stakers
+}
+
+async function doGetHistoricalCount(
+	modelName: 'avs' | 'operator' | 'staker',
+	startAt: string,
+	endAt: string,
+	frequency: string,
+	variant: string
+) {
+	function resetTime(date: Date) {
+		date.setUTCMinutes(0, 0, 0)
+		return date
+	}
+
+	const startDate = resetTime(new Date(startAt))
+	const endDate = resetTime(new Date(endAt))
+
+	if (!['avs', 'operator', 'staker'].includes(modelName)) {
+		throw new Error('Invalid model name')
+	}
+
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+	const model = prisma[modelName] as any
+
+	const initialTally = await model.count({
+		where: {
+			createdAt: {
+				lt: startDate
+			}
+		}
+	})
+
+	const modelData = await model.findMany({
+		where: {
+			createdAt: {
+				gte: startDate,
+				lte: endDate
+			}
+		},
+		orderBy: {
+			createdAt: 'asc'
+		}
+	})
+
+	let tally = initialTally
+	const results: { ts: string; value: number }[] = []
+	let currentDate = startDate.getTime()
+
+	const timeInterval =
+		{
+			'1h': 3600000,
+			'1d': 86400000,
+			'7d': 604800000
+		}[frequency] || 3600000
+
+	while (currentDate <= endDate.getTime()) {
+		const nextDate = new Date(currentDate + timeInterval).getTime()
+
+		const intervalData = modelData.filter(
+			(data) =>
+				data.createdAt.getTime() >= currentDate &&
+				data.createdAt.getTime() < nextDate
+		)
+
+		if (variant === 'count') {
+			results.push({
+				ts: new Date(Number(currentDate)).toISOString(),
+				value: intervalData.length
+			})
+		} else {
+			tally += intervalData.length
+			results.push({
+				ts: new Date(Number(currentDate)).toISOString(),
+				value: tally
+			})
+		}
+
+		currentDate = nextDate
+	}
+
+	return results
 }

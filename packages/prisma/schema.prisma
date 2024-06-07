@@ -180,3 +180,182 @@ model Settings {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+// RAW Event Logs
+
+model EventLogs_AVSMetadataURIUpdated {
+  address String
+
+  transactionHash  String
+  transactionIndex Int
+  blockNumber      BigInt
+  blockHash        String
+  blockTime        DateTime
+
+  avs         String
+  metadataURI String
+
+  @@id([transactionHash, transactionIndex])
+  @@index([avs])
+}
+
+model EventLogs_OperatorMetadataURIUpdated {
+  address String
+
+  transactionHash  String
+  transactionIndex Int
+  blockNumber      BigInt
+  blockHash        String
+  blockTime        DateTime
+
+  operator    String
+  metadataURI String
+
+  @@id([transactionHash, transactionIndex])
+  @@index([operator])
+}
+
+model EventLogs_OperatorAVSRegistrationStatusUpdated {
+  address String
+
+  transactionHash  String
+  transactionIndex Int
+  blockNumber      BigInt
+  blockHash        String
+  blockTime        DateTime
+
+  operator String
+  avs      String
+  status   Int
+
+  @@id([transactionHash, transactionIndex])
+  @@index([operator, avs])
+}
+
+model EventLogs_PodDeployed {
+  address String
+
+  transactionHash  String
+  transactionIndex Int
+  blockNumber      BigInt
+  blockHash        String
+  blockTime        DateTime
+
+  eigenPod String
+  podOwner String
+
+  @@id([transactionHash, transactionIndex])
+  @@index([eigenPod, podOwner])
+}
+
+model EventLogs_StakerDelegated {
+  address String
+
+  transactionHash  String
+  transactionIndex Int
+  blockNumber      BigInt
+  blockHash        String
+  blockTime        DateTime
+
+  staker   String
+  operator String
+
+  @@id([transactionHash, transactionIndex])
+  @@index([staker, operator])
+}
+
+model EventLogs_StakerUndelegated {
+  address String
+
+  transactionHash  String
+  transactionIndex Int
+  blockNumber      BigInt
+  blockHash        String
+  blockTime        DateTime
+
+  staker   String
+  operator String
+
+  @@id([transactionHash, transactionIndex])
+  @@index([staker, operator])
+}
+
+model EventLogs_OperatorSharesIncreased {
+  address String
+
+  transactionHash  String
+  transactionIndex Int
+  blockNumber      BigInt
+  blockHash        String
+  blockTime        DateTime
+
+  staker   String
+  operator String
+  strategy String
+  shares   String
+
+  @@id([transactionHash, transactionIndex])
+  @@index([staker, operator])
+}
+
+model EventLogs_OperatorSharesDecreased {
+  address String
+
+  transactionHash  String
+  transactionIndex Int
+  blockNumber      BigInt
+  blockHash        String
+  blockTime        DateTime
+
+  staker   String
+  operator String
+  strategy String
+  shares   String
+
+  @@id([transactionHash, transactionIndex])
+  @@index([staker, operator])
+}
+
+model EventLogs_WithdrawalQueued {
+  address String
+
+  transactionHash  String
+  transactionIndex Int
+  blockNumber      BigInt
+  blockHash        String
+  blockTime        DateTime
+
+  withdrawalRoot String
+  staker         String
+  delegatedTo    String
+  withdrawer     String
+  nonce          BigInt
+  startBlock     BigInt
+  strategies     String[]
+  shares         String[]
+
+  @@id([transactionHash, transactionIndex])
+  @@index([withdrawalRoot])
+}
+
+model EventLogs_WithdrawalCompleted {
+  address String
+
+  transactionHash  String
+  transactionIndex Int
+  blockNumber      BigInt
+  blockHash        String
+  blockTime        DateTime
+
+  withdrawalRoot String
+
+  @@id([transactionHash, transactionIndex])
+  @@index([withdrawalRoot])
+}
+
+// Misc
+
+model Evm_BlockData {
+  number    BigInt   @id
+  timestamp DateTime
+}

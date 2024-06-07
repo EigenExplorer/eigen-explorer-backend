@@ -2,7 +2,13 @@ import type { Request, Response } from 'express'
 import prisma from '../../utils/prismaClient'
 import { handleAndReturnErrorResponse } from '../../schema/errors'
 import { PaginationQuerySchema } from '../../schema/zod/schemas/paginationQuery'
+import { WithTvlQuerySchema } from '../../schema/zod/schemas/withTvlQuery'
 import { getViemClient } from '../../viem/viemClient'
+import { fetchStrategyTokenPrices } from '../../utils/tokenPrices'
+import {
+	getStrategiesWithShareUnderlying,
+	sharesToTVL
+} from '../strategies/strategiesController'
 
 /**
  * Route to get a list of all stakers
@@ -11,39 +17,46 @@ import { getViemClient } from '../../viem/viemClient'
  * @param res
  */
 export async function getAllStakers(req: Request, res: Response) {
-	try {
-		// Validate pagination query
-		const result = PaginationQuerySchema.safeParse(req.query)
-		if (!result.success) {
-			return handleAndReturnErrorResponse(req, res, result.error)
-		}
-		const { skip, take } = result.data
+	// Validate pagination query
+	const result = PaginationQuerySchema.and(WithTvlQuerySchema).safeParse(
+		req.query
+	)
+	if (!result.success) {
+		return handleAndReturnErrorResponse(req, res, result.error)
+	}
+	const { skip, take, withTvl } = result.data
 
+	try {
 		// Fetch count and record
 		const stakersCount = await prisma.staker.count()
 		const stakersRecords = await prisma.staker.findMany({
 			skip,
 			take,
-			include: { shares: true }
+			include: {
+				shares: {
+					select: { strategyAddress: true, shares: true }
+				}
+			}
 		})
 
-		const data = await Promise.all(
-			stakersRecords.map((staker) => {
-				let tvl = 0
+		const strategyTokenPrices = withTvl ? await fetchStrategyTokenPrices() : {}
+		const strategiesWithSharesUnderlying = withTvl
+			? await getStrategiesWithShareUnderlying()
+			: []
 
-				staker.shares.map((ss) => {
-					tvl += Number(BigInt(ss.shares)) / 1e18
-				})
-
-				return {
-					...staker,
-					tvl
-				}
-			})
-		)
+		const stakers = stakersRecords.map((staker) => ({
+			...staker,
+			tvl: withTvl
+				? sharesToTVL(
+						staker.shares,
+						strategiesWithSharesUnderlying,
+						strategyTokenPrices
+				  )
+				: undefined
+		}))
 
 		res.send({
-			data,
+			data: stakers,
 			meta: {
 				total: stakersCount,
 				skip,
@@ -62,24 +75,39 @@ export async function getAllStakers(req: Request, res: Response) {
  * @param res
  */
 export async function getStaker(req: Request, res: Response) {
+	// Validate pagination query
+	const result = WithTvlQuerySchema.safeParse(req.query)
+	if (!result.success) {
+		return handleAndReturnErrorResponse(req, res, result.error)
+	}
+	const { withTvl } = result.data
+
 	try {
 		const { address } = req.params
 
 		const staker = await prisma.staker.findUniqueOrThrow({
 			where: { address: address.toLowerCase() },
-			include: { shares: true }
+			include: {
+				shares: {
+					select: { strategyAddress: true, shares: true }
+				}
+			}
 		})
 
-		let tvl = 0
-		const shares = staker.shares
-
-		shares.map((s) => {
-			tvl += Number(s.shares) / 1e18
-		})
+		const strategyTokenPrices = withTvl ? await fetchStrategyTokenPrices() : {}
+		const strategiesWithSharesUnderlying = withTvl
+			? await getStrategiesWithShareUnderlying()
+			: []
 
 		res.send({
 			...staker,
-			tvl
+			tvl: withTvl
+				? sharesToTVL(
+						staker.shares,
+						strategiesWithSharesUnderlying,
+						strategyTokenPrices
+				  )
+				: undefined
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)

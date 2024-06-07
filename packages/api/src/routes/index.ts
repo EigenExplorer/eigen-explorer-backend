@@ -9,6 +9,10 @@ import depositRoutes from './deposits/depositRoutes'
 
 const apiRouter = express.Router()
 
+// Health route
+apiRouter.get('/health', (_, res) => res.send({ status: 'ok' }))
+
+// Remaining routes
 apiRouter.use('/avs', avsRoutes)
 apiRouter.use('/strategies', strategiesRoutes)
 apiRouter.use('/operators', operatorRoutes)

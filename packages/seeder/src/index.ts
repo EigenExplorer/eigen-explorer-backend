@@ -6,11 +6,19 @@ import { seedOperators } from './seedOperators'
 import { seedPods } from './seedPods'
 import { seedStakers } from './seedStakers'
 import { getViemClient } from './utils/viemClient'
+import { seedBlockData } from './blocks/seedBlockData'
+import { seedLogsAVSMetadata } from './events/seedLogsAVSMetadata'
+import { seedLogsOperatorMetadata } from './events/seedLogsOperatorMetadata'
+import { seedLogsOperatorAVSRegistrationStatus } from './events/seedLogsOperatorAVSRegistrationStatus'
+import { seedLogsOperatorShares } from './events/seedLogsOperatorShares'
+import { seedLogsStakerDelegation } from './events/seedLogsStakerDelegation'
+import { seedLogsPodDeployed } from './events/seedLogsPodDeployed'
 import { seedOperatorShares } from './seedOperatorShares'
 import { seedValidators } from './seedValidators'
 import { seedQueuedWithdrawals } from './seedWithdrawalsQueued'
 import { seedCompletedWithdrawals } from './seedWithdrawalsCompleted'
-import { seedDeposits } from './seedDeposits'
+import { seedLogsWithdrawalQueued } from './events/seedLogsWithdrawalQueued'
+import { seedLogsWithdrawalCompleted } from './events/seedLogsWithdrawalCompleted'
 
 console.log('Initializing seeder ...')
 
@@ -23,37 +31,46 @@ async function seedEigenDataLoop() {
 		try {
 			const viemClient = getViemClient()
 			const targetBlock = await viemClient.getBlockNumber()
-			console.log('Seeding Eigen Data ...', targetBlock)
+			console.log('\nSeeding Data ...', targetBlock)
 
-			await seedAvs(targetBlock)
-			await seedOperators(targetBlock)
-			await seedAvsOperators(targetBlock)
-			await seedStakers(targetBlock)
-			await seedOperatorShares(targetBlock)
-			await seedQueuedWithdrawals(targetBlock)
-			await seedCompletedWithdrawals(targetBlock)
-			await seedDeposits(targetBlock)
+			await seedBlockData(targetBlock)
+			await seedLogsAVSMetadata(targetBlock)
+			await seedLogsOperatorMetadata(targetBlock)
+			await seedLogsOperatorAVSRegistrationStatus(targetBlock)
+			await seedLogsOperatorShares(targetBlock)
+			await seedLogsStakerDelegation(targetBlock)
+			await seedLogsPodDeployed(targetBlock)
+			await seedLogsWithdrawalQueued(targetBlock)
+			await seedLogsWithdrawalCompleted(targetBlock)
+
+			await seedAvs()
+			await seedOperators()
+			await seedAvsOperators()
+			await seedStakers()
+			await seedOperatorShares()
+			await seedQueuedWithdrawals()
+			await seedCompletedWithdrawals()
 		} catch (error) {
-			console.log('Failed to seed AVS and Opeartors at:', Date.now())
+			console.log('Failed to seed data at:', Date.now())
+			console.log(error)
 		}
 
-		await delay(120) // Wait for 2 minutes (120 seconds)
+		await delay(60)
 	}
 }
 
 async function seedEigenPodValidators() {
-	await delay(60)
+	await delay(120)
 
 	while (true) {
 		try {
-			const viemClient = getViemClient()
-			const targetBlock = await viemClient.getBlockNumber()
-			console.log('Seeding Eigen Pods Data ...', targetBlock)
+			console.log('\nSeeding Eigen Pods Data ...')
 
-			await seedPods(targetBlock)
+			await seedPods()
 			await seedValidators()
 		} catch (error) {
 			console.log('Failed to seed validators at block:', Date.now())
+			console.log(error)
 		}
 
 		await delay(600) // Wait for 10 minutes (600 seconds)
