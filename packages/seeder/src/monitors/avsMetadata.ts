@@ -1,18 +1,17 @@
 import { getPrismaClient } from '../utils/prismaClient'
-import type { EntityMetadata } from '../utils/metadata'
 import { fetchWithTimeout, bulkUpdateDbTransactions } from '../utils/seeder'
 import { isValidMetadataUrl, validateMetadata } from '../utils/metadata'
 
 export async function monitorAvsMetadata() {
-	console.log('Monitoring AVS Metadata...')
-
 	const prismaClient = getPrismaClient()
-	const metadataList: Map<string, EntityMetadata> = new Map()
 
 	let skip = 0
 	const take = 100
 
 	while (true) {
+		// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+		const dbTransactions: any[] = []
+
 		const avsEntries = await prismaClient.avs.findMany({
 			where: {
 				isMetadataSynced: false
@@ -20,7 +19,7 @@ export async function monitorAvsMetadata() {
 			take: take,
 			skip: skip,
 			orderBy: {
-				createdAtBlock: 'desc'
+				createdAtBlock: 'asc'
 			}
 		})
 
@@ -36,7 +35,21 @@ export async function monitorAvsMetadata() {
 					const avsMetadata = validateMetadata(data)
 
 					if (avsMetadata) {
-						metadataList.set(record.address, avsMetadata)
+						dbTransactions.push(
+							prismaClient.avs.update({
+								where: { address: record.address },
+								data: {
+									metadataName: avsMetadata.name,
+									metadataDescription: avsMetadata.description,
+									metadataLogo: avsMetadata.logo,
+									metadataDiscord: avsMetadata.discord,
+									metadataTelegram: avsMetadata.telegram,
+									metadataWebsite: avsMetadata.website,
+									metadataX: avsMetadata.x,
+									isMetadataSynced: true
+								}
+							})
+						)
 					} else {
 						throw new Error('Invalid avs metadata uri')
 					}
@@ -45,32 +58,13 @@ export async function monitorAvsMetadata() {
 				}
 			} catch (error) {}
 		}
+
+		await bulkUpdateDbTransactions(
+			dbTransactions,
+			`[Monitor] Updated AVS metadatas: ${avsEntries.length}`
+		)
 		skip += take
 	}
 
-	// Prepare db transaction object
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-	const dbTransactions: any[] = []
-
-	for (const [address, metadata] of metadataList) {
-		dbTransactions.push(
-			prismaClient.avs.update({
-				where: { address },
-				data: {
-					metadataName: metadata.name,
-					metadataDescription: metadata.description,
-					metadataLogo: metadata.logo,
-					metadataDiscord: metadata.discord,
-					metadataTelegram: metadata.telegram,
-					metadataWebsite: metadata.website,
-					metadataX: metadata.x,
-					isMetadataSynced: true
-				}
-			})
-		)
-	}
-
-	await bulkUpdateDbTransactions(dbTransactions)
-
-	console.log('Updated AVS metadatas: ', metadataList.size)
+	console.log('[Monitor] All AVS metadatas up-to-date')
 }

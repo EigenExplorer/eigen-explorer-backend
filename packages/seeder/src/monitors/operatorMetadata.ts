@@ -1,16 +1,17 @@
 import { getPrismaClient } from '../utils/prismaClient'
-import type { EntityMetadata } from '../utils/metadata'
 import { fetchWithTimeout, bulkUpdateDbTransactions } from '../utils/seeder'
 import { isValidMetadataUrl, validateMetadata } from '../utils/metadata'
 
 export async function monitorOperatorMetadata() {
 	const prismaClient = getPrismaClient()
-	const metadataList: Map<string, EntityMetadata> = new Map()
 
 	let skip = 0
 	const take = 100
 
 	while (true) {
+		// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+		const dbTransactions: any[] = []
+
 		const operatorEntries = await prismaClient.operator.findMany({
 			where: {
 				isMetadataSynced: false
@@ -18,7 +19,7 @@ export async function monitorOperatorMetadata() {
 			take: take,
 			skip: skip,
 			orderBy: {
-				createdAtBlock: 'desc'
+				createdAtBlock: 'asc'
 			}
 		})
 
@@ -34,7 +35,21 @@ export async function monitorOperatorMetadata() {
 					const operatorMetadata = validateMetadata(data)
 
 					if (operatorMetadata) {
-						metadataList.set(record.address, operatorMetadata)
+						dbTransactions.push(
+							prismaClient.operator.update({
+								where: { address: record.address },
+								data: {
+									metadataName: operatorMetadata.name,
+									metadataDescription: operatorMetadata.description,
+									metadataLogo: operatorMetadata.logo,
+									metadataDiscord: operatorMetadata.discord,
+									metadataTelegram: operatorMetadata.telegram,
+									metadataWebsite: operatorMetadata.website,
+									metadataX: operatorMetadata.x,
+									isMetadataSynced: true
+								}
+							})
+						)
 					} else {
 						throw new Error('Invalid operator metadata uri')
 					}
@@ -43,32 +58,13 @@ export async function monitorOperatorMetadata() {
 				}
 			} catch (error) {}
 		}
+
+		await bulkUpdateDbTransactions(
+			dbTransactions,
+			`[Monitor] Updated Operator metadatas: ${operatorEntries.length}`
+		)
 		skip += take
 	}
 
-	// Prepare db transaction object
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-	const dbTransactions: any[] = []
-
-	for (const [address, metadata] of metadataList) {
-		dbTransactions.push(
-			prismaClient.operator.update({
-				where: { address },
-				data: {
-					metadataName: metadata.name,
-					metadataDescription: metadata.description,
-					metadataLogo: metadata.logo,
-					metadataDiscord: metadata.discord,
-					metadataTelegram: metadata.telegram,
-					metadataWebsite: metadata.website,
-					metadataX: metadata.x,
-					isMetadataSynced: true
-				}
-			})
-		)
-	}
-
-	await bulkUpdateDbTransactions(dbTransactions)
-
-	console.log('Updated Operator metadatas: ', metadataList.size)
+	console.log('[Monitor] All Operator metadatas up-to-date')
 }
