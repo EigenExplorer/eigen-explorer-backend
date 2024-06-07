@@ -84,7 +84,7 @@ async function monitorMetadata() {
 	
 	while (true) {
 		try {
-			console.log('\Monitoring Metadata...')
+			console.log('\nMonitoring Metadata...')
 
 			await monitorAvsMetadata()
 			await monitorOperatorMetadata()
