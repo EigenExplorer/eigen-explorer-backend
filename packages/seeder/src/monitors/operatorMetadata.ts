@@ -58,11 +58,13 @@ export async function monitorOperatorMetadata() {
 				}
 			} catch (error) {}
 		}
-
-		await bulkUpdateDbTransactions(
-			dbTransactions,
-			`[Monitor] Updated Operator metadatas: ${operatorEntries.length}`
-		)
+ 
+		if (dbTransactions.length > 0) {
+			await bulkUpdateDbTransactions(
+				dbTransactions,
+				`[Monitor] Updated Operator metadatas: ${dbTransactions.length}`
+			)
+		}
 		skip += take
 	}
 

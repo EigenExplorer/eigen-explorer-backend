@@ -22,7 +22,7 @@ import { seedLogsWithdrawalCompleted } from './events/seedLogsWithdrawalComplete
 import { monitorAvsMetadata } from './monitors/avsMetadata'
 import { monitorOperatorMetadata } from './monitors/operatorMetadata'
 
-console.log('Initializing seeder ...')
+console.log('Initializing Seeder ...')
 
 function delay(seconds: number) {
 	return new Promise((resolve) => setTimeout(resolve, seconds * 1000))
@@ -33,7 +33,7 @@ async function seedEigenDataLoop() {
 		try {
 			const viemClient = getViemClient()
 			const targetBlock = await viemClient.getBlockNumber()
-			console.log('\nSeeding Data ...', targetBlock)
+			console.log('\nSeeding data ...', targetBlock)
 
 			await seedBlockData(targetBlock)
 			await seedLogsAVSMetadata(targetBlock)
@@ -66,16 +66,16 @@ async function seedEigenPodValidators() {
 
 	while (true) {
 		try {
-			console.log('\nSeeding Eigen Pods Data ...')
+			console.log('\nSeeding Eigen Pods data ...')
 
 			await seedPods()
 			await seedValidators()
 		} catch (error) {
-			console.log('Failed to seed validators at block:', Date.now())
+			console.log('Failed to seed Validators at block:', Date.now())
 			console.log(error)
 		}
 
-		await delay(600) // Wait for 10 minutes (600 seconds)
+		await delay(600)
 	}
 }
 
@@ -84,7 +84,7 @@ async function monitorMetadata() {
 	
 	while (true) {
 		try {
-			console.log('\nMonitoring Metadata...')
+			console.log('\nMonitoring metadata...')
 
 			await monitorAvsMetadata()
 			await monitorOperatorMetadata()
@@ -92,7 +92,7 @@ async function monitorMetadata() {
 			console.log('Failed to monitor metadata at: ', Date.now())
 		}
 
-		await delay(420) // Wait for 7 minutes (420 seconds)
+		await delay(420)
 	}
 }
 

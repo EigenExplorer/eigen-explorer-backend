@@ -59,10 +59,12 @@ export async function monitorAvsMetadata() {
 			} catch (error) {}
 		}
 
-		await bulkUpdateDbTransactions(
-			dbTransactions,
-			`[Monitor] Updated AVS metadatas: ${avsEntries.length}`
-		)
+		if (dbTransactions.length > 0) {
+			await bulkUpdateDbTransactions(
+				dbTransactions,
+				`[Monitor] Updated AVS metadatas: ${dbTransactions.length}`
+			)
+		}
 		skip += take
 	}
 
