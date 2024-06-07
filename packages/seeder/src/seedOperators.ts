@@ -1,11 +1,6 @@
 import type prisma from '@prisma/client'
+import { type EntityMetadata, defaultMetadata } from './utils/metadata'
 import { getPrismaClient } from './utils/prismaClient'
-import {
-	type EntityMetadata,
-	defaultMetadata,
-	isValidMetadataUrl,
-	validateMetadata
-} from './utils/metadata'
 import {
 	baseBlock,
 	bulkUpdateDbTransactions,
@@ -17,7 +12,9 @@ const blockSyncKey = 'lastSyncedBlock_operators'
 const blockSyncKeyLogs = 'lastSyncedBlock_logs_operators'
 
 interface OperatorEntryRecord {
+	metadataUrl: string
 	metadata: EntityMetadata
+	isMetadataSynced: boolean
 	createdAtBlock: bigint
 	updatedAtBlock: bigint
 	createdAt: Date
@@ -63,50 +60,29 @@ export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 		const blockNumber = BigInt(log.blockNumber)
 		const timestamp = log.blockTime
 
-		try {
-			if (log.metadataURI && isValidMetadataUrl(log.metadataURI)) {
-				const response = await fetch(log.metadataURI)
-				const data = await response.text()
-				const operatorMetadata = validateMetadata(data)
-
-				if (operatorMetadata) {
-					if (existingRecord) {
-						// Operator already registered, valid metadata uri
-						operatorList.set(operatorAddress, {
-							metadata: operatorMetadata,
-							createdAtBlock: existingRecord.createdAtBlock,
-							updatedAtBlock: blockNumber,
-							createdAt: existingRecord.createdAt,
-							updatedAt: timestamp
-						})
-					} else {
-						// Operator not registered, valid metadata uri
-						operatorList.set(operatorAddress, {
-							metadata: operatorMetadata,
-							createdAtBlock: blockNumber,
-							updatedAtBlock: blockNumber,
-							createdAt: timestamp,
-							updatedAt: timestamp
-						})
-					}
-				} else {
-					throw new Error('Missing operator metadata')
-				}
-			} else {
-				throw new Error('Invalid operator metadata uri')
-			}
-		} catch (error) {
-			if (!existingRecord) {
-				// Operator not registered, invalid metadata uri
-				operatorList.set(operatorAddress, {
-					metadata: defaultMetadata,
-					createdAtBlock: blockNumber,
-					updatedAtBlock: blockNumber,
-					createdAt: timestamp,
-					updatedAt: timestamp
-				})
-			} // Ignore case where Operator is already registered and is updated with invalid metadata uri
-		}
+		if (existingRecord) {
+			// Operator has been registered before in this fetch
+			operatorList.set(operatorAddress, {
+				metadataUrl: log.metadataURI,
+				metadata: defaultMetadata,
+				isMetadataSynced: false,
+				createdAtBlock: existingRecord.createdAtBlock,
+				updatedAtBlock: blockNumber,
+				createdAt: existingRecord.createdAt,
+				updatedAt: timestamp
+			})
+		} else {
+			// Operator being registered for the first time in this fetch
+			operatorList.set(operatorAddress, {
+				metadataUrl: log.metadataURI,
+				metadata: defaultMetadata,
+				isMetadataSynced: false,
+				createdAtBlock: blockNumber, // Will be omitted in upsert if operator exists in db
+				updatedAtBlock: blockNumber,
+				createdAt: timestamp,
+				updatedAt: timestamp
+			})
+		}	
 	}
 
 	// Prepare db transaction object
@@ -120,10 +96,11 @@ export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 
 		for (const [
 			address,
-			{ metadata, createdAtBlock, updatedAtBlock, createdAt, updatedAt }
+			{ metadataUrl, metadata, isMetadataSynced, createdAtBlock, updatedAtBlock, createdAt, updatedAt }
 		] of operatorList) {
 			newOperator.push({
 				address,
+				metadataUrl,
 				metadataName: metadata.name,
 				metadataDescription: metadata.description,
 				metadataLogo: metadata.logo,
@@ -131,10 +108,11 @@ export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 				metadataTelegram: metadata.telegram,
 				metadataWebsite: metadata.website,
 				metadataX: metadata.x,
-				createdAtBlock: createdAtBlock,
-				updatedAtBlock: updatedAtBlock,
-				createdAt: createdAt,
-				updatedAt: updatedAt
+				isMetadataSynced,
+				createdAtBlock,
+				updatedAtBlock,
+				createdAt,
+				updatedAt
 			})
 		}
 
@@ -147,12 +125,13 @@ export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 	} else {
 		for (const [
 			address,
-			{ metadata, createdAtBlock, updatedAtBlock, createdAt, updatedAt }
+			{ metadataUrl, metadata, isMetadataSynced, createdAtBlock, updatedAtBlock, createdAt, updatedAt }
 		] of operatorList) {
 			dbTransactions.push(
 				prismaClient.operator.upsert({
 					where: { address },
 					update: {
+						metadataUrl,
 						metadataName: metadata.name,
 						metadataDescription: metadata.description,
 						metadataLogo: metadata.logo,
@@ -160,11 +139,13 @@ export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 						metadataTelegram: metadata.telegram,
 						metadataWebsite: metadata.website,
 						metadataX: metadata.x,
-						updatedAtBlock: updatedAtBlock,
-						updatedAt: updatedAt
+						isMetadataSynced,
+						updatedAtBlock,
+						updatedAt
 					},
 					create: {
 						address,
+						metadataUrl,
 						metadataName: metadata.name,
 						metadataDescription: metadata.description,
 						metadataLogo: metadata.logo,
@@ -172,10 +153,11 @@ export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 						metadataTelegram: metadata.telegram,
 						metadataWebsite: metadata.website,
 						metadataX: metadata.x,
-						createdAtBlock: createdAtBlock,
-						updatedAtBlock: updatedAtBlock,
-						createdAt: createdAt,
-						updatedAt: updatedAt
+						isMetadataSynced,
+						createdAtBlock,
+						updatedAtBlock,
+						createdAt,
+						updatedAt
 					}
 				})
 			)

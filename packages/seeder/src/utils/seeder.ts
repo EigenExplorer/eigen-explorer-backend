@@ -97,3 +97,23 @@ export async function getBlockDataFromDb(fromBlock: bigint, toBlock: bigint) {
 
 	return new Map(blockData.map((block) => [block.number, block.timestamp]))
 }
+
+export async function fetchWithTimeout(
+	url: string,
+	timeout = 5000
+): Promise<Response> {
+	const controller = new AbortController()
+	const timeoutId = setTimeout(() => controller.abort(), timeout)
+
+	try {
+		const response = await fetch(url, { signal: controller.signal })
+		return response
+	} catch (error) {
+		if (error.name === 'AbortError') {
+			throw new Error('Request timed out')
+		}
+		throw error
+	} finally {
+		clearTimeout(timeoutId)
+	}
+}
