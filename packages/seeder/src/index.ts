@@ -79,13 +79,17 @@ async function seedEigenPodValidators() {
 	}
 }
 
-async function monitorMetadatas() {
+async function monitorMetadata() {
+	await delay(120)
+	
 	while (true) {
 		try {
+			console.log('\Monitoring Metadata...')
+
 			await monitorAvsMetadata()
 			await monitorOperatorMetadata()
 		} catch (error) {
-			console.log('Failed to monitor metadatas at: ', Date.now())
+			console.log('Failed to monitor metadata at: ', Date.now())
 		}
 
 		await delay(420) // Wait for 7 minutes (420 seconds)
@@ -94,4 +98,4 @@ async function monitorMetadatas() {
 
 seedEigenDataLoop()
 seedEigenPodValidators()
-monitorMetadatas()
+monitorMetadata()

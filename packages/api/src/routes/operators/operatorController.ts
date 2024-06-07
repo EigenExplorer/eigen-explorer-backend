@@ -45,7 +45,7 @@ export async function getAllOperators(req: Request, res: Response) {
 			? await getStrategiesWithShareUnderlying()
 			: []
 
-		const operators = operatorRecords.map(({ isMetadataSynced, ...operator }) => ({
+		const operators = operatorRecords.map((operator) => ({
 			...operator,
 			createdAtBlock: operator.createdAtBlock.toString(),
 			updatedAtBlock: operator.updatedAtBlock.toString(),
@@ -57,7 +57,9 @@ export async function getAllOperators(req: Request, res: Response) {
 						strategyTokenPrices
 				  )
 				: undefined,
-			stakers: undefined
+			stakers: undefined,
+			metadataUrl: undefined,
+			isMetadataSynced: undefined
 		}))
 
 		res.send({
@@ -90,7 +92,7 @@ export async function getOperator(req: Request, res: Response) {
 	try {
 		const { address } = req.params
 
-		const { isMetadataSynced, ...operator } = await prisma.operator.findUniqueOrThrow({
+		const operator  = await prisma.operator.findUniqueOrThrow({
 			where: { address: address.toLowerCase() },
 			include: {
 				shares: {
@@ -118,7 +120,9 @@ export async function getOperator(req: Request, res: Response) {
 						strategyTokenPrices
 				  )
 				: undefined,
-			stakers: undefined
+			stakers: undefined,
+			metadataUrl: undefined,
+			isMetadataSynced: undefined
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)

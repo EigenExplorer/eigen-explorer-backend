@@ -4,8 +4,6 @@ import { fetchWithTimeout, bulkUpdateDbTransactions } from '../utils/seeder'
 import { isValidMetadataUrl, validateMetadata } from '../utils/metadata'
 
 export async function monitorOperatorMetadata() {
-	console.log('Monitoring Operator Metadata...')
-
 	const prismaClient = getPrismaClient()
 	const metadataList: Map<string, EntityMetadata> = new Map()
 

@@ -59,7 +59,7 @@ export async function getAllAVS(req: Request, res: Response) {
 			: []
 
 		const data = await Promise.all(
-			avsRecords.map(async ({ isMetadataSynced, ...avs }) => {
+			avsRecords.map(async (avs) => {
 				const restakeableStrategies = await getRestakeableStrategies(
 					avs.address
 				)
@@ -93,7 +93,9 @@ export async function getAllAVS(req: Request, res: Response) {
 								strategyTokenPrices
 						  )
 						: undefined,
-					operators: undefined
+					operators: undefined,
+					metadataUrl: undefined,
+					isMetadataSynced: undefined
 				}
 			})
 		)
@@ -177,7 +179,7 @@ export async function getAVS(req: Request, res: Response) {
 		const { address } = req.params
 		const { withTvl } = req.query
 
-		const { isMetadataSynced, ...avs } = await prisma.avs.findUniqueOrThrow({
+		const avs = await prisma.avs.findUniqueOrThrow({
 			where: { address: address.toLowerCase(), ...getAvsFilterQuery() },
 			include: {
 				curatedMetadata: true,
@@ -227,7 +229,9 @@ export async function getAVS(req: Request, res: Response) {
 						strategyTokenPrices
 				  )
 				: undefined,
-			operators: undefined
+			operators: undefined,
+			metadataUrl: undefined,
+			isMetadataSynced: undefined
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
