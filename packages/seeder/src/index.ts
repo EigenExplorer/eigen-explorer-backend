@@ -66,6 +66,23 @@ async function seedEigenDataLoop() {
 	}
 }
 
+async function monitorMetadata() {
+	await delay(60)
+
+	while (true) {
+		try {
+			console.log('\nMonitoring metadata...')
+
+			await monitorAvsMetadata()
+			await monitorOperatorMetadata()
+		} catch (error) {
+			console.log('Failed to monitor metadata at:', Date.now())
+		}
+
+		await delay(120)
+	}
+}
+
 async function seedEigenPodValidators() {
 	await delay(120)
 
@@ -75,31 +92,14 @@ async function seedEigenPodValidators() {
 
 			await seedValidators()
 		} catch (error) {
-			console.log('Failed to seed Validators at block:', Date.now())
 			console.log(error)
+			console.log('Failed to seed Validators at:', Date.now())
 		}
 
-		await delay(600)
-	}
-}
-
-async function monitorMetadata() {
-	await delay(120)
-	
-	while (true) {
-		try {
-			console.log('\nMonitoring metadata...')
-
-			await monitorAvsMetadata()
-			await monitorOperatorMetadata()
-		} catch (error) {
-			console.log('Failed to monitor metadata at: ', Date.now())
-		}
-
-		await delay(420)
+		await delay(3600)
 	}
 }
 
 seedEigenDataLoop()
-// seedEigenPodValidators()
 monitorMetadata()
+seedEigenPodValidators()
