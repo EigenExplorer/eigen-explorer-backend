@@ -3,7 +3,10 @@ import prisma from '../../utils/prismaClient'
 import { getContract } from 'viem'
 import { getViemClient } from '../../viem/viemClient'
 import { strategyAbi } from '../../data/abi/strategy'
-import { getEigenContracts } from '../../data/address'
+import {
+	EigenStrategiesContractAddress,
+	getEigenContracts
+} from '../../data/address'
 import { handleAndReturnErrorResponse } from '../../schema/errors'
 import { getAvsFilterQuery } from '../avs/avsController'
 import { fetchStrategyTokenPrices } from '../../utils/tokenPrices'
@@ -64,7 +67,8 @@ export async function getTvlRestaking(req: Request, res: Response) {
 
 		res.send({
 			tvl: tvlRestaking.tvlRestaking,
-			tvlStrategies: tvlRestaking.tvlStrategies
+			tvlStrategies: tvlRestaking.tvlStrategies,
+			tvlStrategiesEth: tvlRestaking.tvlStrategiesEth
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
@@ -80,7 +84,9 @@ export async function getTvlRestakingByStrategy(req: Request, res: Response) {
 		}
 
 		const strategies = Object.keys(getEigenContracts().Strategies)
-		const foundStrategy = strategies.find(s => s.toLowerCase() === strategy.toLowerCase())
+		const foundStrategy = strategies.find(
+			(s) => s.toLowerCase() === strategy.toLowerCase()
+		)
 
 		if (!foundStrategy) {
 			throw new Error('Invalid strategy.')
@@ -138,7 +144,7 @@ export async function getTotalStakers(req: Request, res: Response) {
 
 async function doGetTvl() {
 	let tvlRestaking = 0
-	const tvlStrategies = {}
+
 	const strategyKeys = Object.keys(getEigenContracts().Strategies)
 	const strategiesContracts = strategyKeys.map((s) =>
 		getContract({
@@ -147,6 +153,12 @@ async function doGetTvl() {
 			client: getViemClient()
 		})
 	)
+
+	const tvlStrategies = {}
+	const tvlStrategiesEth: Map<keyof EigenStrategiesContractAddress, number> =
+		new Map(
+			strategyKeys.map((sk) => [sk as keyof EigenStrategiesContractAddress, 0])
+		)
 
 	try {
 		const totalShares = await Promise.all(
@@ -183,6 +195,11 @@ async function doGetTvl() {
 				if (strategyTokenPrice) {
 					const strategyTvl = strategyShares * strategyTokenPrice.eth
 
+					tvlStrategiesEth.set(
+						s.strategyKey as keyof EigenStrategiesContractAddress,
+						strategyTvl
+					)
+
 					tvlRestaking += strategyTvl
 				}
 			}
@@ -191,7 +208,8 @@ async function doGetTvl() {
 
 	return {
 		tvlRestaking,
-		tvlStrategies
+		tvlStrategies,
+		tvlStrategiesEth: Object.fromEntries(tvlStrategiesEth.entries())
 	}
 }
 
