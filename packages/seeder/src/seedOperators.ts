@@ -90,6 +90,7 @@ export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 	const dbTransactions: any[] = []
 
 	if (firstBlock === baseBlock) {
+		dbTransactions.push(prismaClient.avsOperator.deleteMany())
 		dbTransactions.push(prismaClient.operator.deleteMany())
 
 		const newOperator: prisma.Operator[] = []
