@@ -66,7 +66,7 @@ export async function seedPods(toBlock?: bigint, fromBlock?: bigint) {
 				})
 			}
 		},
-		100_000n
+		10_000n
 	)
 
 	// Prepare db transaction object

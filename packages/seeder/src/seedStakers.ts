@@ -204,7 +204,7 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 
 			console.log(`[Batch] Stakers from: ${fromBlock} to: ${toBlock}`)
 		},
-		100_000n
+		10_000n
 	)
 
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>

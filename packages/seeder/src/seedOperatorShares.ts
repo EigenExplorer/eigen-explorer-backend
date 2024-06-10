@@ -150,7 +150,7 @@ export async function seedOperatorShares(toBlock?: bigint, fromBlock?: bigint) {
 
 			console.log(`[Batch] Operator Shares from: ${fromBlock} to: ${toBlock}`)
 		},
-		100_000n
+		10_000n
 	)
 
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
