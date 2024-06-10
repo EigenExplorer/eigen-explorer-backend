@@ -3,6 +3,7 @@ import { getPrismaClient } from './utils/prismaClient'
 import {
 	bulkUpdateDbTransactions,
 	fetchLastSyncBlock,
+	loopThroughBlocks,
 	saveLastSyncBlock
 } from './utils/seeder'
 
@@ -26,31 +27,33 @@ export async function seedDeposits(toBlock?: bigint, fromBlock?: bigint) {
 		return
 	}
 
-	const logs = await prismaClient.eventLogs_Deposit.findMany({
-		where: {
-			blockNumber: {
-				gt: firstBlock,
-				lte: lastBlock
+	await loopThroughBlocks(firstBlock, lastBlock, async (fromBlock, toBlock) => {
+		const logs = await prismaClient.eventLogs_Deposit.findMany({
+			where: {
+				blockNumber: {
+					gt: fromBlock,
+					lte: toBlock
+				}
 			}
+		})
+
+		for (const l in logs) {
+			const log = logs[l]
+
+			const blockNumber = BigInt(log.blockNumber)
+			const timestamp = log.blockTime
+
+			depositList.push({
+				transactionHash: log.transactionHash.toLowerCase(),
+				stakerAddress: log.staker.toLowerCase(),
+				tokenAddress: log.token.toLowerCase(),
+				strategyAddress: log.strategy.toLowerCase(),
+				shares: log.shares,
+				createdAtBlock: blockNumber,
+				createdAt: timestamp
+			})
 		}
 	})
-
-	for (const l in logs) {
-		const log = logs[l]
-
-		const blockNumber = BigInt(log.blockNumber)
-		const timestamp = log.blockTime
-
-		depositList.push({
-			transactionHash: log.transactionHash.toLowerCase(),
-			stakerAddress: log.staker.toLowerCase(),
-			tokenAddress: log.token.toLowerCase(),
-			strategyAddress: log.strategy.toLowerCase(),
-			shares: log.shares,
-			createdAtBlock: blockNumber,
-			createdAt: timestamp
-		})
-	}
 
 	// Prepare db transaction object
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
