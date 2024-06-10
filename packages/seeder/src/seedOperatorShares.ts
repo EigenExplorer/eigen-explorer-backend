@@ -4,6 +4,7 @@ import {
 	bulkUpdateDbTransactions,
 	fetchLastSyncBlock,
 	type IMap,
+	loopThroughBlocks,
 	saveLastSyncBlock
 } from './utils/seeder'
 
@@ -36,102 +37,121 @@ export async function seedOperatorShares(toBlock?: bigint, fromBlock?: bigint) {
 		await prismaClient.operatorStrategyShares.deleteMany()
 	}
 
-	const logsOperatorSharesIncreased =
-		await prismaClient.eventLogs_OperatorSharesIncreased
-			.findMany({
-				where: {
-					blockNumber: {
-						gt: firstBlock,
-						lte: lastBlock
+	await loopThroughBlocks(
+		firstBlock,
+		lastBlock,
+		async (fromBlock, toBlock) => {
+			// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+			let allLogs: any[] = []
+
+			await prismaClient.eventLogs_OperatorSharesIncreased
+				.findMany({ where: { blockNumber: { gt: fromBlock, lte: toBlock } } })
+				.then((logs) => {
+					allLogs = [
+						...allLogs,
+						...logs.map((log) => ({
+							...log,
+							eventName: 'OperatorSharesIncreased'
+						}))
+					]
+				})
+
+			await prismaClient.eventLogs_OperatorSharesDecreased
+				.findMany({ where: { blockNumber: { gt: fromBlock, lte: toBlock } } })
+				.then((logs) => {
+					allLogs = [
+						...allLogs,
+						...logs.map((log) => ({
+							...log,
+							eventName: 'OperatorSharesDecreased'
+						}))
+					]
+				})
+
+			allLogs = allLogs.sort((a, b) => {
+				if (a.blockNumber === b.blockNumber) {
+					return a.transactionIndex - b.transactionIndex
+				}
+
+				return Number(a.blockNumber - b.blockNumber)
+			})
+
+			// Operators list
+			const operatorAddresses = allLogs.map((l) =>
+				String(l.operator).toLowerCase()
+			)
+			const operatorInit =
+				firstBlock !== baseBlock
+					? await prismaClient.operator.findMany({
+							where: { address: { in: operatorAddresses } },
+							include: {
+								shares: true
+							}
+					  })
+					: []
+
+			for (const l in allLogs) {
+				const log = allLogs[l]
+
+				const operatorAddress = String(log.operator).toLowerCase()
+				const strategyAddress = String(log.strategy).toLowerCase()
+				const shares = log.shares
+				if (!shares) continue
+
+				// Load existing staker shares data
+				if (!operatorShares.has(operatorAddress)) {
+					const foundOperatorInit = operatorInit.find(
+						(o) => o.address.toLowerCase() === operatorAddress.toLowerCase()
+					)
+					if (foundOperatorInit) {
+						operatorShares.set(
+							operatorAddress,
+							foundOperatorInit.shares.map((o) => ({
+								...o,
+								shares: BigInt(o.shares)
+							}))
+						)
+					} else {
+						operatorShares.set(operatorAddress, [])
 					}
 				}
-			})
-			.then((logs) =>
-				logs.map((log) => ({ ...log, eventName: 'OperatorSharesIncreased' }))
-			)
 
-	const logsOperatorSharesDecreased =
-		await prismaClient.eventLogs_OperatorSharesDecreased
-			.findMany({
-				where: {
-					blockNumber: {
-						gt: firstBlock,
-						lte: lastBlock
-					}
+				let foundSharesIndex = operatorShares
+					.get(operatorAddress)
+					.findIndex(
+						(os) =>
+							os.strategyAddress.toLowerCase() === strategyAddress.toLowerCase()
+					)
+
+				if (foundSharesIndex !== undefined && foundSharesIndex === -1) {
+					operatorShares
+						.get(operatorAddress)
+						.push({ shares: 0n, strategyAddress: strategyAddress })
+
+					foundSharesIndex = operatorShares
+						.get(operatorAddress)
+						.findIndex(
+							(os) =>
+								os.strategyAddress.toLowerCase() ===
+								strategyAddress.toLowerCase()
+						)
 				}
-			})
-			.then((logs) =>
-				logs.map((log) => ({ ...log, eventName: 'OperatorSharesDecreased' }))
-			)
 
-	const logs = [...logsOperatorSharesIncreased, ...logsOperatorSharesDecreased]
-
-	// Operators list
-	const operatorAddresses = logs.map((l) => String(l.operator).toLowerCase())
-
-	const operatorInit = await prismaClient.operator.findMany({
-		where: { address: { in: operatorAddresses } },
-		include: {
-			shares: true
-		}
-	})
-
-	for (const l in logs) {
-		const log = logs[l]
-
-		const operatorAddress = String(log.operator).toLowerCase()
-		const strategyAddress = String(log.strategy).toLowerCase()
-		const shares = log.shares
-		if (!shares) continue
-
-		// Load existing staker shares data
-		if (!operatorShares.has(operatorAddress)) {
-			const foundOperatorInit = operatorInit.find(
-				(o) => o.address.toLowerCase() === operatorAddress.toLowerCase()
-			)
-			if (foundOperatorInit) {
-				operatorShares.set(
-					operatorAddress,
-					foundOperatorInit.shares.map((o) => ({
-						...o,
-						shares: BigInt(o.shares)
-					}))
-				)
-			} else {
-				operatorShares.set(operatorAddress, [])
+				if (log.eventName === 'OperatorSharesIncreased') {
+					operatorShares.get(operatorAddress)[foundSharesIndex].shares =
+						operatorShares.get(operatorAddress)[foundSharesIndex].shares +
+						BigInt(shares)
+				} else if (log.eventName === 'OperatorSharesDecreased') {
+					operatorShares.get(operatorAddress)[foundSharesIndex].shares =
+						operatorShares.get(operatorAddress)[foundSharesIndex].shares -
+						BigInt(shares)
+				}
 			}
-		}
 
-		let foundSharesIndex = operatorShares
-			.get(operatorAddress)
-			.findIndex(
-				(os) =>
-					os.strategyAddress.toLowerCase() === strategyAddress.toLowerCase()
-			)
-
-		if (foundSharesIndex !== undefined && foundSharesIndex === -1) {
-			operatorShares
-				.get(operatorAddress)
-				.push({ shares: 0n, strategyAddress: strategyAddress })
-
-			foundSharesIndex = operatorShares
-				.get(operatorAddress)
-				.findIndex(
-					(os) =>
-						os.strategyAddress.toLowerCase() === strategyAddress.toLowerCase()
-				)
-		}
-
-		if (log.eventName === 'OperatorSharesIncreased') {
-			operatorShares.get(operatorAddress)[foundSharesIndex].shares =
-				operatorShares.get(operatorAddress)[foundSharesIndex].shares +
-				BigInt(shares)
-		} else if (log.eventName === 'OperatorSharesDecreased') {
-			operatorShares.get(operatorAddress)[foundSharesIndex].shares =
-				operatorShares.get(operatorAddress)[foundSharesIndex].shares -
-				BigInt(shares)
-		}
-	}
+			console.log(`[Batch] Operator Shares from: ${fromBlock} to: ${toBlock}`)
+		},
+		100_000n
+	)
 
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	const dbTransactions: any[] = []

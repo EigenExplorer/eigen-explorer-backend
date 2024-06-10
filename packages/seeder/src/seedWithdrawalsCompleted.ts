@@ -2,6 +2,7 @@ import { getPrismaClient } from './utils/prismaClient'
 import {
 	bulkUpdateDbTransactions,
 	fetchLastSyncBlock,
+	loopThroughBlocks,
 	saveLastSyncBlock
 } from './utils/seeder'
 
@@ -35,24 +36,31 @@ export async function seedCompletedWithdrawals(
 		return
 	}
 
-	const logs = await prismaClient.eventLogs_WithdrawalCompleted.findMany({
-		where: {
-			blockNumber: {
-				gt: firstBlock,
-				lte: lastBlock
+	await loopThroughBlocks(
+		firstBlock,
+		lastBlock,
+		async (fromBlock, toBlock) => {
+			const logs = await prismaClient.eventLogs_WithdrawalCompleted.findMany({
+				where: {
+					blockNumber: {
+						gt: fromBlock,
+						lte: toBlock
+					}
+				}
+			})
+
+			for (const l in logs) {
+				const log = logs[l]
+
+				const withdrawalRoot = log.withdrawalRoot
+
+				if (withdrawalRoot) {
+					completedWithdrawalList.push(withdrawalRoot)
+				}
 			}
-		}
-	})
-
-	for (const l in logs) {
-		const log = logs[l]
-
-		const withdrawalRoot = log.withdrawalRoot
-
-		if (withdrawalRoot) {
-			completedWithdrawalList.push(withdrawalRoot)
-		}
-	}
+		},
+		100_000n
+	)
 
 	// Prepare db transaction object
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>

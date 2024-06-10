@@ -3,6 +3,7 @@ import {
 	baseBlock,
 	bulkUpdateDbTransactions,
 	fetchLastSyncBlock,
+	loopThroughBlocks,
 	saveLastSyncBlock
 } from './utils/seeder'
 
@@ -35,26 +36,37 @@ export async function seedAvsOperators(toBlock?: bigint, fromBlock?: bigint) {
 
 	avs.map((a) => avsOperatorsList.set(a.address, new Map()))
 
-	const logs =
-		await prismaClient.eventLogs_OperatorAVSRegistrationStatusUpdated.findMany({
-			where: {
-				blockNumber: {
-					gt: firstBlock,
-					lte: lastBlock
+	await loopThroughBlocks(
+		firstBlock,
+		lastBlock,
+		async (fromBlock, toBlock) => {
+			const logs =
+				await prismaClient.eventLogs_OperatorAVSRegistrationStatusUpdated.findMany(
+					{
+						where: {
+							blockNumber: {
+								gt: fromBlock,
+								lte: toBlock
+							}
+						}
+					}
+				)
+
+			for (const l in logs) {
+				const log = logs[l]
+
+				const avsAddress = String(log.avs).toLowerCase()
+				const operatorAddress = String(log.operator).toLowerCase()
+
+				if (avsOperatorsList.has(avsAddress)) {
+					avsOperatorsList
+						.get(avsAddress)
+						?.set(operatorAddress, log.status || 0)
 				}
 			}
-		})
-
-	for (const l in logs) {
-		const log = logs[l]
-
-		const avsAddress = String(log.avs).toLowerCase()
-		const operatorAddress = String(log.operator).toLowerCase()
-
-		if (avsOperatorsList.has(avsAddress)) {
-			avsOperatorsList.get(avsAddress)?.set(operatorAddress, log.status || 0)
-		}
-	}
+		},
+		100_000n
+	)
 
 	// Prepare db transaction object
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>

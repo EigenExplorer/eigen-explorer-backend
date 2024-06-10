@@ -4,6 +4,7 @@ import {
 	baseBlock,
 	bulkUpdateDbTransactions,
 	fetchLastSyncBlock,
+	loopThroughBlocks,
 	saveLastSyncBlock
 } from './utils/seeder'
 
@@ -32,34 +33,41 @@ export async function seedPods(toBlock?: bigint, fromBlock?: bigint) {
 		return
 	}
 
-	const logs = await prismaClient.eventLogs_PodDeployed.findMany({
-		where: {
-			blockNumber: {
-				gt: firstBlock,
-				lte: lastBlock
+	await loopThroughBlocks(
+		firstBlock,
+		lastBlock,
+		async (fromBlock, toBlock) => {
+			const logs = await prismaClient.eventLogs_PodDeployed.findMany({
+				where: {
+					blockNumber: {
+						gt: fromBlock,
+						lte: toBlock
+					}
+				}
+			})
+
+			for (const l in logs) {
+				const log = logs[l]
+
+				const podAddress = String(log.eigenPod).toLowerCase()
+				const podOwner = String(log.podOwner).toLowerCase()
+
+				const blockNumber = BigInt(log.blockNumber)
+				const timestamp = log.blockTime
+
+				podList.push({
+					address: podAddress,
+					owner: podOwner,
+					blockNumber,
+					createdAtBlock: blockNumber,
+					updatedAtBlock: blockNumber,
+					createdAt: timestamp,
+					updatedAt: timestamp
+				})
 			}
-		}
-	})
-
-	for (const l in logs) {
-		const log = logs[l]
-
-		const podAddress = String(log.eigenPod).toLowerCase()
-		const podOwner = String(log.podOwner).toLowerCase()
-
-		const blockNumber = BigInt(log.blockNumber)
-		const timestamp = log.blockTime
-
-		podList.push({
-			address: podAddress,
-			owner: podOwner,
-			blockNumber,
-			createdAtBlock: blockNumber,
-			updatedAtBlock: blockNumber,
-			createdAt: timestamp,
-			updatedAt: timestamp
-		})
-	}
+		},
+		100_000n
+	)
 
 	// Prepare db transaction object
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>

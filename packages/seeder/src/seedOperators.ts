@@ -5,6 +5,7 @@ import {
 	baseBlock,
 	bulkUpdateDbTransactions,
 	fetchLastSyncBlock,
+	loopThroughBlocks,
 	saveLastSyncBlock
 } from './utils/seeder'
 
@@ -40,50 +41,56 @@ export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 		return
 	}
 
-	const logs = await prismaClient.eventLogs_OperatorMetadataURIUpdated.findMany(
-		{
-			where: {
-				blockNumber: {
-					gt: firstBlock,
-					lte: lastBlock
+	await loopThroughBlocks(
+		firstBlock,
+		lastBlock,
+		async (fromBlock, toBlock) => {
+			const logs =
+				await prismaClient.eventLogs_OperatorMetadataURIUpdated.findMany({
+					where: {
+						blockNumber: {
+							gt: fromBlock,
+							lte: toBlock
+						}
+					}
+				})
+
+			for (const l in logs) {
+				const log = logs[l]
+
+				const operatorAddress = String(log.operator).toLowerCase()
+				const existingRecord = operatorList.get(operatorAddress)
+
+				const blockNumber = BigInt(log.blockNumber)
+				const timestamp = log.blockTime
+
+				if (existingRecord) {
+					// Operator has been registered before in this fetch
+					operatorList.set(operatorAddress, {
+						metadataUrl: log.metadataURI,
+						metadata: defaultMetadata,
+						isMetadataSynced: false,
+						createdAtBlock: existingRecord.createdAtBlock,
+						updatedAtBlock: blockNumber,
+						createdAt: existingRecord.createdAt,
+						updatedAt: timestamp
+					})
+				} else {
+					// Operator being registered for the first time in this fetch
+					operatorList.set(operatorAddress, {
+						metadataUrl: log.metadataURI,
+						metadata: defaultMetadata,
+						isMetadataSynced: false,
+						createdAtBlock: blockNumber, // Will be omitted in upsert if operator exists in db
+						updatedAtBlock: blockNumber,
+						createdAt: timestamp,
+						updatedAt: timestamp
+					})
 				}
 			}
-		}
+		},
+		100_000n
 	)
-
-	for (const l in logs) {
-		const log = logs[l]
-
-		const operatorAddress = String(log.operator).toLowerCase()
-		const existingRecord = operatorList.get(operatorAddress)
-
-		const blockNumber = BigInt(log.blockNumber)
-		const timestamp = log.blockTime
-
-		if (existingRecord) {
-			// Operator has been registered before in this fetch
-			operatorList.set(operatorAddress, {
-				metadataUrl: log.metadataURI,
-				metadata: defaultMetadata,
-				isMetadataSynced: false,
-				createdAtBlock: existingRecord.createdAtBlock,
-				updatedAtBlock: blockNumber,
-				createdAt: existingRecord.createdAt,
-				updatedAt: timestamp
-			})
-		} else {
-			// Operator being registered for the first time in this fetch
-			operatorList.set(operatorAddress, {
-				metadataUrl: log.metadataURI,
-				metadata: defaultMetadata,
-				isMetadataSynced: false,
-				createdAtBlock: blockNumber, // Will be omitted in upsert if operator exists in db
-				updatedAtBlock: blockNumber,
-				createdAt: timestamp,
-				updatedAt: timestamp
-			})
-		}
-	}
 
 	// Prepare db transaction object
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>

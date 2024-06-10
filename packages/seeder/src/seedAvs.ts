@@ -5,6 +5,7 @@ import {
 	baseBlock,
 	bulkUpdateDbTransactions,
 	fetchLastSyncBlock,
+	loopThroughBlocks,
 	saveLastSyncBlock
 } from './utils/seeder'
 
@@ -40,48 +41,55 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 		return
 	}
 
-	const logs = await prismaClient.eventLogs_AVSMetadataURIUpdated.findMany({
-		where: {
-			blockNumber: {
-				gt: firstBlock,
-				lte: lastBlock
+	await loopThroughBlocks(
+		firstBlock,
+		lastBlock,
+		async (fromBlock, toBlock) => {
+			const logs = await prismaClient.eventLogs_AVSMetadataURIUpdated.findMany({
+				where: {
+					blockNumber: {
+						gt: fromBlock,
+						lte: toBlock
+					}
+				}
+			})
+
+			for (const l in logs) {
+				const log = logs[l]
+
+				const avsAddress = String(log.avs).toLowerCase()
+				const existingRecord = avsList.get(avsAddress)
+
+				const blockNumber = BigInt(log.blockNumber)
+				const timestamp = log.blockTime
+
+				if (existingRecord) {
+					// Avs has been registered before in this fetch
+					avsList.set(avsAddress, {
+						metadataUrl: log.metadataURI,
+						metadata: defaultMetadata,
+						isMetadataSynced: false,
+						createdAtBlock: existingRecord.createdAtBlock,
+						updatedAtBlock: blockNumber,
+						createdAt: existingRecord.createdAt,
+						updatedAt: timestamp
+					})
+				} else {
+					// Avs being registered for the first time in this fetch
+					avsList.set(avsAddress, {
+						metadataUrl: log.metadataURI,
+						metadata: defaultMetadata,
+						isMetadataSynced: false,
+						createdAtBlock: blockNumber,
+						updatedAtBlock: blockNumber,
+						createdAt: timestamp, // Will be omitted in upsert if avs exists in db
+						updatedAt: timestamp
+					})
+				}
 			}
-		}
-	})
-
-	for (const l in logs) {
-		const log = logs[l]
-
-		const avsAddress = String(log.avs).toLowerCase()
-		const existingRecord = avsList.get(avsAddress)
-
-		const blockNumber = BigInt(log.blockNumber)
-		const timestamp = log.blockTime
-
-		if (existingRecord) {
-			// Avs has been registered before in this fetch
-			avsList.set(avsAddress, {
-				metadataUrl: log.metadataURI,
-				metadata: defaultMetadata,
-				isMetadataSynced: false,
-				createdAtBlock: existingRecord.createdAtBlock,
-				updatedAtBlock: blockNumber,
-				createdAt: existingRecord.createdAt,
-				updatedAt: timestamp
-			})
-		} else {
-			// Avs being registered for the first time in this fetch
-			avsList.set(avsAddress, {
-				metadataUrl: log.metadataURI,
-				metadata: defaultMetadata,
-				isMetadataSynced: false,
-				createdAtBlock: blockNumber,
-				updatedAtBlock: blockNumber,
-				createdAt: timestamp, // Will be omitted in upsert if avs exists in db
-				updatedAt: timestamp
-			})
-		}
-	}
+		},
+		100_000n
+	)
 
 	// Prepare db transaction object
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>

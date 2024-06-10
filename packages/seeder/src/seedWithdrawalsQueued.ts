@@ -3,6 +3,7 @@ import { getPrismaClient } from './utils/prismaClient'
 import {
 	bulkUpdateDbTransactions,
 	fetchLastSyncBlock,
+	loopThroughBlocks,
 	saveLastSyncBlock
 } from './utils/seeder'
 
@@ -30,50 +31,59 @@ export async function seedQueuedWithdrawals(
 
 	// Bail early if there is no block diff to sync
 	if (lastBlock - firstBlock <= 0) {
-		console.log(`[In Sync] [Data] Queued Withdrawal from: ${firstBlock} to: ${lastBlock}`)
+		console.log(
+			`[In Sync] [Data] Queued Withdrawal from: ${firstBlock} to: ${lastBlock}`
+		)
 		return
 	}
 
-	const logs = await prismaClient.eventLogs_WithdrawalQueued.findMany({
-		where: {
-			blockNumber: {
-				gt: firstBlock,
-				lte: lastBlock
-			}
-		}
-	})
-
-	for (const l in logs) {
-		const log = logs[l]
-
-		const withdrawalRoot = log.withdrawalRoot
-
-		const blockNumber = BigInt(log.blockNumber)
-		const timestamp = log.blockTime
-
-		if (withdrawalRoot) {
-			const stakerAddress = log.staker.toLowerCase()
-			const delegatedTo = log.delegatedTo.toLowerCase()
-			const withdrawerAddress = log.withdrawer.toLowerCase()
-
-			queuedWithdrawalList.push({
-				withdrawalRoot,
-				nonce: Number(log.nonce),
-				isCompleted: false,
-				stakerAddress,
-				delegatedTo,
-				withdrawerAddress,
-				strategies: log.strategies.map((s) => s.toLowerCase()) as string[],
-				shares: log.shares.map((s) => s.toString()),
-
-				startBlock: log.startBlock,
-				createdAtBlock: blockNumber,
-				updatedAtBlock: blockNumber,
-				createdAt: timestamp,
-				updatedAt: timestamp
+	await loopThroughBlocks(
+		firstBlock,
+		lastBlock,
+		async (fromBlock, toBlock) => {
+			const logs = await prismaClient.eventLogs_WithdrawalQueued.findMany({
+				where: {
+					blockNumber: {
+						gt: fromBlock,
+						lte: toBlock
+					}
+				}
 			})
-		}
-	}
+
+			for (const l in logs) {
+				const log = logs[l]
+
+				const withdrawalRoot = log.withdrawalRoot
+
+				const blockNumber = BigInt(log.blockNumber)
+				const timestamp = log.blockTime
+
+				if (withdrawalRoot) {
+					const stakerAddress = log.staker.toLowerCase()
+					const delegatedTo = log.delegatedTo.toLowerCase()
+					const withdrawerAddress = log.withdrawer.toLowerCase()
+
+					queuedWithdrawalList.push({
+						withdrawalRoot,
+						nonce: Number(log.nonce),
+						isCompleted: false,
+						stakerAddress,
+						delegatedTo,
+						withdrawerAddress,
+						strategies: log.strategies.map((s) => s.toLowerCase()) as string[],
+						shares: log.shares.map((s) => s.toString()),
+
+						startBlock: log.startBlock,
+						createdAtBlock: blockNumber,
+						updatedAtBlock: blockNumber,
+						createdAt: timestamp,
+						updatedAt: timestamp
+					})
+				}
+			}
+		},
+		100_000n
+	)
 
 	// Prepare db transaction object
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
@@ -88,7 +98,10 @@ export async function seedQueuedWithdrawals(
 		)
 	}
 
-	await bulkUpdateDbTransactions(dbTransactions, `[Data] Queued Withdrawal from: ${firstBlock} to: ${lastBlock} size: ${queuedWithdrawalList.length}`)
+	await bulkUpdateDbTransactions(
+		dbTransactions,
+		`[Data] Queued Withdrawal from: ${firstBlock} to: ${lastBlock} size: ${queuedWithdrawalList.length}`
+	)
 
 	// // Storing last sycned block
 	await saveLastSyncBlock(blockSyncKey, lastBlock)
