@@ -16,7 +16,10 @@ export async function seedValidators(shouldClearPrev?: boolean) {
 	})
 	const podAddressList = podAddresses.map((p) => p.address.toLowerCase())
 
-	const lastValidatorIndex = await prismaClient.validator.findFirst({ select: { validatorIndex: true }, orderBy: { validatorIndex: 'desc' }})
+	const lastValidatorIndex = await prismaClient.validator.findFirst({
+		select: { validatorIndex: true },
+		orderBy: { validatorIndex: 'desc' }
+	})
 
 	const rpcUrl = process.env.NETWORK_CHAIN_RPC_URL
 	const status = 'finalized'
@@ -26,10 +29,17 @@ export async function seedValidators(shouldClearPrev?: boolean) {
 
 	let isAtEnd = false
 	let batchIndex = 0
-	let currentIndex = (!shouldClearPrev && lastValidatorIndex) ? Number(lastValidatorIndex.validatorIndex) + 1 : 0
+	let currentIndex =
+		!shouldClearPrev && lastValidatorIndex
+			? Number(lastValidatorIndex.validatorIndex) + 1
+			: 0
 	const chunkSize = 8000
 	const batchSize = 120_000
-	const clearPerv = shouldClearPrev ? shouldClearPrev : lastValidatorIndex?.validatorIndex ? false: true
+	const clearPerv = shouldClearPrev
+		? shouldClearPrev
+		: lastValidatorIndex?.validatorIndex
+		  ? false
+		  : true
 
 	while (!isAtEnd) {
 		const validatorRestakeIds = Array.from(
@@ -39,7 +49,9 @@ export async function seedValidators(shouldClearPrev?: boolean) {
 		const chunks = chunkArray(validatorRestakeIds, chunkSize)
 
 		console.log(
-			`Batch ${batchIndex} from ${currentIndex} - ${currentIndex + batchSize}`
+			`[Batch] Validator chunk ${batchIndex} from ${currentIndex} - ${
+				currentIndex + batchSize
+			}`
 		)
 
 		await Promise.allSettled(
@@ -73,12 +85,6 @@ export async function seedValidators(shouldClearPrev?: boolean) {
 					}
 				})
 
-				console.log(
-					`Batch ${batchIndex} chunk received ${i}`,
-					validatorsData.data.length,
-					validators.length
-				)
-
 				if (validatorsData.data.length < chunkSize) {
 					isAtEnd = true
 				}
@@ -103,7 +109,10 @@ export async function seedValidators(shouldClearPrev?: boolean) {
 		})
 	)
 
-	await bulkUpdateDbTransactions(dbTransactions)
+	await bulkUpdateDbTransactions(
+		dbTransactions,
+		`[Data] Validator updated size: ${podValidators.length}`
+	)
 
 	console.log('Seeded Validators', podValidators.length)
 	console.timeEnd('Done in')
