@@ -102,7 +102,7 @@ model Staker {
   operator        Operator? @relation(fields: [operatorAddress], references: [address])
   operatorAddress String?
 
-  shares StakerStrategyShares[]
+  shares    StakerStrategyShares[]
 
   createdAtBlock BigInt   @default(0)
   updatedAtBlock BigInt   @default(0)
@@ -117,6 +117,17 @@ model StakerStrategyShares {
   shares          String
 
   @@id([stakerAddress, strategyAddress])
+}
+
+model Deposit {
+  transactionHash String  @id @unique
+  stakerAddress   String      
+  tokenAddress    String
+  strategyAddress String
+  shares          String
+
+  createdAtBlock  BigInt    @default(0)
+  createdAt       DateTime  @default(now())
 }
 
 model Pod {
@@ -344,6 +355,24 @@ model EventLogs_WithdrawalCompleted {
 
   @@id([transactionHash, transactionIndex])
   @@index([withdrawalRoot])
+}
+
+model EventLogs_Deposit {
+  address String
+
+  transactionHash  String
+  transactionIndex Int
+  blockNumber      BigInt
+  blockHash        String
+  blockTime        DateTime
+
+  staker   String
+  token    String
+  strategy String
+  shares   String
+
+  @@id([transactionHash, transactionIndex])
+  @@index([staker])
 }
 
 // Misc

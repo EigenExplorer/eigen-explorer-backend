@@ -19,6 +19,8 @@ import { seedQueuedWithdrawals } from './seedWithdrawalsQueued'
 import { seedCompletedWithdrawals } from './seedWithdrawalsCompleted'
 import { seedLogsWithdrawalQueued } from './events/seedLogsWithdrawalQueued'
 import { seedLogsWithdrawalCompleted } from './events/seedLogsWithdrawalCompleted'
+import { seedLogsDeposit } from './events/seedLogsDeposit'
+import { seedDeposits } from './seedDeposits'
 import { monitorAvsMetadata } from './monitors/avsMetadata'
 import { monitorOperatorMetadata } from './monitors/operatorMetadata'
 
@@ -44,6 +46,7 @@ async function seedEigenDataLoop() {
 			await seedLogsPodDeployed(targetBlock)
 			await seedLogsWithdrawalQueued(targetBlock)
 			await seedLogsWithdrawalCompleted(targetBlock)
+			await seedLogsDeposit(targetBlock)
 
 			await seedAvs()
 			await seedOperators()
@@ -52,6 +55,7 @@ async function seedEigenDataLoop() {
 			await seedOperatorShares()
 			await seedQueuedWithdrawals()
 			await seedCompletedWithdrawals()
+			await seedDeposits()
 		} catch (error) {
 			console.log('Failed to seed data at:', Date.now())
 			console.log(error)

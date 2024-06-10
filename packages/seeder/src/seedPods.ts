@@ -102,7 +102,7 @@ export async function seedPods(toBlock?: bigint, fromBlock?: bigint) {
 
 	await bulkUpdateDbTransactions(
 		dbTransactions,
-		`[Data] AVS MetadataURI from: ${firstBlock} to: ${lastBlock} size: ${podList.length}`
+		`[Data] Pods from: ${firstBlock} to: ${lastBlock} size: ${podList.length}`
 	)
 
 	// Storing last sycned block

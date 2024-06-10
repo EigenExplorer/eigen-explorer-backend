@@ -340,3 +340,46 @@ export async function getStakerWithdrawalsCompleted(
 		handleAndReturnErrorResponse(req, res, error)
 	}
 }
+
+export async function getStakerDeposits(req: Request, res: Response) {
+	// Validate query
+	const result = PaginationQuerySchema.safeParse(req.query)
+	if (!result.success) {
+		return handleAndReturnErrorResponse(req, res, result.error)
+	}
+
+	const { skip, take } = result.data
+
+	try {
+		const { address } = req.params
+		const filterQuery = { stakerAddress: address }
+
+		const depositCount = await prisma.deposit.count({
+			where: filterQuery
+		})
+		const depositRecords = await prisma.deposit.findMany({
+			where: filterQuery,
+			skip,
+			take,
+			orderBy: { createdAtBlock: 'desc' }
+		})
+
+		const data = depositRecords.map((deposit) => {
+			return {
+				...deposit,
+				createdAtBlock: Number(deposit.createdAtBlock)
+			}
+		})
+
+		res.send({
+			data,
+			meta: {
+				total: depositCount,
+				skip,
+				take
+			}
+		})
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
