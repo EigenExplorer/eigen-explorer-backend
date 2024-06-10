@@ -11,6 +11,11 @@ const apiRouter = express.Router()
 // Health route
 apiRouter.get('/health', (_, res) => res.send({ status: 'ok' }))
 
+// Version route
+apiRouter.get('/version', (_, res) =>
+	res.send({ version: process.env.API_VERSION || 'development' })
+)
+
 // Remaining routes
 apiRouter.use('/avs', avsRoutes)
 apiRouter.use('/strategies', strategiesRoutes)
