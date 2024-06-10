@@ -29,10 +29,11 @@ export async function seedLogsOperatorMetadata(
 		? fromBlock
 		: await fetchLastSyncBlock(blockSyncKeyLogs)
 	const lastBlock = toBlock ? toBlock : await viemClient.getBlockNumber()
-	const blockData = await getBlockDataFromDb(firstBlock, lastBlock)
 
 	// Loop through evm logs
 	await loopThroughBlocks(firstBlock, lastBlock, async (fromBlock, toBlock) => {
+		const blockData = await getBlockDataFromDb(fromBlock, toBlock)
+
 		try {
 			// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 			const dbTransactions: any[] = []
@@ -40,12 +41,10 @@ export async function seedLogsOperatorMetadata(
 				[]
 
 			const logs = await viemClient.getLogs({
-				address: [getEigenContracts().DelegationManager],
-				events: [
-					parseAbiItem(
-						'event OperatorMetadataURIUpdated(address indexed operator, string metadataURI)'
-					)
-				],
+				address: getEigenContracts().DelegationManager,
+				event: parseAbiItem(
+					'event OperatorMetadataURIUpdated(address indexed operator, string metadataURI)'
+				),
 				fromBlock,
 				toBlock
 			})
@@ -57,7 +56,7 @@ export async function seedLogsOperatorMetadata(
 				logsOperatorMetadataURIUpdated.push({
 					address: log.address,
 					transactionHash: log.transactionHash,
-					transactionIndex: log.transactionIndex,
+					transactionIndex: log.logIndex,
 					blockNumber: BigInt(log.blockNumber),
 					blockHash: log.blockHash,
 					blockTime: blockData.get(log.blockNumber) || new Date(0),
@@ -84,7 +83,7 @@ export async function seedLogsOperatorMetadata(
 
 			// Update database
 			const seedLength = logsOperatorMetadataURIUpdated.length
-			
+
 			await bulkUpdateDbTransactions(
 				dbTransactions,
 				`[Logs] Operator Metadata from: ${fromBlock} to: ${toBlock} size: ${seedLength}`

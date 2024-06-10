@@ -29,10 +29,11 @@ export async function seedLogsAVSMetadata(
 		? fromBlock
 		: await fetchLastSyncBlock(blockSyncKeyLogs)
 	const lastBlock = toBlock ? toBlock : await viemClient.getBlockNumber()
-	const blockData = await getBlockDataFromDb(firstBlock, lastBlock)
 
 	// Loop through evm logs
 	await loopThroughBlocks(firstBlock, lastBlock, async (fromBlock, toBlock) => {
+		const blockData = await getBlockDataFromDb(fromBlock, toBlock)
+
 		try {
 			// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 			const dbTransactions: any[] = []
@@ -40,12 +41,10 @@ export async function seedLogsAVSMetadata(
 				[]
 
 			const logs = await viemClient.getLogs({
-				address: [getEigenContracts().AVSDirectory],
-				events: [
-					parseAbiItem(
-						'event AVSMetadataURIUpdated(address indexed avs, string metadataURI)'
-					)
-				],
+				address: getEigenContracts().AVSDirectory,
+				event: parseAbiItem(
+					'event AVSMetadataURIUpdated(address indexed avs, string metadataURI)'
+				),
 				fromBlock,
 				toBlock
 			})
@@ -57,7 +56,7 @@ export async function seedLogsAVSMetadata(
 				logsAVSMetadataURIUpdated.push({
 					address: log.address,
 					transactionHash: log.transactionHash,
-					transactionIndex: log.transactionIndex,
+					transactionIndex: log.logIndex,
 					blockNumber: BigInt(log.blockNumber),
 					blockHash: log.blockHash,
 					blockTime: blockData.get(log.blockNumber) || new Date(0),

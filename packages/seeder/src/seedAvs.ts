@@ -88,6 +88,7 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 	const dbTransactions: any[] = []
 
 	if (firstBlock === baseBlock) {
+		dbTransactions.push(prismaClient.avsOperator.deleteMany())
 		dbTransactions.push(prismaClient.avs.deleteMany())
 
 		const newAvs: prisma.Avs[] = []

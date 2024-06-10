@@ -29,12 +29,11 @@ export async function seedLogsStakerDelegation(
 		? fromBlock
 		: await fetchLastSyncBlock(blockSyncKeyLogs)
 	const lastBlock = toBlock ? toBlock : await viemClient.getBlockNumber()
-	const blockData = await getBlockDataFromDb(firstBlock, lastBlock)
-
-	let totalSeeded = 0
 
 	// Loop through evm logs
 	await loopThroughBlocks(firstBlock, lastBlock, async (fromBlock, toBlock) => {
+		const blockData = await getBlockDataFromDb(fromBlock, toBlock)
+
 		try {
 			// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 			const dbTransactions: any[] = []
@@ -43,7 +42,7 @@ export async function seedLogsStakerDelegation(
 			const logsStakerUndelegated: prisma.EventLogs_StakerUndelegated[] = []
 
 			const logs = await viemClient.getLogs({
-				address: [getEigenContracts().DelegationManager],
+				address: getEigenContracts().DelegationManager,
 				events: [
 					parseAbiItem(
 						'event StakerDelegated(address indexed staker, address indexed operator)'
@@ -60,27 +59,29 @@ export async function seedLogsStakerDelegation(
 			for (const l in logs) {
 				const log = logs[l]
 
-				logsStakerDelegated.push({
-					address: log.address,
-					transactionHash: log.transactionHash,
-					transactionIndex: log.transactionIndex,
-					blockNumber: BigInt(log.blockNumber),
-					blockHash: log.blockHash,
-					blockTime: blockData.get(log.blockNumber) || new Date(0),
-					staker: String(log.args.staker),
-					operator: String(log.args.operator)
-				})
-
-				logsStakerUndelegated.push({
-					address: log.address,
-					transactionHash: log.transactionHash,
-					transactionIndex: log.transactionIndex,
-					blockNumber: BigInt(log.blockNumber),
-					blockHash: log.blockHash,
-					blockTime: blockData.get(log.blockNumber) || new Date(0),
-					staker: String(log.args.staker),
-					operator: String(log.args.operator)
-				})
+				if (log.eventName === 'StakerDelegated') {
+					logsStakerDelegated.push({
+						address: log.address,
+						transactionHash: log.transactionHash,
+						transactionIndex: log.logIndex,
+						blockNumber: BigInt(log.blockNumber),
+						blockHash: log.blockHash,
+						blockTime: blockData.get(log.blockNumber) || new Date(0),
+						staker: String(log.args.staker),
+						operator: String(log.args.operator)
+					})
+				} else if (log.eventName === 'StakerUndelegated') {
+					logsStakerUndelegated.push({
+						address: log.address,
+						transactionHash: log.transactionHash,
+						transactionIndex: log.logIndex,
+						blockNumber: BigInt(log.blockNumber),
+						blockHash: log.blockHash,
+						blockTime: blockData.get(log.blockNumber) || new Date(0),
+						staker: String(log.args.staker),
+						operator: String(log.args.operator)
+					})
+				}
 			}
 
 			dbTransactions.push(

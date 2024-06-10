@@ -11,7 +11,7 @@ datasource db {
 model Avs {
   address String @id @unique
 
-  metadataUrl         String
+  metadataUrl         String?
   metadataName        String
   metadataDescription String
   metadataDiscord     String?
@@ -67,7 +67,7 @@ model Strategies {
 model Operator {
   address String @id @unique
 
-  metadataUrl         String
+  metadataUrl         String?
   metadataName        String
   metadataDescription String
   metadataDiscord     String?
@@ -102,7 +102,7 @@ model Staker {
   operator        Operator? @relation(fields: [operatorAddress], references: [address])
   operatorAddress String?
 
-  shares    StakerStrategyShares[]
+  shares StakerStrategyShares[]
 
   createdAtBlock BigInt   @default(0)
   updatedAtBlock BigInt   @default(0)
@@ -120,14 +120,14 @@ model StakerStrategyShares {
 }
 
 model Deposit {
-  transactionHash String  @id @unique
-  stakerAddress   String      
+  transactionHash String @id @unique
+  stakerAddress   String
   tokenAddress    String
   strategyAddress String
   shares          String
 
-  createdAtBlock  BigInt    @default(0)
-  createdAt       DateTime  @default(now())
+  createdAtBlock BigInt   @default(0)
+  createdAt      DateTime @default(now())
 }
 
 model Pod {

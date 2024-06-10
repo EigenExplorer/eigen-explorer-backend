@@ -56,6 +56,7 @@ async function seedEigenDataLoop() {
 			await seedQueuedWithdrawals()
 			await seedCompletedWithdrawals()
 			await seedDeposits()
+			await seedPods()
 		} catch (error) {
 			console.log('Failed to seed data at:', Date.now())
 			console.log(error)
@@ -101,5 +102,5 @@ async function monitorMetadata() {
 }
 
 seedEigenDataLoop()
-seedEigenPodValidators()
-monitorMetadata()
+// seedEigenPodValidators()
+// monitorMetadata()

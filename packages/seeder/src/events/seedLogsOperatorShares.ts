@@ -29,10 +29,11 @@ export async function seedLogsOperatorShares(
 		? fromBlock
 		: await fetchLastSyncBlock(blockSyncKeyLogs)
 	const lastBlock = toBlock ? toBlock : await viemClient.getBlockNumber()
-	const blockData = await getBlockDataFromDb(firstBlock, lastBlock)
 
 	// Loop through evm logs
 	await loopThroughBlocks(firstBlock, lastBlock, async (fromBlock, toBlock) => {
+		const blockData = await getBlockDataFromDb(fromBlock, toBlock)
+
 		try {
 			// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 			const dbTransactions: any[] = []
@@ -42,7 +43,7 @@ export async function seedLogsOperatorShares(
 				[]
 
 			const logs = await viemClient.getLogs({
-				address: [getEigenContracts().DelegationManager],
+				address: getEigenContracts().DelegationManager,
 				events: [
 					parseAbiItem(
 						'event OperatorSharesIncreased(address indexed operator, address staker, address strategy, uint256 shares)'
@@ -59,31 +60,33 @@ export async function seedLogsOperatorShares(
 			for (const l in logs) {
 				const log = logs[l]
 
-				logsOperatorSharesIncreased.push({
-					address: log.address,
-					transactionHash: log.transactionHash,
-					transactionIndex: log.transactionIndex,
-					blockNumber: BigInt(log.blockNumber),
-					blockHash: log.blockHash,
-					blockTime: blockData.get(log.blockNumber) || new Date(0),
-					operator: String(log.args.operator),
-					staker: String(log.args.staker),
-					strategy: String(log.args.strategy),
-					shares: String(log.args.shares)
-				})
-
-				logsOperatorSharesDecreased.push({
-					address: log.address,
-					transactionHash: log.transactionHash,
-					transactionIndex: log.transactionIndex,
-					blockNumber: BigInt(log.blockNumber),
-					blockHash: log.blockHash,
-					blockTime: blockData.get(log.blockNumber) || new Date(0),
-					operator: String(log.args.operator),
-					staker: String(log.args.staker),
-					strategy: String(log.args.strategy),
-					shares: String(log.args.shares)
-				})
+				if (log.eventName === 'OperatorSharesIncreased') {
+					logsOperatorSharesIncreased.push({
+						address: log.address,
+						transactionHash: log.transactionHash,
+						transactionIndex: log.logIndex,
+						blockNumber: BigInt(log.blockNumber),
+						blockHash: log.blockHash,
+						blockTime: blockData.get(log.blockNumber) || new Date(0),
+						operator: String(log.args.operator),
+						staker: String(log.args.staker),
+						strategy: String(log.args.strategy),
+						shares: String(log.args.shares)
+					})
+				} else if (log.eventName === 'OperatorSharesDecreased') {
+					logsOperatorSharesDecreased.push({
+						address: log.address,
+						transactionHash: log.transactionHash,
+						transactionIndex: log.logIndex,
+						blockNumber: BigInt(log.blockNumber),
+						blockHash: log.blockHash,
+						blockTime: blockData.get(log.blockNumber) || new Date(0),
+						operator: String(log.args.operator),
+						staker: String(log.args.staker),
+						strategy: String(log.args.strategy),
+						shares: String(log.args.shares)
+					})
+				}
 			}
 
 			dbTransactions.push(
