@@ -63,7 +63,7 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 		.findMany({
 			where: {
 				blockNumber: {
-					gte: firstBlock,
+					gt: firstBlock,
 					lte: lastBlock
 				}
 			}
@@ -82,7 +82,7 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 			.findMany({
 				where: {
 					blockNumber: {
-						gte: firstBlock,
+						gt: firstBlock,
 						lte: lastBlock
 					}
 				}
@@ -101,7 +101,7 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 			.findMany({
 				where: {
 					blockNumber: {
-						gte: firstBlock,
+						gt: firstBlock,
 						lte: lastBlock
 					}
 				}
