@@ -31,8 +31,6 @@ export async function seedLogsStakerDelegation(
 	const lastBlock = toBlock ? toBlock : await viemClient.getBlockNumber()
 	const blockData = await getBlockDataFromDb(firstBlock, lastBlock)
 
-	let totalSeeded = 0
-
 	// Loop through evm logs
 	await loopThroughBlocks(firstBlock, lastBlock, async (fromBlock, toBlock) => {
 		try {
@@ -60,27 +58,29 @@ export async function seedLogsStakerDelegation(
 			for (const l in logs) {
 				const log = logs[l]
 
-				logsStakerDelegated.push({
-					address: log.address,
-					transactionHash: log.transactionHash,
-					transactionIndex: log.transactionIndex,
-					blockNumber: BigInt(log.blockNumber),
-					blockHash: log.blockHash,
-					blockTime: blockData.get(log.blockNumber) || new Date(0),
-					staker: String(log.args.staker),
-					operator: String(log.args.operator)
-				})
-
-				logsStakerUndelegated.push({
-					address: log.address,
-					transactionHash: log.transactionHash,
-					transactionIndex: log.transactionIndex,
-					blockNumber: BigInt(log.blockNumber),
-					blockHash: log.blockHash,
-					blockTime: blockData.get(log.blockNumber) || new Date(0),
-					staker: String(log.args.staker),
-					operator: String(log.args.operator)
-				})
+				if (log.eventName === "StakerDelegated") {
+					logsStakerDelegated.push({
+						address: log.address,
+						transactionHash: log.transactionHash,
+						transactionIndex: log.transactionIndex,
+						blockNumber: BigInt(log.blockNumber),
+						blockHash: log.blockHash,
+						blockTime: blockData.get(log.blockNumber) || new Date(0),
+						staker: String(log.args.staker),
+						operator: String(log.args.operator)
+					})
+				} else {
+					logsStakerUndelegated.push({
+						address: log.address,
+						transactionHash: log.transactionHash,
+						transactionIndex: log.transactionIndex,
+						blockNumber: BigInt(log.blockNumber),
+						blockHash: log.blockHash,
+						blockTime: blockData.get(log.blockNumber) || new Date(0),
+						staker: String(log.args.staker),
+						operator: String(log.args.operator)
+					})
+				}
 			}
 
 			dbTransactions.push(

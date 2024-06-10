@@ -59,31 +59,33 @@ export async function seedLogsOperatorShares(
 			for (const l in logs) {
 				const log = logs[l]
 
-				logsOperatorSharesIncreased.push({
-					address: log.address,
-					transactionHash: log.transactionHash,
-					transactionIndex: log.transactionIndex,
-					blockNumber: BigInt(log.blockNumber),
-					blockHash: log.blockHash,
-					blockTime: blockData.get(log.blockNumber) || new Date(0),
-					operator: String(log.args.operator),
-					staker: String(log.args.staker),
-					strategy: String(log.args.strategy),
-					shares: String(log.args.shares)
-				})
-
-				logsOperatorSharesDecreased.push({
-					address: log.address,
-					transactionHash: log.transactionHash,
-					transactionIndex: log.transactionIndex,
-					blockNumber: BigInt(log.blockNumber),
-					blockHash: log.blockHash,
-					blockTime: blockData.get(log.blockNumber) || new Date(0),
-					operator: String(log.args.operator),
-					staker: String(log.args.staker),
-					strategy: String(log.args.strategy),
-					shares: String(log.args.shares)
-				})
+				if (log.eventName === "OperatorSharesIncreased") {
+					logsOperatorSharesIncreased.push({
+						address: log.address,
+						transactionHash: log.transactionHash,
+						transactionIndex: log.transactionIndex,
+						blockNumber: BigInt(log.blockNumber),
+						blockHash: log.blockHash,
+						blockTime: blockData.get(log.blockNumber) || new Date(0),
+						operator: String(log.args.operator),
+						staker: String(log.args.staker),
+						strategy: String(log.args.strategy),
+						shares: String(log.args.shares)
+					})
+				} else {
+					logsOperatorSharesDecreased.push({
+						address: log.address,
+						transactionHash: log.transactionHash,
+						transactionIndex: log.transactionIndex,
+						blockNumber: BigInt(log.blockNumber),
+						blockHash: log.blockHash,
+						blockTime: blockData.get(log.blockNumber) || new Date(0),
+						operator: String(log.args.operator),
+						staker: String(log.args.staker),
+						strategy: String(log.args.strategy),
+						shares: String(log.args.shares)
+					})
+				}
 			}
 
 			dbTransactions.push(
