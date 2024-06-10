@@ -26,22 +26,21 @@ export async function seedLogsDeposit(toBlock?: bigint, fromBlock?: bigint) {
 		? fromBlock
 		: await fetchLastSyncBlock(blockSyncKeyLogs)
 	const lastBlock = toBlock ? toBlock : await viemClient.getBlockNumber()
-	const blockData = await getBlockDataFromDb(firstBlock, lastBlock)
 
 	// Loop through evm logs
 	await loopThroughBlocks(firstBlock, lastBlock, async (fromBlock, toBlock) => {
+		const blockData = await getBlockDataFromDb(fromBlock, toBlock)
+
 		try {
 			// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 			const dbTransactions: any[] = []
 			const logsDeposit: prisma.EventLogs_Deposit[] = []
 
 			const logs = await viemClient.getLogs({
-				address: [getEigenContracts().StrategyManager],
-				events: [
-					parseAbiItem(
-						'event Deposit(address staker, address token, address strategy, uint256 shares)'
-					)
-				],
+				address: getEigenContracts().StrategyManager,
+				event: parseAbiItem(
+					'event Deposit(address staker, address token, address strategy, uint256 shares)'
+				),
 				fromBlock,
 				toBlock
 			})
@@ -53,7 +52,7 @@ export async function seedLogsDeposit(toBlock?: bigint, fromBlock?: bigint) {
 				logsDeposit.push({
 					address: log.address,
 					transactionHash: log.transactionHash,
-					transactionIndex: log.transactionIndex,
+					transactionIndex: log.logIndex,
 					blockNumber: BigInt(log.blockNumber),
 					blockHash: log.blockHash,
 					blockTime: blockData.get(log.blockNumber) || new Date(0),
