@@ -82,7 +82,7 @@ export async function seedQueuedWithdrawals(
 				}
 			}
 		},
-		100_000n
+		10_000n
 	)
 
 	// Prepare db transaction object

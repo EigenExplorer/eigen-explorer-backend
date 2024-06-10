@@ -89,7 +89,7 @@ export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 				}
 			}
 		},
-		100_000n
+		10_000n
 	)
 
 	// Prepare db transaction object
