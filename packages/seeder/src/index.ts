@@ -73,7 +73,6 @@ async function seedEigenPodValidators() {
 		try {
 			console.log('\nSeeding Eigen Pods data ...')
 
-			await seedPods()
 			await seedValidators()
 		} catch (error) {
 			console.log('Failed to seed Validators at block:', Date.now())
@@ -103,4 +102,4 @@ async function monitorMetadata() {
 
 seedEigenDataLoop()
 // seedEigenPodValidators()
-// monitorMetadata()
+monitorMetadata()
