@@ -264,6 +264,8 @@ export async function getAVSStakers(req: Request, res: Response) {
 			.filter((o) => o.isActive)
 			.map((o) => o.operatorAddress)
 
+		const restakeableStrategies = await getRestakeableStrategies(avs.address)
+
 		const stakersCount = await prisma.staker.count({
 			where: { operatorAddress: { in: operatorAddresses } }
 		})
@@ -280,16 +282,22 @@ export async function getAVSStakers(req: Request, res: Response) {
 			? await getStrategiesWithShareUnderlying()
 			: []
 
-		const stakers = stakersRecords.map((staker) => ({
-			...staker,
-			tvl: withTvl
-				? sharesToTVL(
-						staker.shares,
-						strategiesWithSharesUnderlying,
-						strategyTokenPrices
-				  )
-				: undefined
-		}))
+		const stakers = stakersRecords.map((staker) => {
+			const shares = staker.shares.filter(
+				(s) => restakeableStrategies.indexOf(s.strategyAddress) !== -1
+			)
+			return {
+				...staker,
+				shares,
+				tvl: withTvl
+					? sharesToTVL(
+							shares,
+							strategiesWithSharesUnderlying,
+							strategyTokenPrices
+					  )
+					: undefined
+			}
+		})
 
 		res.send({
 			data: stakers,
