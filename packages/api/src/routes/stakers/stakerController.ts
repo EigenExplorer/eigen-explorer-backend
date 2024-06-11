@@ -3,12 +3,15 @@ import prisma from '../../utils/prismaClient'
 import { handleAndReturnErrorResponse } from '../../schema/errors'
 import { PaginationQuerySchema } from '../../schema/zod/schemas/paginationQuery'
 import { WithTvlQuerySchema } from '../../schema/zod/schemas/withTvlQuery'
+import { EthereumAddressSchema } from '../../schema/zod/schemas/base/ethereumAddress'
 import { getViemClient } from '../../viem/viemClient'
 import { fetchStrategyTokenPrices } from '../../utils/tokenPrices'
 import {
 	getStrategiesWithShareUnderlying,
 	sharesToTVL
 } from '../strategies/strategiesController'
+import { getEigenContracts } from '../../data/address'
+import { time } from 'console'
 
 /**
  * Route to get a list of all stakers
@@ -382,4 +385,187 @@ export async function getStakerDeposits(req: Request, res: Response) {
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
 	}
+}
+
+export async function getRestakedPoints(req: Request, res: Response) {
+	// Validate query
+	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	}
+
+	const { address } = req.params
+
+	const eigenStrategyAddress =
+		getEigenContracts().Strategies.Eigen?.strategyContract
+	const beaconAddress = '0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0'
+
+	// Here, exclude all strategies for which restaked points are disabled
+	const strategyToTokenMap = Object.values(
+		getEigenContracts().Strategies
+	).reduce((map, obj) => {
+		if (obj.strategyContract !== eigenStrategyAddress) {
+			map[obj.strategyContract.toLowerCase()] = obj.tokenContract.toLowerCase()
+		}
+		return map
+	}, {})
+
+	// TODO
+	// strategyToTokenMap[beaconAddress] = beaconAddress
+
+	try {
+		// All LST deposits
+		const depositRecords = await prisma.deposit.findMany({
+			where: {
+				stakerAddress: address
+			},
+			orderBy: { createdAtBlock: 'asc' }
+		})
+
+		// All completed withdrawals
+		const withdrawalRecords = await prisma.withdrawal.findMany({
+			where: {
+				stakerAddress: address,
+				isCompleted: true
+			},
+			orderBy: { createdAtBlock: 'asc' }
+		})
+
+		const now = Number(new Date())
+
+		// For each strategy in depositRecords & withdrawalRecords, calculate total ETH ⋅ hours from deposit time to current time,
+		// then store value against corresponding token address
+		const depositsSumByToken = {}
+		for (const deposit of depositRecords) {
+			const strategyAddress = deposit.strategyAddress.toLowerCase()
+			const tokenAddress = strategyToTokenMap[strategyAddress]
+
+			if (tokenAddress && tokenAddress === beaconAddress) {
+				// TODO
+			} else if (tokenAddress) {
+				const shares = Number(deposit.shares) / 1e18
+				const timeDiff = (now - Number(deposit.createdAt)) / (1000 * 60 * 60)
+				const sharesTimeProduct = Number(shares) * Math.round(timeDiff)
+
+				if (!depositsSumByToken[tokenAddress]) {
+					depositsSumByToken[tokenAddress] = 0
+				}
+				depositsSumByToken[tokenAddress] += sharesTimeProduct
+			}
+		}
+
+		const withdrawalsSumByToken = {}
+		for (const withdrawal of withdrawalRecords) {
+			for (let i = 0; i < withdrawal.strategies.length; i++) {
+				const strategyAddress = withdrawal.strategies[i].toLowerCase()
+				const tokenAddress = strategyToTokenMap[strategyAddress]
+
+				if (tokenAddress && tokenAddress === beaconAddress) {
+					// TODO
+				} else if (tokenAddress) {
+					const shares = Number(withdrawal.shares[i]) / 1e18
+					const timeDiff =
+						(now - Number(withdrawal.createdAt)) / (1000 * 60 * 60)
+					const sharesTimeProduct = shares * Math.round(timeDiff)
+
+					if (!withdrawalsSumByToken[tokenAddress]) {
+						withdrawalsSumByToken[tokenAddress] = 0
+					}
+					withdrawalsSumByToken[tokenAddress] += sharesTimeProduct
+				}
+			}
+		}
+
+		const allTokenAddresses = new Set([
+			...Object.keys(depositsSumByToken),
+			...Object.keys(withdrawalsSumByToken)
+		])
+		const participationMeasuresByToken = {}
+		let totalParticipationMeasure = 0
+
+		// For each token, calculate difference in total ETH ⋅ hours between deposits and withdrawals
+		for (const address of allTokenAddresses) {
+			const depositSum = depositsSumByToken[address] || 0
+			const withdrawalSum = withdrawalsSumByToken[address] || 0
+			const netSum = depositSum - withdrawalSum
+
+			if (!participationMeasuresByToken[address]) {
+				participationMeasuresByToken[address] = 0
+			}
+			participationMeasuresByToken[address] += netSum
+			totalParticipationMeasure += netSum
+		}
+
+		// Send response
+		const restakedPoints = Object.keys(participationMeasuresByToken).map(
+			(tokenAddress) => ({
+				tokenAddress,
+				participationMeasure:
+					participationMeasuresByToken[tokenAddress].toString()
+			})
+		)
+
+		res.json({
+			stakerAddress: address,
+			restakedPoints,
+			totalParticipationMeasure: totalParticipationMeasure.toString()
+		})
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+// Helper functions
+export async function getBeaconEthData(address: string) {
+	// TODO
+	const podRecords = await prisma.pod.findMany({
+		where: {
+			owner: address
+		},
+		select: {
+			address: true
+		}
+	})
+	const podAddresses = podRecords.map((pod) => pod.address)
+
+	const validatorRestakeRecords = await prisma.validatorRestake.findMany({
+		where: {
+			podAddress: {
+				in: podAddresses
+			}
+		},
+		select: {
+			validatorIndex: true,
+			blockNumber: true
+		}
+	})
+
+	const validatorRecords = await prisma.validator.findMany({
+		where: {
+			validatorIndex: {
+				in: validatorRestakeRecords.map((record) => record.validatorIndex)
+			}
+		},
+		select: {
+			validatorIndex: true,
+			effectiveBalance: true
+		}
+	})
+
+	const blockNumberByValidatorIndex = validatorRestakeRecords.reduce(
+		(map, item) => {
+			map[Number(item.validatorIndex)] = item.blockNumber
+			return map
+		},
+		{}
+	)
+
+	const balancesAndBlocks = validatorRecords.map((record) => ({
+		effectiveBalance: record.effectiveBalance,
+		blockNumber: blockNumberByValidatorIndex[Number(record.validatorIndex)]
+	}))
+
+	// TODO: get blocktime data and swap out blockNumber for createdAt
+
+	return balancesAndBlocks
 }

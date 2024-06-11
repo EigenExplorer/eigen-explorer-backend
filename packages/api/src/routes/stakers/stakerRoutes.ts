@@ -6,7 +6,8 @@ import {
 	getStakerWithdrawalsCompleted,
 	getStakerWithdrawalsQueued,
 	getStakerWithdrawalsWithdrawable,
-	getStakerDeposits
+	getStakerDeposits,
+	getRestakedPoints
 } from './stakerController'
 
 const router = express.Router()
@@ -24,5 +25,7 @@ router.get(
 router.get('/:address/withdrawals/completed', getStakerWithdrawalsCompleted)
 
 router.get('/:address/deposits', getStakerDeposits)
+
+router.get('/:address/restaked-points', getRestakedPoints)
 
 export default router
