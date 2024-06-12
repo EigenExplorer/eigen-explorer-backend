@@ -11,7 +11,6 @@ import {
 	sharesToTVL
 } from '../strategies/strategiesController'
 import { getEigenContracts } from '../../data/address'
-import { time } from 'console'
 
 /**
  * Route to get a list of all stakers
@@ -387,6 +386,13 @@ export async function getStakerDeposits(req: Request, res: Response) {
 	}
 }
 
+/**
+ * Retrieve restaked points data for a given address
+ *
+ * @param req
+ * @param res
+ * @returns
+ */
 export async function getRestakedPoints(req: Request, res: Response) {
 	// Validate query
 	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
@@ -396,9 +402,9 @@ export async function getRestakedPoints(req: Request, res: Response) {
 
 	const { address } = req.params
 
+	const beaconAddress = '0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0'
 	const eigenStrategyAddress =
 		getEigenContracts().Strategies.Eigen?.strategyContract
-	const beaconAddress = '0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0'
 
 	// Here, exclude all strategies for which restaked points are disabled
 	const strategyToTokenMap = Object.values(
@@ -409,9 +415,6 @@ export async function getRestakedPoints(req: Request, res: Response) {
 		}
 		return map
 	}, {})
-
-	// TODO
-	// strategyToTokenMap[beaconAddress] = beaconAddress
 
 	try {
 		// All LST deposits
@@ -431,18 +434,23 @@ export async function getRestakedPoints(req: Request, res: Response) {
 			orderBy: { createdAtBlock: 'asc' }
 		})
 
+		// All beacon deposits
+		const beaconDepositRecords:
+			| {
+					effectiveBalance: number
+					createdAt: number | null
+			  }[]
+			| undefined = await getBeaconEthData(address)
+
 		const now = Number(new Date())
 
-		// For each strategy in depositRecords & withdrawalRecords, calculate total ETH ⋅ hours from deposit time to current time,
-		// then store value against corresponding token address
+		// For each strategy in depositRecords, beaconDeposits & withdrawalRecords, store total ETH ⋅ hours from deposit time to current time,
 		const depositsSumByToken = {}
 		for (const deposit of depositRecords) {
 			const strategyAddress = deposit.strategyAddress.toLowerCase()
 			const tokenAddress = strategyToTokenMap[strategyAddress]
 
-			if (tokenAddress && tokenAddress === beaconAddress) {
-				// TODO
-			} else if (tokenAddress) {
+			if (tokenAddress) {
 				const shares = Number(deposit.shares) / 1e18
 				const timeDiff = (now - Number(deposit.createdAt)) / (1000 * 60 * 60)
 				const sharesTimeProduct = Number(shares) * Math.round(timeDiff)
@@ -453,6 +461,18 @@ export async function getRestakedPoints(req: Request, res: Response) {
 				depositsSumByToken[tokenAddress] += sharesTimeProduct
 			}
 		}
+		
+		if (beaconDepositRecords) {
+			const beaconDepositsSum = beaconDepositRecords.reduce((acc, record) => {
+				const shares = Number(record.effectiveBalance) / 1e9
+				const timeDiff = record.createdAt
+					? (now - Number(record.createdAt)) / (1000 * 60 * 60)
+					: 0
+				return acc + Number(shares) * Math.round(timeDiff)
+			}, 0)
+			strategyToTokenMap[beaconAddress] = beaconAddress
+			depositsSumByToken[beaconAddress] = beaconDepositsSum
+		}
 
 		const withdrawalsSumByToken = {}
 		for (const withdrawal of withdrawalRecords) {
@@ -460,9 +480,7 @@ export async function getRestakedPoints(req: Request, res: Response) {
 				const strategyAddress = withdrawal.strategies[i].toLowerCase()
 				const tokenAddress = strategyToTokenMap[strategyAddress]
 
-				if (tokenAddress && tokenAddress === beaconAddress) {
-					// TODO
-				} else if (tokenAddress) {
+				if (tokenAddress) {
 					const shares = Number(withdrawal.shares[i]) / 1e18
 					const timeDiff =
 						(now - Number(withdrawal.createdAt)) / (1000 * 60 * 60)
@@ -516,8 +534,14 @@ export async function getRestakedPoints(req: Request, res: Response) {
 }
 
 // Helper functions
-export async function getBeaconEthData(address: string) {
-	// TODO
+
+/**
+ * Retrieve all beacon ETH deposit data for a given address
+ * 
+ * @param address 
+ * @returns 
+ */
+async function getBeaconEthData(address: string) {
 	const podRecords = await prisma.pod.findMany({
 		where: {
 			owner: address
@@ -526,46 +550,68 @@ export async function getBeaconEthData(address: string) {
 			address: true
 		}
 	})
-	const podAddresses = podRecords.map((pod) => pod.address)
 
-	const validatorRestakeRecords = await prisma.validatorRestake.findMany({
-		where: {
-			podAddress: {
-				in: podAddresses
+	if (podRecords.length > 0) {
+		const validatorRestakeRecords = await prisma.validatorRestake.findMany({
+			where: {
+				podAddress: {
+					in: podRecords.map((pod) => pod.address)
+				}
+			},
+			select: {
+				validatorIndex: true,
+				blockNumber: true
 			}
-		},
-		select: {
-			validatorIndex: true,
-			blockNumber: true
-		}
-	})
+		})
 
-	const validatorRecords = await prisma.validator.findMany({
-		where: {
-			validatorIndex: {
-				in: validatorRestakeRecords.map((record) => record.validatorIndex)
-			}
-		},
-		select: {
-			validatorIndex: true,
-			effectiveBalance: true
-		}
-	})
+		if (validatorRestakeRecords.length > 0) {
+			const validatorRecords = await prisma.validator.findMany({
+				where: {
+					validatorIndex: {
+						in: validatorRestakeRecords.map((record) => record.validatorIndex)
+					}
+				},
+				select: {
+					validatorIndex: true,
+					effectiveBalance: true // Restaked points are calculated on effective balance, not actual balance
+				}
+			})
 
-	const blockNumberByValidatorIndex = validatorRestakeRecords.reduce(
-		(map, item) => {
-			map[Number(item.validatorIndex)] = item.blockNumber
-			return map
-		},
-		{}
-	)
+			const blockData = await prisma.evm_BlockData.findMany({
+				where: {
+					number: {
+						in: validatorRestakeRecords.map((vr) => vr.blockNumber)
+					}
+				},
+				select: {
+					number: true,
+					timestamp: true
+				},
+				orderBy: { number: 'asc' }
+			})
 
-	const balancesAndBlocks = validatorRecords.map((record) => ({
-		effectiveBalance: record.effectiveBalance,
-		blockNumber: blockNumberByValidatorIndex[Number(record.validatorIndex)]
-	}))
+			const blockTimestampMap = blockData.reduce((acc, block) => {
+				acc[Number(block.number)] = Number(block.timestamp)
+				return acc
+			}, {})
 
-	// TODO: get blocktime data and swap out blockNumber for createdAt
-
-	return balancesAndBlocks
+			const balancesAndBlocks = validatorRecords.map((record) => {
+				const restakeRecord = validatorRestakeRecords.find(
+					(vr) => vr.validatorIndex === record.validatorIndex
+				)
+				const effectiveBalance =
+					record.effectiveBalance === 0n
+						? Number(32000000000)	// This is an approximation that would occur if validator has withdrawn funds
+						: Number(record.effectiveBalance)
+				return {
+					effectiveBalance: effectiveBalance,
+					createdAt: restakeRecord
+						? Number(blockTimestampMap[String(restakeRecord.blockNumber)])
+						: null
+				}
+			})
+			return balancesAndBlocks
+		}	
+	}
+	return undefined
 }
