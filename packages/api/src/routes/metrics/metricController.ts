@@ -204,6 +204,26 @@ export async function getHistoricalStakerCount(req: Request, res: Response) {
 	}
 }
 
+export async function getEthStats(req: Request, res: Response) {
+	try {
+		const apiUrl = 'https://beaconcha.in/api/v1/ethstore/latest'
+		const response = await fetch(apiUrl)
+
+		if (!response.ok) {
+			throw new Error(`HTTP error: ${response.status}`)
+		}
+
+		const payload = await response.json()
+
+		res.json({
+			ethApr7d: payload.data.avgapr7d,
+			ethApr31d: payload.data.avgapr31d
+		})
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
 // ================================================
 
 async function doGetTvl() {
