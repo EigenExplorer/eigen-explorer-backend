@@ -144,7 +144,9 @@ model Pod {
 model ValidatorRestake {
   podAddress     String
   validatorIndex BigInt
-  blockNumber    BigInt
+
+  createdAtBlock BigInt   @default(0)
+  createdAt      DateTime @default(now())
 
   @@id([podAddress, validatorIndex])
 }
@@ -373,6 +375,21 @@ model EventLogs_Deposit {
 
   @@id([transactionHash, transactionIndex])
   @@index([staker])
+}
+
+model EventLogs_ValidatorRestaked {
+  address String
+
+  transactionHash  String
+  transactionIndex Int
+  blockNumber      BigInt
+  blockHash        String
+  blockTime        DateTime
+
+  validatorIndex   BigInt
+
+  @@id([transactionHash, transactionIndex])
+  @@index([validatorIndex])
 }
 
 // Misc

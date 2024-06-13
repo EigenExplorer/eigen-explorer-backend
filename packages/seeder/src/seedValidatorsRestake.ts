@@ -1,5 +1,4 @@
-import { parseAbiItem } from 'viem'
-import { getViemClient } from './utils/viemClient'
+import prisma from '@prisma/client'
 import { getPrismaClient } from './utils/prismaClient'
 import {
 	baseBlock,
@@ -10,46 +9,51 @@ import {
 } from './utils/seeder'
 
 const blockSyncKey = 'lastSyncedBlock_validatorsRestake'
+const blockSyncKeyLogs = 'lastSyncedBlock_logs_validatorRestake'
 
 export async function seedValidatorsRestake(
 	toBlock?: bigint,
 	fromBlock?: bigint
 ) {
-	console.log('Seeding Validator Restake ...')
-
-	const viemClient = getViemClient()
 	const prismaClient = getPrismaClient()
-	const validatorRestakeList: {
-		podAddress: string
-		validatorIndex: number
-		blockNumber: bigint
-	}[] = []
-	const validatorIndicies: number[] = []
+	const validatorRestakeList: prisma.ValidatorRestake[] = []
 
 	const firstBlock = fromBlock
 		? fromBlock
 		: await fetchLastSyncBlock(blockSyncKey)
-	const lastBlock = toBlock ? toBlock : await viemClient.getBlockNumber()
+	const lastBlock = toBlock
+		? toBlock
+		: await fetchLastSyncBlock(blockSyncKeyLogs)
+
+	// Bail early if there is no block diff to sync
+	if (lastBlock - firstBlock <= 0) {
+		console.log(
+			`[In Sync] [Data] Validator Restake from: ${firstBlock} to: ${lastBlock}`
+		)
+		return
+	}
 
 	// Loop through evm logs
 	await loopThroughBlocks(firstBlock, lastBlock, async (fromBlock, toBlock) => {
-		const logs = await viemClient.getLogs({
-			event: parseAbiItem('event ValidatorRestaked(uint40 validatorIndex)'),
-			fromBlock,
-			toBlock
+		const logs = await prismaClient.eventLogs_ValidatorRestaked.findMany({
+			where: {
+				blockNumber: {
+					gt: fromBlock,
+					lte: toBlock
+				}
+			}
 		})
 
 		for (const l in logs) {
 			const log = logs[l]
 
-			if (log.args.validatorIndex) {
+			if (log.validatorIndex) {
 				validatorRestakeList.push({
 					podAddress: log.address.toLowerCase(),
-					validatorIndex: log.args.validatorIndex,
-					blockNumber: log.blockNumber
+					validatorIndex: log.validatorIndex,
+					createdAtBlock: BigInt(log.blockNumber),
+					createdAt: log.blockTime
 				})
-
-				validatorIndicies.push(log.args.validatorIndex)
 			}
 		}
 
@@ -61,42 +65,20 @@ export async function seedValidatorsRestake(
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	const dbTransactions: any[] = []
 
-	if (firstBlock === baseBlock) {
-		dbTransactions.push(prismaClient.validatorRestake.deleteMany())
-
+	if (validatorRestakeList.length > 0) {
 		dbTransactions.push(
 			prismaClient.validatorRestake.createMany({
 				data: validatorRestakeList,
 				skipDuplicates: true
 			})
 		)
-	} else {
-		validatorRestakeList.map((validatorRestake) => {
-			dbTransactions.push(
-				prismaClient.validatorRestake.upsert({
-					where: {
-						podAddress_validatorIndex: {
-							podAddress: validatorRestake.podAddress,
-							validatorIndex: validatorRestake.validatorIndex
-						}
-					},
-					update: {
-						blockNumber: validatorRestake.blockNumber
-					},
-					create: {
-						podAddress: validatorRestake.podAddress,
-						validatorIndex: validatorRestake.validatorIndex,
-						blockNumber: validatorRestake.blockNumber
-					}
-				})
-			)
-		})
 	}
 
-	await bulkUpdateDbTransactions(dbTransactions)
+	await bulkUpdateDbTransactions(
+		dbTransactions,
+		`[Data] Validator Restake from: ${firstBlock} to: ${lastBlock} size: ${validatorRestakeList.length}`
+	)
 
-	// Storing last sycned block
+	// Storing last synced block
 	await saveLastSyncBlock(blockSyncKey, lastBlock)
-
-	console.log('Seeded validator restake:', validatorRestakeList.length)
 }

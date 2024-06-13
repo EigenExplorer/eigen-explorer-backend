@@ -23,6 +23,8 @@ import { seedLogsDeposit } from './events/seedLogsDeposit'
 import { seedDeposits } from './seedDeposits'
 import { monitorAvsMetadata } from './monitors/avsMetadata'
 import { monitorOperatorMetadata } from './monitors/operatorMetadata'
+import { seedLogsValidatorRestaked } from './events/seedLogsValidatorRestaked'
+import { seedValidatorsRestake } from './seedValidatorsRestake'
 
 console.log('Initializing Seeder ...')
 
@@ -47,6 +49,7 @@ async function seedEigenDataLoop() {
 			await seedLogsWithdrawalQueued(targetBlock)
 			await seedLogsWithdrawalCompleted(targetBlock)
 			await seedLogsDeposit(targetBlock)
+			await seedLogsValidatorRestaked(targetBlock)
 
 			await seedAvs()
 			await seedOperators()
@@ -91,6 +94,7 @@ async function seedEigenPodValidators() {
 			console.log('\nSeeding Eigen Pods data ...')
 
 			await seedValidators()
+			await seedValidatorsRestake()
 		} catch (error) {
 			console.log(error)
 			console.log('Failed to seed Validators at:', Date.now())
