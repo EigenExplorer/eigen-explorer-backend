@@ -1,17 +1,16 @@
 import prisma from '@prisma/client'
 import { getPrismaClient } from './utils/prismaClient'
 import {
-	baseBlock,
 	bulkUpdateDbTransactions,
 	fetchLastSyncBlock,
 	loopThroughBlocks,
 	saveLastSyncBlock
 } from './utils/seeder'
 
-const blockSyncKey = 'lastSyncedBlock_validatorsRestake'
+const blockSyncKey = 'lastSyncedBlock_validatorRestake'
 const blockSyncKeyLogs = 'lastSyncedBlock_logs_validatorRestake'
 
-export async function seedValidatorsRestake(
+export async function seedValidatorRestake(
 	toBlock?: bigint,
 	fromBlock?: bigint
 ) {
@@ -74,10 +73,7 @@ export async function seedValidatorsRestake(
 		)
 	}
 
-	await bulkUpdateDbTransactions(
-		dbTransactions,
-		`[Data] Validator Restake from: ${firstBlock} to: ${lastBlock} size: ${validatorRestakeList.length}`
-	)
+	await bulkUpdateDbTransactions(dbTransactions, `[Data] Validator Restake from: ${firstBlock} to: ${lastBlock} size: ${validatorRestakeList.length}`)
 
 	// Storing last synced block
 	await saveLastSyncBlock(blockSyncKey, lastBlock)
