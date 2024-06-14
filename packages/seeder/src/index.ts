@@ -24,7 +24,7 @@ import { seedDeposits } from './seedDeposits'
 import { monitorAvsMetadata } from './monitors/avsMetadata'
 import { monitorOperatorMetadata } from './monitors/operatorMetadata'
 import { seedLogsValidatorRestaked } from './events/seedLogsValidatorRestaked'
-import { seedValidatorRestake } from './seedValidatorRestake'
+import { seedValidatorsRestake } from './seedValidatorsRestake'
 
 console.log('Initializing Seeder ...')
 

@@ -7,10 +7,10 @@ import {
 	saveLastSyncBlock
 } from './utils/seeder'
 
-const blockSyncKey = 'lastSyncedBlock_validatorRestake'
-const blockSyncKeyLogs = 'lastSyncedBlock_logs_validatorRestake'
+const blockSyncKey = 'lastSyncedBlock_validatorsRestake'
+const blockSyncKeyLogs = 'lastSyncedBlock_logs_validatorsRestake'
 
-export async function seedValidatorRestake(
+export async function seedValidatorsRestake(
 	toBlock?: bigint,
 	fromBlock?: bigint
 ) {
