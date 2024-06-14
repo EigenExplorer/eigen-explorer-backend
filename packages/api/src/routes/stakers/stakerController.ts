@@ -1,10 +1,11 @@
 import type { Request, Response } from 'express'
 import prisma from '../../utils/prismaClient'
+import { holesky } from 'viem/chains'
 import { handleAndReturnErrorResponse } from '../../schema/errors'
 import { PaginationQuerySchema } from '../../schema/zod/schemas/paginationQuery'
 import { WithTvlQuerySchema } from '../../schema/zod/schemas/withTvlQuery'
 import { EthereumAddressSchema } from '../../schema/zod/schemas/base/ethereumAddress'
-import { getViemClient } from '../../viem/viemClient'
+import { getNetwork, getViemClient } from '../../viem/viemClient'
 import { fetchStrategyTokenPrices } from '../../utils/tokenPrices'
 import {
 	getStrategiesWithShareUnderlying,
@@ -420,7 +421,7 @@ export async function getRestakedPoints(req: Request, res: Response) {
 		// All LST deposits
 		const depositRecords = await prisma.deposit.findMany({
 			where: {
-				stakerAddress: address
+				stakerAddress: address.toLowerCase()
 			},
 			select: {
 				strategyAddress: true,
@@ -432,15 +433,15 @@ export async function getRestakedPoints(req: Request, res: Response) {
 
 		// All beacon deposits
 		const beaconDepositRecords: {
-			createdAt: Date
+			activationEpoch: bigint
 		}[] = await getBeaconEthData(address)
 
 		// All completed withdrawals
 		const withdrawalRecords = await prisma.withdrawal.findMany({
 			where: {
-				stakerAddress: address,
-				isCompleted: true
-				// receiveAsTokens: true
+				stakerAddress: address.toLowerCase(),
+				isCompleted: true,
+				receiveAsTokens: true
 			},
 			select: {
 				strategies: true,
@@ -451,7 +452,7 @@ export async function getRestakedPoints(req: Request, res: Response) {
 		})
 
 		const now = Number(new Date())
-
+		console.log(depositRecords.length)
 		// Store total ETH ⋅ hours of beacon ETH & each LST strategy from deposit time to current time
 		const depositsSumByToken = {}
 		for (const deposit of depositRecords) {
@@ -471,11 +472,11 @@ export async function getRestakedPoints(req: Request, res: Response) {
 		}
 
 		if (beaconDepositRecords.length > 0) {
+			const firstEpoch = getFirstEpoch()
 			const beaconDepositsSum = beaconDepositRecords.reduce((acc, record) => {
+				const activatedAt = Number(record.activationEpoch) * 384 + firstEpoch
 				const shares = Number(32)
-				const timeDiff = record.createdAt
-					? (now - Number(record.createdAt)) / (1000 * 60 * 60)
-					: 0
+				const timeDiff = (now - Number(activatedAt)) / (1000 * 60 * 60)
 				return acc + Number(shares) * Math.round(timeDiff)
 			}, 0)
 			strategyToTokenMap[beaconAddress] = beaconAddress
@@ -557,14 +558,20 @@ async function getBeaconEthData(address: string) {
 		}
 	})
 
-	return await prisma.validatorRestake.findMany({
+	return await prisma.validator.findMany({
 		where: {
-			podAddress: {
-				in: podRecords.map((pod) => pod.address)
+			withdrawalCredentials: {
+				in: podRecords.map((pod) => {
+					return `0x010000000000000000000000${pod.address.substring(2)}`
+				})
 			}
 		},
 		select: {
-			createdAt: true
+			activationEpoch: true
 		}
 	})
+}
+
+function getFirstEpoch() {
+	return getNetwork() === holesky ? 1695902400 : 1606824023
 }

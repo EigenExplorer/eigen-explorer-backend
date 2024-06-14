@@ -19,7 +19,7 @@ export async function seedCompletedWithdrawals(
 	fromBlock?: bigint
 ) {
 	const prismaClient = getPrismaClient()
-	const completedWithdrawalList: string[] = []
+	const completedWithdrawalList: Map<string, boolean> = new Map()
 
 	const firstBlock = fromBlock
 		? fromBlock
@@ -49,13 +49,55 @@ export async function seedCompletedWithdrawals(
 				}
 			})
 
+			const depositLogs = await prismaClient.eventLogs_Deposit.findMany({
+				where: {
+					blockNumber: {
+						gt: fromBlock,
+						lte: toBlock
+					}
+				}
+			})
+
+			const podSharesUpdatedLogs =
+				await prismaClient.eventLogs_PodSharesUpdated.findMany({
+					where: {
+						blockNumber: {
+							gt: fromBlock,
+							lte: toBlock
+						}
+					}
+				})
+
 			for (const l in logs) {
 				const log = logs[l]
 
+				const transactionHash = log.transactionHash.toLowerCase()
+				const transactionIndex = log.transactionIndex
 				const withdrawalRoot = log.withdrawalRoot
 
 				if (withdrawalRoot) {
-					completedWithdrawalList.push(withdrawalRoot)
+					let receiveAsTokens = true
+
+					if (
+						depositLogs.find(
+							(dLog) =>
+								dLog.transactionHash.toLowerCase() === transactionHash &&
+								(dLog.transactionIndex === transactionIndex - 1 ||
+									dLog.transactionIndex === transactionIndex - 2)
+						)
+					) {
+						receiveAsTokens = false
+					} else if (
+						podSharesUpdatedLogs.find(
+							(pLog) =>
+								pLog.transactionHash.toLowerCase() === transactionHash &&
+								(pLog.transactionIndex === transactionIndex - 1 ||
+									pLog.transactionIndex === transactionIndex - 2)
+						)
+					) {
+						receiveAsTokens = false
+					}
+					completedWithdrawalList.set(withdrawalRoot, receiveAsTokens)
 				}
 			}
 		},
@@ -66,22 +108,25 @@ export async function seedCompletedWithdrawals(
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	const dbTransactions: any[] = []
 
-	if (completedWithdrawalList.length > 0) {
-		dbTransactions.push(
-			prismaClient.withdrawal.updateMany({
-				where: { withdrawalRoot: { in: completedWithdrawalList } },
-				data: {
-					isCompleted: true
-				}
-			})
-		)
+	if (completedWithdrawalList) {
+		for (const [withdrawalRoot, receiveAsTokens] of completedWithdrawalList) {
+			dbTransactions.push(
+				prismaClient.withdrawal.updateMany({
+					where: { withdrawalRoot: withdrawalRoot },
+					data: {
+						isCompleted: true,
+						receiveAsTokens: receiveAsTokens
+					}
+				})
+			)
+		}
 	}
 
 	await bulkUpdateDbTransactions(
 		dbTransactions,
-		`[Data] Completed Withdrawal from: ${firstBlock} to: ${lastBlock} size: ${completedWithdrawalList.length}`
+		`[Data] Completed Withdrawal from: ${firstBlock} to: ${lastBlock} size: ${completedWithdrawalList.size}`
 	)
 
-	// // Storing last sycned block
+	// Storing last synced block
 	await saveLastSyncBlock(blockSyncKey, lastBlock)
 }
