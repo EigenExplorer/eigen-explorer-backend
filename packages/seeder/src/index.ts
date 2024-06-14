@@ -94,7 +94,7 @@ async function seedEigenPodValidators() {
 			console.log('\nSeeding Eigen Pods data ...')
 
 			await seedValidators()
-			await seedValidatorRestake()
+			await seedValidatorsRestake()
 		} catch (error) {
 			console.log(error)
 			console.log('Failed to seed Validators at:', Date.now())
