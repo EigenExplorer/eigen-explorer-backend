@@ -452,7 +452,6 @@ export async function getRestakedPoints(req: Request, res: Response) {
 		})
 
 		const now = Number(new Date())
-		console.log(depositRecords.length)
 		// Store total ETH ⋅ hours of beacon ETH & each LST strategy from deposit time to current time
 		const depositsSumByToken = {}
 		for (const deposit of depositRecords) {
@@ -474,7 +473,7 @@ export async function getRestakedPoints(req: Request, res: Response) {
 		if (beaconDepositRecords.length > 0) {
 			const firstEpoch = getFirstEpoch()
 			const beaconDepositsSum = beaconDepositRecords.reduce((acc, record) => {
-				const activatedAt = Number(record.activationEpoch) * 384 + firstEpoch
+				const activatedAt = Number(record.activationEpoch) * 384000 + firstEpoch
 				const shares = Number(32)
 				const timeDiff = (now - Number(activatedAt)) / (1000 * 60 * 60)
 				return acc + Number(shares) * Math.round(timeDiff)
@@ -573,5 +572,5 @@ async function getBeaconEthData(address: string) {
 }
 
 function getFirstEpoch() {
-	return getNetwork() === holesky ? 1695902400 : 1606824023
+	return getNetwork() === holesky ? 1695902400000 : 1606824023000
 }
