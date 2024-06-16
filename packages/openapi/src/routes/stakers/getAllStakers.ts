@@ -3,11 +3,11 @@ import z from '../../../../api/src/schema/zod';
 import { PaginationQuerySchema } from '../../../../api/src/schema/zod/schemas/paginationQuery';
 import { openApiErrorResponses } from '../../apiResponseSchema/base/errorResponses';
 import { PaginationMetaResponsesSchema } from '../../apiResponseSchema/base/paginationMetaResponses';
-import { OperatorResponseSchema } from '../../apiResponseSchema/operatorResponse';
 import { WithTvlQuerySchema } from '../../../../api/src/schema/zod/schemas/withTvlQuery';
+import { StakerResponseSchema } from '../../apiResponseSchema/stakerResponse';
 
-const AllOperatorsResponseSchema = z.object({
-    data: z.array(OperatorResponseSchema),
+const AllStakersResponseSchema = z.object({
+    data: z.array(StakerResponseSchema),
     meta: PaginationMetaResponsesSchema,
 });
 
@@ -16,21 +16,21 @@ const CombinedQuerySchema = z
     .merge(WithTvlQuerySchema)
     .merge(PaginationQuerySchema);
 
-export const getAllOperators: ZodOpenApiOperationObject = {
-    operationId: 'getAllOperators',
-    summary: 'Retrieve all operators',
+export const getAllStakers: ZodOpenApiOperationObject = {
+    operationId: 'getAllStakers',
+    summary: 'Retrieve all stakers',
     description:
-        'Returns all operator records. This endpoint supports pagination.',
-    tags: ['Operators'],
+        'Returns all staker records. This endpoint supports pagination.',
+    tags: ['Stakers'],
     requestParams: {
         query: CombinedQuerySchema,
     },
     responses: {
         '200': {
-            description: 'The list of operator records.',
+            description: 'The list of staker records.',
             content: {
                 'application/json': {
-                    schema: AllOperatorsResponseSchema,
+                    schema: AllStakersResponseSchema,
                 },
             },
         },

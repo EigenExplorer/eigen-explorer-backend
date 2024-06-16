@@ -2,7 +2,10 @@ import { ZodOpenApiOperationObject } from 'zod-openapi';
 import { openApiErrorResponses } from '../../apiResponseSchema/base/errorResponses';
 import { TvlResponseSchema } from '../../apiResponseSchema/metrics/tvlResponse';
 import z from '../../../../api/src/schema/zod';
-import { StrategyTvlSchema } from '../../apiResponseSchema/base/strategyTvlResponse';
+import {
+    StrategyTvlSchema,
+    StrategyEthTvlSchema,
+} from '../../apiResponseSchema/base/strategyTvlResponse';
 
 const RestakingTvlResponseSchema = TvlResponseSchema.extend({
     tvl: z
@@ -10,6 +13,7 @@ const RestakingTvlResponseSchema = TvlResponseSchema.extend({
         .describe('The value of the combined restaking strategy TVL in ETH')
         .openapi({ example: 1000000 }),
     tvlStrategies: StrategyTvlSchema,
+    tvlStrategiesEth: StrategyEthTvlSchema,
 });
 
 export const getRestakingTvlMetrics: ZodOpenApiOperationObject = {
