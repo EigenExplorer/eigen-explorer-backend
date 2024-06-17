@@ -1,5 +1,6 @@
 import { openApiErrorResponses } from './apiResponseSchema/base/errorResponses';
 import { createDocument } from 'zod-openapi';
+import { systemRoutes } from './routes/system';
 import { avsRoutes } from './routes/avs';
 import { metricsRoutes } from './routes/metrics';
 import { operatorsRoutes } from './routes/operators';
@@ -25,6 +26,7 @@ export const document = createDocument({
         },
     ],
     paths: {
+        ...systemRoutes,
         ...metricsRoutes,
         ...avsRoutes,
         ...operatorsRoutes,

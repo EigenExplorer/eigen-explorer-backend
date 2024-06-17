@@ -1,5 +1,5 @@
 import z from '../../../../api/src/schema/zod';
-import { StrategyTvlSchema } from './strategyTvlResponse';
+import { StrategyTvlSchema, StrategyEthTvlSchema } from './strategyTvlResponse';
 
 export const TvlSchema = z.object({
     tvl: z
@@ -20,5 +20,8 @@ export const TvlSchema = z.object({
         .openapi({ example: 1000000 }),
     tvlStrategies: StrategyTvlSchema.describe(
         'The TVL of each individual restaking strategy in its native token'
+    ).openapi({ example: { Eigen: 1000000, cbETH: 2000000 } }),
+    tvlStrategiesEth: StrategyEthTvlSchema.describe(
+        'The TVL of each individual restaking strategy in ETH'
     ).openapi({ example: { Eigen: 1000000, cbETH: 2000000 } }),
 });

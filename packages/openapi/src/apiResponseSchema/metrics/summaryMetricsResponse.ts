@@ -1,5 +1,8 @@
 import z from '../../../../api/src/schema/zod';
-import { StrategyTvlSchema } from '../base/strategyTvlResponse';
+import {
+    StrategyEthTvlSchema,
+    StrategyTvlSchema,
+} from '../base/strategyTvlResponse';
 
 export const SummaryMetricsResponseSchema = z.object({
     tvl: z
@@ -15,6 +18,7 @@ export const SummaryMetricsResponseSchema = z.object({
         )
         .openapi({ example: 1000000 }),
     tvlStrategies: StrategyTvlSchema,
+    tvlStrategiesEth: StrategyEthTvlSchema,
     tvlBeaconChain: z
         .number()
         .describe(

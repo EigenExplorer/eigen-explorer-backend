@@ -2,6 +2,7 @@ import z from '../../../../api/src/schema/zod';
 import { ZodOpenApiOperationObject } from 'zod-openapi';
 import { openApiErrorResponses } from '../../apiResponseSchema/base/errorResponses';
 import { PaginationMetaResponsesSchema } from '../../apiResponseSchema/base/paginationMetaResponses';
+import { PaginationQuerySchema } from '../../../../api/src/schema/zod/schemas/paginationQuery';
 import { WithdrawalsResponseSchema } from '../../apiResponseSchema/withdrawals/withdrawalsResponseSchema';
 import { EthereumAddressSchema } from '../../../../api/src/schema/zod/schemas/base/ethereumAddress';
 
@@ -24,7 +25,7 @@ export const getCompletedStakerWithdrawals: ZodOpenApiOperationObject = {
     tags: ['Stakers'],
     requestParams: {
         path: StakerAddressParam,
-        query: PaginationMetaResponsesSchema,
+        query: PaginationQuerySchema,
     },
     responses: {
         '200': {
