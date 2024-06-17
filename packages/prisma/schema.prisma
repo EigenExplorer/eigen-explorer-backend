@@ -162,10 +162,9 @@ model Validator {
   activationEpoch       BigInt
 }
 
-model Withdrawal {
+model WithdrawalQueued {
   withdrawalRoot String  @id @unique
   nonce          Int
-  isCompleted    Boolean @default(false)
 
   stakerAddress     String
   delegatedTo       String
@@ -173,12 +172,21 @@ model Withdrawal {
   strategies        String[]
   shares            String[]
   startBlock        BigInt
+
+  createdAtBlock BigInt   @default(0)
+  createdAt      DateTime @default(now())
+
+  completedWithdrawal WithdrawalCompleted?
+}
+
+model WithdrawalCompleted {
+  withdrawalRoot    String  @id @unique
   receiveAsTokens   Boolean @default(false)
 
   createdAtBlock BigInt   @default(0)
-  updatedAtBlock BigInt   @default(0)
   createdAt      DateTime @default(now())
-  updatedAt      DateTime @default(now())
+
+  queuedWithdrawal WithdrawalQueued  @relation(fields: [withdrawalRoot], references: [withdrawalRoot])
 }
 
 // Collection to store system settings

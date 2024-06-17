@@ -28,7 +28,7 @@ export async function loopThroughBlocks(
 
 		await cb(currentBlock, nextBlock)
 
-		currentBlock = nextBlock + 1n
+		currentBlock = nextBlock
 	}
 
 	return lastBlock

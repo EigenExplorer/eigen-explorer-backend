@@ -130,11 +130,14 @@ export async function getStakerWithdrawals(req: Request, res: Response) {
 		const { address } = req.params
 		const filterQuery = { stakerAddress: address }
 
-		const withdrawalCount = await prisma.withdrawal.count({
+		const withdrawalCount = await prisma.withdrawalQueued.count({
 			where: filterQuery
 		})
-		const withdrawalRecords = await prisma.withdrawal.findMany({
+		const withdrawalRecords = await prisma.withdrawalQueued.findMany({
 			where: filterQuery,
+			include: {
+				completedWithdrawal: true
+			},
 			skip,
 			take,
 			orderBy: { startBlock: 'desc' }
@@ -150,9 +153,16 @@ export async function getStakerWithdrawals(req: Request, res: Response) {
 				...withdrawal,
 				shares,
 				strategies: undefined,
+				completedWithdrawal: undefined,
+				isCompleted: !!withdrawal.completedWithdrawal,
+				createdAt: withdrawal.createdAt,
+				updatedAt:
+					withdrawal.completedWithdrawal?.createdAt || withdrawal.createdAt,
 				startBlock: Number(withdrawal.startBlock),
 				createdAtBlock: Number(withdrawal.createdAtBlock),
-				updatedAtBlock: Number(withdrawal.updatedAtBlock)
+				updatedAtBlock:
+					Number(withdrawal.completedWithdrawal?.createdAtBlock) ||
+					Number(withdrawal.createdAtBlock)
 			}
 		})
 
@@ -180,12 +190,12 @@ export async function getStakerWithdrawalsQueued(req: Request, res: Response) {
 
 	try {
 		const { address } = req.params
-		const filterQuery = { stakerAddress: address, isCompleted: false }
+		const filterQuery = { stakerAddress: address, completedWithdrawal: null }
 
-		const withdrawalCount = await prisma.withdrawal.count({
+		const withdrawalCount = await prisma.withdrawalQueued.count({
 			where: filterQuery
 		})
-		const withdrawalRecords = await prisma.withdrawal.findMany({
+		const withdrawalRecords = await prisma.withdrawalQueued.findMany({
 			where: filterQuery,
 			skip,
 			take,
@@ -203,8 +213,7 @@ export async function getStakerWithdrawalsQueued(req: Request, res: Response) {
 				shares,
 				strategies: undefined,
 				startBlock: Number(withdrawal.startBlock),
-				createdAtBlock: Number(withdrawal.createdAtBlock),
-				updatedAtBlock: Number(withdrawal.updatedAtBlock)
+				createdAtBlock: Number(withdrawal.createdAtBlock)
 			}
 		})
 
@@ -246,14 +255,14 @@ export async function getStakerWithdrawalsWithdrawable(
 
 		const filterQuery = {
 			stakerAddress: address,
-			isCompleted: false,
+			completedWithdrawal: null,
 			startBlock: { lte: minDelayBlock }
 		}
 
-		const withdrawalCount = await prisma.withdrawal.count({
+		const withdrawalCount = await prisma.withdrawalQueued.count({
 			where: filterQuery
 		})
-		const withdrawalRecords = await prisma.withdrawal.findMany({
+		const withdrawalRecords = await prisma.withdrawalQueued.findMany({
 			where: filterQuery,
 			skip,
 			take,
@@ -271,8 +280,7 @@ export async function getStakerWithdrawalsWithdrawable(
 				shares,
 				strategies: undefined,
 				startBlock: Number(withdrawal.startBlock),
-				createdAtBlock: Number(withdrawal.createdAtBlock),
-				updatedAtBlock: Number(withdrawal.updatedAtBlock)
+				createdAtBlock: Number(withdrawal.createdAtBlock)
 			}
 		})
 
@@ -303,13 +311,21 @@ export async function getStakerWithdrawalsCompleted(
 
 	try {
 		const { address } = req.params
-		const filterQuery = { stakerAddress: address, isCompleted: true }
+		const filterQuery = {
+			stakerAddress: address,
+			NOT: {
+				completedWithdrawal: null
+			}
+		}
 
-		const withdrawalCount = await prisma.withdrawal.count({
+		const withdrawalCount = await prisma.withdrawalQueued.count({
 			where: filterQuery
 		})
-		const withdrawalRecords = await prisma.withdrawal.findMany({
+		const withdrawalRecords = await prisma.withdrawalQueued.findMany({
 			where: filterQuery,
+			include: {
+				completedWithdrawal: true
+			},
 			skip,
 			take,
 			orderBy: { startBlock: 'desc' }
@@ -325,9 +341,15 @@ export async function getStakerWithdrawalsCompleted(
 				...withdrawal,
 				shares,
 				strategies: undefined,
+				completedWithdrawal: undefined,
+				createdAt: withdrawal.createdAt,
+				updatedAt:
+					withdrawal.completedWithdrawal?.createdAt || withdrawal.createdAt,
 				startBlock: Number(withdrawal.startBlock),
 				createdAtBlock: Number(withdrawal.createdAtBlock),
-				updatedAtBlock: Number(withdrawal.updatedAtBlock)
+				updatedAtBlock:
+					Number(withdrawal.completedWithdrawal?.createdAtBlock) ||
+					Number(withdrawal.createdAtBlock)
 			}
 		})
 
@@ -437,18 +459,21 @@ export async function getRestakedPoints(req: Request, res: Response) {
 		}[] = await getBeaconEthData(address)
 
 		// All completed withdrawals
-		const withdrawalRecords = await prisma.withdrawal.findMany({
+		const withdrawalRecords = await prisma.withdrawalQueued.findMany({
 			where: {
-				stakerAddress: address.toLowerCase(),
-				isCompleted: true,
-				receiveAsTokens: true
+				stakerAddress: address,
+				completedWithdrawal: {
+					receiveAsTokens: true
+				}
 			},
-			select: {
-				strategies: true,
-				shares: true,
-				createdAt: true
+			include: {
+				completedWithdrawal: true
 			},
-			orderBy: { createdAtBlock: 'asc' }
+			orderBy: {
+				completedWithdrawal: {
+					createdAt: 'asc'
+				}
+			}
 		})
 
 		const now = Number(new Date())

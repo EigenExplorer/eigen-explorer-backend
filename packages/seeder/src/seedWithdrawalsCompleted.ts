@@ -1,3 +1,4 @@
+import prisma from '@prisma/client'
 import { getPrismaClient } from './utils/prismaClient'
 import {
 	bulkUpdateDbTransactions,
@@ -7,7 +8,7 @@ import {
 } from './utils/seeder'
 
 const blockSyncKey = 'lastSyncedBlock_completedWithdrawals'
-const blockSyncKeyLogs = 'lastSyncedBlock_logs_completedWithdrawals'
+const blockSyncKeyLogs = 'lastSyncedBlock_queuedWithdrawals' // Latest sync is with WithdrawalQueued table due to foreign key constraint on withdrawalRoot
 
 /**
  *
@@ -19,7 +20,7 @@ export async function seedCompletedWithdrawals(
 	fromBlock?: bigint
 ) {
 	const prismaClient = getPrismaClient()
-	const completedWithdrawalList: Map<string, boolean> = new Map()
+	const completedWithdrawalList: prisma.WithdrawalCompleted[] = []
 
 	const firstBlock = fromBlock
 		? fromBlock
@@ -43,7 +44,7 @@ export async function seedCompletedWithdrawals(
 			const logs = await prismaClient.eventLogs_WithdrawalCompleted.findMany({
 				where: {
 					blockNumber: {
-						gt: fromBlock,
+						gte: fromBlock,
 						lte: toBlock
 					}
 				}
@@ -52,7 +53,7 @@ export async function seedCompletedWithdrawals(
 			const depositLogs = await prismaClient.eventLogs_Deposit.findMany({
 				where: {
 					blockNumber: {
-						gt: fromBlock,
+						gte: fromBlock,
 						lte: toBlock
 					}
 				}
@@ -62,7 +63,7 @@ export async function seedCompletedWithdrawals(
 				await prismaClient.eventLogs_PodSharesUpdated.findMany({
 					where: {
 						blockNumber: {
-							gt: fromBlock,
+							gte: fromBlock,
 							lte: toBlock
 						}
 					}
@@ -97,7 +98,12 @@ export async function seedCompletedWithdrawals(
 					) {
 						receiveAsTokens = false
 					}
-					completedWithdrawalList.set(withdrawalRoot, receiveAsTokens)
+					completedWithdrawalList.push({
+						withdrawalRoot: withdrawalRoot,
+						receiveAsTokens: receiveAsTokens,
+						createdAtBlock: log.blockNumber,
+						createdAt: log.blockTime
+					})
 				}
 			}
 		},
@@ -108,23 +114,17 @@ export async function seedCompletedWithdrawals(
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	const dbTransactions: any[] = []
 
-	if (completedWithdrawalList) {
-		for (const [withdrawalRoot, receiveAsTokens] of completedWithdrawalList) {
-			dbTransactions.push(
-				prismaClient.withdrawal.updateMany({
-					where: { withdrawalRoot: withdrawalRoot },
-					data: {
-						isCompleted: true,
-						receiveAsTokens: receiveAsTokens
-					}
-				})
-			)
-		}
+	if (completedWithdrawalList.length > 0) {
+		dbTransactions.push(
+			prismaClient.withdrawalCompleted.createMany({
+				data: completedWithdrawalList
+			})
+		)
 	}
 
 	await bulkUpdateDbTransactions(
 		dbTransactions,
-		`[Data] Completed Withdrawal from: ${firstBlock} to: ${lastBlock} size: ${completedWithdrawalList.size}`
+		`[Data] Completed Withdrawal from: ${firstBlock} to: ${lastBlock} size: ${completedWithdrawalList.length}`
 	)
 
 	// Storing last synced block
