@@ -5,7 +5,9 @@ import {
     getAVS,
     getAVSOperators,
     getAVSStakers,
+    invalidateMetadata
 } from './avsController';
+import { authenticateJWT } from '../../utils/jwtUtils'
 
 import routeCache from "route-cache";
 
@@ -21,5 +23,13 @@ router.get('/:address', routeCache.cacheSeconds(120), getAVS);
 router.get('/:address/stakers', routeCache.cacheSeconds(120), getAVSStakers);
 
 router.get('/:address/operators', routeCache.cacheSeconds(120), getAVSOperators);
+
+// Protected routes
+router.get(
+    '/:address/invalidate-metadata',
+    authenticateJWT,
+    routeCache.cacheSeconds(120),
+    invalidateMetadata
+);
 
 export default router;

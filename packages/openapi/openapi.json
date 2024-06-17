@@ -16,6 +16,70 @@
     }
   ],
   "paths": {
+    "/version": {
+      "get": {
+        "operationId": "getVersion",
+        "summary": "Retrieve API server version",
+        "description": "Returns API server version.",
+        "tags": [
+          "System"
+        ],
+        "responses": {
+          "200": {
+            "description": "The API server version.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "version": {
+                      "type": "string",
+                      "description": "The version of the API server",
+                      "example": "v0.0.1"
+                    }
+                  },
+                  "required": [
+                    "version"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "operationId": "getHealth",
+        "summary": "Retrieve API server status",
+        "description": "Returns API server status.",
+        "tags": [
+          "System"
+        ],
+        "responses": {
+          "200": {
+            "description": "The API server status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "description": "The status of the API server",
+                      "example": "ok"
+                    }
+                  },
+                  "required": [
+                    "status"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/metrics": {
       "get": {
         "operationId": "getAllMetrics",
@@ -55,6 +119,19 @@
                         "stETH": 2000000
                       }
                     },
+                    "tvlStrategiesEth": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "number",
+                        "description": "The total value locked (TVL) in the strategy, denominated in ETH",
+                        "example": 1000000
+                      },
+                      "description": "The total value locked (TVL) in each restaking strategy, denominated in ETH",
+                      "example": {
+                        "cbETH": 1000000,
+                        "stETH": 2000000
+                      }
+                    },
                     "tvlBeaconChain": {
                       "type": "number",
                       "description": "The total value locked (TVL) in ETH in the beacon chain ETH strategy",
@@ -80,6 +157,7 @@
                     "tvl",
                     "tvlRestaking",
                     "tvlStrategies",
+                    "tvlStrategiesEth",
                     "tvlBeaconChain",
                     "totalAVS",
                     "totalOperators",
@@ -252,11 +330,25 @@
                         "cbETH": 1000000,
                         "stETH": 2000000
                       }
+                    },
+                    "tvlStrategiesEth": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "number",
+                        "description": "The total value locked (TVL) in the strategy, denominated in ETH",
+                        "example": 1000000
+                      },
+                      "description": "The total value locked (TVL) in each restaking strategy, denominated in ETH",
+                      "example": {
+                        "cbETH": 1000000,
+                        "stETH": 2000000
+                      }
                     }
                   },
                   "required": [
                     "tvl",
-                    "tvlStrategies"
+                    "tvlStrategies",
+                    "tvlStrategiesEth"
                   ]
                 }
               }
@@ -522,6 +614,21 @@
         "parameters": [
           {
             "in": "query",
+            "name": "withTvl",
+            "description": "Toggle whether the route should calculate the TVL from shares",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ],
+              "default": "false",
+              "description": "Toggle whether the route should calculate the TVL from shares",
+              "example": "false"
+            }
+          },
+          {
+            "in": "query",
             "name": "skip",
             "description": "The number of records to skip for pagination",
             "schema": {
@@ -540,21 +647,6 @@
               "default": "12",
               "description": "The number of records to return for pagination",
               "example": 12
-            }
-          },
-          {
-            "in": "query",
-            "name": "withTvl",
-            "description": "Toggle whether the route should calculate the TVL from shares",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "true",
-                "false"
-              ],
-              "default": "false",
-              "description": "Toggle whether the route should calculate the TVL from shares",
-              "example": "false"
             }
           }
         ],
@@ -712,6 +804,19 @@
                                   "Eigen": 1000000,
                                   "cbETH": 2000000
                                 }
+                              },
+                              "tvlStrategiesEth": {
+                                "type": "object",
+                                "additionalProperties": {
+                                  "type": "number",
+                                  "description": "The total value locked (TVL) in the strategy, denominated in ETH",
+                                  "example": 1000000
+                                },
+                                "description": "The TVL of each individual restaking strategy in ETH",
+                                "example": {
+                                  "Eigen": 1000000,
+                                  "cbETH": 2000000
+                                }
                               }
                             },
                             "required": [
@@ -719,7 +824,8 @@
                               "tvlBeaconChain",
                               "tvlRestaking",
                               "tvlWETH",
-                              "tvlStrategies"
+                              "tvlStrategies",
+                              "tvlStrategiesEth"
                             ],
                             "description": "The total value locked (TVL) in the AVS",
                             "example": {
@@ -729,6 +835,10 @@
                               "tvlRestaking": 1000000,
                               "tvlStrategies": {
                                 "Eigen": 1000000,
+                                "cbETH": 2000000
+                              },
+                              "tvlStrategiesEth": {
+                                "stETH": 1000000,
                                 "cbETH": 2000000
                               }
                             }
@@ -1111,6 +1221,19 @@
                             "Eigen": 1000000,
                             "cbETH": 2000000
                           }
+                        },
+                        "tvlStrategiesEth": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "number",
+                            "description": "The total value locked (TVL) in the strategy, denominated in ETH",
+                            "example": 1000000
+                          },
+                          "description": "The TVL of each individual restaking strategy in ETH",
+                          "example": {
+                            "Eigen": 1000000,
+                            "cbETH": 2000000
+                          }
                         }
                       },
                       "required": [
@@ -1118,7 +1241,8 @@
                         "tvlBeaconChain",
                         "tvlRestaking",
                         "tvlWETH",
-                        "tvlStrategies"
+                        "tvlStrategies",
+                        "tvlStrategiesEth"
                       ],
                       "description": "The total value locked (TVL) in the AVS",
                       "example": {
@@ -1128,6 +1252,10 @@
                         "tvlRestaking": 1000000,
                         "tvlStrategies": {
                           "Eigen": 1000000,
+                          "cbETH": 2000000
+                        },
+                        "tvlStrategiesEth": {
+                          "stETH": 1000000,
                           "cbETH": 2000000
                         }
                       }
@@ -1191,6 +1319,21 @@
               "pattern": "^0x[a-fA-F0-9]{40}$"
             },
             "required": true
+          },
+          {
+            "in": "query",
+            "name": "withTvl",
+            "description": "Toggle whether the route should calculate the TVL from shares",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ],
+              "default": "false",
+              "description": "Toggle whether the route should calculate the TVL from shares",
+              "example": "false"
+            }
           },
           {
             "in": "query",
@@ -1271,16 +1414,84 @@
                             }
                           },
                           "tvl": {
-                            "type": "number",
-                            "description": "The total value locked in the AVS staker",
-                            "example": 0.040888428658906045
+                            "type": "object",
+                            "properties": {
+                              "tvl": {
+                                "type": "number",
+                                "description": "The combined TVL of all restaking strategies in ETH",
+                                "example": 1000000
+                              },
+                              "tvlBeaconChain": {
+                                "type": "number",
+                                "description": "The TVL of Beacon Chain restaking strategy in ETH",
+                                "example": 1000000
+                              },
+                              "tvlRestaking": {
+                                "type": "number",
+                                "description": "The combined TVL of all liquid restaking strategies in ETH",
+                                "example": 1000000
+                              },
+                              "tvlWETH": {
+                                "type": "number",
+                                "description": "The TVL of WETH restaking strategy in ETH",
+                                "example": 1000000
+                              },
+                              "tvlStrategies": {
+                                "type": "object",
+                                "additionalProperties": {
+                                  "type": "number",
+                                  "description": "The total value locked (TVL) in the strategy, denominated in the strategy's native token",
+                                  "example": 1000000
+                                },
+                                "description": "The TVL of each individual restaking strategy in its native token",
+                                "example": {
+                                  "Eigen": 1000000,
+                                  "cbETH": 2000000
+                                }
+                              },
+                              "tvlStrategiesEth": {
+                                "type": "object",
+                                "additionalProperties": {
+                                  "type": "number",
+                                  "description": "The total value locked (TVL) in the strategy, denominated in ETH",
+                                  "example": 1000000
+                                },
+                                "description": "The TVL of each individual restaking strategy in ETH",
+                                "example": {
+                                  "Eigen": 1000000,
+                                  "cbETH": 2000000
+                                }
+                              }
+                            },
+                            "required": [
+                              "tvl",
+                              "tvlBeaconChain",
+                              "tvlRestaking",
+                              "tvlWETH",
+                              "tvlStrategies",
+                              "tvlStrategiesEth"
+                            ],
+                            "description": "The total value locked (TVL) in the AVS staker",
+                            "example": {
+                              "tvl": 1000000,
+                              "tvlBeaconChain": 1000000,
+                              "tvlWETH": 1000000,
+                              "tvlRestaking": 1000000,
+                              "tvlStrategies": {
+                                "Eigen": 1000000,
+                                "cbETH": 2000000
+                              },
+                              "tvlStrategiesEth": {
+                                "stETH": 1000000,
+                                "cbETH": 2000000
+                              }
+                            }
                           }
                         },
                         "required": [
                           "address",
                           "operatorAddress",
-                          "shares",
-                          "tvl"
+                          "shares"
                         ]
                       }
                     },
@@ -1362,6 +1573,21 @@
           },
           {
             "in": "query",
+            "name": "withTvl",
+            "description": "Toggle whether the route should calculate the TVL from shares",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ],
+              "default": "false",
+              "description": "Toggle whether the route should calculate the TVL from shares",
+              "example": "false"
+            }
+          },
+          {
+            "in": "query",
             "name": "skip",
             "description": "The number of records to skip for pagination",
             "schema": {
@@ -1380,21 +1606,6 @@
               "default": "12",
               "description": "The number of records to return for pagination",
               "example": 12
-            }
-          },
-          {
-            "in": "query",
-            "name": "withTvl",
-            "description": "Toggle whether the route should calculate the TVL from shares",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "true",
-                "false"
-              ],
-              "default": "false",
-              "description": "Toggle whether the route should calculate the TVL from shares",
-              "example": "false"
             }
           }
         ],
@@ -1536,6 +1747,19 @@
                                   "Eigen": 1000000,
                                   "cbETH": 2000000
                                 }
+                              },
+                              "tvlStrategiesEth": {
+                                "type": "object",
+                                "additionalProperties": {
+                                  "type": "number",
+                                  "description": "The total value locked (TVL) in the strategy, denominated in ETH",
+                                  "example": 1000000
+                                },
+                                "description": "The TVL of each individual restaking strategy in ETH",
+                                "example": {
+                                  "Eigen": 1000000,
+                                  "cbETH": 2000000
+                                }
                               }
                             },
                             "required": [
@@ -1543,7 +1767,8 @@
                               "tvlBeaconChain",
                               "tvlRestaking",
                               "tvlWETH",
-                              "tvlStrategies"
+                              "tvlStrategies",
+                              "tvlStrategiesEth"
                             ],
                             "description": "The total value locked (TVL) in the AVS operator",
                             "example": {
@@ -1553,6 +1778,10 @@
                               "tvlRestaking": 1000000,
                               "tvlStrategies": {
                                 "Eigen": 1000000,
+                                "cbETH": 2000000
+                              },
+                              "tvlStrategiesEth": {
+                                "stETH": 1000000,
                                 "cbETH": 2000000
                               }
                             }
@@ -1641,6 +1870,21 @@
         "parameters": [
           {
             "in": "query",
+            "name": "withTvl",
+            "description": "Toggle whether the route should calculate the TVL from shares",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ],
+              "default": "false",
+              "description": "Toggle whether the route should calculate the TVL from shares",
+              "example": "false"
+            }
+          },
+          {
+            "in": "query",
             "name": "skip",
             "description": "The number of records to skip for pagination",
             "schema": {
@@ -1660,26 +1904,11 @@
               "description": "The number of records to return for pagination",
               "example": 12
             }
-          },
-          {
-            "in": "query",
-            "name": "withTvl",
-            "description": "Toggle whether the route should calculate the TVL from shares",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "true",
-                "false"
-              ],
-              "default": "false",
-              "description": "Toggle whether the route should calculate the TVL from shares",
-              "example": "false"
-            }
           }
         ],
         "responses": {
           "200": {
-            "description": "The list of Operators records.",
+            "description": "The list of operator records.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1815,6 +2044,19 @@
                                   "Eigen": 1000000,
                                   "cbETH": 2000000
                                 }
+                              },
+                              "tvlStrategiesEth": {
+                                "type": "object",
+                                "additionalProperties": {
+                                  "type": "number",
+                                  "description": "The total value locked (TVL) in the strategy, denominated in ETH",
+                                  "example": 1000000
+                                },
+                                "description": "The TVL of each individual restaking strategy in ETH",
+                                "example": {
+                                  "Eigen": 1000000,
+                                  "cbETH": 2000000
+                                }
                               }
                             },
                             "required": [
@@ -1822,7 +2064,8 @@
                               "tvlBeaconChain",
                               "tvlRestaking",
                               "tvlWETH",
-                              "tvlStrategies"
+                              "tvlStrategies",
+                              "tvlStrategiesEth"
                             ],
                             "description": "The total value locked (TVL) in the AVS operator",
                             "example": {
@@ -1832,6 +2075,10 @@
                               "tvlRestaking": 1000000,
                               "tvlStrategies": {
                                 "Eigen": 1000000,
+                                "cbETH": 2000000
+                              },
+                              "tvlStrategiesEth": {
+                                "stETH": 1000000,
                                 "cbETH": 2000000
                               }
                             }
@@ -1921,11 +2168,11 @@
           {
             "in": "path",
             "name": "address",
-            "description": "The address of the operator.",
+            "description": "The address of the operator",
             "schema": {
               "type": "string",
               "pattern": "^0x[a-fA-F0-9]{40}$",
-              "description": "The address of the operator.",
+              "description": "The address of the operator",
               "example": "0x00107cfdeaddc0a3160ed2f6fedd627f313e7b1b"
             },
             "required": true
@@ -2079,6 +2326,19 @@
                             "Eigen": 1000000,
                             "cbETH": 2000000
                           }
+                        },
+                        "tvlStrategiesEth": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "number",
+                            "description": "The total value locked (TVL) in the strategy, denominated in ETH",
+                            "example": 1000000
+                          },
+                          "description": "The TVL of each individual restaking strategy in ETH",
+                          "example": {
+                            "Eigen": 1000000,
+                            "cbETH": 2000000
+                          }
                         }
                       },
                       "required": [
@@ -2086,7 +2346,8 @@
                         "tvlBeaconChain",
                         "tvlRestaking",
                         "tvlWETH",
-                        "tvlStrategies"
+                        "tvlStrategies",
+                        "tvlStrategiesEth"
                       ],
                       "description": "The total value locked (TVL) in the AVS operator",
                       "example": {
@@ -2096,6 +2357,10 @@
                         "tvlRestaking": 1000000,
                         "tvlStrategies": {
                           "Eigen": 1000000,
+                          "cbETH": 2000000
+                        },
+                        "tvlStrategiesEth": {
+                          "stETH": 1000000,
                           "cbETH": 2000000
                         }
                       }
@@ -2112,6 +2377,1649 @@
                     "metadataX",
                     "shares",
                     "totalStakers"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/withdrawals": {
+      "get": {
+        "operationId": "getAllWithdrawals",
+        "summary": "Retrieve all withdrawals",
+        "description": "Returns all withdrawal data, including the withdrawal root, nonce, withdrawal status, and other relevant information.",
+        "tags": [
+          "Withdrawals"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "stakerAddress",
+            "description": "The address of the staker",
+            "schema": {
+              "type": "string",
+              "pattern": "^0x[a-fA-F0-9]{40}$",
+              "description": "The address of the staker",
+              "example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
+            }
+          },
+          {
+            "in": "query",
+            "name": "delegatedTo",
+            "description": "The address of the operator to which the stake is delegated",
+            "schema": {
+              "type": "string",
+              "pattern": "^0x[a-fA-F0-9]{40}$",
+              "description": "The address of the operator to which the stake is delegated",
+              "example": "0x5accc90436492f24e6af278569691e2c942a676d"
+            }
+          },
+          {
+            "in": "query",
+            "name": "strategyAddress",
+            "description": "The contract address of the restaking strategy",
+            "schema": {
+              "type": "string",
+              "pattern": "^0x[a-fA-F0-9]{40}$",
+              "description": "The contract address of the restaking strategy",
+              "example": "0x0fe4f44bee93503346a3ac9ee5a26b130a5796d6"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "description": "The status of the withdrawal",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "queued",
+                "queued_withdrawable",
+                "completed"
+              ],
+              "description": "The status of the withdrawal",
+              "example": "queued"
+            }
+          },
+          {
+            "in": "query",
+            "name": "skip",
+            "description": "The number of records to skip for pagination",
+            "schema": {
+              "type": "string",
+              "default": "0",
+              "description": "The number of records to skip for pagination",
+              "example": 0
+            }
+          },
+          {
+            "in": "query",
+            "name": "take",
+            "description": "The number of records to return for pagination",
+            "schema": {
+              "type": "string",
+              "default": "12",
+              "description": "The number of records to return for pagination",
+              "example": 12
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The list of withdrawals.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "withdrawalRoot": {
+                            "type": "string",
+                            "description": "The root hash of the withdrawal",
+                            "example": "0x9e6728ef0a8ad6009107a886047aae35bc5ed7deaa68580b0d1f8f67e3e5ed31"
+                          },
+                          "nonce": {
+                            "type": "number",
+                            "description": "The nonce of the withdrawal",
+                            "example": 0
+                          },
+                          "isCompleted": {
+                            "type": "boolean",
+                            "description": "Indicates if the withdrawal is completed",
+                            "example": false
+                          },
+                          "stakerAddress": {
+                            "type": "string",
+                            "description": "The address of the staker",
+                            "example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
+                          },
+                          "delegatedTo": {
+                            "type": "string",
+                            "description": "The operator address to which staking is delegated",
+                            "example": "0x0000000000000000000000000000000000000000"
+                          },
+                          "withdrawerAddress": {
+                            "type": "string",
+                            "description": "The address of the withdrawer",
+                            "example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
+                          },
+                          "shares": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "strategyAddress": {
+                                  "type": "string",
+                                  "pattern": "^0x[a-fA-F0-9]{40}$",
+                                  "description": "The contract address of the restaking strategy",
+                                  "example": "0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0"
+                                },
+                                "shares": {
+                                  "type": "string",
+                                  "description": "The amount of shares held in the strategy",
+                                  "example": "1277920000000000000000000"
+                                }
+                              },
+                              "required": [
+                                "strategyAddress",
+                                "shares"
+                              ]
+                            },
+                            "description": "The list of strategy shares",
+                            "example": [
+                              {
+                                "strategyAddress": "0x93c4b944d05dfe6df7645a86cd2206016c51564d",
+                                "shares": "1000288824523326631"
+                              }
+                            ]
+                          },
+                          "startBlock": {
+                            "type": "number",
+                            "description": "The block number when the withdrawal was queued",
+                            "example": 19912470
+                          },
+                          "createdAtBlock": {
+                            "type": "number",
+                            "description": "The block number when the withdrawal was recorded by EigenExplorer",
+                            "example": 19912470
+                          },
+                          "updatedAtBlock": {
+                            "type": "number",
+                            "description": "The block number when the withdrawal was last updated",
+                            "example": 19912470
+                          }
+                        },
+                        "required": [
+                          "withdrawalRoot",
+                          "nonce",
+                          "isCompleted",
+                          "stakerAddress",
+                          "delegatedTo",
+                          "withdrawerAddress",
+                          "shares",
+                          "startBlock",
+                          "createdAtBlock",
+                          "updatedAtBlock"
+                        ]
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "total": {
+                          "type": "number",
+                          "description": "Total number of records in the database",
+                          "example": 30
+                        },
+                        "skip": {
+                          "type": "number",
+                          "description": "The number of skiped records for this query",
+                          "example": 0
+                        },
+                        "take": {
+                          "type": "number",
+                          "description": "The number of records returned for this query",
+                          "example": 12
+                        }
+                      },
+                      "required": [
+                        "total",
+                        "skip",
+                        "take"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/withdrawals/{withdrawalRoot}": {
+      "get": {
+        "operationId": "getWithdrawalByWithdrawalRoot",
+        "summary": "Retrieve withdrawal by withdrawal root",
+        "description": "Returns the withdrawal data by withdrawal root.",
+        "tags": [
+          "Withdrawals"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "withdrawalRoot",
+            "description": "The root hash of the withdrawal",
+            "schema": {
+              "type": "string",
+              "description": "The root hash of the withdrawal",
+              "example": "0x9e6728ef0a8ad6009107a886047aae35bc5ed7deaa68580b0d1f8f67e3e5ed31"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The requested withdrawal record.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "withdrawalRoot": {
+                      "type": "string",
+                      "description": "The root hash of the withdrawal",
+                      "example": "0x9e6728ef0a8ad6009107a886047aae35bc5ed7deaa68580b0d1f8f67e3e5ed31"
+                    },
+                    "nonce": {
+                      "type": "number",
+                      "description": "The nonce of the withdrawal",
+                      "example": 0
+                    },
+                    "isCompleted": {
+                      "type": "boolean",
+                      "description": "Indicates if the withdrawal is completed",
+                      "example": false
+                    },
+                    "stakerAddress": {
+                      "type": "string",
+                      "description": "The address of the staker",
+                      "example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
+                    },
+                    "delegatedTo": {
+                      "type": "string",
+                      "description": "The operator address to which staking is delegated",
+                      "example": "0x0000000000000000000000000000000000000000"
+                    },
+                    "withdrawerAddress": {
+                      "type": "string",
+                      "description": "The address of the withdrawer",
+                      "example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
+                    },
+                    "shares": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "strategyAddress": {
+                            "type": "string",
+                            "pattern": "^0x[a-fA-F0-9]{40}$",
+                            "description": "The contract address of the restaking strategy",
+                            "example": "0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0"
+                          },
+                          "shares": {
+                            "type": "string",
+                            "description": "The amount of shares held in the strategy",
+                            "example": "1277920000000000000000000"
+                          }
+                        },
+                        "required": [
+                          "strategyAddress",
+                          "shares"
+                        ]
+                      },
+                      "description": "The list of strategy shares",
+                      "example": [
+                        {
+                          "strategyAddress": "0x93c4b944d05dfe6df7645a86cd2206016c51564d",
+                          "shares": "1000288824523326631"
+                        }
+                      ]
+                    },
+                    "startBlock": {
+                      "type": "number",
+                      "description": "The block number when the withdrawal was queued",
+                      "example": 19912470
+                    },
+                    "createdAtBlock": {
+                      "type": "number",
+                      "description": "The block number when the withdrawal was recorded by EigenExplorer",
+                      "example": 19912470
+                    },
+                    "updatedAtBlock": {
+                      "type": "number",
+                      "description": "The block number when the withdrawal was last updated",
+                      "example": 19912470
+                    }
+                  },
+                  "required": [
+                    "withdrawalRoot",
+                    "nonce",
+                    "isCompleted",
+                    "stakerAddress",
+                    "delegatedTo",
+                    "withdrawerAddress",
+                    "shares",
+                    "startBlock",
+                    "createdAtBlock",
+                    "updatedAtBlock"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/stakers": {
+      "get": {
+        "operationId": "getAllStakers",
+        "summary": "Retrieve all stakers",
+        "description": "Returns all staker records. This endpoint supports pagination.",
+        "tags": [
+          "Stakers"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "withTvl",
+            "description": "Toggle whether the route should calculate the TVL from shares",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ],
+              "default": "false",
+              "description": "Toggle whether the route should calculate the TVL from shares",
+              "example": "false"
+            }
+          },
+          {
+            "in": "query",
+            "name": "skip",
+            "description": "The number of records to skip for pagination",
+            "schema": {
+              "type": "string",
+              "default": "0",
+              "description": "The number of records to skip for pagination",
+              "example": 0
+            }
+          },
+          {
+            "in": "query",
+            "name": "take",
+            "description": "The number of records to return for pagination",
+            "schema": {
+              "type": "string",
+              "default": "12",
+              "description": "The number of records to return for pagination",
+              "example": 12
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The list of staker records.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "address": {
+                            "type": "string",
+                            "pattern": "^0x[a-fA-F0-9]{40}$",
+                            "description": "The contract address of the staker",
+                            "example": "0x0000006c21964af0d420af8992851a30fa13a68b"
+                          },
+                          "operatorAddress": {
+                            "type": "string",
+                            "pattern": "^0x[a-fA-F0-9]{40}$",
+                            "description": "The address of the operator",
+                            "example": "0x71c6f7ed8c2d4925d0baf16f6a85bb1736d412eb"
+                          },
+                          "shares": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "stakerAddress": {
+                                  "type": "string",
+                                  "pattern": "^0x[a-fA-F0-9]{40}$",
+                                  "description": "The contract address of the staker",
+                                  "example": "0x0000006c21964af0d420af8992851a30fa13c68a"
+                                },
+                                "strategyAddress": {
+                                  "type": "string",
+                                  "pattern": "^0x[a-fA-F0-9]{40}$",
+                                  "description": "The contract address of the restaking strategy",
+                                  "example": "0x93c4b944d05dfe6df7645a86cd2206016c51564a"
+                                },
+                                "shares": {
+                                  "type": "string",
+                                  "description": "The amount of shares held in the strategy",
+                                  "example": "40888428658906049"
+                                }
+                              },
+                              "required": [
+                                "stakerAddress",
+                                "strategyAddress",
+                                "shares"
+                              ]
+                            }
+                          },
+                          "tvl": {
+                            "type": "object",
+                            "properties": {
+                              "tvl": {
+                                "type": "number",
+                                "description": "The combined TVL of all restaking strategies in ETH",
+                                "example": 1000000
+                              },
+                              "tvlBeaconChain": {
+                                "type": "number",
+                                "description": "The TVL of Beacon Chain restaking strategy in ETH",
+                                "example": 1000000
+                              },
+                              "tvlRestaking": {
+                                "type": "number",
+                                "description": "The combined TVL of all liquid restaking strategies in ETH",
+                                "example": 1000000
+                              },
+                              "tvlWETH": {
+                                "type": "number",
+                                "description": "The TVL of WETH restaking strategy in ETH",
+                                "example": 1000000
+                              },
+                              "tvlStrategies": {
+                                "type": "object",
+                                "additionalProperties": {
+                                  "type": "number",
+                                  "description": "The total value locked (TVL) in the strategy, denominated in the strategy's native token",
+                                  "example": 1000000
+                                },
+                                "description": "The TVL of each individual restaking strategy in its native token",
+                                "example": {
+                                  "Eigen": 1000000,
+                                  "cbETH": 2000000
+                                }
+                              },
+                              "tvlStrategiesEth": {
+                                "type": "object",
+                                "additionalProperties": {
+                                  "type": "number",
+                                  "description": "The total value locked (TVL) in the strategy, denominated in ETH",
+                                  "example": 1000000
+                                },
+                                "description": "The TVL of each individual restaking strategy in ETH",
+                                "example": {
+                                  "Eigen": 1000000,
+                                  "cbETH": 2000000
+                                }
+                              }
+                            },
+                            "required": [
+                              "tvl",
+                              "tvlBeaconChain",
+                              "tvlRestaking",
+                              "tvlWETH",
+                              "tvlStrategies",
+                              "tvlStrategiesEth"
+                            ],
+                            "description": "The total value locked (TVL) in the AVS staker",
+                            "example": {
+                              "tvl": 1000000,
+                              "tvlBeaconChain": 1000000,
+                              "tvlWETH": 1000000,
+                              "tvlRestaking": 1000000,
+                              "tvlStrategies": {
+                                "Eigen": 1000000,
+                                "cbETH": 2000000
+                              },
+                              "tvlStrategiesEth": {
+                                "stETH": 1000000,
+                                "cbETH": 2000000
+                              }
+                            }
+                          }
+                        },
+                        "required": [
+                          "address",
+                          "operatorAddress",
+                          "shares"
+                        ]
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "total": {
+                          "type": "number",
+                          "description": "Total number of records in the database",
+                          "example": 30
+                        },
+                        "skip": {
+                          "type": "number",
+                          "description": "The number of skiped records for this query",
+                          "example": 0
+                        },
+                        "take": {
+                          "type": "number",
+                          "description": "The number of records returned for this query",
+                          "example": 12
+                        }
+                      },
+                      "required": [
+                        "total",
+                        "skip",
+                        "take"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/stakers/{address}": {
+      "get": {
+        "operationId": "getStakerByAddress",
+        "summary": "Retrieve a staker by address",
+        "description": "Returns a staker record by address.",
+        "tags": [
+          "Stakers"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "address",
+            "description": "The address of the staker",
+            "schema": {
+              "type": "string",
+              "pattern": "^0x[a-fA-F0-9]{40}$",
+              "description": "The address of the staker",
+              "example": "0x00107cfdeaddc0a3160ed2f6fedd627f313e7b1b"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "withTvl",
+            "description": "Toggle whether the route should calculate the TVL from shares",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ],
+              "default": "false",
+              "description": "Toggle whether the route should calculate the TVL from shares",
+              "example": "false"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The record of the requested operator.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "address": {
+                      "type": "string",
+                      "pattern": "^0x[a-fA-F0-9]{40}$",
+                      "description": "The contract address of the staker",
+                      "example": "0x0000006c21964af0d420af8992851a30fa13a68b"
+                    },
+                    "operatorAddress": {
+                      "type": "string",
+                      "pattern": "^0x[a-fA-F0-9]{40}$",
+                      "description": "The address of the operator",
+                      "example": "0x71c6f7ed8c2d4925d0baf16f6a85bb1736d412eb"
+                    },
+                    "shares": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "stakerAddress": {
+                            "type": "string",
+                            "pattern": "^0x[a-fA-F0-9]{40}$",
+                            "description": "The contract address of the staker",
+                            "example": "0x0000006c21964af0d420af8992851a30fa13c68a"
+                          },
+                          "strategyAddress": {
+                            "type": "string",
+                            "pattern": "^0x[a-fA-F0-9]{40}$",
+                            "description": "The contract address of the restaking strategy",
+                            "example": "0x93c4b944d05dfe6df7645a86cd2206016c51564a"
+                          },
+                          "shares": {
+                            "type": "string",
+                            "description": "The amount of shares held in the strategy",
+                            "example": "40888428658906049"
+                          }
+                        },
+                        "required": [
+                          "stakerAddress",
+                          "strategyAddress",
+                          "shares"
+                        ]
+                      }
+                    },
+                    "tvl": {
+                      "type": "object",
+                      "properties": {
+                        "tvl": {
+                          "type": "number",
+                          "description": "The combined TVL of all restaking strategies in ETH",
+                          "example": 1000000
+                        },
+                        "tvlBeaconChain": {
+                          "type": "number",
+                          "description": "The TVL of Beacon Chain restaking strategy in ETH",
+                          "example": 1000000
+                        },
+                        "tvlRestaking": {
+                          "type": "number",
+                          "description": "The combined TVL of all liquid restaking strategies in ETH",
+                          "example": 1000000
+                        },
+                        "tvlWETH": {
+                          "type": "number",
+                          "description": "The TVL of WETH restaking strategy in ETH",
+                          "example": 1000000
+                        },
+                        "tvlStrategies": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "number",
+                            "description": "The total value locked (TVL) in the strategy, denominated in the strategy's native token",
+                            "example": 1000000
+                          },
+                          "description": "The TVL of each individual restaking strategy in its native token",
+                          "example": {
+                            "Eigen": 1000000,
+                            "cbETH": 2000000
+                          }
+                        },
+                        "tvlStrategiesEth": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "number",
+                            "description": "The total value locked (TVL) in the strategy, denominated in ETH",
+                            "example": 1000000
+                          },
+                          "description": "The TVL of each individual restaking strategy in ETH",
+                          "example": {
+                            "Eigen": 1000000,
+                            "cbETH": 2000000
+                          }
+                        }
+                      },
+                      "required": [
+                        "tvl",
+                        "tvlBeaconChain",
+                        "tvlRestaking",
+                        "tvlWETH",
+                        "tvlStrategies",
+                        "tvlStrategiesEth"
+                      ],
+                      "description": "The total value locked (TVL) in the AVS staker",
+                      "example": {
+                        "tvl": 1000000,
+                        "tvlBeaconChain": 1000000,
+                        "tvlWETH": 1000000,
+                        "tvlRestaking": 1000000,
+                        "tvlStrategies": {
+                          "Eigen": 1000000,
+                          "cbETH": 2000000
+                        },
+                        "tvlStrategiesEth": {
+                          "stETH": 1000000,
+                          "cbETH": 2000000
+                        }
+                      }
+                    }
+                  },
+                  "required": [
+                    "address",
+                    "operatorAddress",
+                    "shares"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/stakers/{address}/withdrawals": {
+      "get": {
+        "operationId": "getStakerWithdrawals",
+        "summary": "Retrieve all withdrawals by staker address",
+        "description": "Returns all withdrawal data of the requested staker, including the withdrawal root, nonce, withdrawal status, and other relevant information.",
+        "tags": [
+          "Stakers"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "address",
+            "description": "The address of the staker",
+            "schema": {
+              "type": "string",
+              "pattern": "^0x[a-fA-F0-9]{40}$",
+              "description": "The address of the staker",
+              "example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "skip",
+            "description": "The number of records to skip for pagination",
+            "schema": {
+              "type": "string",
+              "default": "0",
+              "description": "The number of records to skip for pagination",
+              "example": 0
+            }
+          },
+          {
+            "in": "query",
+            "name": "take",
+            "description": "The number of records to return for pagination",
+            "schema": {
+              "type": "string",
+              "default": "12",
+              "description": "The number of records to return for pagination",
+              "example": 12
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The list of withdrawals.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "withdrawalRoot": {
+                            "type": "string",
+                            "description": "The root hash of the withdrawal",
+                            "example": "0x9e6728ef0a8ad6009107a886047aae35bc5ed7deaa68580b0d1f8f67e3e5ed31"
+                          },
+                          "nonce": {
+                            "type": "number",
+                            "description": "The nonce of the withdrawal",
+                            "example": 0
+                          },
+                          "isCompleted": {
+                            "type": "boolean",
+                            "description": "Indicates if the withdrawal is completed",
+                            "example": false
+                          },
+                          "stakerAddress": {
+                            "type": "string",
+                            "description": "The address of the staker",
+                            "example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
+                          },
+                          "delegatedTo": {
+                            "type": "string",
+                            "description": "The operator address to which staking is delegated",
+                            "example": "0x0000000000000000000000000000000000000000"
+                          },
+                          "withdrawerAddress": {
+                            "type": "string",
+                            "description": "The address of the withdrawer",
+                            "example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
+                          },
+                          "shares": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "strategyAddress": {
+                                  "type": "string",
+                                  "pattern": "^0x[a-fA-F0-9]{40}$",
+                                  "description": "The contract address of the restaking strategy",
+                                  "example": "0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0"
+                                },
+                                "shares": {
+                                  "type": "string",
+                                  "description": "The amount of shares held in the strategy",
+                                  "example": "1277920000000000000000000"
+                                }
+                              },
+                              "required": [
+                                "strategyAddress",
+                                "shares"
+                              ]
+                            },
+                            "description": "The list of strategy shares",
+                            "example": [
+                              {
+                                "strategyAddress": "0x93c4b944d05dfe6df7645a86cd2206016c51564d",
+                                "shares": "1000288824523326631"
+                              }
+                            ]
+                          },
+                          "startBlock": {
+                            "type": "number",
+                            "description": "The block number when the withdrawal was queued",
+                            "example": 19912470
+                          },
+                          "createdAtBlock": {
+                            "type": "number",
+                            "description": "The block number when the withdrawal was recorded by EigenExplorer",
+                            "example": 19912470
+                          },
+                          "updatedAtBlock": {
+                            "type": "number",
+                            "description": "The block number when the withdrawal was last updated",
+                            "example": 19912470
+                          }
+                        },
+                        "required": [
+                          "withdrawalRoot",
+                          "nonce",
+                          "isCompleted",
+                          "stakerAddress",
+                          "delegatedTo",
+                          "withdrawerAddress",
+                          "shares",
+                          "startBlock",
+                          "createdAtBlock",
+                          "updatedAtBlock"
+                        ]
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "total": {
+                          "type": "number",
+                          "description": "Total number of records in the database",
+                          "example": 30
+                        },
+                        "skip": {
+                          "type": "number",
+                          "description": "The number of skiped records for this query",
+                          "example": 0
+                        },
+                        "take": {
+                          "type": "number",
+                          "description": "The number of records returned for this query",
+                          "example": 12
+                        }
+                      },
+                      "required": [
+                        "total",
+                        "skip",
+                        "take"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/stakers/{address}/withdrawals/queued": {
+      "get": {
+        "operationId": "getQueuedStakerWithdrawals",
+        "summary": "Retrieve queued withdrawals by staker address",
+        "description": "Returns all queued withdrawal data of the requested staker.",
+        "tags": [
+          "Stakers"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "address",
+            "description": "The address of the staker",
+            "schema": {
+              "type": "string",
+              "pattern": "^0x[a-fA-F0-9]{40}$",
+              "description": "The address of the staker",
+              "example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "skip",
+            "description": "The number of records to skip for pagination",
+            "schema": {
+              "type": "string",
+              "default": "0",
+              "description": "The number of records to skip for pagination",
+              "example": 0
+            }
+          },
+          {
+            "in": "query",
+            "name": "take",
+            "description": "The number of records to return for pagination",
+            "schema": {
+              "type": "string",
+              "default": "12",
+              "description": "The number of records to return for pagination",
+              "example": 12
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The list of queued withdrawals.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "withdrawalRoot": {
+                            "type": "string",
+                            "description": "The root hash of the withdrawal",
+                            "example": "0x9e6728ef0a8ad6009107a886047aae35bc5ed7deaa68580b0d1f8f67e3e5ed31"
+                          },
+                          "nonce": {
+                            "type": "number",
+                            "description": "The nonce of the withdrawal",
+                            "example": 0
+                          },
+                          "isCompleted": {
+                            "type": "boolean",
+                            "description": "Indicates if the withdrawal is completed",
+                            "example": false
+                          },
+                          "stakerAddress": {
+                            "type": "string",
+                            "description": "The address of the staker",
+                            "example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
+                          },
+                          "delegatedTo": {
+                            "type": "string",
+                            "description": "The operator address to which staking is delegated",
+                            "example": "0x0000000000000000000000000000000000000000"
+                          },
+                          "withdrawerAddress": {
+                            "type": "string",
+                            "description": "The address of the withdrawer",
+                            "example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
+                          },
+                          "shares": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "strategyAddress": {
+                                  "type": "string",
+                                  "pattern": "^0x[a-fA-F0-9]{40}$",
+                                  "description": "The contract address of the restaking strategy",
+                                  "example": "0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0"
+                                },
+                                "shares": {
+                                  "type": "string",
+                                  "description": "The amount of shares held in the strategy",
+                                  "example": "1277920000000000000000000"
+                                }
+                              },
+                              "required": [
+                                "strategyAddress",
+                                "shares"
+                              ]
+                            },
+                            "description": "The list of strategy shares",
+                            "example": [
+                              {
+                                "strategyAddress": "0x93c4b944d05dfe6df7645a86cd2206016c51564d",
+                                "shares": "1000288824523326631"
+                              }
+                            ]
+                          },
+                          "startBlock": {
+                            "type": "number",
+                            "description": "The block number when the withdrawal was queued",
+                            "example": 19912470
+                          },
+                          "createdAtBlock": {
+                            "type": "number",
+                            "description": "The block number when the withdrawal was recorded by EigenExplorer",
+                            "example": 19912470
+                          },
+                          "updatedAtBlock": {
+                            "type": "number",
+                            "description": "The block number when the withdrawal was last updated",
+                            "example": 19912470
+                          }
+                        },
+                        "required": [
+                          "withdrawalRoot",
+                          "nonce",
+                          "isCompleted",
+                          "stakerAddress",
+                          "delegatedTo",
+                          "withdrawerAddress",
+                          "shares",
+                          "startBlock",
+                          "createdAtBlock",
+                          "updatedAtBlock"
+                        ]
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "total": {
+                          "type": "number",
+                          "description": "Total number of records in the database",
+                          "example": 30
+                        },
+                        "skip": {
+                          "type": "number",
+                          "description": "The number of skiped records for this query",
+                          "example": 0
+                        },
+                        "take": {
+                          "type": "number",
+                          "description": "The number of records returned for this query",
+                          "example": 12
+                        }
+                      },
+                      "required": [
+                        "total",
+                        "skip",
+                        "take"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/stakers/{address}/withdrawals/queued_withdrawable": {
+      "get": {
+        "operationId": "getQueuedWithdrawableStakerWithdrawals",
+        "summary": "Retrieve queued and withdrawable withdrawals by staker address",
+        "description": "Returns all queued and withdrawable withdrawal data of the requested staker.",
+        "tags": [
+          "Stakers"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "address",
+            "description": "The address of the staker",
+            "schema": {
+              "type": "string",
+              "pattern": "^0x[a-fA-F0-9]{40}$",
+              "description": "The address of the staker",
+              "example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "skip",
+            "description": "The number of records to skip for pagination",
+            "schema": {
+              "type": "string",
+              "default": "0",
+              "description": "The number of records to skip for pagination",
+              "example": 0
+            }
+          },
+          {
+            "in": "query",
+            "name": "take",
+            "description": "The number of records to return for pagination",
+            "schema": {
+              "type": "string",
+              "default": "12",
+              "description": "The number of records to return for pagination",
+              "example": 12
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The list of queued and withdrawable withdrawals.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "withdrawalRoot": {
+                            "type": "string",
+                            "description": "The root hash of the withdrawal",
+                            "example": "0x9e6728ef0a8ad6009107a886047aae35bc5ed7deaa68580b0d1f8f67e3e5ed31"
+                          },
+                          "nonce": {
+                            "type": "number",
+                            "description": "The nonce of the withdrawal",
+                            "example": 0
+                          },
+                          "isCompleted": {
+                            "type": "boolean",
+                            "description": "Indicates if the withdrawal is completed",
+                            "example": false
+                          },
+                          "stakerAddress": {
+                            "type": "string",
+                            "description": "The address of the staker",
+                            "example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
+                          },
+                          "delegatedTo": {
+                            "type": "string",
+                            "description": "The operator address to which staking is delegated",
+                            "example": "0x0000000000000000000000000000000000000000"
+                          },
+                          "withdrawerAddress": {
+                            "type": "string",
+                            "description": "The address of the withdrawer",
+                            "example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
+                          },
+                          "shares": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "strategyAddress": {
+                                  "type": "string",
+                                  "pattern": "^0x[a-fA-F0-9]{40}$",
+                                  "description": "The contract address of the restaking strategy",
+                                  "example": "0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0"
+                                },
+                                "shares": {
+                                  "type": "string",
+                                  "description": "The amount of shares held in the strategy",
+                                  "example": "1277920000000000000000000"
+                                }
+                              },
+                              "required": [
+                                "strategyAddress",
+                                "shares"
+                              ]
+                            },
+                            "description": "The list of strategy shares",
+                            "example": [
+                              {
+                                "strategyAddress": "0x93c4b944d05dfe6df7645a86cd2206016c51564d",
+                                "shares": "1000288824523326631"
+                              }
+                            ]
+                          },
+                          "startBlock": {
+                            "type": "number",
+                            "description": "The block number when the withdrawal was queued",
+                            "example": 19912470
+                          },
+                          "createdAtBlock": {
+                            "type": "number",
+                            "description": "The block number when the withdrawal was recorded by EigenExplorer",
+                            "example": 19912470
+                          },
+                          "updatedAtBlock": {
+                            "type": "number",
+                            "description": "The block number when the withdrawal was last updated",
+                            "example": 19912470
+                          }
+                        },
+                        "required": [
+                          "withdrawalRoot",
+                          "nonce",
+                          "isCompleted",
+                          "stakerAddress",
+                          "delegatedTo",
+                          "withdrawerAddress",
+                          "shares",
+                          "startBlock",
+                          "createdAtBlock",
+                          "updatedAtBlock"
+                        ]
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "total": {
+                          "type": "number",
+                          "description": "Total number of records in the database",
+                          "example": 30
+                        },
+                        "skip": {
+                          "type": "number",
+                          "description": "The number of skiped records for this query",
+                          "example": 0
+                        },
+                        "take": {
+                          "type": "number",
+                          "description": "The number of records returned for this query",
+                          "example": 12
+                        }
+                      },
+                      "required": [
+                        "total",
+                        "skip",
+                        "take"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/stakers/{address}/withdrawals/completed": {
+      "get": {
+        "operationId": "getCompletedStakerWithdrawals",
+        "summary": "Retrieve completed withdrawals by staker address",
+        "description": "Returns all completed withdrawal data of the requested staker.",
+        "tags": [
+          "Stakers"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "address",
+            "description": "The address of the staker",
+            "schema": {
+              "type": "string",
+              "pattern": "^0x[a-fA-F0-9]{40}$",
+              "description": "The address of the staker",
+              "example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "skip",
+            "description": "The number of records to skip for pagination",
+            "schema": {
+              "type": "string",
+              "default": "0",
+              "description": "The number of records to skip for pagination",
+              "example": 0
+            }
+          },
+          {
+            "in": "query",
+            "name": "take",
+            "description": "The number of records to return for pagination",
+            "schema": {
+              "type": "string",
+              "default": "12",
+              "description": "The number of records to return for pagination",
+              "example": 12
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The list of completed withdrawals.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "withdrawalRoot": {
+                            "type": "string",
+                            "description": "The root hash of the withdrawal",
+                            "example": "0x9e6728ef0a8ad6009107a886047aae35bc5ed7deaa68580b0d1f8f67e3e5ed31"
+                          },
+                          "nonce": {
+                            "type": "number",
+                            "description": "The nonce of the withdrawal",
+                            "example": 0
+                          },
+                          "isCompleted": {
+                            "type": "boolean",
+                            "description": "Indicates if the withdrawal is completed",
+                            "example": false
+                          },
+                          "stakerAddress": {
+                            "type": "string",
+                            "description": "The address of the staker",
+                            "example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
+                          },
+                          "delegatedTo": {
+                            "type": "string",
+                            "description": "The operator address to which staking is delegated",
+                            "example": "0x0000000000000000000000000000000000000000"
+                          },
+                          "withdrawerAddress": {
+                            "type": "string",
+                            "description": "The address of the withdrawer",
+                            "example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
+                          },
+                          "shares": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "strategyAddress": {
+                                  "type": "string",
+                                  "pattern": "^0x[a-fA-F0-9]{40}$",
+                                  "description": "The contract address of the restaking strategy",
+                                  "example": "0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0"
+                                },
+                                "shares": {
+                                  "type": "string",
+                                  "description": "The amount of shares held in the strategy",
+                                  "example": "1277920000000000000000000"
+                                }
+                              },
+                              "required": [
+                                "strategyAddress",
+                                "shares"
+                              ]
+                            },
+                            "description": "The list of strategy shares",
+                            "example": [
+                              {
+                                "strategyAddress": "0x93c4b944d05dfe6df7645a86cd2206016c51564d",
+                                "shares": "1000288824523326631"
+                              }
+                            ]
+                          },
+                          "startBlock": {
+                            "type": "number",
+                            "description": "The block number when the withdrawal was queued",
+                            "example": 19912470
+                          },
+                          "createdAtBlock": {
+                            "type": "number",
+                            "description": "The block number when the withdrawal was recorded by EigenExplorer",
+                            "example": 19912470
+                          },
+                          "updatedAtBlock": {
+                            "type": "number",
+                            "description": "The block number when the withdrawal was last updated",
+                            "example": 19912470
+                          }
+                        },
+                        "required": [
+                          "withdrawalRoot",
+                          "nonce",
+                          "isCompleted",
+                          "stakerAddress",
+                          "delegatedTo",
+                          "withdrawerAddress",
+                          "shares",
+                          "startBlock",
+                          "createdAtBlock",
+                          "updatedAtBlock"
+                        ]
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "total": {
+                          "type": "number",
+                          "description": "Total number of records in the database",
+                          "example": 30
+                        },
+                        "skip": {
+                          "type": "number",
+                          "description": "The number of skiped records for this query",
+                          "example": 0
+                        },
+                        "take": {
+                          "type": "number",
+                          "description": "The number of records returned for this query",
+                          "example": 12
+                        }
+                      },
+                      "required": [
+                        "total",
+                        "skip",
+                        "take"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
                   ]
                 }
               }

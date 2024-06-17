@@ -13,8 +13,8 @@ const AllOperatorsResponseSchema = z.object({
 
 const CombinedQuerySchema = z
     .object({})
-    .merge(PaginationQuerySchema)
-    .merge(WithTvlQuerySchema);
+    .merge(WithTvlQuerySchema)
+    .merge(PaginationQuerySchema);
 
 export const getAllOperators: ZodOpenApiOperationObject = {
     operationId: 'getAllOperators',
@@ -27,7 +27,7 @@ export const getAllOperators: ZodOpenApiOperationObject = {
     },
     responses: {
         '200': {
-            description: 'The list of Operators records.',
+            description: 'The list of operator records.',
             content: {
                 'application/json': {
                     schema: AllOperatorsResponseSchema,

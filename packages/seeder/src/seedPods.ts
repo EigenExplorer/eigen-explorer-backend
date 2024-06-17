@@ -1,6 +1,4 @@
-import { parseAbiItem } from 'viem'
-import { getEigenContracts } from './data/address'
-import { getViemClient } from './utils/viemClient'
+import type prisma from '@prisma/client'
 import { getPrismaClient } from './utils/prismaClient'
 import {
 	baseBlock,
@@ -11,6 +9,7 @@ import {
 } from './utils/seeder'
 
 const blockSyncKey = 'lastSyncedBlock_pods'
+const blockSyncKeyLogs = 'lastSyncedBlock_logs_pods'
 
 /**
  *
@@ -18,45 +17,57 @@ const blockSyncKey = 'lastSyncedBlock_pods'
  * @param toBlock
  */
 export async function seedPods(toBlock?: bigint, fromBlock?: bigint) {
-	console.log('Seeding Pods ...')
-
-	const viemClient = getViemClient()
 	const prismaClient = getPrismaClient()
-	const podList: { address: string; owner: string; blockNumber: bigint }[] = []
+	const podList: prisma.Pod[] = []
 
 	const firstBlock = fromBlock
 		? fromBlock
 		: await fetchLastSyncBlock(blockSyncKey)
-	const lastBlock = toBlock ? toBlock : await viemClient.getBlockNumber()
+	const lastBlock = toBlock
+		? toBlock
+		: await fetchLastSyncBlock(blockSyncKeyLogs)
 
-	// Loop through evm logs
-	await loopThroughBlocks(firstBlock, lastBlock, async (fromBlock, toBlock) => {
-		const logs = await viemClient.getLogs({
-			address: getEigenContracts().EigenPodManager,
-			event: parseAbiItem(
-				'event PodDeployed(address indexed eigenPod, address indexed podOwner)'
-			),
-			fromBlock,
-			toBlock
-		})
+	// Bail early if there is no block diff to sync
+	if (lastBlock - firstBlock <= 0) {
+		console.log(`[In Sync] [Data] Pods from: ${firstBlock} to: ${lastBlock}`)
+		return
+	}
 
-		for (const l in logs) {
-			const log = logs[l]
-
-			const podAddress = String(log.args.eigenPod).toLowerCase()
-			const podOwner = String(log.args.podOwner).toLowerCase()
-
-			podList.push({
-				address: podAddress,
-				owner: podOwner,
-				blockNumber: log.blockNumber
+	await loopThroughBlocks(
+		firstBlock,
+		lastBlock,
+		async (fromBlock, toBlock) => {
+			const logs = await prismaClient.eventLogs_PodDeployed.findMany({
+				where: {
+					blockNumber: {
+						gt: fromBlock,
+						lte: toBlock
+					}
+				}
 			})
-		}
 
-		console.log(
-			`Pods deployed between blocks ${fromBlock} ${toBlock}: ${logs.length}`
-		)
-	})
+			for (const l in logs) {
+				const log = logs[l]
+
+				const podAddress = String(log.eigenPod).toLowerCase()
+				const podOwner = String(log.podOwner).toLowerCase()
+
+				const blockNumber = BigInt(log.blockNumber)
+				const timestamp = log.blockTime
+
+				podList.push({
+					address: podAddress,
+					owner: podOwner,
+					blockNumber,
+					createdAtBlock: blockNumber,
+					updatedAtBlock: blockNumber,
+					createdAt: timestamp,
+					updatedAt: timestamp
+				})
+			}
+		},
+		10_000n
+	)
 
 	// Prepare db transaction object
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
@@ -79,22 +90,29 @@ export async function seedPods(toBlock?: bigint, fromBlock?: bigint) {
 					where: { address: pod.address },
 					update: {
 						owner: pod.owner,
-						blockNumber: pod.blockNumber
+						blockNumber: pod.blockNumber,
+						updatedAtBlock: pod.updatedAtBlock,
+						updatedAt: pod.updatedAt
 					},
 					create: {
 						address: pod.address,
 						owner: pod.owner,
-						blockNumber: pod.blockNumber
+						blockNumber: pod.blockNumber,
+						createdAtBlock: pod.createdAtBlock,
+						createdAt: pod.createdAt,
+						updatedAtBlock: pod.updatedAtBlock,
+						updatedAt: pod.updatedAt
 					}
 				})
 			)
 		})
 	}
 
-	await bulkUpdateDbTransactions(dbTransactions)
+	await bulkUpdateDbTransactions(
+		dbTransactions,
+		`[Data] Pods from: ${firstBlock} to: ${lastBlock} size: ${podList.length}`
+	)
 
 	// Storing last sycned block
 	await saveLastSyncBlock(blockSyncKey, lastBlock)
-
-	console.log('Seeded Pods:', podList.length)
 }

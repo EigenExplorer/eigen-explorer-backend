@@ -81,6 +81,8 @@ export async function getAllAVS(req: Request, res: Response) {
 
 				return {
 					...withCuratedMetadata(avs),
+					createdAtBlock: avs.createdAtBlock.toString(),
+					updatedAtBlock: avs.updatedAtBlock.toString(),
 					shares,
 					totalOperators,
 					totalStakers,
@@ -91,7 +93,9 @@ export async function getAllAVS(req: Request, res: Response) {
 								strategyTokenPrices
 						  )
 						: undefined,
-					operators: undefined
+					operators: undefined,
+					metadataUrl: undefined,
+					isMetadataSynced: undefined
 				}
 			})
 		)
@@ -213,6 +217,8 @@ export async function getAVS(req: Request, res: Response) {
 
 		res.send({
 			...withCuratedMetadata(avs),
+			createdAtBlock: avs.createdAtBlock.toString(),
+			updatedAtBlock: avs.updatedAtBlock.toString(),
 			shares,
 			totalOperators,
 			totalStakers,
@@ -223,7 +229,9 @@ export async function getAVS(req: Request, res: Response) {
 						strategyTokenPrices
 				  )
 				: undefined,
-			operators: undefined
+			operators: undefined,
+			metadataUrl: undefined,
+			isMetadataSynced: undefined
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
@@ -420,6 +428,36 @@ function withOperatorShares(avsOperators) {
 		strategyAddress,
 		shares
 	}))
+}
+
+/**
+  * Protected route to invalidate the metadata of a given address
+  *
+  * @param req
+  * @param res
+  */
+export async function invalidateMetadata(req: Request, res: Response) {
+	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	}
+
+	try {
+		const { address } = req.params
+
+		const updateResult = await prisma.avs.updateMany({
+			where: { address: address.toLowerCase() },
+			data: { isMetadataSynced: false }
+		})
+
+		if (updateResult.count === 0) {
+			throw new Error('Address not found.')
+		}
+
+		res.send({ message: 'Metadata invalidated successfully.' })
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
 }
 
 // Helper functions

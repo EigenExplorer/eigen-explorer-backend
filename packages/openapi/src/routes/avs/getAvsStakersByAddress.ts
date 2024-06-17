@@ -5,10 +5,16 @@ import { ZodOpenApiOperationObject } from 'zod-openapi';
 import { PaginationQuerySchema } from '../../../../api/src/schema/zod/schemas/paginationQuery';
 import { PaginationMetaResponsesSchema } from '../../apiResponseSchema/base/paginationMetaResponses';
 import { StakerResponseSchema } from '../../apiResponseSchema/stakerResponse';
+import { WithTvlQuerySchema } from '../../../../api/src/schema/zod/schemas/withTvlQuery';
 
 const EthereumAddressParam = z.object({
     address: EthereumAddressSchema,
 });
+
+const CombinedQuerySchema = z
+    .object({})
+    .merge(WithTvlQuerySchema)
+    .merge(PaginationQuerySchema);
 
 const AvsStakerResponseSchema = z.object({
     data: z.array(StakerResponseSchema),
@@ -23,7 +29,7 @@ export const getAvsStakersByAddress: ZodOpenApiOperationObject = {
     tags: ['AVS'],
     requestParams: {
         path: EthereumAddressParam,
-        query: PaginationQuerySchema,
+        query: CombinedQuerySchema,
     },
     responses: {
         '200': {

@@ -15,38 +15,43 @@ export const baseBlock =
 export async function loopThroughBlocks(
 	firstBlock: bigint,
 	lastBlock: bigint,
-	cb: (fromBlock: bigint, toBlock: bigint) => Promise<void>
+	cb: (fromBlock: bigint, toBlock: bigint) => Promise<void>,
+	defaultBatchSize?: bigint
 ) {
+	const batchSize = defaultBatchSize ? defaultBatchSize : 4999n
 	let currentBlock = firstBlock
 	let nextBlock = firstBlock
 
 	while (nextBlock < lastBlock) {
-		nextBlock = currentBlock + 4999n
+		nextBlock = currentBlock + batchSize
 		if (nextBlock >= lastBlock) nextBlock = lastBlock
 
 		await cb(currentBlock, nextBlock)
 
-		currentBlock = nextBlock + 1n
+		currentBlock = nextBlock
 	}
 
 	return lastBlock
 }
 
-// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-export async function bulkUpdateDbTransactions(dbTransactions: any[]) {
+export async function bulkUpdateDbTransactions(
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+	dbTransactions: any[],
+	label?: string
+) {
 	const prismaClient = getPrismaClient()
 	const chunkSize = 1000
 
 	let i = 0
-	console.log('Updating db transactions', dbTransactions.length)
+	console.time(`[DB Write (${dbTransactions.length})] ${label || ''}`)
 
 	for (const chunk of chunkArray(dbTransactions, chunkSize)) {
-		console.time(`Updating db transactions ${i}, size: ${chunk.length}`)
 		await prismaClient.$transaction(chunk)
-		console.timeEnd(`Updating db transactions ${i}, size: ${chunk.length}`)
 
 		i++
 	}
+
+	console.timeEnd(`[DB Write (${dbTransactions.length})] ${label || ''}`)
 }
 
 export async function fetchLastSyncBlock(key: string): Promise<bigint> {
@@ -57,7 +62,7 @@ export async function fetchLastSyncBlock(key: string): Promise<bigint> {
 	})
 
 	return lastSyncedBlockData?.value
-		? BigInt(lastSyncedBlockData.value as number) + 1n
+		? BigInt(lastSyncedBlockData.value as number)
 		: baseBlock
 }
 
@@ -69,4 +74,46 @@ export async function saveLastSyncBlock(key: string, blockNumber: bigint) {
 		update: { value: Number(blockNumber) },
 		create: { key: key, value: Number(blockNumber) }
 	})
+}
+
+export async function getBlockDataFromDb(fromBlock: bigint, toBlock: bigint) {
+	const prismaClient = getPrismaClient()
+
+	const blockData = await prismaClient.evm_BlockData.findMany({
+		where: {
+			number: {
+				gte: BigInt(fromBlock),
+				lte: BigInt(toBlock)
+			}
+		},
+		select: {
+			number: true,
+			timestamp: true
+		},
+		orderBy: {
+			number: 'asc'
+		}
+	})
+
+	return new Map(blockData.map((block) => [block.number, block.timestamp]))
+}
+
+export async function fetchWithTimeout(
+	url: string,
+	timeout = 5000
+): Promise<Response> {
+	const controller = new AbortController()
+	const timeoutId = setTimeout(() => controller.abort(), timeout)
+
+	try {
+		const response = await fetch(url, { signal: controller.signal })
+		return response
+	} catch (error) {
+		if (error.name === 'AbortError') {
+			throw new Error('Request timed out')
+		}
+		throw error
+	} finally {
+		clearTimeout(timeoutId)
+	}
 }

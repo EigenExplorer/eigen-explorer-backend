@@ -20,6 +20,7 @@
         "http-errors": "~1.6.3",
         "jade": "^0.29.0",
         "joi": "^17.12.2",
+        "jsonwebtoken": "^9.0.2",
         "morgan": "~1.9.1",
         "route-cache": "^0.7.0",
         "viem": "^2.8.14",

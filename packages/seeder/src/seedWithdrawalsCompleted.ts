@@ -1,6 +1,3 @@
-import { parseAbiItem } from 'viem'
-import { getEigenContracts } from './data/address'
-import { getViemClient } from './utils/viemClient'
 import { getPrismaClient } from './utils/prismaClient'
 import {
 	bulkUpdateDbTransactions,
@@ -10,6 +7,7 @@ import {
 } from './utils/seeder'
 
 const blockSyncKey = 'lastSyncedBlock_completedWithdrawals'
+const blockSyncKeyLogs = 'lastSyncedBlock_logs_completedWithdrawals'
 
 /**
  *
@@ -20,40 +18,49 @@ export async function seedCompletedWithdrawals(
 	toBlock?: bigint,
 	fromBlock?: bigint
 ) {
-	console.log('Seeding Completed Withdrawals ...')
-
-	const viemClient = getViemClient()
 	const prismaClient = getPrismaClient()
 	const completedWithdrawalList: string[] = []
 
 	const firstBlock = fromBlock
 		? fromBlock
 		: await fetchLastSyncBlock(blockSyncKey)
-	const lastBlock = toBlock ? toBlock : await viemClient.getBlockNumber()
+	const lastBlock = toBlock
+		? toBlock
+		: await fetchLastSyncBlock(blockSyncKeyLogs)
 
-	// Loop through evm logs
-	await loopThroughBlocks(firstBlock, lastBlock, async (fromBlock, toBlock) => {
-		const logs = await viemClient.getLogs({
-			address: getEigenContracts().DelegationManager,
-			event: parseAbiItem('event WithdrawalCompleted(bytes32 withdrawalRoot)'),
-			fromBlock,
-			toBlock
-		})
-
-		for (const l in logs) {
-			const log = logs[l]
-
-			const withdrawalRoot = log.args.withdrawalRoot
-
-			if (withdrawalRoot) {
-				completedWithdrawalList.push(withdrawalRoot)
-			}
-		}
-
+	// Bail early if there is no block diff to sync
+	if (lastBlock - firstBlock <= 0) {
 		console.log(
-			`Withdrawals completed between blocks ${fromBlock} ${toBlock}: ${logs.length}`
+			`[In Sync] [Data] Completed Withdrawal from: ${firstBlock} to: ${lastBlock}`
 		)
-	})
+		return
+	}
+
+	await loopThroughBlocks(
+		firstBlock,
+		lastBlock,
+		async (fromBlock, toBlock) => {
+			const logs = await prismaClient.eventLogs_WithdrawalCompleted.findMany({
+				where: {
+					blockNumber: {
+						gt: fromBlock,
+						lte: toBlock
+					}
+				}
+			})
+
+			for (const l in logs) {
+				const log = logs[l]
+
+				const withdrawalRoot = log.withdrawalRoot
+
+				if (withdrawalRoot) {
+					completedWithdrawalList.push(withdrawalRoot)
+				}
+			}
+		},
+		10_000n
+	)
 
 	// Prepare db transaction object
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
@@ -70,10 +77,11 @@ export async function seedCompletedWithdrawals(
 		)
 	}
 
-	await bulkUpdateDbTransactions(dbTransactions)
+	await bulkUpdateDbTransactions(
+		dbTransactions,
+		`[Data] Completed Withdrawal from: ${firstBlock} to: ${lastBlock} size: ${completedWithdrawalList.length}`
+	)
 
 	// // Storing last sycned block
 	await saveLastSyncBlock(blockSyncKey, lastBlock)
-
-	console.log('Seeded Completed Withdrawals:', completedWithdrawalList.length)
 }

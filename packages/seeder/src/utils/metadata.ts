@@ -8,6 +8,16 @@ export interface EntityMetadata {
 	x: string
 }
 
+export const defaultMetadata: EntityMetadata = {
+	name: '',
+	website: '',
+	description: '',
+	logo: '',
+	x: '',
+	discord: '',
+	telegram: ''
+}
+
 export function isValidMetadataUrl(url: string): boolean {
 	// Define the regular expression pattern for HTTPS URLs
 	const httpsUrlPattern =

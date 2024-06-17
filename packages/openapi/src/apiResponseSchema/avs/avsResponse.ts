@@ -57,6 +57,10 @@ export const AvsSchema = z.object({
                     Eigen: 1000000,
                     cbETH: 2000000,
                 },
+                tvlStrategiesEth: {
+                    stETH: 1000000,
+                    cbETH: 2000000,
+                },
             },
         }),
 });
