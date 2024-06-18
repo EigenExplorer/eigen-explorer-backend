@@ -101,9 +101,11 @@ export async function getStaker(req: Request, res: Response) {
 		const strategiesWithSharesUnderlying = withTvl
 			? await getStrategiesWithShareUnderlying()
 			: []
-
+		console.log(staker)
 		res.send({
 			...staker,
+			createdAtBlock: Number(staker.createdAtBlock),
+			updatedAtBlock: Number(staker.updatedAtBlock),
 			tvl: withTvl
 				? sharesToTVL(
 						staker.shares,

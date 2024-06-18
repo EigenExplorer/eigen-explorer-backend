@@ -70,6 +70,10 @@ export async function seedValidators(shouldClearPrev?: boolean) {
 					const withdrawalCredentials = `0x${v.validator.withdrawal_credentials
 						.slice(-40)
 						.toLowerCase()}`
+					
+					const activationEpoch = BigInt(v.validator.activation_epoch) === 18446744073709551615n
+					? 0n
+					: BigInt(v.validator.activation_epoch)
 
 					if (podAddressList.indexOf(withdrawalCredentials) !== -1) {
 						podValidators.push({
