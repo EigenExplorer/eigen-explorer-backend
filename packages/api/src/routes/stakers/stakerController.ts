@@ -46,6 +46,8 @@ export async function getAllStakers(req: Request, res: Response) {
 
 		const stakers = stakersRecords.map((staker) => ({
 			...staker,
+			createdAtBlock: Number(staker.createdAtBlock),
+			updatedAtBlock: Number(staker.updatedAtBlock),
 			tvl: withTvl
 				? sharesToTVL(
 						staker.shares,
@@ -101,6 +103,8 @@ export async function getStaker(req: Request, res: Response) {
 
 		res.send({
 			...staker,
+			createdAtBlock: Number(staker.createdAtBlock),
+			updatedAtBlock: Number(staker.updatedAtBlock),
 			tvl: withTvl
 				? sharesToTVL(
 						staker.shares,
