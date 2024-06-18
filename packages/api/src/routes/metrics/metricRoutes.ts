@@ -10,7 +10,8 @@ import {
 	getTvlRestakingByStrategy,
 	getHistoricalAvsCount,
 	getHistoricalOperatorCount,
-	getHistoricalStakerCount
+	getHistoricalStakerCount,
+	getEthStats
 } from './metricController'
 
 import routeCache from 'route-cache'
@@ -56,5 +57,7 @@ router.get(
 	routeCache.cacheSeconds(120),
 	getHistoricalStakerCount
 )
+
+router.get('/eth-stats', routeCache.cacheSeconds(3600), getEthStats)
 
 export default router
