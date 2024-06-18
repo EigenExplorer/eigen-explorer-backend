@@ -117,7 +117,8 @@ export async function seedCompletedWithdrawals(
 	if (completedWithdrawalList.length > 0) {
 		dbTransactions.push(
 			prismaClient.withdrawalCompleted.createMany({
-				data: completedWithdrawalList
+				data: completedWithdrawalList,
+				skipDuplicates: true
 			})
 		)
 	}
