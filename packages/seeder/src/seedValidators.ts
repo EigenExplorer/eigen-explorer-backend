@@ -81,7 +81,7 @@ export async function seedValidators(shouldClearPrev?: boolean) {
 							slashed: v.validator.slashed as boolean,
 							withdrawalCredentials: v.validator
 								.withdrawal_credentials as string,
-							activationEpoch: v.validator.activation_epoch as bigint
+							activationEpoch: v.validator.activation_epoch as bigint || 0n
 						})
 					}
 				})
