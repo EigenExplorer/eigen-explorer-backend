@@ -23,6 +23,7 @@ import { seedLogsDeposit } from './events/seedLogsDeposit'
 import { seedDeposits } from './seedDeposits'
 import { monitorAvsMetadata } from './monitors/avsMetadata'
 import { monitorOperatorMetadata } from './monitors/operatorMetadata'
+import { seedLogsPodSharesUpdated } from './events/seedLogsPodSharesUpdated'
 
 console.log('Initializing Seeder ...')
 
@@ -47,6 +48,7 @@ async function seedEigenDataLoop() {
 			await seedLogsWithdrawalQueued(targetBlock)
 			await seedLogsWithdrawalCompleted(targetBlock)
 			await seedLogsDeposit(targetBlock)
+			await seedLogsPodSharesUpdated(targetBlock)
 
 			await seedAvs()
 			await seedOperators()
@@ -99,7 +101,6 @@ async function seedEigenPodValidators() {
 		await delay(3600)
 	}
 }
-
 seedEigenDataLoop()
 monitorMetadata()
 seedEigenPodValidators()

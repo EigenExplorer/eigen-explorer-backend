@@ -144,7 +144,9 @@ model Pod {
 model ValidatorRestake {
   podAddress     String
   validatorIndex BigInt
-  blockNumber    BigInt
+
+  createdAtBlock BigInt   @default(0)
+  createdAt      DateTime @default(now())
 
   @@id([podAddress, validatorIndex])
 }
@@ -157,12 +159,12 @@ model Validator {
   effectiveBalance      BigInt
   slashed               Boolean
   withdrawalCredentials String
+  activationEpoch       BigInt
 }
 
-model Withdrawal {
+model WithdrawalQueued {
   withdrawalRoot String  @id @unique
   nonce          Int
-  isCompleted    Boolean @default(false)
 
   stakerAddress     String
   delegatedTo       String
@@ -172,9 +174,19 @@ model Withdrawal {
   startBlock        BigInt
 
   createdAtBlock BigInt   @default(0)
-  updatedAtBlock BigInt   @default(0)
   createdAt      DateTime @default(now())
-  updatedAt      DateTime @default(now())
+
+  completedWithdrawal WithdrawalCompleted?
+}
+
+model WithdrawalCompleted {
+  withdrawalRoot    String  @id @unique
+  receiveAsTokens   Boolean @default(false)
+
+  createdAtBlock BigInt   @default(0)
+  createdAt      DateTime @default(now())
+
+  queuedWithdrawal WithdrawalQueued  @relation(fields: [withdrawalRoot], references: [withdrawalRoot])
 }
 
 // Collection to store system settings
@@ -250,6 +262,22 @@ model EventLogs_PodDeployed {
 
   @@id([transactionHash, transactionIndex])
   @@index([eigenPod, podOwner])
+}
+
+model EventLogs_PodSharesUpdated {
+  address String
+
+  transactionHash  String
+  transactionIndex Int
+  blockNumber      BigInt
+  blockHash        String
+  blockTime        DateTime
+
+  podOwner    String
+  sharesDelta String
+
+  @@id([transactionHash, transactionIndex])
+  @@index([podOwner])
 }
 
 model EventLogs_StakerDelegated {
@@ -373,6 +401,21 @@ model EventLogs_Deposit {
 
   @@id([transactionHash, transactionIndex])
   @@index([staker])
+}
+
+model EventLogs_ValidatorRestaked {
+  address String
+
+  transactionHash  String
+  transactionIndex Int
+  blockNumber      BigInt
+  blockHash        String
+  blockTime        DateTime
+
+  validatorIndex   BigInt
+
+  @@id([transactionHash, transactionIndex])
+  @@index([validatorIndex])
 }
 
 // Misc
