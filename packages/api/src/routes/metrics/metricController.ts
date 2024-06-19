@@ -98,7 +98,7 @@ export async function getTvlRestakingByStrategy(req: Request, res: Response) {
 		)
 
 		res.send({
-			tvl
+			...tvl
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
@@ -279,8 +279,14 @@ async function doGetTvl() {
 
 async function doGetTvlStrategy(strategy: `0x${string}`) {
 	let tvl = 0
+	let tvlEth = 0
 
 	try {
+		const strategyTokenPrices = await fetchStrategyTokenPrices()
+		const strategyTokenPrice = Object.values(strategyTokenPrices).find(
+			(stp) => stp.strategyAddress.toLowerCase() === strategy.toLowerCase()
+		)
+
 		const contract = getContract({
 			address: strategy,
 			abi: strategyAbi,
@@ -293,9 +299,16 @@ async function doGetTvlStrategy(strategy: `0x${string}`) {
 					await contract.read.totalShares()
 				])
 			) / 1e18
+
+		if (strategyTokenPrice) {
+			tvlEth = tvl * strategyTokenPrice.eth
+		}
 	} catch (error) {}
 
-	return tvl
+	return {
+		tvl,
+		tvlEth
+	}
 }
 
 async function doGetTvlBeaconChain() {
