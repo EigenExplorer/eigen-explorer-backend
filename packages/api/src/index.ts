@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import './utils/bigint'
 
 import express, { type Request, type Response } from 'express';
 import cookieParser from 'cookie-parser';
