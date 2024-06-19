@@ -82,10 +82,7 @@ export async function getAllWithdrawals(req: Request, res: Response) {
 			return {
 				...withdrawal,
 				shares,
-				strategies: undefined,
-				startBlock: Number(withdrawal.startBlock),
-				createdAtBlock: Number(withdrawal.createdAtBlock),
-				updatedAtBlock: Number(withdrawal.updatedAtBlock)
+				strategies: undefined
 			}
 		})
 
@@ -124,10 +121,7 @@ export async function getWithdrawal(req: Request, res: Response) {
 		res.send({
 			...withdrawal,
 			shares,
-			strategies: undefined,
-			startBlock: Number(withdrawal.startBlock),
-			createdAtBlock: Number(withdrawal.createdAtBlock),
-			updatedAtBlock: Number(withdrawal.updatedAtBlock)
+			strategies: undefined
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
