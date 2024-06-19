@@ -141,6 +141,28 @@ export async function getTotalStakers(req: Request, res: Response) {
 	}
 }
 
+export async function getTotalWithdrawals(req: Request, res: Response) {
+	try {
+		const totalWithdrawals = await doGetTotalWithdrawals()
+
+		res.send(totalWithdrawals)
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+export async function getTotalDeposits(req: Request, res: Response) {
+	try {
+		const totalDeposits = await doGetTotalDeposits()
+
+		res.send({
+			totalDeposits
+		})
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
 export async function getHistoricalAvsCount(req: Request, res: Response) {
 	const paramCheck = HistoricalCountSchema.safeParse(req.query)
 	if (!paramCheck.success) {
@@ -331,6 +353,24 @@ async function doGetTotalStakerCount() {
 	})
 
 	return stakers
+}
+
+async function doGetTotalWithdrawals() {
+	const totalWithdrawals = await prisma.withdrawalQueued.count()
+	const completed = await prisma.withdrawalCompleted.count()
+	const pending = totalWithdrawals - completed
+
+	return {
+		totalWithdrawals,
+		pending,
+		completed
+	}
+}
+
+async function doGetTotalDeposits() {
+	const deposits = await prisma.deposit.count()
+
+	return deposits
 }
 
 async function doGetHistoricalCount(
