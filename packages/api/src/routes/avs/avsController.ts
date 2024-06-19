@@ -81,8 +81,6 @@ export async function getAllAVS(req: Request, res: Response) {
 
 				return {
 					...withCuratedMetadata(avs),
-					createdAtBlock: avs.createdAtBlock.toString(),
-					updatedAtBlock: avs.updatedAtBlock.toString(),
 					shares,
 					totalOperators,
 					totalStakers,
@@ -217,8 +215,6 @@ export async function getAVS(req: Request, res: Response) {
 
 		res.send({
 			...withCuratedMetadata(avs),
-			createdAtBlock: avs.createdAtBlock.toString(),
-			updatedAtBlock: avs.updatedAtBlock.toString(),
 			shares,
 			totalOperators,
 			totalStakers,

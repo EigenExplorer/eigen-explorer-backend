@@ -47,8 +47,6 @@ export async function getAllOperators(req: Request, res: Response) {
 
 		const operators = operatorRecords.map((operator) => ({
 			...operator,
-			createdAtBlock: operator.createdAtBlock.toString(),
-			updatedAtBlock: operator.updatedAtBlock.toString(),
 			totalStakers: operator.stakers.length,
 			tvl: withTvl
 				? sharesToTVL(
@@ -110,8 +108,6 @@ export async function getOperator(req: Request, res: Response) {
 
 		res.send({
 			...operator,
-			createdAtBlock: operator.createdAtBlock.toString(),
-			updatedAtBlock: operator.updatedAtBlock.toString(),
 			totalStakers: operator.stakers.length,
 			tvl: withTvl
 				? sharesToTVL(
