@@ -366,7 +366,7 @@ async function doGetHistoricalCount(
 	let tally = initialTally
 	let currentDate = startDate.getTime()
 	let previousValue = 0
-	let change = 0
+	let change = Number.NaN
 	let firstRun = true
 
 	const timeInterval =
@@ -390,7 +390,6 @@ async function doGetHistoricalCount(
 
 			if (firstRun) {
 				firstRun = false
-				change = Number.NaN
 			} else if (previousValue) {
 				change =
 					Math.round(((value - previousValue) / previousValue) * 1000) / 1000
@@ -408,7 +407,6 @@ async function doGetHistoricalCount(
 		} else {
 			if (firstRun) {
 				firstRun = false
-				change = Number.NaN
 			} else if (previousValue) {
 				tally += intervalData.length
 				change =
