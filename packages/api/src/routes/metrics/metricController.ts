@@ -226,6 +226,48 @@ export async function getHistoricalStakerCount(req: Request, res: Response) {
 	}
 }
 
+export async function getHistoricalWithdrawalCount(req: Request, res: Response) {
+	const paramCheck = HistoricalCountSchema.safeParse(req.query)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	}
+
+	try {
+		const { frequency, variant, startAt, endAt } = paramCheck.data
+		const data = await doGetHistoricalCount(
+			'withdrawalQueued',
+			startAt,
+			endAt,
+			frequency,
+			variant
+		)
+		res.status(200).send({ data })
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+export async function getHistoricalDepositCount(req: Request, res: Response) {
+	const paramCheck = HistoricalCountSchema.safeParse(req.query)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	}
+
+	try {
+		const { frequency, variant, startAt, endAt } = paramCheck.data
+		const data = await doGetHistoricalCount(
+			'deposit',
+			startAt,
+			endAt,
+			frequency,
+			variant
+		)
+		res.status(200).send({ data })
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
 // ================================================
 
 async function doGetTvl() {
@@ -374,7 +416,7 @@ async function doGetTotalDeposits() {
 }
 
 async function doGetHistoricalCount(
-	modelName: 'avs' | 'operator' | 'staker',
+	modelName: 'avs' | 'operator' | 'staker' | 'withdrawalQueued' | 'deposit',
 	startAt: string,
 	endAt: string,
 	frequency: string,
@@ -388,7 +430,7 @@ async function doGetHistoricalCount(
 	const startDate = resetTime(new Date(startAt))
 	const endDate = resetTime(new Date(endAt))
 
-	if (!['avs', 'operator', 'staker'].includes(modelName)) {
+	if (!['avs', 'operator', 'staker', 'withdrawalQueued', 'deposit'].includes(modelName)) {
 		throw new Error('Invalid model name')
 	}
 
