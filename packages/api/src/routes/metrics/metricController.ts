@@ -392,7 +392,7 @@ async function doGetHistoricalCount(
 				firstRun = false
 			} else if (previousValue) {
 				change =
-					Math.round(((value - previousValue) / previousValue) * 1000) / 1000
+					Math.round(((value - previousValue) / previousValue) * 100000) / 100000
 			} else {
 				change = value ? Number.NaN : 0
 			}
