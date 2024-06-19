@@ -362,9 +362,12 @@ async function doGetHistoricalCount(
 		}
 	})
 
+	const results: { ts: string; value: number; change: number }[] = []
 	let tally = initialTally
-	const results: { ts: string; value: number }[] = []
 	let currentDate = startDate.getTime()
+	let previousValue = 0
+	let change = 0
+	let firstRun = true
 
 	const timeInterval =
 		{
@@ -383,16 +386,46 @@ async function doGetHistoricalCount(
 		)
 
 		if (variant === 'count') {
+			const value = intervalData.length
+
+			if (firstRun) {
+				firstRun = false
+				change = Number.NaN
+			} else if (previousValue) {
+				change =
+					Math.round(((value - previousValue) / previousValue) * 1000) / 1000
+			} else {
+				change = value ? Number.NaN : 0
+			}
+
 			results.push({
 				ts: new Date(Number(currentDate)).toISOString(),
-				value: intervalData.length
+				value,
+				change
 			})
+
+			previousValue = value
 		} else {
-			tally += intervalData.length
+			if (firstRun) {
+				firstRun = false
+				change = Number.NaN
+			} else if (previousValue) {
+				tally += intervalData.length
+				change =
+					Math.round(((tally - previousValue) / previousValue) * 100000) /
+					100000
+			} else {
+				tally += intervalData.length
+				change = tally ? Number.NaN : 0
+			}
+
 			results.push({
 				ts: new Date(Number(currentDate)).toISOString(),
-				value: tally
+				value: tally,
+				change
 			})
+
+			previousValue = tally
 		}
 
 		currentDate = nextDate
