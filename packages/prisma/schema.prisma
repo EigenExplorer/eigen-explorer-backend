@@ -385,21 +385,6 @@ model EventLogs_Deposit {
   @@index([staker])
 }
 
-model EventLogs_ValidatorRestaked {
-  address String
-
-  transactionHash  String
-  transactionIndex Int
-  blockNumber      BigInt
-  blockHash        String
-  blockTime        DateTime
-
-  validatorIndex   BigInt
-
-  @@id([transactionHash, transactionIndex])
-  @@index([validatorIndex])
-}
-
 // Misc
 
 model Evm_BlockData {
