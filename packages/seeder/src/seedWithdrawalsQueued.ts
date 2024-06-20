@@ -20,7 +20,7 @@ export async function seedQueuedWithdrawals(
 	fromBlock?: bigint
 ) {
 	const prismaClient = getPrismaClient()
-	const queuedWithdrawalList: prisma.Withdrawal[] = []
+	const queuedWithdrawalList: prisma.WithdrawalQueued[] = []
 
 	const firstBlock = fromBlock
 		? fromBlock
@@ -66,7 +66,6 @@ export async function seedQueuedWithdrawals(
 					queuedWithdrawalList.push({
 						withdrawalRoot,
 						nonce: Number(log.nonce),
-						isCompleted: false,
 						stakerAddress,
 						delegatedTo,
 						withdrawerAddress,
@@ -75,9 +74,7 @@ export async function seedQueuedWithdrawals(
 
 						startBlock: log.startBlock,
 						createdAtBlock: blockNumber,
-						updatedAtBlock: blockNumber,
-						createdAt: timestamp,
-						updatedAt: timestamp
+						createdAt: timestamp
 					})
 				}
 			}
@@ -91,7 +88,7 @@ export async function seedQueuedWithdrawals(
 
 	if (queuedWithdrawalList.length > 0) {
 		dbTransactions.push(
-			prismaClient.withdrawal.createMany({
+			prismaClient.withdrawalQueued.createMany({
 				data: queuedWithdrawalList,
 				skipDuplicates: true
 			})
