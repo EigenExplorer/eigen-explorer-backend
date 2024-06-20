@@ -107,10 +107,10 @@ export async function getTvlRestakingByStrategy(req: Request, res: Response) {
 
 export async function getTotalAvs(req: Request, res: Response) {
 	try {
-		const totalAvs = await doGetTotalAvsCount()
+		const total = await doGetTotalAvsCount()
 
 		res.send({
-			totalAvs
+			total
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
@@ -119,10 +119,10 @@ export async function getTotalAvs(req: Request, res: Response) {
 
 export async function getTotalOperators(req: Request, res: Response) {
 	try {
-		const totalOperators = await doGetTotalOperatorCount()
+		const total = await doGetTotalOperatorCount()
 
 		res.send({
-			totalOperators
+			total
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
@@ -131,10 +131,10 @@ export async function getTotalOperators(req: Request, res: Response) {
 
 export async function getTotalStakers(req: Request, res: Response) {
 	try {
-		const totalStakers = await doGetTotalStakerCount()
+		const total = await doGetTotalStakerCount()
 
 		res.send({
-			totalStakers
+			total
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
@@ -143,9 +143,9 @@ export async function getTotalStakers(req: Request, res: Response) {
 
 export async function getTotalWithdrawals(req: Request, res: Response) {
 	try {
-		const totalWithdrawals = await doGetTotalWithdrawals()
+		const total = await doGetTotalWithdrawals()
 
-		res.send(totalWithdrawals)
+		res.send(total)
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
 	}
@@ -153,10 +153,10 @@ export async function getTotalWithdrawals(req: Request, res: Response) {
 
 export async function getTotalDeposits(req: Request, res: Response) {
 	try {
-		const totalDeposits = await doGetTotalDeposits()
+		const total = await doGetTotalDeposits()
 
 		res.send({
-			totalDeposits
+			total
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
@@ -398,12 +398,12 @@ async function doGetTotalStakerCount() {
 }
 
 async function doGetTotalWithdrawals() {
-	const totalWithdrawals = await prisma.withdrawalQueued.count()
+	const total = await prisma.withdrawalQueued.count()
 	const completed = await prisma.withdrawalCompleted.count()
-	const pending = totalWithdrawals - completed
+	const pending = total - completed
 
 	return {
-		totalWithdrawals,
+		total,
 		pending,
 		completed
 	}
