@@ -144,9 +144,7 @@ model Pod {
 model ValidatorRestake {
   podAddress     String
   validatorIndex BigInt
-
-  createdAtBlock BigInt   @default(0)
-  createdAt      DateTime @default(now())
+  blockNumber    BigInt
 
   @@id([podAddress, validatorIndex])
 }
