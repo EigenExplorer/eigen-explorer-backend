@@ -137,7 +137,7 @@ export async function getStakerWithdrawals(req: Request, res: Response) {
 			},
 			skip,
 			take,
-			orderBy: { startBlock: 'desc' }
+			orderBy: { createdAtBlock: 'desc' }
 		})
 
 		const data = withdrawalRecords.map((withdrawal) => {
@@ -193,7 +193,7 @@ export async function getStakerWithdrawalsQueued(req: Request, res: Response) {
 			where: filterQuery,
 			skip,
 			take,
-			orderBy: { startBlock: 'desc' }
+			orderBy: { createdAtBlock: 'desc' }
 		})
 
 		const data = withdrawalRecords.map((withdrawal) => {
@@ -248,7 +248,7 @@ export async function getStakerWithdrawalsWithdrawable(
 		const filterQuery = {
 			stakerAddress: address,
 			completedWithdrawal: null,
-			startBlock: { lte: minDelayBlock }
+			createdAtBlock: { lte: minDelayBlock }
 		}
 
 		const withdrawalCount = await prisma.withdrawalQueued.count({
@@ -258,7 +258,7 @@ export async function getStakerWithdrawalsWithdrawable(
 			where: filterQuery,
 			skip,
 			take,
-			orderBy: { startBlock: 'desc' }
+			orderBy: { createdAtBlock: 'desc' }
 		})
 
 		const data = withdrawalRecords.map((withdrawal) => {
@@ -318,7 +318,7 @@ export async function getStakerWithdrawalsCompleted(
 			},
 			skip,
 			take,
-			orderBy: { startBlock: 'desc' }
+			orderBy: { createdAtBlock: 'desc' }
 		})
 
 		const data = withdrawalRecords.map((withdrawal) => {

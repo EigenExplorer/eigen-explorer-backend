@@ -54,7 +54,7 @@ export async function getAllWithdrawals(req: Request, res: Response) {
 						BigInt((minDelayBlocks?.value as string) || 0)
 
 					filterQuery.completedWithdrawal = null
-					filterQuery.startBlock = { lte: minDelayBlock }
+					filterQuery.createdAtBlock = { lte: minDelayBlock }
 					break
 				}
 				case 'completed':
@@ -73,7 +73,7 @@ export async function getAllWithdrawals(req: Request, res: Response) {
 			},
 			skip,
 			take,
-			orderBy: { startBlock: 'desc' }
+			orderBy: { createdAtBlock: 'desc' }
 		})
 
 		const data = withdrawalRecords.map((withdrawal) => {

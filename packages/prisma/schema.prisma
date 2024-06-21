@@ -168,7 +168,6 @@ model WithdrawalQueued {
   withdrawerAddress String
   strategies        String[]
   shares            String[]
-  startBlock        BigInt
 
   createdAtBlock BigInt   @default(0)
   createdAt      DateTime @default(now())
