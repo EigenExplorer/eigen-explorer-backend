@@ -66,13 +66,13 @@ router.get(
 )
 
 router.get(
-	'/historical/withdrawals',
+	'/historical/count-withdrawals',
 	routeCache.cacheSeconds(120),
 	getHistoricalWithdrawalCount
 )
 
 router.get(
-	'/historical/deposits',
+	'/historical/count-deposits',
 	routeCache.cacheSeconds(120),
 	getHistoricalDepositCount
 )
