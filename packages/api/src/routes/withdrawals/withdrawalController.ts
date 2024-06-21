@@ -25,7 +25,7 @@ export async function getAllWithdrawals(req: Request, res: Response) {
 		result.data
 
 	try {
-		const filterQuery: Prisma.WithdrawalWhereInput = {}
+		const filterQuery: Prisma.WithdrawalQueuedWhereInput = {}
 
 		if (stakerAddress) {
 			filterQuery.stakerAddress = stakerAddress.toLowerCase()
@@ -42,7 +42,7 @@ export async function getAllWithdrawals(req: Request, res: Response) {
 		if (status) {
 			switch (status) {
 				case 'queued':
-					filterQuery.isCompleted = false
+					filterQuery.completedWithdrawal = null
 					break
 				case 'queued_withdrawable': {
 					const viemClient = getViemClient()
@@ -53,24 +53,27 @@ export async function getAllWithdrawals(req: Request, res: Response) {
 						(await viemClient.getBlockNumber()) -
 						BigInt((minDelayBlocks?.value as string) || 0)
 
-					filterQuery.isCompleted = false
-					filterQuery.startBlock = { lte: minDelayBlock }
+					filterQuery.completedWithdrawal = null
+					filterQuery.createdAtBlock = { lte: minDelayBlock }
 					break
 				}
 				case 'completed':
-					filterQuery.isCompleted = true
+					filterQuery.NOT = { completedWithdrawal: null }
 					break
 			}
 		}
 
-		const withdrawalCount = await prisma.withdrawal.count({
+		const withdrawalCount = await prisma.withdrawalQueued.count({
 			where: filterQuery
 		})
-		const withdrawalRecords = await prisma.withdrawal.findMany({
+		const withdrawalRecords = await prisma.withdrawalQueued.findMany({
 			where: filterQuery,
+			include: {
+				completedWithdrawal: true
+			},
 			skip,
 			take,
-			orderBy: { startBlock: 'desc' }
+			orderBy: { createdAtBlock: 'desc' }
 		})
 
 		const data = withdrawalRecords.map((withdrawal) => {
@@ -82,7 +85,14 @@ export async function getAllWithdrawals(req: Request, res: Response) {
 			return {
 				...withdrawal,
 				shares,
-				strategies: undefined
+				strategies: undefined,
+				completedWithdrawal: undefined,
+				isCompleted: !!withdrawal.completedWithdrawal,
+				updatedAt:
+					withdrawal.completedWithdrawal?.createdAt || withdrawal.createdAt,
+				updatedAtBlock:
+					withdrawal.completedWithdrawal?.createdAtBlock ||
+					withdrawal.createdAtBlock
 			}
 		})
 
@@ -109,8 +119,11 @@ export async function getWithdrawal(req: Request, res: Response) {
 	try {
 		const { withdrawalRoot } = req.params
 
-		const withdrawal = await prisma.withdrawal.findUniqueOrThrow({
-			where: { withdrawalRoot }
+		const withdrawal = await prisma.withdrawalQueued.findUniqueOrThrow({
+			where: { withdrawalRoot },
+			include: {
+				completedWithdrawal: true
+			}
 		})
 
 		const shares = withdrawal.shares.map((s, i) => ({
@@ -121,7 +134,14 @@ export async function getWithdrawal(req: Request, res: Response) {
 		res.send({
 			...withdrawal,
 			shares,
-			strategies: undefined
+			strategies: undefined,
+			completedWithdrawal: undefined,
+			isCompleted: !!withdrawal.completedWithdrawal,
+			updatedAt:
+				withdrawal.completedWithdrawal?.createdAt || withdrawal.createdAt,
+			updatedAtBlock:
+				withdrawal.completedWithdrawal?.createdAtBlock ||
+				withdrawal.createdAtBlock
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)

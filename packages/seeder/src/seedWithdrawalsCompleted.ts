@@ -1,3 +1,4 @@
+import prisma from '@prisma/client'
 import { getPrismaClient } from './utils/prismaClient'
 import {
 	bulkUpdateDbTransactions,
@@ -7,7 +8,7 @@ import {
 } from './utils/seeder'
 
 const blockSyncKey = 'lastSyncedBlock_completedWithdrawals'
-const blockSyncKeyLogs = 'lastSyncedBlock_logs_completedWithdrawals'
+const blockSyncKeyLogs = 'lastSyncedBlock_queuedWithdrawals' // Latest sync is with WithdrawalQueued table due to foreign key constraint on withdrawalRoot
 
 /**
  *
@@ -19,7 +20,7 @@ export async function seedCompletedWithdrawals(
 	fromBlock?: bigint
 ) {
 	const prismaClient = getPrismaClient()
-	const completedWithdrawalList: string[] = []
+	const completedWithdrawalList: prisma.WithdrawalCompleted[] = []
 
 	const firstBlock = fromBlock
 		? fromBlock
@@ -55,7 +56,11 @@ export async function seedCompletedWithdrawals(
 				const withdrawalRoot = log.withdrawalRoot
 
 				if (withdrawalRoot) {
-					completedWithdrawalList.push(withdrawalRoot)
+					completedWithdrawalList.push({
+						withdrawalRoot: withdrawalRoot,
+						createdAtBlock: log.blockNumber,
+						createdAt: log.blockTime
+					})
 				}
 			}
 		},
@@ -68,11 +73,9 @@ export async function seedCompletedWithdrawals(
 
 	if (completedWithdrawalList.length > 0) {
 		dbTransactions.push(
-			prismaClient.withdrawal.updateMany({
-				where: { withdrawalRoot: { in: completedWithdrawalList } },
-				data: {
-					isCompleted: true
-				}
+			prismaClient.withdrawalCompleted.createMany({
+				data: completedWithdrawalList,
+				skipDuplicates: true
 			})
 		)
 	}
@@ -82,6 +85,6 @@ export async function seedCompletedWithdrawals(
 		`[Data] Completed Withdrawal from: ${firstBlock} to: ${lastBlock} size: ${completedWithdrawalList.length}`
 	)
 
-	// // Storing last sycned block
+	// Storing last synced block
 	await saveLastSyncBlock(blockSyncKey, lastBlock)
 }
