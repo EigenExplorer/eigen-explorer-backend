@@ -10,7 +10,11 @@ import {
 	getTvlRestakingByStrategy,
 	getHistoricalAvsCount,
 	getHistoricalOperatorCount,
-	getHistoricalStakerCount
+	getHistoricalStakerCount,
+	getHistoricalDepositCount,
+	getHistoricalWithdrawalCount,
+	getTotalWithdrawals,
+	getTotalDeposits
 } from './metricController'
 
 import routeCache from 'route-cache'
@@ -39,6 +43,10 @@ router.get('/total-operators', routeCache.cacheSeconds(120), getTotalOperators)
 
 router.get('/total-stakers', routeCache.cacheSeconds(120), getTotalStakers)
 
+router.get('/total-withdrawals', routeCache.cacheSeconds(120), getTotalWithdrawals)
+
+router.get('/total-deposits', routeCache.cacheSeconds(120), getTotalDeposits)
+
 router.get(
 	'/historical/avs',
 	routeCache.cacheSeconds(120),
@@ -55,6 +63,18 @@ router.get(
 	'/historical/stakers',
 	routeCache.cacheSeconds(120),
 	getHistoricalStakerCount
+)
+
+router.get(
+	'/historical/withdrawals',
+	routeCache.cacheSeconds(120),
+	getHistoricalWithdrawalCount
+)
+
+router.get(
+	'/historical/deposits',
+	routeCache.cacheSeconds(120),
+	getHistoricalDepositCount
 )
 
 export default router

@@ -107,10 +107,10 @@ export async function getTvlRestakingByStrategy(req: Request, res: Response) {
 
 export async function getTotalAvs(req: Request, res: Response) {
 	try {
-		const totalAvs = await doGetTotalAvsCount()
+		const total = await doGetTotalAvsCount()
 
 		res.send({
-			totalAvs
+			total
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
@@ -119,10 +119,10 @@ export async function getTotalAvs(req: Request, res: Response) {
 
 export async function getTotalOperators(req: Request, res: Response) {
 	try {
-		const totalOperators = await doGetTotalOperatorCount()
+		const total = await doGetTotalOperatorCount()
 
 		res.send({
-			totalOperators
+			total
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
@@ -131,10 +131,32 @@ export async function getTotalOperators(req: Request, res: Response) {
 
 export async function getTotalStakers(req: Request, res: Response) {
 	try {
-		const totalStakers = await doGetTotalStakerCount()
+		const total = await doGetTotalStakerCount()
 
 		res.send({
-			totalStakers
+			total
+		})
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+export async function getTotalWithdrawals(req: Request, res: Response) {
+	try {
+		const total = await doGetTotalWithdrawals()
+
+		res.send(total)
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+export async function getTotalDeposits(req: Request, res: Response) {
+	try {
+		const total = await doGetTotalDeposits()
+
+		res.send({
+			total
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
@@ -193,6 +215,48 @@ export async function getHistoricalStakerCount(req: Request, res: Response) {
 		const { frequency, variant, startAt, endAt } = paramCheck.data
 		const data = await doGetHistoricalCount(
 			'staker',
+			startAt,
+			endAt,
+			frequency,
+			variant
+		)
+		res.status(200).send({ data })
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+export async function getHistoricalWithdrawalCount(req: Request, res: Response) {
+	const paramCheck = HistoricalCountSchema.safeParse(req.query)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	}
+
+	try {
+		const { frequency, variant, startAt, endAt } = paramCheck.data
+		const data = await doGetHistoricalCount(
+			'withdrawalQueued',
+			startAt,
+			endAt,
+			frequency,
+			variant
+		)
+		res.status(200).send({ data })
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+export async function getHistoricalDepositCount(req: Request, res: Response) {
+	const paramCheck = HistoricalCountSchema.safeParse(req.query)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	}
+
+	try {
+		const { frequency, variant, startAt, endAt } = paramCheck.data
+		const data = await doGetHistoricalCount(
+			'deposit',
 			startAt,
 			endAt,
 			frequency,
@@ -333,8 +397,26 @@ async function doGetTotalStakerCount() {
 	return stakers
 }
 
+async function doGetTotalWithdrawals() {
+	const total = await prisma.withdrawalQueued.count()
+	const completed = await prisma.withdrawalCompleted.count()
+	const pending = total - completed
+
+	return {
+		total,
+		pending,
+		completed
+	}
+}
+
+async function doGetTotalDeposits() {
+	const deposits = await prisma.deposit.count()
+
+	return deposits
+}
+
 async function doGetHistoricalCount(
-	modelName: 'avs' | 'operator' | 'staker',
+	modelName: 'avs' | 'operator' | 'staker' | 'withdrawalQueued' | 'deposit',
 	startAt: string,
 	endAt: string,
 	frequency: string,
@@ -348,7 +430,7 @@ async function doGetHistoricalCount(
 	const startDate = resetTime(new Date(startAt))
 	const endDate = resetTime(new Date(endAt))
 
-	if (!['avs', 'operator', 'staker'].includes(modelName)) {
+	if (!['avs', 'operator', 'staker', 'withdrawalQueued', 'deposit'].includes(modelName)) {
 		throw new Error('Invalid model name')
 	}
 
