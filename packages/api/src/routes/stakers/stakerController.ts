@@ -46,8 +46,6 @@ export async function getAllStakers(req: Request, res: Response) {
 
 		const stakers = stakersRecords.map((staker) => ({
 			...staker,
-			createdAtBlock: Number(staker.createdAtBlock),
-			updatedAtBlock: Number(staker.updatedAtBlock),
 			tvl: withTvl
 				? sharesToTVL(
 						staker.shares,
@@ -103,8 +101,6 @@ export async function getStaker(req: Request, res: Response) {
 
 		res.send({
 			...staker,
-			createdAtBlock: Number(staker.createdAtBlock),
-			updatedAtBlock: Number(staker.updatedAtBlock),
 			tvl: withTvl
 				? sharesToTVL(
 						staker.shares,
@@ -156,14 +152,11 @@ export async function getStakerWithdrawals(req: Request, res: Response) {
 				strategies: undefined,
 				completedWithdrawal: undefined,
 				isCompleted: !!withdrawal.completedWithdrawal,
-				createdAt: withdrawal.createdAt,
 				updatedAt:
 					withdrawal.completedWithdrawal?.createdAt || withdrawal.createdAt,
-				startBlock: Number(withdrawal.startBlock),
-				createdAtBlock: Number(withdrawal.createdAtBlock),
 				updatedAtBlock:
-					Number(withdrawal.completedWithdrawal?.createdAtBlock) ||
-					Number(withdrawal.createdAtBlock)
+					withdrawal.completedWithdrawal?.createdAtBlock ||
+					withdrawal.createdAtBlock
 			}
 		})
 
@@ -213,8 +206,6 @@ export async function getStakerWithdrawalsQueued(req: Request, res: Response) {
 				...withdrawal,
 				shares,
 				strategies: undefined,
-				startBlock: Number(withdrawal.startBlock),
-				createdAtBlock: Number(withdrawal.createdAtBlock)
 			}
 		})
 
@@ -280,8 +271,6 @@ export async function getStakerWithdrawalsWithdrawable(
 				...withdrawal,
 				shares,
 				strategies: undefined,
-				startBlock: Number(withdrawal.startBlock),
-				createdAtBlock: Number(withdrawal.createdAtBlock)
 			}
 		})
 
@@ -343,14 +332,11 @@ export async function getStakerWithdrawalsCompleted(
 				shares,
 				strategies: undefined,
 				completedWithdrawal: undefined,
-				createdAt: withdrawal.createdAt,
 				updatedAt:
 					withdrawal.completedWithdrawal?.createdAt || withdrawal.createdAt,
-				startBlock: Number(withdrawal.startBlock),
-				createdAtBlock: Number(withdrawal.createdAtBlock),
 				updatedAtBlock:
-					Number(withdrawal.completedWithdrawal?.createdAtBlock) ||
-					Number(withdrawal.createdAtBlock)
+					withdrawal.completedWithdrawal?.createdAtBlock ||
+					withdrawal.createdAtBlock
 			}
 		})
 
@@ -393,7 +379,6 @@ export async function getStakerDeposits(req: Request, res: Response) {
 		const data = depositRecords.map((deposit) => {
 			return {
 				...deposit,
-				createdAtBlock: Number(deposit.createdAtBlock)
 			}
 		})
 

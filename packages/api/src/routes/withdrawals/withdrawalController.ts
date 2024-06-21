@@ -88,14 +88,11 @@ export async function getAllWithdrawals(req: Request, res: Response) {
 				strategies: undefined,
 				completedWithdrawal: undefined,
 				isCompleted: !!withdrawal.completedWithdrawal,
-				createdAt: withdrawal.createdAt,
 				updatedAt:
 					withdrawal.completedWithdrawal?.createdAt || withdrawal.createdAt,
-				startBlock: Number(withdrawal.startBlock),
-				createdAtBlock: Number(withdrawal.createdAtBlock),
 				updatedAtBlock:
-					Number(withdrawal.completedWithdrawal?.createdAtBlock) ||
-					Number(withdrawal.createdAtBlock)
+					withdrawal.completedWithdrawal?.createdAtBlock ||
+					withdrawal.createdAtBlock
 			}
 		})
 
@@ -140,14 +137,11 @@ export async function getWithdrawal(req: Request, res: Response) {
 			strategies: undefined,
 			completedWithdrawal: undefined,
 			isCompleted: !!withdrawal.completedWithdrawal,
-			createdAt: withdrawal.createdAt,
 			updatedAt:
 				withdrawal.completedWithdrawal?.createdAt || withdrawal.createdAt,
-			startBlock: Number(withdrawal.startBlock),
-			createdAtBlock: Number(withdrawal.createdAtBlock),
 			updatedAtBlock:
-				Number(withdrawal.completedWithdrawal?.createdAtBlock) ||
-				Number(withdrawal.createdAtBlock)
+				withdrawal.completedWithdrawal?.createdAtBlock ||
+				withdrawal.createdAtBlock
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
