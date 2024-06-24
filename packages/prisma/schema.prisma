@@ -201,6 +201,7 @@ model EventLogs_AVSMetadataURIUpdated {
 
   @@id([transactionHash, transactionIndex])
   @@index([avs])
+  @@index([blockNumber])
 }
 
 model EventLogs_OperatorMetadataURIUpdated {
@@ -217,6 +218,7 @@ model EventLogs_OperatorMetadataURIUpdated {
 
   @@id([transactionHash, transactionIndex])
   @@index([operator])
+  @@index([blockNumber])
 }
 
 model EventLogs_OperatorAVSRegistrationStatusUpdated {
@@ -234,6 +236,7 @@ model EventLogs_OperatorAVSRegistrationStatusUpdated {
 
   @@id([transactionHash, transactionIndex])
   @@index([operator, avs])
+  @@index([blockNumber])
 }
 
 model EventLogs_PodDeployed {
@@ -250,6 +253,7 @@ model EventLogs_PodDeployed {
 
   @@id([transactionHash, transactionIndex])
   @@index([eigenPod, podOwner])
+  @@index([blockNumber])
 }
 
 model EventLogs_StakerDelegated {
@@ -266,6 +270,7 @@ model EventLogs_StakerDelegated {
 
   @@id([transactionHash, transactionIndex])
   @@index([staker, operator])
+  @@index([blockNumber])
 }
 
 model EventLogs_StakerUndelegated {
@@ -282,6 +287,7 @@ model EventLogs_StakerUndelegated {
 
   @@id([transactionHash, transactionIndex])
   @@index([staker, operator])
+  @@index([blockNumber])
 }
 
 model EventLogs_OperatorSharesIncreased {
@@ -300,6 +306,7 @@ model EventLogs_OperatorSharesIncreased {
 
   @@id([transactionHash, transactionIndex])
   @@index([staker, operator])
+  @@index([blockNumber])
 }
 
 model EventLogs_OperatorSharesDecreased {
@@ -318,6 +325,7 @@ model EventLogs_OperatorSharesDecreased {
 
   @@id([transactionHash, transactionIndex])
   @@index([staker, operator])
+  @@index([blockNumber])
 }
 
 model EventLogs_WithdrawalQueued {
@@ -340,6 +348,7 @@ model EventLogs_WithdrawalQueued {
 
   @@id([transactionHash, transactionIndex])
   @@index([withdrawalRoot])
+  @@index([blockNumber])
 }
 
 model EventLogs_WithdrawalCompleted {
@@ -355,6 +364,7 @@ model EventLogs_WithdrawalCompleted {
 
   @@id([transactionHash, transactionIndex])
   @@index([withdrawalRoot])
+  @@index([blockNumber])
 }
 
 model EventLogs_Deposit {
@@ -373,6 +383,7 @@ model EventLogs_Deposit {
 
   @@id([transactionHash, transactionIndex])
   @@index([staker])
+  @@index([blockNumber])
 }
 
 // Misc
