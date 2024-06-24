@@ -44,7 +44,7 @@ export async function seedCompletedWithdrawals(
 			const logs = await prismaClient.eventLogs_WithdrawalCompleted.findMany({
 				where: {
 					blockNumber: {
-						gte: fromBlock,
+						gt: fromBlock,
 						lte: toBlock
 					}
 				}
@@ -53,7 +53,7 @@ export async function seedCompletedWithdrawals(
 			const depositLogs = await prismaClient.eventLogs_Deposit.findMany({
 				where: {
 					blockNumber: {
-						gte: fromBlock,
+						gt: fromBlock,
 						lte: toBlock
 					}
 				}
@@ -63,7 +63,7 @@ export async function seedCompletedWithdrawals(
 				await prismaClient.eventLogs_PodSharesUpdated.findMany({
 					where: {
 						blockNumber: {
-							gte: fromBlock,
+							gt: fromBlock,
 							lte: toBlock
 						}
 					}
