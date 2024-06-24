@@ -13,6 +13,7 @@ import {
 	getHistoricalStakerCount,
 	getHistoricalDepositCount,
 	getHistoricalWithdrawalCount,
+	getHistoricalDepositAggregate,
 	getTotalWithdrawals,
 	getTotalDeposits
 } from './metricController'
@@ -63,6 +64,12 @@ router.get(
 	'/historical/stakers',
 	routeCache.cacheSeconds(120),
 	getHistoricalStakerCount
+)
+
+router.get(
+	'/historical/deposits',
+	routeCache.cacheSeconds(120),
+	getHistoricalDepositAggregate
 )
 
 router.get(

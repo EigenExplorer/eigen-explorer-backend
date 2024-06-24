@@ -226,6 +226,27 @@ export async function getHistoricalStakerCount(req: Request, res: Response) {
 	}
 }
 
+export async function getHistoricalDepositAggregate(req: Request, res: Response) {
+	const paramCheck = HistoricalCountSchema.safeParse(req.query)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	}
+
+	try {
+		const { frequency, variant, startAt, endAt } = paramCheck.data
+		const data = await doGetHistoricalAggregate(
+			'deposit',
+			startAt,
+			endAt,
+			frequency,
+			variant
+		)
+		res.status(200).send({ data })
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
 export async function getHistoricalWithdrawalCount(req: Request, res: Response) {
 	const paramCheck = HistoricalCountSchema.safeParse(req.query)
 	if (!paramCheck.success) {
@@ -422,6 +443,10 @@ async function doGetHistoricalCount(
 	frequency: string,
 	variant: string
 ) {
+	if (!['avs', 'operator', 'staker', 'withdrawalQueued', 'deposit'].includes(modelName)) {
+		throw new Error('Invalid model name')
+	}
+
 	function resetTime(date: Date) {
 		date.setUTCMinutes(0, 0, 0)
 		return date
@@ -429,10 +454,6 @@ async function doGetHistoricalCount(
 
 	const startDate = resetTime(new Date(startAt))
 	const endDate = resetTime(new Date(endAt))
-
-	if (!['avs', 'operator', 'staker', 'withdrawalQueued', 'deposit'].includes(modelName)) {
-		throw new Error('Invalid model name')
-	}
 
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	const model = prisma[modelName] as any
@@ -477,7 +498,7 @@ async function doGetHistoricalCount(
 				data.createdAt.getTime() < nextDate
 		)
 
-		if (variant === 'count') {
+		if (variant === 'discrete') {
 			results.push({
 				ts: new Date(Number(currentDate)).toISOString(),
 				value: intervalData.length
@@ -491,6 +512,123 @@ async function doGetHistoricalCount(
 		}
 
 		currentDate = nextDate
+	}
+
+	return results
+}
+
+async function doGetHistoricalAggregate(
+	modelName: 'withdrawalQueued' | 'deposit',
+	startAt: string,
+	endAt: string,
+	frequency: string,
+	variant: string
+) {
+	if (!['withdrawalQueued', 'deposit'].includes(modelName)) {
+		throw new Error('Invalid model name')
+	}
+
+	function resetTime(date: Date) {
+		date.setUTCMinutes(0, 0, 0)
+		return date
+	}
+
+	const startDate = resetTime(new Date(startAt))
+	const endDate = resetTime(new Date(endAt))
+
+	const results: { ts: string; valueEth: number }[] = []
+	let currentDate = startDate.getTime()
+
+	const timeInterval =
+		{
+			'1h': 3600000,
+			'1d': 86400000,
+			'7d': 604800000
+		}[frequency] || 3600000
+
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+	const model = prisma[modelName] as any
+
+	let valueEth = 0n
+	
+	if (variant === 'cumulative') {
+		const modelData = await model.findMany({
+			where: {
+				createdAt: {
+					lte: endDate,
+				}
+			},
+			orderBy: {
+				createdAt: 'asc'
+			}
+		})
+
+		const initialData = modelData.filter(
+			(data) =>
+				data.createdAt.getTime() > startDate
+		)
+
+		for (const record of initialData) {
+			const sharesValueEth = BigInt(record.shares) / BigInt(1e18)
+			valueEth += sharesValueEth
+		}
+
+		while (currentDate <= endDate.getTime()) {
+			const nextDate = new Date(currentDate + timeInterval).getTime()
+	
+			const intervalData = modelData.filter(
+				(data) =>
+					data.createdAt.getTime() >= currentDate &&
+					data.createdAt.getTime() < nextDate
+			)
+	
+			for (const record of intervalData) {
+				const sharesValueEth = BigInt(record.shares) / BigInt(1e18)
+				valueEth += sharesValueEth
+			}
+
+			results.push({
+				ts: new Date(Number(currentDate)).toISOString(),
+				valueEth: Number(valueEth)
+			})
+	
+			currentDate = nextDate
+		}
+	} else {
+		const modelData = await model.findMany({
+			where: {
+				createdAt: {
+					gte: startDate,
+					lte: endDate
+				}
+			},
+			orderBy: {
+				createdAt: 'asc'
+			}
+		})
+
+		while (currentDate <= endDate.getTime()) {
+			const nextDate = new Date(currentDate + timeInterval).getTime()
+	
+			const intervalData = modelData.filter(
+				(data) =>
+					data.createdAt.getTime() >= currentDate &&
+					data.createdAt.getTime() < nextDate
+			)
+	
+			for (const record of intervalData) {
+				const sharesValueEth = BigInt(record.shares) / BigInt(1e18)
+				valueEth += sharesValueEth
+			}
+
+			results.push({
+				ts: new Date(Number(currentDate)).toISOString(),
+				valueEth: Number(valueEth)
+			})
+	
+			currentDate = nextDate
+			valueEth = 0n
+		}
 	}
 
 	return results

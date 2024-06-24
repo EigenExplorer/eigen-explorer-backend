@@ -7,9 +7,9 @@ export const HistoricalCountSchema = z
 			.default('1h')
 			.describe('Frequency of data points'),
 		variant: z
-			.enum(['count', 'cumulative'])
+			.enum(['discrete', 'cumulative'])
 			.default('cumulative')
-			.describe('Type of tally, count or cumulative'),
+			.describe('Type of tally, discrete or cumulative'),
 		startAt: z
 			.string()
 			.optional()
