@@ -27,7 +27,12 @@ export const HistoricalCountSchema = z
 				message: 'Invalid date format'
 			})
 			.default('')
-			.describe('End date in ISO string format')
+			.describe('End date in ISO string format'),
+		convertShares: z
+			.enum(['true', 'false'])
+			.optional()
+			.default('false')
+			.describe('Choose between receiving output values denominated in shares vs Eth')
 	})
 	.refine(
 		(data) => {

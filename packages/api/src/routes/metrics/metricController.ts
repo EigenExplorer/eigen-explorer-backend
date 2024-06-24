@@ -233,13 +233,14 @@ export async function getHistoricalDepositAggregate(req: Request, res: Response)
 	}
 
 	try {
-		const { frequency, variant, startAt, endAt } = paramCheck.data
+		const { frequency, variant, startAt, endAt, convertShares } = paramCheck.data
 		const data = await doGetHistoricalAggregate(
 			'deposit',
 			startAt,
 			endAt,
 			frequency,
-			variant
+			variant,
+			convertShares
 		)
 		res.status(200).send({ data })
 	} catch (error) {
@@ -447,16 +448,11 @@ async function doGetHistoricalCount(
 		throw new Error('Invalid model name')
 	}
 
-	function resetTime(date: Date) {
-		date.setUTCMinutes(0, 0, 0)
-		return date
-	}
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+	const model = prisma[modelName] as any
 
 	const startDate = resetTime(new Date(startAt))
 	const endDate = resetTime(new Date(endAt))
-
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-	const model = prisma[modelName] as any
 
 	const initialTally = await model.count({
 		where: {
@@ -467,6 +463,9 @@ async function doGetHistoricalCount(
 	})
 
 	const modelData = await model.findMany({
+		select: {
+			createdAt: true
+		},
 		where: {
 			createdAt: {
 				gte: startDate,
@@ -478,16 +477,15 @@ async function doGetHistoricalCount(
 		}
 	})
 
-	let tally = initialTally
-	const results: { ts: string; value: number }[] = []
-	let currentDate = startDate.getTime()
-
+	const results: { timestamp: string; value: number }[] = []
 	const timeInterval =
 		{
 			'1h': 3600000,
 			'1d': 86400000,
 			'7d': 604800000
 		}[frequency] || 3600000
+	let currentDate = startDate.getTime()
+	let tally = initialTally
 
 	while (currentDate <= endDate.getTime()) {
 		const nextDate = new Date(currentDate + timeInterval).getTime()
@@ -500,13 +498,13 @@ async function doGetHistoricalCount(
 
 		if (variant === 'discrete') {
 			results.push({
-				ts: new Date(Number(currentDate)).toISOString(),
+				timestamp: new Date(Number(currentDate)).toISOString(),
 				value: intervalData.length
 			})
 		} else {
 			tally += intervalData.length
 			results.push({
-				ts: new Date(Number(currentDate)).toISOString(),
+				timestamp: new Date(Number(currentDate)).toISOString(),
 				value: tally
 			})
 		}
@@ -522,37 +520,36 @@ async function doGetHistoricalAggregate(
 	startAt: string,
 	endAt: string,
 	frequency: string,
-	variant: string
+	variant: string,
+	convertShares: string
 ) {
 	if (!['withdrawalQueued', 'deposit'].includes(modelName)) {
 		throw new Error('Invalid model name')
 	}
-
-	function resetTime(date: Date) {
-		date.setUTCMinutes(0, 0, 0)
-		return date
-	}
-
-	const startDate = resetTime(new Date(startAt))
-	const endDate = resetTime(new Date(endAt))
-
-	const results: { ts: string; valueEth: number }[] = []
-	let currentDate = startDate.getTime()
-
-	const timeInterval =
-		{
-			'1h': 3600000,
-			'1d': 86400000,
-			'7d': 604800000
-		}[frequency] || 3600000
-
+	
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	const model = prisma[modelName] as any
-
-	let valueEth = 0n
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+	let modelData: any[] = []
+	
+	const startDate = resetTime(new Date(startAt))
+	const endDate = resetTime(new Date(endAt))
+	
+	const strategiesWithSharesUnderlying = convertShares === 'true' ? await getStrategiesWithShareUnderlying() : null
+	const valueShares = new Map<string, number>(
+		Object.values(getEigenContracts().Strategies).map(strategy => [strategy.strategyContract, 0])
+	)
+	
+	let valueEth = 0
 	
 	if (variant === 'cumulative') {
-		const modelData = await model.findMany({
+		// Use records prior to startDate to seed the initial value from which further cumulative values will be calculated
+		modelData = await model.findMany({
+			select: {
+				strategyAddress: true,
+				createdAt: true,
+				shares: true
+			},
 			where: {
 				createdAt: {
 					lte: endDate,
@@ -569,33 +566,20 @@ async function doGetHistoricalAggregate(
 		)
 
 		for (const record of initialData) {
-			const sharesValueEth = BigInt(record.shares) / BigInt(1e18)
-			valueEth += sharesValueEth
-		}
-
-		while (currentDate <= endDate.getTime()) {
-			const nextDate = new Date(currentDate + timeInterval).getTime()
-	
-			const intervalData = modelData.filter(
-				(data) =>
-					data.createdAt.getTime() >= currentDate &&
-					data.createdAt.getTime() < nextDate
-			)
-	
-			for (const record of intervalData) {
-				const sharesValueEth = BigInt(record.shares) / BigInt(1e18)
-				valueEth += sharesValueEth
+			if (convertShares === 'true') {
+				valueEth += await convertSharesToEth(record.shares, record.strategyAddress, strategiesWithSharesUnderlying)
+			} else {
+				const currentShares = valueShares.get(record.strategyAddress) || 0
+				valueShares.set(record.strategyAddress, currentShares + Number(record.shares))
 			}
-
-			results.push({
-				ts: new Date(Number(currentDate)).toISOString(),
-				valueEth: Number(valueEth)
-			})
-	
-			currentDate = nextDate
 		}
 	} else {
-		const modelData = await model.findMany({
+		modelData = await model.findMany({
+			select: {
+				strategyAddress: true,
+				createdAt: true,
+				shares: true
+			},
 			where: {
 				createdAt: {
 					gte: startDate,
@@ -606,30 +590,84 @@ async function doGetHistoricalAggregate(
 				createdAt: 'asc'
 			}
 		})
+	}
+	
+	const results: { timestamp: string; shares?: { [k: string]: number; }; valueEth?: number }[] = []
+	const timeInterval =
+	{
+		'1h': 3600000,
+		'1d': 86400000,
+		'7d': 604800000
+	}[frequency] || 3600000
+	let currentDate = startDate.getTime()
 
-		while (currentDate <= endDate.getTime()) {
-			const nextDate = new Date(currentDate + timeInterval).getTime()
-	
-			const intervalData = modelData.filter(
-				(data) =>
-					data.createdAt.getTime() >= currentDate &&
-					data.createdAt.getTime() < nextDate
-			)
-	
+	while (currentDate <= endDate.getTime()) {
+		const nextDate = new Date(currentDate + timeInterval).getTime()
+
+		const intervalData = modelData.filter(
+			(data) =>
+				data.createdAt.getTime() >= currentDate &&
+				data.createdAt.getTime() < nextDate
+		)
+
+		if (convertShares === 'true') {
 			for (const record of intervalData) {
-				const sharesValueEth = BigInt(record.shares) / BigInt(1e18)
-				valueEth += sharesValueEth
+				valueEth += await convertSharesToEth(record.shares, record.strategyAddress, strategiesWithSharesUnderlying)
+			} 
+
+			results.push({
+				timestamp: new Date(Number(currentDate)).toISOString(),
+				valueEth: Number(valueEth)
+			})
+
+			valueEth = variant === 'discrete' ? 0 : valueEth
+		} else {
+			for (const record of intervalData) {
+				const currentShares = valueShares.get(record.strategyAddress) || 0
+				valueShares.set(record.strategyAddress, currentShares + Number(record.shares))
 			}
 
 			results.push({
-				ts: new Date(Number(currentDate)).toISOString(),
-				valueEth: Number(valueEth)
+				timestamp: new Date(Number(currentDate)).toISOString(),
+				shares: Object.fromEntries(valueShares)
 			})
-	
-			currentDate = nextDate
-			valueEth = 0n
-		}
-	}
 
+			if (variant === 'discrete') {
+				valueShares.forEach((_, key) => {
+					valueShares.set(key, 0)
+				})
+			}
+		}
+		currentDate = nextDate
+	}
 	return results
+}
+
+// Trim timestamp
+function resetTime(date: Date) {
+	date.setUTCMinutes(0, 0, 0)
+	return date
+}
+
+// Get eth value for any given shares/strategy pair
+async function convertSharesToEth(shares: string, strategyAddress: string, strategiesWithSharesUnderlying?: { strategyAddress: string; sharesToUnderlying: number }[] | null) {
+	if (!strategiesWithSharesUnderlying) {
+		strategiesWithSharesUnderlying = await getStrategiesWithShareUnderlying()
+	}
+	
+	const sharesUnderlying = strategiesWithSharesUnderlying.find(
+		(su) =>
+			su.strategyAddress.toLowerCase() === strategyAddress.toLowerCase()
+	)
+
+	if (sharesUnderlying) {
+		const sharesValueEth =
+			Number(
+				(BigInt(shares) * BigInt(sharesUnderlying.sharesToUnderlying)) /
+					BigInt(1e18)
+			) / 1e18
+
+		return sharesValueEth
+	}
+	return 0
 }
