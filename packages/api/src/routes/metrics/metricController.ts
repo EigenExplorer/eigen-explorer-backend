@@ -226,16 +226,19 @@ export async function getHistoricalStakerCount(req: Request, res: Response) {
 	}
 }
 
-export async function getHistoricalDepositAggregate(req: Request, res: Response) {
+export async function getHistoricalDepositAggregate(
+	req: Request,
+	res: Response
+) {
 	const paramCheck = HistoricalCountSchema.safeParse(req.query)
 	if (!paramCheck.success) {
 		return handleAndReturnErrorResponse(req, res, paramCheck.error)
 	}
 
 	try {
-		const { frequency, variant, startAt, endAt, convertShares } = paramCheck.data
-		const data = await doGetHistoricalAggregate(
-			'deposit',
+		const { frequency, variant, startAt, endAt, convertShares } =
+			paramCheck.data
+		const data = await doGetHistoricalDepositAggregate(
 			startAt,
 			endAt,
 			frequency,
@@ -248,7 +251,10 @@ export async function getHistoricalDepositAggregate(req: Request, res: Response)
 	}
 }
 
-export async function getHistoricalWithdrawalCount(req: Request, res: Response) {
+export async function getHistoricalWithdrawalCount(
+	req: Request,
+	res: Response
+) {
 	const paramCheck = HistoricalCountSchema.safeParse(req.query)
 	if (!paramCheck.success) {
 		return handleAndReturnErrorResponse(req, res, paramCheck.error)
@@ -444,7 +450,11 @@ async function doGetHistoricalCount(
 	frequency: string,
 	variant: string
 ) {
-	if (!['avs', 'operator', 'staker', 'withdrawalQueued', 'deposit'].includes(modelName)) {
+	if (
+		!['avs', 'operator', 'staker', 'withdrawalQueued', 'deposit'].includes(
+			modelName
+		)
+	) {
 		throw new Error('Invalid model name')
 	}
 
@@ -484,16 +494,16 @@ async function doGetHistoricalCount(
 			'1d': 86400000,
 			'7d': 604800000
 		}[frequency] || 3600000
-	let currentDate = startDate.getTime()
+	let currentDate = startDate
 	let tally = initialTally
 
-	while (currentDate <= endDate.getTime()) {
-		const nextDate = new Date(currentDate + timeInterval).getTime()
+	while (currentDate <= endDate) {
+		const nextDate = new Date(currentDate.getTime() + timeInterval)
 
 		const intervalData = modelData.filter(
 			(data) =>
-				data.createdAt.getTime() >= currentDate &&
-				data.createdAt.getTime() < nextDate
+				data.createdAt >= currentDate &&
+				data.createdAt < nextDate
 		)
 
 		if (variant === 'discrete') {
@@ -515,36 +525,33 @@ async function doGetHistoricalCount(
 	return results
 }
 
-async function doGetHistoricalAggregate(
-	modelName: 'withdrawalQueued' | 'deposit',
+async function doGetHistoricalDepositAggregate(
 	startAt: string,
 	endAt: string,
 	frequency: string,
 	variant: string,
 	convertShares: string
 ) {
-	if (!['withdrawalQueued', 'deposit'].includes(modelName)) {
-		throw new Error('Invalid model name')
-	}
-	
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-	const model = prisma[modelName] as any
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-	let modelData: any[] = []
-	
+	let depositData: any[] = []
+
 	const startDate = resetTime(new Date(startAt))
 	const endDate = resetTime(new Date(endAt))
-	
-	const strategiesWithSharesUnderlying = convertShares === 'true' ? await getStrategiesWithShareUnderlying() : null
+
+	const strategiesWithSharesUnderlying =
+		convertShares === 'true' ? await getStrategiesWithShareUnderlying() : null
 	const valueShares = new Map<string, number>(
-		Object.values(getEigenContracts().Strategies).map(strategy => [strategy.strategyContract, 0])
+		Object.values(getEigenContracts().Strategies).map((strategy) => [
+			strategy.strategyContract,
+			0
+		])
 	)
-	
+
 	let valueEth = 0
-	
+
 	if (variant === 'cumulative') {
 		// Use records prior to startDate to seed the initial value from which further cumulative values will be calculated
-		modelData = await model.findMany({
+		depositData = await prisma.deposit.findMany({
 			select: {
 				strategyAddress: true,
 				createdAt: true,
@@ -552,7 +559,7 @@ async function doGetHistoricalAggregate(
 			},
 			where: {
 				createdAt: {
-					lte: endDate,
+					lte: endDate
 				}
 			},
 			orderBy: {
@@ -560,21 +567,27 @@ async function doGetHistoricalAggregate(
 			}
 		})
 
-		const initialData = modelData.filter(
-			(data) =>
-				data.createdAt.getTime() > startDate
+		const initialData = depositData.filter(
+			(data) => data.createdAt > startDate
 		)
 
 		for (const record of initialData) {
 			if (convertShares === 'true') {
-				valueEth += await convertSharesToEth(record.shares, record.strategyAddress, strategiesWithSharesUnderlying)
+				valueEth += await convertSharesToEth(
+					record.shares,
+					record.strategyAddress,
+					strategiesWithSharesUnderlying
+				)
 			} else {
 				const currentShares = valueShares.get(record.strategyAddress) || 0
-				valueShares.set(record.strategyAddress, currentShares + Number(record.shares))
+				valueShares.set(
+					record.strategyAddress,
+					currentShares + Number(record.shares)
+				)
 			}
 		}
 	} else {
-		modelData = await model.findMany({
+		depositData = await prisma.deposit.findMany({
 			select: {
 				strategyAddress: true,
 				createdAt: true,
@@ -591,29 +604,37 @@ async function doGetHistoricalAggregate(
 			}
 		})
 	}
-	
-	const results: { timestamp: string; shares?: { [k: string]: number; }; valueEth?: number }[] = []
+
+	const results: {
+		timestamp: string
+		shares?: { [k: string]: number }
+		valueEth?: number
+	}[] = []
 	const timeInterval =
-	{
-		'1h': 3600000,
-		'1d': 86400000,
-		'7d': 604800000
-	}[frequency] || 3600000
-	let currentDate = startDate.getTime()
+		{
+			'1h': 3600000,
+			'1d': 86400000,
+			'7d': 604800000
+		}[frequency] || 3600000
+	let currentDate = startDate
 
-	while (currentDate <= endDate.getTime()) {
-		const nextDate = new Date(currentDate + timeInterval).getTime()
+	while (currentDate <= endDate) {
+		const nextDate = new Date(currentDate.getTime() + timeInterval)
 
-		const intervalData = modelData.filter(
+		const intervalData = depositData.filter(
 			(data) =>
-				data.createdAt.getTime() >= currentDate &&
-				data.createdAt.getTime() < nextDate
+				data.createdAt >= currentDate &&
+				data.createdAt < nextDate
 		)
 
 		if (convertShares === 'true') {
 			for (const record of intervalData) {
-				valueEth += await convertSharesToEth(record.shares, record.strategyAddress, strategiesWithSharesUnderlying)
-			} 
+				valueEth += await convertSharesToEth(
+					record.shares,
+					record.strategyAddress,
+					strategiesWithSharesUnderlying
+				)
+			}
 
 			results.push({
 				timestamp: new Date(Number(currentDate)).toISOString(),
@@ -624,7 +645,10 @@ async function doGetHistoricalAggregate(
 		} else {
 			for (const record of intervalData) {
 				const currentShares = valueShares.get(record.strategyAddress) || 0
-				valueShares.set(record.strategyAddress, currentShares + Number(record.shares))
+				valueShares.set(
+					record.strategyAddress,
+					currentShares + Number(record.shares)
+				)
 			}
 
 			results.push({
@@ -650,14 +674,19 @@ function resetTime(date: Date) {
 }
 
 // Get eth value for any given shares/strategy pair
-async function convertSharesToEth(shares: string, strategyAddress: string, strategiesWithSharesUnderlying?: { strategyAddress: string; sharesToUnderlying: number }[] | null) {
+async function convertSharesToEth(
+	shares: string,
+	strategyAddress: string,
+	strategiesWithSharesUnderlying?:
+		| { strategyAddress: string; sharesToUnderlying: number }[]
+		| null
+) {
 	if (!strategiesWithSharesUnderlying) {
 		strategiesWithSharesUnderlying = await getStrategiesWithShareUnderlying()
 	}
-	
+
 	const sharesUnderlying = strategiesWithSharesUnderlying.find(
-		(su) =>
-			su.strategyAddress.toLowerCase() === strategyAddress.toLowerCase()
+		(su) => su.strategyAddress.toLowerCase() === strategyAddress.toLowerCase()
 	)
 
 	if (sharesUnderlying) {
