@@ -21,6 +21,7 @@ import { seedLogsWithdrawalQueued } from './events/seedLogsWithdrawalQueued'
 import { seedLogsWithdrawalCompleted } from './events/seedLogsWithdrawalCompleted'
 import { seedLogsDeposit } from './events/seedLogsDeposit'
 import { seedDeposits } from './seedDeposits'
+import { seedLogsPodSharesUpdated } from './events/seedLogsPodSharesUpdated'
 import { monitorAvsMetadata } from './monitors/avsMetadata'
 import { monitorOperatorMetadata } from './monitors/operatorMetadata'
 
@@ -47,6 +48,7 @@ async function seedEigenDataLoop() {
 			await seedLogsWithdrawalQueued(targetBlock)
 			await seedLogsWithdrawalCompleted(targetBlock)
 			await seedLogsDeposit(targetBlock)
+			await seedLogsPodSharesUpdated(targetBlock)
 
 			await seedAvs()
 			await seedOperators()
