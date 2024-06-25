@@ -384,6 +384,36 @@ model EventLogs_Deposit {
   @@index([staker])
 }
 
+model MetricDepositHourly {
+  id         Int      @id @default(autoincrement())
+  timestamp  DateTime @unique
+  totalCount Int
+  totalValue Decimal  @db.Decimal(20, 8)
+
+  @@index([timestamp])
+}
+
+// Metrics
+
+model hourly_deposit_data {
+  hour                DateTime @id
+  total_deposits      Int
+  sum_shares_eigen    String
+  sum_shares_weth     String
+  sum_shares_cbeth    String
+  sum_shares_steth    String
+  sum_shares_reth     String
+  sum_shares_ethx     String
+  sum_shares_ankreth  String
+  sum_shares_oseth    String
+  sum_shares_oeth     String
+  sum_shares_sfrxeth  String
+  sum_shares_sweth    String
+  sum_shares_wbeth    String
+  sum_shares_lseth    String
+  sum_shares_meth     String
+}
+
 // Misc
 
 model Evm_BlockData {
