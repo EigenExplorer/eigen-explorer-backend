@@ -23,6 +23,7 @@ model Avs {
   isMetadataSynced    Boolean @default(false)
 
   operators             AvsOperator[]
+  quorums               AvsQuorum[]
   curatedMetadata       AvsCuratedMetadata?
   restakeableStrategies String[]
   rewardSubmissions     AvsStrategyRewardSubmission[]
@@ -33,12 +34,36 @@ model Avs {
   tvlEth     Decimal @default(0) @db.Decimal(20, 8)
   sharesHash String?
 
+  registryCoordinatorAddress String?
+  stakeRegistryAddress       String?
+
   createdAtBlock BigInt   @default(0)
   updatedAtBlock BigInt   @default(0)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @default(now())
 
   @@index([createdAtBlock])
+}
+
+model AvsQuorum {
+  avs          Avs    @relation(fields: [avsAddress], references: [address])
+  avsAddress   String
+  quorumNumber Int
+  minimumStake BigInt
+
+  strategies AvsQuorumStrategy[]
+
+  @@id([avsAddress, quorumNumber])
+}
+
+model AvsQuorumStrategy {
+  avsQuorum       AvsQuorum @relation(fields: [avsAddress, quorumNumber], references: [avsAddress, quorumNumber])
+  avsAddress      String
+  quorumNumber    Int
+  strategyAddress String
+  multiplier      BigInt
+
+  @@id([avsAddress, quorumNumber, strategyAddress])
 }
 
 model AvsCuratedMetadata {
@@ -67,6 +92,8 @@ model AvsOperator {
   operatorAddress String
 
   isActive           Boolean
+  operatorId         String
+  quorumNumbers      Int[]
   restakedStrategies String[]
 
   createdAtBlock BigInt   @default(0)
@@ -76,6 +103,7 @@ model AvsOperator {
 
   @@id([avsAddress, operatorAddress])
   @@index([avsAddress])
+  @@index([operatorId])
 }
 
 model Strategies {
