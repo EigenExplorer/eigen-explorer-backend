@@ -69,7 +69,7 @@ async function seedEigenData() {
 }
 
 async function seedMetadata() {
-	await delay(120)
+	await delay(60)
 
 	while (true) {
 		try {
@@ -90,7 +90,7 @@ async function seedEigenPodValidators() {
 
 	while (true) {
 		try {
-			console.log('\nSeeding Eigen Pods data ...')
+			console.log('\nSeeding Validators data ...')
 
 			await seedValidators()
 		} catch (error) {
@@ -120,7 +120,7 @@ async function seedEigenStrategiesData() {
 }
 
 async function seedRestakedData() {
-	await delay(60)
+	await delay(240)
 
 	while (true) {
 		try {
@@ -132,7 +132,7 @@ async function seedRestakedData() {
 			console.log('Failed to seed restaked data at:', Date.now())
 		}
 
-		await delay(3600)
+		await delay(3600 * 4)
 	}
 }
 
