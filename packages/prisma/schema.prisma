@@ -22,7 +22,11 @@ model Avs {
   isMetadataSynced    Boolean @default(false)
 
   operators       AvsOperator[]
+  quorums         AvsQuorum[]
   curatedMetadata AvsCuratedMetadata?
+
+  registryCoordinatorAddress String?
+  stakeRegistryAddress       String?
 
   createdAtBlock BigInt   @default(0)
   updatedAtBlock BigInt   @default(0)
@@ -30,6 +34,27 @@ model Avs {
   updatedAt      DateTime @default(now())
 
   @@index([createdAtBlock])
+}
+
+model AvsQuorum {
+  avs          Avs    @relation(fields: [avsAddress], references: [address])
+  avsAddress   String
+  quorumNumber Int
+  minimumStake BigInt
+
+  strategies AvsQuorumStrategy[]
+
+  @@id([avsAddress, quorumNumber])
+}
+
+model AvsQuorumStrategy {
+  avsQuorum       AvsQuorum @relation(fields: [avsAddress, quorumNumber], references: [avsAddress, quorumNumber])
+  avsAddress      String
+  quorumNumber    Int
+  strategyAddress String
+  multiplier      BigInt
+
+  @@id([avsAddress, quorumNumber, strategyAddress])
 }
 
 model AvsCuratedMetadata {
@@ -56,10 +81,14 @@ model AvsOperator {
   avsAddress      String
   operator        Operator @relation(fields: [operatorAddress], references: [address])
   operatorAddress String
-  isActive        Boolean
+
+  isActive      Boolean
+  operatorId    String
+  quorumNumbers Int[]
 
   @@id([avsAddress, operatorAddress])
   @@index([avsAddress])
+  @@index([operatorId])
 }
 
 model Strategies {
@@ -95,7 +124,7 @@ model Operator {
   updatedAtBlock BigInt   @default(0)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @default(now())
-  
+
   @@index([createdAtBlock])
 }
 
