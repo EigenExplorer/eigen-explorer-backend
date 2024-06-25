@@ -23,6 +23,7 @@ import { seedLogsDeposit } from './events/seedLogsDeposit'
 import { seedDeposits } from './seedDeposits'
 import { monitorAvsMetadata } from './monitors/avsMetadata'
 import { monitorOperatorMetadata } from './monitors/operatorMetadata'
+import { seedStrategies } from './seedStrategies'
 
 console.log('Initializing Seeder ...')
 
@@ -30,7 +31,7 @@ function delay(seconds: number) {
 	return new Promise((resolve) => setTimeout(resolve, seconds * 1000))
 }
 
-async function seedEigenDataLoop() {
+async function seedEigenData() {
 	while (true) {
 		try {
 			const viemClient = getViemClient()
@@ -62,12 +63,12 @@ async function seedEigenDataLoop() {
 			console.log(error)
 		}
 
-		await delay(60)
+		await delay(120)
 	}
 }
 
-async function monitorMetadata() {
-	await delay(60)
+async function seedMetadata() {
+	await delay(120)
 
 	while (true) {
 		try {
@@ -100,6 +101,24 @@ async function seedEigenPodValidators() {
 	}
 }
 
-seedEigenDataLoop()
-monitorMetadata()
+async function seedEigenStrategiesData() {
+	await delay(120)
+
+	while (true) {
+		try {
+			console.log('\nSeeding strategies data ...')
+
+			await seedStrategies()
+		} catch (error) {
+			console.log(error)
+			console.log('Failed to seed strategies at:', Date.now())
+		}
+
+		await delay(3600)
+	}
+}
+
+seedEigenData()
+seedMetadata()
+seedEigenStrategiesData()
 seedEigenPodValidators()
