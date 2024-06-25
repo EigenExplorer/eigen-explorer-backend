@@ -501,9 +501,7 @@ async function doGetHistoricalCount(
 		const nextDate = new Date(currentDate.getTime() + timeInterval)
 
 		const intervalData = modelData.filter(
-			(data) =>
-				data.createdAt >= currentDate &&
-				data.createdAt < nextDate
+			(data) => data.createdAt >= currentDate && data.createdAt < nextDate
 		)
 
 		if (variant === 'discrete') {
@@ -533,76 +531,87 @@ async function doGetHistoricalDepositAggregate(
 	convertShares: string
 ) {
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-	let depositData: any[] = []
+	let hourlyDepositData: any[] = []
 
 	const startDate = resetTime(new Date(startAt))
 	const endDate = resetTime(new Date(endAt))
 
-	const strategiesWithSharesUnderlying =
-		convertShares === 'true' ? await getStrategiesWithShareUnderlying() : null
 	const valueShares = new Map<string, number>(
 		Object.values(getEigenContracts().Strategies).map((strategy) => [
 			strategy.strategyContract,
 			0
 		])
 	)
-
 	let valueEth = 0
 
-	if (variant === 'cumulative') {
-		// Use records prior to startDate to seed the initial value from which further cumulative values will be calculated
-		depositData = await prisma.deposit.findMany({
-			select: {
-				strategyAddress: true,
-				createdAt: true,
-				shares: true
-			},
-			where: {
-				createdAt: {
-					lte: endDate
+	// Prepare dataset
+	if (convertShares === 'true') {
+		if (variant === 'cumulative') {
+			const initialData = await prisma.metricDepositHourly.findMany({
+				where: {
+					timestamp: {
+						lte: endDate
+					}
 				}
-			},
-			orderBy: {
-				createdAt: 'asc'
-			}
-		})
+			})
 
-		const initialData = depositData.filter(
-			(data) => data.createdAt > startDate
-		)
-
-		for (const record of initialData) {
-			if (convertShares === 'true') {
-				valueEth += await convertSharesToEth(
-					record.shares,
-					record.strategyAddress,
-					strategiesWithSharesUnderlying
-				)
-			} else {
-				const currentShares = valueShares.get(record.strategyAddress) || 0
-				valueShares.set(
-					record.strategyAddress,
-					currentShares + Number(record.shares)
-				)
+			for (const record of initialData.filter(
+				(data) => data.timestamp < startDate
+			)) {
+				valueEth += Number(record.totalValue)
 			}
+
+			hourlyDepositData = initialData.filter(
+				(data) => data.timestamp >= startDate
+			)
+		} else {
+			hourlyDepositData = await prisma.metricDepositHourly.findMany({
+				where: {
+					timestamp: {
+						gte: startDate,
+						lte: endDate
+					}
+				}
+			})
 		}
 	} else {
-		depositData = await prisma.deposit.findMany({
-			select: {
-				strategyAddress: true,
-				createdAt: true,
-				shares: true
-			},
-			where: {
-				createdAt: {
-					gte: startDate,
-					lte: endDate
+		if (variant === 'cumulative') {
+			const initialData = await prisma.hourly_deposit_data.findMany({
+				where: {
+					hour: {
+						lte: endDate
+					}
 				}
-			},
-			orderBy: {
-				createdAt: 'asc'
+			})
+
+			for (const record of initialData.filter(
+				(data) => data.hour < startDate
+			)) {
+				for (const strategy of Object.keys(getEigenContracts().Strategies)) {
+					const strategyKey = `sum_shares_${strategy.toLowerCase()}`
+					if (record[strategyKey] !== undefined) {
+						const strategyAddress =
+							getEigenContracts().Strategies[strategy].strategyContract
+						valueShares.set(
+							strategyAddress,
+							(valueShares.get(strategyAddress) || 0) +
+								Number(record[strategyKey])
+						)
+					}
+				}
 			}
-		})
+
+			hourlyDepositData = initialData.filter((data) => data.hour >= startDate)
+		} else {
+			hourlyDepositData = await prisma.hourly_deposit_data.findMany({
+				where: {
+					hour: {
+						gte: startDate,
+						lte: endDate
+					}
+				}
+			})
+		}
 	}
 
 	const results: {
@@ -618,22 +627,17 @@ async function doGetHistoricalDepositAggregate(
 		}[frequency] || 3600000
 	let currentDate = startDate
 
+	// Prepare response
 	while (currentDate <= endDate) {
 		const nextDate = new Date(currentDate.getTime() + timeInterval)
 
-		const intervalData = depositData.filter(
-			(data) =>
-				data.createdAt >= currentDate &&
-				data.createdAt < nextDate
-		)
-
 		if (convertShares === 'true') {
+			const intervalData = hourlyDepositData.filter(
+				(data) => data.timestamp >= currentDate && data.timestamp < nextDate
+			)
+
 			for (const record of intervalData) {
-				valueEth += await convertSharesToEth(
-					record.shares,
-					record.strategyAddress,
-					strategiesWithSharesUnderlying
-				)
+				valueEth += Number(record.totalValue)
 			}
 
 			results.push({
@@ -643,12 +647,23 @@ async function doGetHistoricalDepositAggregate(
 
 			valueEth = variant === 'discrete' ? 0 : valueEth
 		} else {
+			const intervalData = hourlyDepositData.filter(
+				(data) => data.hour >= currentDate && data.hour < nextDate
+			)
+
 			for (const record of intervalData) {
-				const currentShares = valueShares.get(record.strategyAddress) || 0
-				valueShares.set(
-					record.strategyAddress,
-					currentShares + Number(record.shares)
-				)
+				for (const strategy of Object.keys(getEigenContracts().Strategies)) {
+					const strategyKey = `sum_shares_${strategy.toLowerCase()}`
+					if (record[strategyKey] !== undefined) {
+						const strategyAddress =
+							getEigenContracts().Strategies[strategy].strategyContract
+						valueShares.set(
+							strategyAddress,
+							(valueShares.get(strategyAddress) || 0) +
+								Number(record[strategyKey])
+						)
+					}
+				}
 			}
 
 			results.push({
@@ -671,32 +686,4 @@ async function doGetHistoricalDepositAggregate(
 function resetTime(date: Date) {
 	date.setUTCMinutes(0, 0, 0)
 	return date
-}
-
-// Get eth value for any given shares/strategy pair
-async function convertSharesToEth(
-	shares: string,
-	strategyAddress: string,
-	strategiesWithSharesUnderlying?:
-		| { strategyAddress: string; sharesToUnderlying: number }[]
-		| null
-) {
-	if (!strategiesWithSharesUnderlying) {
-		strategiesWithSharesUnderlying = await getStrategiesWithShareUnderlying()
-	}
-
-	const sharesUnderlying = strategiesWithSharesUnderlying.find(
-		(su) => su.strategyAddress.toLowerCase() === strategyAddress.toLowerCase()
-	)
-
-	if (sharesUnderlying) {
-		const sharesValueEth =
-			Number(
-				(BigInt(shares) * BigInt(sharesUnderlying.sharesToUnderlying)) /
-					BigInt(1e18)
-			) / 1e18
-
-		return sharesValueEth
-	}
-	return 0
 }

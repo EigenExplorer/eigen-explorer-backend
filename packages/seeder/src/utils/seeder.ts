@@ -15,8 +15,8 @@ export const baseBlock =
 // Base time
 export const baseTime =
 	process.env.NETWORK && process.env.NETWORK === 'holesky'
-		? 1710684720
-		: 1680911891
+		? 1710684720000
+		: 1680911891000
 
 export async function loopThroughBlocks(
 	firstBlock: bigint,

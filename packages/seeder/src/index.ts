@@ -23,6 +23,7 @@ import { seedLogsDeposit } from './events/seedLogsDeposit'
 import { seedDeposits } from './seedDeposits'
 import { monitorAvsMetadata } from './monitors/avsMetadata'
 import { monitorOperatorMetadata } from './monitors/operatorMetadata'
+import { seedMetricsDepositHourly } from './metrics/seedMetricsDepositHourly'
 
 console.log('Initializing Seeder ...')
 
@@ -100,6 +101,27 @@ async function seedEigenPodValidators() {
 	}
 }
 
+async function seedMetrics() {
+	await delay(120)
+
+	while (true) {
+		try {
+			console.log('\nSeeding hourly metrics data ...')
+
+			await seedMetricsDepositHourly()
+		} catch (error) {
+			console.log(error)
+			console.log('Failed to seed hourly metrics at:', Date.now())
+		}
+
+		await delay(3600)
+	}
+}
+
+
 seedEigenDataLoop()
 monitorMetadata()
 seedEigenPodValidators()
+seedMetrics()
+
+
