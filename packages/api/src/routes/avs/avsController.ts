@@ -6,12 +6,10 @@ import { EthereumAddressSchema } from '../../schema/zod/schemas/base/ethereumAdd
 import { IMap } from '../../schema/generic'
 import { WithTvlQuerySchema } from '../../schema/zod/schemas/withTvlQuery'
 import {
-	getRestakeableStrategies,
 	getStrategiesWithShareUnderlying,
 	sharesToTVL
 } from '../strategies/strategiesController'
 import { getNetwork } from '../../viem/viemClient'
-import { Avs } from '@prisma/client'
 import { fetchStrategyTokenPrices } from '../../utils/tokenPrices'
 import { WithCuratedMetadata } from '../../schema/zod/schemas/withCuratedMetadataQuery'
 
@@ -62,10 +60,6 @@ export async function getAllAVS(req: Request, res: Response) {
 
 		const data = await Promise.all(
 			avsRecords.map(async (avs) => {
-				const restakeableStrategies = await getRestakeableStrategies(
-					avs.address
-				)
-
 				const totalOperators = avs.operators.length
 				const totalStakers = await prisma.staker.count({
 					where: {
@@ -77,8 +71,9 @@ export async function getAllAVS(req: Request, res: Response) {
 
 				const shares = withOperatorShares(avs.operators).filter(
 					(s) =>
-						restakeableStrategies.indexOf(s.strategyAddress.toLowerCase()) !==
-						-1
+						avs.restakeableStrategies.indexOf(
+							s.strategyAddress.toLowerCase()
+						) !== -1
 				)
 
 				return {
@@ -210,11 +205,12 @@ export async function getAVS(req: Request, res: Response) {
 			}
 		})
 
-		const restakeableStrategies = await getRestakeableStrategies(avs.address)
 		const shares = withOperatorShares(avs.operators).filter(
 			(s) =>
-				restakeableStrategies.indexOf(s.strategyAddress.toLowerCase()) !== -1
+				avs.restakeableStrategies.indexOf(s.strategyAddress.toLowerCase()) !==
+				-1
 		)
+
 		const strategyTokenPrices = withTvl ? await fetchStrategyTokenPrices() : {}
 		const strategiesWithSharesUnderlying = withTvl
 			? await getStrategiesWithShareUnderlying()
@@ -276,8 +272,6 @@ export async function getAVSStakers(req: Request, res: Response) {
 			.filter((o) => o.isActive)
 			.map((o) => o.operatorAddress)
 
-		const restakeableStrategies = await getRestakeableStrategies(avs.address)
-
 		const stakersCount = await prisma.staker.count({
 			where: { operatorAddress: { in: operatorAddresses } }
 		})
@@ -296,8 +290,9 @@ export async function getAVSStakers(req: Request, res: Response) {
 
 		const stakers = stakersRecords.map((staker) => {
 			const shares = staker.shares.filter(
-				(s) => restakeableStrategies.indexOf(s.strategyAddress) !== -1
+				(s) => avs.restakeableStrategies.indexOf(s.strategyAddress) !== -1
 			)
+
 			return {
 				...staker,
 				shares,
@@ -372,7 +367,6 @@ export async function getAVSOperators(req: Request, res: Response) {
 			}
 		})
 
-		const restakeableStrategies = await getRestakeableStrategies(avs.address)
 		const strategyTokenPrices = withTvl ? await fetchStrategyTokenPrices() : {}
 		const strategiesWithSharesUnderlying = withTvl
 			? await getStrategiesWithShareUnderlying()
@@ -380,7 +374,7 @@ export async function getAVSOperators(req: Request, res: Response) {
 
 		const data = operatorsRecords.map((operator) => {
 			const shares = operator.shares.filter(
-				(s) => restakeableStrategies.indexOf(s.strategyAddress) !== -1
+				(s) => avs.restakeableStrategies.indexOf(s.strategyAddress) !== -1
 			)
 
 			return {
@@ -416,7 +410,14 @@ function withOperatorShares(avsOperators) {
 	const sharesMap: IMap<string, string> = new Map()
 
 	avsOperators.map((avsOperator) => {
-		avsOperator.operator.shares.map((s) => {
+		const shares = avsOperator.operator.shares.filter(
+			(s) =>
+				avsOperator.restakedStrategies.indexOf(
+					s.strategyAddress.toLowerCase()
+				) !== -1
+		)
+
+		shares.map((s) => {
 			if (!sharesMap.has(s.strategyAddress)) {
 				sharesMap.set(s.strategyAddress, '0')
 			}
