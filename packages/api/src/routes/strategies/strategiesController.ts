@@ -6,10 +6,9 @@ import {
 	EigenStrategiesContractAddress,
 	getEigenContracts
 } from '../../data/address'
-import { strategyAbi } from '../../data/abi/strategy'
 import { TokenPrices } from '../../utils/tokenPrices'
-import { cacheStore } from 'route-cache'
 import { serviceManagerUIAbi } from '../../data/abi/serviceManagerUIAbi'
+import { getPrismaClient } from '../../utils/prismaClient'
 
 // ABI path for dynamic imports
 const abiPath = {
@@ -157,45 +156,13 @@ export async function getStrategiesWithShareUnderlying(): Promise<
 		sharesToUnderlying: number
 	}[]
 > {
-	const viemClient = getViemClient()
-	const strategies = Object.values(getEigenContracts().Strategies)
-	const sharesUnderlying = await Promise.all(
-		strategies.map(async (s) => {
-			const cachedValue = await cacheStore.get(
-				`sharesUnderlying_${s.strategyContract}`
-			)
+	const prismaClient = getPrismaClient()
+	const strategies = await prismaClient.strategies.findMany()
 
-			if (cachedValue) {
-				return cachedValue
-			}
-
-			let sharesToUnderlying = 1e18
-
-			try {
-				sharesToUnderlying = (await viemClient.readContract({
-					address: s.strategyContract,
-					abi: strategyAbi,
-					functionName: 'sharesToUnderlying',
-					args: [1e18]
-				})) as number
-			} catch {}
-
-			const strategySharesUnderlying = {
-				strategyAddress: s.strategyContract,
-				sharesToUnderlying
-			}
-
-			await cacheStore.set(
-				`sharesUnderlying_${s.strategyContract}`,
-				strategySharesUnderlying,
-				120_000
-			)
-
-			return strategySharesUnderlying
-		})
-	)
-
-	return sharesUnderlying
+	return strategies.map((s) => ({
+		strategyAddress: s.address,
+		sharesToUnderlying: BigInt(s.sharesToUnderlying) as unknown as number
+	}))
 }
 
 export function sharesToTVL(
@@ -301,7 +268,7 @@ export async function getRestakeableStrategies(
 			functionName: 'getRestakeableStrategies'
 		})) as string[]
 
-		return strategies.map(s => s.toLowerCase())
+		return strategies.map((s) => s.toLowerCase())
 	} catch (error) {}
 
 	return []
