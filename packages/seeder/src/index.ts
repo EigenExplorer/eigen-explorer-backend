@@ -25,6 +25,7 @@ import { seedLogsPodSharesUpdated } from './events/seedLogsPodSharesUpdated'
 import { monitorAvsMetadata } from './monitors/avsMetadata'
 import { monitorOperatorMetadata } from './monitors/operatorMetadata'
 import { seedMetricsDepositHourly } from './metrics/seedMetricsDepositHourly'
+import { seedMetricsWithdrawalHourly } from './metrics/seedMetricsWithdrawalHourly'
 import { seedStrategies } from './seedStrategies'
 import { seedRestakedStrategies } from './seedAvsRestakedStrategies'
 
@@ -147,6 +148,7 @@ async function seedMetricsData() {
 			console.log('\nSeeding metrics data ...')
 
 			await seedMetricsDepositHourly()
+			await seedMetricsWithdrawalHourly()
 		} catch (error) {
 			console.log(error)
 			console.log('Failed to seed metrics data at:', Date.now())

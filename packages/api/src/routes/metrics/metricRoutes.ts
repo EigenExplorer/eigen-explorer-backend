@@ -13,6 +13,7 @@ import {
 	getHistoricalStakerCount,
 	getHistoricalDepositCount,
 	getHistoricalWithdrawalCount,
+	getHistoricalWithdrawalAggregate,
 	getHistoricalDepositAggregate,
 	getTotalWithdrawals,
 	getTotalDeposits
@@ -44,7 +45,11 @@ router.get('/total-operators', routeCache.cacheSeconds(120), getTotalOperators)
 
 router.get('/total-stakers', routeCache.cacheSeconds(120), getTotalStakers)
 
-router.get('/total-withdrawals', routeCache.cacheSeconds(120), getTotalWithdrawals)
+router.get(
+	'/total-withdrawals',
+	routeCache.cacheSeconds(120),
+	getTotalWithdrawals
+)
 
 router.get('/total-deposits', routeCache.cacheSeconds(120), getTotalDeposits)
 
@@ -64,6 +69,12 @@ router.get(
 	'/historical/stakers',
 	routeCache.cacheSeconds(120),
 	getHistoricalStakerCount
+)
+
+router.get(
+	'/historical/withdrawals',
+	routeCache.cacheSeconds(120),
+	getHistoricalWithdrawalAggregate
 )
 
 router.get(

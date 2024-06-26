@@ -440,6 +440,15 @@ model MetricDepositHourly {
   @@index([timestamp])
 }
 
+model MetricWithdrawalHourly {
+  id         Int      @id @default(autoincrement())
+  timestamp  DateTime @unique
+  totalCount Int
+  totalValue Decimal  @db.Decimal(20, 8)
+
+  @@index([timestamp])
+}
+
 // Misc
 
 model Evm_BlockData {

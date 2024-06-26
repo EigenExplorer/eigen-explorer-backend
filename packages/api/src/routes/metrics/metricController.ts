@@ -226,6 +226,30 @@ export async function getHistoricalStakerCount(req: Request, res: Response) {
 	}
 }
 
+export async function getHistoricalWithdrawalAggregate(
+	req: Request,
+	res: Response
+) {
+	const paramCheck = HistoricalCountSchema.safeParse(req.query)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	}
+
+	try {
+		const { frequency, variant, startAt, endAt } = paramCheck.data
+		const data = await doGetHistoricalAggregate(
+			'metricWithdrawalHourly',
+			startAt,
+			endAt,
+			frequency,
+			variant
+		)
+		res.status(200).send({ data })
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
 export async function getHistoricalDepositAggregate(
 	req: Request,
 	res: Response
@@ -237,7 +261,8 @@ export async function getHistoricalDepositAggregate(
 
 	try {
 		const { frequency, variant, startAt, endAt } = paramCheck.data
-		const data = await doGetHistoricalDepositAggregate(
+		const data = await doGetHistoricalAggregate(
+			'metricDepositHourly',
 			startAt,
 			endAt,
 			frequency,
@@ -442,7 +467,7 @@ async function doGetTotalDeposits() {
 }
 
 async function doGetHistoricalCount(
-	modelName: 'avs' | 'operator' | 'staker' | 'withdrawalQueued' | 'deposit',
+	modelName: string,
 	startAt: string,
 	endAt: string,
 	frequency: string,
@@ -521,29 +546,31 @@ async function doGetHistoricalCount(
 	return results
 }
 
-async function doGetHistoricalDepositAggregate(
+async function doGetHistoricalAggregate(
+	modelName: string,
 	startAt: string,
 	endAt: string,
 	frequency: string,
 	variant: string
 ) {
+	if (!['metricWithdrawalHourly', 'metricDepositHourly'].includes(modelName)) {
+		throw new Error('Invalid model name')
+	}
+
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-	let hourlyDepositData: any[] = []
+	const model = prisma[modelName] as any
+
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+	let hourlyData: any[] = []
 
 	const startDate = resetTime(new Date(startAt))
 	const endDate = resetTime(new Date(endAt))
 
-	const valueShares = new Map<string, number>(
-		Object.values(getEigenContracts().Strategies).map((strategy) => [
-			strategy.strategyContract,
-			0
-		])
-	)
 	let valueEth = 0
 
 	// Prepare dataset
 	if (variant === 'discrete') {
-		hourlyDepositData = await prisma.metricDepositHourly.findMany({
+		hourlyData = await model.findMany({
 			where: {
 				timestamp: {
 					gte: startDate,
@@ -552,7 +579,7 @@ async function doGetHistoricalDepositAggregate(
 			}
 		})
 	} else {
-		const initialData = await prisma.metricDepositHourly.findMany({
+		const initialData = await model.findMany({
 			where: {
 				timestamp: {
 					lte: endDate
@@ -566,9 +593,7 @@ async function doGetHistoricalDepositAggregate(
 			valueEth += Number(record.totalValue)
 		}
 
-		hourlyDepositData = initialData.filter(
-			(data) => data.timestamp >= startDate
-		)
+		hourlyData = initialData.filter((data) => data.timestamp >= startDate)
 	}
 
 	const results: {
@@ -587,7 +612,7 @@ async function doGetHistoricalDepositAggregate(
 	while (currentDate <= endDate) {
 		const nextDate = new Date(currentDate.getTime() + timeInterval)
 
-		const intervalData = hourlyDepositData.filter(
+		const intervalData = hourlyData.filter(
 			(data) => data.timestamp >= currentDate && data.timestamp < nextDate
 		)
 
