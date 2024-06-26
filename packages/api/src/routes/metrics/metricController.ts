@@ -236,14 +236,12 @@ export async function getHistoricalDepositAggregate(
 	}
 
 	try {
-		const { frequency, variant, startAt, endAt, convertShares } =
-			paramCheck.data
+		const { frequency, variant, startAt, endAt } = paramCheck.data
 		const data = await doGetHistoricalDepositAggregate(
 			startAt,
 			endAt,
 			frequency,
-			variant,
-			convertShares
+			variant
 		)
 		res.status(200).send({ data })
 	} catch (error) {
@@ -527,8 +525,7 @@ async function doGetHistoricalDepositAggregate(
 	startAt: string,
 	endAt: string,
 	frequency: string,
-	variant: string,
-	convertShares: string
+	variant: string
 ) {
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	let hourlyDepositData: any[] = []
@@ -545,79 +542,38 @@ async function doGetHistoricalDepositAggregate(
 	let valueEth = 0
 
 	// Prepare dataset
-	if (convertShares === 'true') {
-		if (variant === 'cumulative') {
-			const initialData = await prisma.metricDepositHourly.findMany({
-				where: {
-					timestamp: {
-						lte: endDate
-					}
+	if (variant === 'discrete') {
+		hourlyDepositData = await prisma.metricDepositHourly.findMany({
+			where: {
+				timestamp: {
+					gte: startDate,
+					lte: endDate
 				}
-			})
-
-			for (const record of initialData.filter(
-				(data) => data.timestamp < startDate
-			)) {
-				valueEth += Number(record.totalValue)
 			}
-
-			hourlyDepositData = initialData.filter(
-				(data) => data.timestamp >= startDate
-			)
-		} else {
-			hourlyDepositData = await prisma.metricDepositHourly.findMany({
-				where: {
-					timestamp: {
-						gte: startDate,
-						lte: endDate
-					}
-				}
-			})
-		}
+		})
 	} else {
-		if (variant === 'cumulative') {
-			const initialData = await prisma.hourly_deposit_data.findMany({
-				where: {
-					hour: {
-						lte: endDate
-					}
-				}
-			})
-
-			for (const record of initialData.filter(
-				(data) => data.hour < startDate
-			)) {
-				for (const strategy of Object.keys(getEigenContracts().Strategies)) {
-					const strategyKey = `sum_shares_${strategy.toLowerCase()}`
-					if (record[strategyKey] !== undefined) {
-						const strategyAddress =
-							getEigenContracts().Strategies[strategy].strategyContract
-						valueShares.set(
-							strategyAddress,
-							(valueShares.get(strategyAddress) || 0) +
-								Number(record[strategyKey])
-						)
-					}
+		const initialData = await prisma.metricDepositHourly.findMany({
+			where: {
+				timestamp: {
+					lte: endDate
 				}
 			}
+		})
 
-			hourlyDepositData = initialData.filter((data) => data.hour >= startDate)
-		} else {
-			hourlyDepositData = await prisma.hourly_deposit_data.findMany({
-				where: {
-					hour: {
-						gte: startDate,
-						lte: endDate
-					}
-				}
-			})
+		for (const record of initialData.filter(
+			(data) => data.timestamp < startDate
+		)) {
+			valueEth += Number(record.totalValue)
 		}
+
+		hourlyDepositData = initialData.filter(
+			(data) => data.timestamp >= startDate
+		)
 	}
 
 	const results: {
 		timestamp: string
-		shares?: { [k: string]: number }
-		valueEth?: number
+		valueEth: number
 	}[] = []
 	const timeInterval =
 		{
@@ -631,52 +587,21 @@ async function doGetHistoricalDepositAggregate(
 	while (currentDate <= endDate) {
 		const nextDate = new Date(currentDate.getTime() + timeInterval)
 
-		if (convertShares === 'true') {
-			const intervalData = hourlyDepositData.filter(
-				(data) => data.timestamp >= currentDate && data.timestamp < nextDate
-			)
+		const intervalData = hourlyDepositData.filter(
+			(data) => data.timestamp >= currentDate && data.timestamp < nextDate
+		)
 
-			for (const record of intervalData) {
-				valueEth += Number(record.totalValue)
-			}
-
-			results.push({
-				timestamp: new Date(Number(currentDate)).toISOString(),
-				valueEth: Number(valueEth)
-			})
-
-			valueEth = variant === 'discrete' ? 0 : valueEth
-		} else {
-			const intervalData = hourlyDepositData.filter(
-				(data) => data.hour >= currentDate && data.hour < nextDate
-			)
-
-			for (const record of intervalData) {
-				for (const strategy of Object.keys(getEigenContracts().Strategies)) {
-					const strategyKey = `sum_shares_${strategy.toLowerCase()}`
-					if (record[strategyKey] !== undefined) {
-						const strategyAddress =
-							getEigenContracts().Strategies[strategy].strategyContract
-						valueShares.set(
-							strategyAddress,
-							(valueShares.get(strategyAddress) || 0) +
-								Number(record[strategyKey])
-						)
-					}
-				}
-			}
-
-			results.push({
-				timestamp: new Date(Number(currentDate)).toISOString(),
-				shares: Object.fromEntries(valueShares)
-			})
-
-			if (variant === 'discrete') {
-				valueShares.forEach((_, key) => {
-					valueShares.set(key, 0)
-				})
-			}
+		for (const record of intervalData) {
+			valueEth += Number(record.totalValue)
 		}
+
+		results.push({
+			timestamp: new Date(Number(currentDate)).toISOString(),
+			valueEth: Number(valueEth)
+		})
+
+		valueEth = variant === 'discrete' ? 0 : valueEth
+
 		currentDate = nextDate
 	}
 	return results
