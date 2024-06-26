@@ -1,6 +1,6 @@
 import prisma from '@prisma/client'
 import { getPrismaClient } from '../utils/prismaClient'
-import { multipliers } from '../data/constants/sharesToUnderlying'
+import { getSharesToUnderlying, getEthPrices } from '../utils/strategies'
 import {
 	bulkUpdateDbTransactions,
 	fetchLastSyncTime,
@@ -13,51 +13,61 @@ export async function seedMetricsDepositHourly() {
 	const prismaClient = getPrismaClient()
 	const depositHourlyList: Omit<prisma.MetricDepositHourly, 'id'>[] = []
 
-	const firstTimestamp = await fetchLastSyncTime(timeSyncKey)
-	const { hour: lastTimestamp } = (await prismaClient.hourly_deposit_data
-		.findFirst({
-			select: { hour: true },
-			orderBy: { hour: 'desc' }
+	const startAt = await fetchLastSyncTime(timeSyncKey)
+	const { timestamp: endAt } = await prismaClient.view_hourly_deposit_data
+		.findFirstOrThrow({
+			select: { timestamp: true },
+			orderBy: { timestamp: 'desc' }
 		})
-		.then((result) => ({
-			hour: result?.hour?.getTime() ?? 0
-		}))) || { hour: 0 }
-
+	
 	// Bail early if there is no time diff to sync
-	if (lastTimestamp - firstTimestamp <= 0) {
+	if (endAt.getTime() - startAt <= 0) {
 		console.log(
-			`[In Sync] [Metrics] Deposit Hourly from: ${firstTimestamp} to: ${lastTimestamp}`
+			`[In Sync] [Metrics] Deposit Hourly from: ${new Date(startAt)} to: ${endAt}`
 		)
 		return
 	}
 
-	const logs = await prismaClient.hourly_deposit_data.findMany({
+	const sharesToUnderlying = await getSharesToUnderlying()
+	const ethPrices = await getEthPrices()
+
+	const logs = await prismaClient.view_hourly_deposit_data.findMany({
 		where: {
-			hour: {
-				gt: new Date(firstTimestamp)
+			timestamp: {
+				gt: new Date(startAt)
 			}
-		}
+		},
+		orderBy: { timestamp: 'desc' }
 	})
+
+	let currentTimestamp = endAt
+	let totalCount = 0
+	let totalValue = 0
 
 	for (const l in logs) {
 		const log = logs[l]
+	
+		const hour = log.timestamp
 
-		const totalCount = log.total_deposits
-		let totalValueInt = 0
+		if (hour !== currentTimestamp) {
+			depositHourlyList.push({
+				timestamp: currentTimestamp,
+				totalCount,
+				totalValue: new prisma.Prisma.Decimal(totalValue)
+			})
 
-		for (const [symbol, multiplier] of Object.entries(multipliers)) {
-			const key = `sum_shares_${symbol}` as keyof typeof log
-			const value = log[key]
-			totalValueInt += value ? (Number(value) * multiplier) / 1e18 : 0
+			totalCount = 0
+			totalValue = 0
+			currentTimestamp = hour
 		}
 
-		const totalValue = new prisma.Prisma.Decimal(totalValueInt)
+		const sharesMultiplier = Number(sharesToUnderlying.get(log.strategyAddress.toLowerCase()))
+		const ethPrice = Number(ethPrices.get(log.strategyAddress.toLowerCase()))
 
-		depositHourlyList.push({
-			timestamp: new Date(log.hour),
-			totalCount,
-			totalValue
-		})
+		if (sharesMultiplier && ethPrice) {
+			totalCount += log.total_count
+			totalValue += Number(log.total_shares) / 1e18 * sharesMultiplier * ethPrice
+		}
 	}
 
 	// Prepare db transaction object
@@ -75,9 +85,9 @@ export async function seedMetricsDepositHourly() {
 
 	await bulkUpdateDbTransactions(
 		dbTransactions,
-		`[Metrics] Deposit Hourly from: ${firstTimestamp} to: ${lastTimestamp} size: ${depositHourlyList.length}`
+		`[Metrics] Deposit Hourly from: ${new Date(startAt)} to: ${endAt} size: ${depositHourlyList.length}`
 	)
 
 	// Storing last synced block
-	await saveLastSyncBlock(timeSyncKey, BigInt(lastTimestamp))
+	await saveLastSyncBlock(timeSyncKey, BigInt(endAt.getTime()))
 }
