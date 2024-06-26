@@ -6,13 +6,12 @@ import { EthereumAddressSchema } from '../../schema/zod/schemas/base/ethereumAdd
 import { IMap } from '../../schema/generic'
 import { WithTvlQuerySchema } from '../../schema/zod/schemas/withTvlQuery'
 import {
-	getRestakeableStrategies,
 	getStrategiesWithShareUnderlying,
 	sharesToTVL
 } from '../strategies/strategiesController'
 import { getNetwork } from '../../viem/viemClient'
-import { Avs } from '@prisma/client'
 import { fetchStrategyTokenPrices } from '../../utils/tokenPrices'
+import { WithCuratedMetadata } from '../../schema/zod/schemas/withCuratedMetadataQuery'
 
 /**
  * Route to get a list of all AVSs
@@ -22,15 +21,16 @@ import { fetchStrategyTokenPrices } from '../../utils/tokenPrices'
  */
 export async function getAllAVS(req: Request, res: Response) {
 	// Validate pagination query
-	const queryCheck = PaginationQuerySchema.and(WithTvlQuerySchema).safeParse(
-		req.query
-	)
+	const queryCheck = PaginationQuerySchema.and(WithTvlQuerySchema)
+		.and(WithCuratedMetadata)
+		.safeParse(req.query)
+
 	if (!queryCheck.success) {
 		return handleAndReturnErrorResponse(req, res, queryCheck.error)
 	}
 
 	try {
-		const { skip, take, withTvl } = queryCheck.data
+		const { skip, take, withTvl, withCuratedMetadata } = queryCheck.data
 
 		// Fetch count and record
 		const avsCount = await prisma.avs.count({ where: getAvsFilterQuery(true) })
@@ -39,7 +39,7 @@ export async function getAllAVS(req: Request, res: Response) {
 			skip,
 			take,
 			include: {
-				curatedMetadata: true,
+				curatedMetadata: withCuratedMetadata,
 				operators: {
 					where: { isActive: true },
 					include: {
@@ -60,10 +60,6 @@ export async function getAllAVS(req: Request, res: Response) {
 
 		const data = await Promise.all(
 			avsRecords.map(async (avs) => {
-				const restakeableStrategies = await getRestakeableStrategies(
-					avs.address
-				)
-
 				const totalOperators = avs.operators.length
 				const totalStakers = await prisma.staker.count({
 					where: {
@@ -75,12 +71,16 @@ export async function getAllAVS(req: Request, res: Response) {
 
 				const shares = withOperatorShares(avs.operators).filter(
 					(s) =>
-						restakeableStrategies.indexOf(s.strategyAddress.toLowerCase()) !==
-						-1
+						avs.restakeableStrategies.indexOf(
+							s.strategyAddress.toLowerCase()
+						) !== -1
 				)
 
 				return {
-					...withCuratedMetadata(avs),
+					...avs,
+					curatedMetadata: withCuratedMetadata
+						? avs.curatedMetadata
+						: undefined,
 					shares,
 					totalOperators,
 					totalStakers,
@@ -163,7 +163,9 @@ export async function getAllAVSAddresses(req: Request, res: Response) {
  */
 export async function getAVS(req: Request, res: Response) {
 	// Validate query and params
-	const queryCheck = WithTvlQuerySchema.safeParse(req.query)
+	const queryCheck = WithTvlQuerySchema.and(WithCuratedMetadata).safeParse(
+		req.query
+	)
 	if (!queryCheck.success) {
 		return handleAndReturnErrorResponse(req, res, queryCheck.error)
 	}
@@ -175,12 +177,12 @@ export async function getAVS(req: Request, res: Response) {
 
 	try {
 		const { address } = req.params
-		const { withTvl } = req.query
+		const { withTvl, withCuratedMetadata } = queryCheck.data
 
 		const avs = await prisma.avs.findUniqueOrThrow({
 			where: { address: address.toLowerCase(), ...getAvsFilterQuery() },
 			include: {
-				curatedMetadata: true,
+				curatedMetadata: withCuratedMetadata,
 				operators: {
 					where: { isActive: true },
 					include: {
@@ -203,18 +205,20 @@ export async function getAVS(req: Request, res: Response) {
 			}
 		})
 
-		const restakeableStrategies = await getRestakeableStrategies(avs.address)
 		const shares = withOperatorShares(avs.operators).filter(
 			(s) =>
-				restakeableStrategies.indexOf(s.strategyAddress.toLowerCase()) !== -1
+				avs.restakeableStrategies.indexOf(s.strategyAddress.toLowerCase()) !==
+				-1
 		)
+
 		const strategyTokenPrices = withTvl ? await fetchStrategyTokenPrices() : {}
 		const strategiesWithSharesUnderlying = withTvl
 			? await getStrategiesWithShareUnderlying()
 			: []
 
 		res.send({
-			...withCuratedMetadata(avs),
+			...avs,
+			curatedMetadata: withCuratedMetadata ? avs.curatedMetadata : undefined,
 			shares,
 			totalOperators,
 			totalStakers,
@@ -268,8 +272,6 @@ export async function getAVSStakers(req: Request, res: Response) {
 			.filter((o) => o.isActive)
 			.map((o) => o.operatorAddress)
 
-		const restakeableStrategies = await getRestakeableStrategies(avs.address)
-
 		const stakersCount = await prisma.staker.count({
 			where: { operatorAddress: { in: operatorAddresses } }
 		})
@@ -288,8 +290,9 @@ export async function getAVSStakers(req: Request, res: Response) {
 
 		const stakers = stakersRecords.map((staker) => {
 			const shares = staker.shares.filter(
-				(s) => restakeableStrategies.indexOf(s.strategyAddress) !== -1
+				(s) => avs.restakeableStrategies.indexOf(s.strategyAddress) !== -1
 			)
+
 			return {
 				...staker,
 				shares,
@@ -364,7 +367,6 @@ export async function getAVSOperators(req: Request, res: Response) {
 			}
 		})
 
-		const restakeableStrategies = await getRestakeableStrategies(avs.address)
 		const strategyTokenPrices = withTvl ? await fetchStrategyTokenPrices() : {}
 		const strategiesWithSharesUnderlying = withTvl
 			? await getStrategiesWithShareUnderlying()
@@ -372,7 +374,7 @@ export async function getAVSOperators(req: Request, res: Response) {
 
 		const data = operatorsRecords.map((operator) => {
 			const shares = operator.shares.filter(
-				(s) => restakeableStrategies.indexOf(s.strategyAddress) !== -1
+				(s) => avs.restakeableStrategies.indexOf(s.strategyAddress) !== -1
 			)
 
 			return {
@@ -408,7 +410,14 @@ function withOperatorShares(avsOperators) {
 	const sharesMap: IMap<string, string> = new Map()
 
 	avsOperators.map((avsOperator) => {
-		avsOperator.operator.shares.map((s) => {
+		const shares = avsOperator.operator.shares.filter(
+			(s) =>
+				avsOperator.restakedStrategies.indexOf(
+					s.strategyAddress.toLowerCase()
+				) !== -1
+		)
+
+		shares.map((s) => {
 			if (!sharesMap.has(s.strategyAddress)) {
 				sharesMap.set(s.strategyAddress, '0')
 			}
@@ -427,11 +436,11 @@ function withOperatorShares(avsOperators) {
 }
 
 /**
-  * Protected route to invalidate the metadata of a given address
-  *
-  * @param req
-  * @param res
-  */
+ * Protected route to invalidate the metadata of a given address
+ *
+ * @param req
+ * @param res
+ */
 export async function invalidateMetadata(req: Request, res: Response) {
 	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
 	if (!paramCheck.success) {
@@ -457,58 +466,12 @@ export async function invalidateMetadata(req: Request, res: Response) {
 }
 
 // Helper functions
-function withCuratedMetadata(avs): Avs {
-	// Replace metadata with curated metadata
-	if (avs.curatedMetadata) {
-		avs.metadataName = avs.curatedMetadata.metadataName
-			? avs.curatedMetadata.metadataName
-			: avs.metadataName
-
-		avs.metadataDescription = avs.curatedMetadata.metadataDescription
-			? avs.curatedMetadata.metadataDescription
-			: avs.metadataDescription
-
-		avs.metadataLogo = avs.curatedMetadata.metadataLogo
-			? avs.curatedMetadata.metadataLogo
-			: avs.metadataLogo
-
-		avs.metadataDiscord = avs.curatedMetadata.metadataDiscord
-			? avs.curatedMetadata.metadataDiscord
-			: avs.metadataDiscord
-
-		avs.metadataTelegram = avs.curatedMetadata.metadataTelegram
-			? avs.curatedMetadata.metadataTelegram
-			: avs.metadataTelegram
-
-		avs.metadataWebsite = avs.curatedMetadata.metadataWebsite
-			? avs.curatedMetadata.metadataWebsite
-			: avs.metadataWebsite
-
-		avs.metadataX = avs.curatedMetadata.metadataX
-			? avs.curatedMetadata.metadataX
-			: avs.metadataX
-
-		if (avs.curatedMetadata.tags) {
-			avs.tags = avs.curatedMetadata.tags
-		}
-	}
-
-	avs.curatedMetadata = undefined
-
-	return avs
-}
-
 export function getAvsFilterQuery(filterName?: boolean) {
 	const queryWithName = filterName
 		? {
 				OR: [
 					{
 						metadataName: { not: '' }
-					},
-					{
-						curatedMetadata: {
-							metadataName: { not: '' }
-						}
 					}
 				]
 		  }

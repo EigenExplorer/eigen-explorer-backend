@@ -21,9 +21,12 @@ import { seedLogsWithdrawalQueued } from './events/seedLogsWithdrawalQueued'
 import { seedLogsWithdrawalCompleted } from './events/seedLogsWithdrawalCompleted'
 import { seedLogsDeposit } from './events/seedLogsDeposit'
 import { seedDeposits } from './seedDeposits'
+import { seedLogsPodSharesUpdated } from './events/seedLogsPodSharesUpdated'
 import { monitorAvsMetadata } from './monitors/avsMetadata'
 import { monitorOperatorMetadata } from './monitors/operatorMetadata'
 import { seedMetricsDepositHourly } from './metrics/seedMetricsDepositHourly'
+import { seedStrategies } from './seedStrategies'
+import { seedRestakedStrategies } from './seedAvsRestakedStrategies'
 
 console.log('Initializing Seeder ...')
 
@@ -31,7 +34,7 @@ function delay(seconds: number) {
 	return new Promise((resolve) => setTimeout(resolve, seconds * 1000))
 }
 
-async function seedEigenDataLoop() {
+async function seedEigenData() {
 	while (true) {
 		try {
 			const viemClient = getViemClient()
@@ -48,6 +51,7 @@ async function seedEigenDataLoop() {
 			await seedLogsWithdrawalQueued(targetBlock)
 			await seedLogsWithdrawalCompleted(targetBlock)
 			await seedLogsDeposit(targetBlock)
+			await seedLogsPodSharesUpdated(targetBlock)
 
 			await seedAvs()
 			await seedOperators()
@@ -63,11 +67,11 @@ async function seedEigenDataLoop() {
 			console.log(error)
 		}
 
-		await delay(60)
+		await delay(120)
 	}
 }
 
-async function monitorMetadata() {
+async function seedMetadata() {
 	await delay(60)
 
 	while (true) {
@@ -89,7 +93,7 @@ async function seedEigenPodValidators() {
 
 	while (true) {
 		try {
-			console.log('\nSeeding Eigen Pods data ...')
+			console.log('\nSeeding Validators data ...')
 
 			await seedValidators()
 		} catch (error) {
@@ -101,27 +105,60 @@ async function seedEigenPodValidators() {
 	}
 }
 
-async function seedMetrics() {
+async function seedEigenStrategiesData() {
 	await delay(120)
 
 	while (true) {
 		try {
-			console.log('\nSeeding hourly metrics data ...')
+			console.log('\nSeeding strategies data ...')
 
-			await seedMetricsDepositHourly()
+			await seedStrategies()
 		} catch (error) {
 			console.log(error)
-			console.log('Failed to seed hourly metrics at:', Date.now())
+			console.log('Failed to seed strategies at:', Date.now())
 		}
 
 		await delay(3600)
 	}
 }
 
+async function seedRestakedData() {
+	await delay(240)
 
-seedEigenDataLoop()
-monitorMetadata()
+	while (true) {
+		try {
+			console.log('\nSeeding restaked data ...')
+
+			await seedRestakedStrategies()
+		} catch (error) {
+			console.log(error)
+			console.log('Failed to seed restaked data at:', Date.now())
+		}
+
+		await delay(3600 * 4)
+	}
+}
+
+async function seedMetricsData() {
+	await delay(240)
+
+	while (true) {
+		try {
+			console.log('\nSeeding metrics data ...')
+
+			await seedMetricsDepositHourly()
+		} catch (error) {
+			console.log(error)
+			console.log('Failed to seed metrics data at:', Date.now())
+		}
+
+		await delay(3600)
+	}
+}
+
+seedEigenData()
+seedMetadata()
 seedEigenPodValidators()
-seedMetrics()
-
-
+seedEigenStrategiesData()
+seedRestakedData()
+seedMetricsData()
