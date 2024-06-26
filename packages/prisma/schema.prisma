@@ -21,8 +21,9 @@ model Avs {
   metadataX           String?
   isMetadataSynced    Boolean @default(false)
 
-  operators       AvsOperator[]
-  curatedMetadata AvsCuratedMetadata?
+  operators             AvsOperator[]
+  curatedMetadata       AvsCuratedMetadata?
+  restakeableStrategies String[]
 
   createdAtBlock BigInt   @default(0)
   updatedAtBlock BigInt   @default(0)
@@ -56,7 +57,9 @@ model AvsOperator {
   avsAddress      String
   operator        Operator @relation(fields: [operatorAddress], references: [address])
   operatorAddress String
-  isActive        Boolean
+
+  isActive           Boolean
+  restakedStrategies String[]
 
   @@id([avsAddress, operatorAddress])
   @@index([avsAddress])
@@ -95,7 +98,7 @@ model Operator {
   updatedAtBlock BigInt   @default(0)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @default(now())
-  
+
   @@index([createdAtBlock])
 }
 

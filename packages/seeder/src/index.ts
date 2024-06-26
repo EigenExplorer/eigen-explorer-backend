@@ -25,6 +25,7 @@ import { seedLogsPodSharesUpdated } from './events/seedLogsPodSharesUpdated'
 import { monitorAvsMetadata } from './monitors/avsMetadata'
 import { monitorOperatorMetadata } from './monitors/operatorMetadata'
 import { seedStrategies } from './seedStrategies'
+import { seedRestakedStrategies } from './seedAvsRestakedStrategies'
 
 console.log('Initializing Seeder ...')
 
@@ -70,7 +71,7 @@ async function seedEigenData() {
 }
 
 async function seedMetadata() {
-	await delay(120)
+	await delay(60)
 
 	while (true) {
 		try {
@@ -91,7 +92,7 @@ async function seedEigenPodValidators() {
 
 	while (true) {
 		try {
-			console.log('\nSeeding Eigen Pods data ...')
+			console.log('\nSeeding Validators data ...')
 
 			await seedValidators()
 		} catch (error) {
@@ -120,7 +121,25 @@ async function seedEigenStrategiesData() {
 	}
 }
 
+async function seedRestakedData() {
+	await delay(240)
+
+	while (true) {
+		try {
+			console.log('\nSeeding restaked data ...')
+
+			await seedRestakedStrategies()
+		} catch (error) {
+			console.log(error)
+			console.log('Failed to seed restaked data at:', Date.now())
+		}
+
+		await delay(3600 * 4)
+	}
+}
+
 seedEigenData()
 seedMetadata()
-seedEigenStrategiesData()
 seedEigenPodValidators()
+seedEigenStrategiesData()
+seedRestakedData()
