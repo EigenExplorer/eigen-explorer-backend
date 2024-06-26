@@ -42,7 +42,7 @@ export async function seedStrategies(toBlock?: bigint) {
 			dbTransactions.push(
 				prismaClient.strategies.upsert({
 					where: {
-						address: s.strategyContract
+						address: strategyAddress
 					},
 					create: {
 						address: strategyAddress,
