@@ -373,12 +373,18 @@ export async function getAVSOperators(req: Request, res: Response) {
 			: []
 
 		const data = operatorsRecords.map((operator) => {
+			const avsOperator = avs.operators.find(
+				(o) =>
+					o.operatorAddress.toLowerCase() === operator.address.toLowerCase()
+			)
+
 			const shares = operator.shares.filter(
-				(s) => avs.restakeableStrategies.indexOf(s.strategyAddress) !== -1
+				(s) => avsOperator?.restakedStrategies.indexOf(s.strategyAddress) !== -1
 			)
 
 			return {
 				...operator,
+				restakedStrategies: avsOperator?.restakedStrategies,
 				shares,
 				totalStakers: operator.stakers.length,
 				tvl: withTvl
