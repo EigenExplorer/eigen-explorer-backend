@@ -14,16 +14,18 @@ export async function seedMetricsDepositHourly() {
 	const depositHourlyList: Omit<prisma.MetricDepositHourly, 'id'>[] = []
 
 	const startAt = await fetchLastSyncTime(timeSyncKey)
-	const { timestamp: endAt } = await prismaClient.view_hourly_deposit_data
-		.findFirstOrThrow({
+	const { timestamp: endAt } =
+		await prismaClient.view_hourly_deposit_data.findFirstOrThrow({
 			select: { timestamp: true },
 			orderBy: { timestamp: 'desc' }
 		})
-	
+
 	// Bail early if there is no time diff to sync
 	if (endAt.getTime() - startAt <= 0) {
 		console.log(
-			`[In Sync] [Metrics] Deposit Hourly from: ${new Date(startAt)} to: ${endAt}`
+			`[In Sync] [Metrics] Deposit Hourly from: ${new Date(
+				startAt
+			)} to: ${endAt}`
 		)
 		return
 	}
@@ -46,7 +48,7 @@ export async function seedMetricsDepositHourly() {
 
 	for (const l in logs) {
 		const log = logs[l]
-	
+
 		const hour = log.timestamp
 
 		if (hour !== currentTimestamp) {
@@ -61,12 +63,15 @@ export async function seedMetricsDepositHourly() {
 			currentTimestamp = hour
 		}
 
-		const sharesMultiplier = Number(sharesToUnderlying.get(log.strategyAddress.toLowerCase()))
+		const sharesMultiplier = Number(
+			sharesToUnderlying.get(log.strategyAddress.toLowerCase())
+		)
 		const ethPrice = Number(ethPrices.get(log.strategyAddress.toLowerCase()))
 
 		if (sharesMultiplier && ethPrice) {
 			totalCount += log.total_count
-			totalValue += Number(log.total_shares) / 1e18 * sharesMultiplier * ethPrice
+			totalValue +=
+				(Number(log.total_shares) / 1e18) * sharesMultiplier * ethPrice
 		}
 	}
 
@@ -85,7 +90,9 @@ export async function seedMetricsDepositHourly() {
 
 	await bulkUpdateDbTransactions(
 		dbTransactions,
-		`[Metrics] Deposit Hourly from: ${new Date(startAt)} to: ${endAt} size: ${depositHourlyList.length}`
+		`[Metrics] Deposit Hourly from: ${new Date(startAt)} to: ${endAt} size: ${
+			depositHourlyList.length
+		}`
 	)
 
 	// Storing last synced block
