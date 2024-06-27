@@ -207,30 +207,34 @@ export async function seedMetricOperator() {
 			}
 
 			// Capture and calculate changeStakers value
-			const changeStakers = operatorStakers.get(operatorAddress)
+			const changeStakers = operatorStakers.get(operatorAddress) || 0
 
-			// Record all data back to rolling last operator metrics
-			lastOperatorMetrics.set(operatorAddress, {
-				id: 0,
-				operatorAddress,
-				tvlEth: Number(
-					tvlEth + changeTvlEth
-				) as unknown as prisma.Prisma.Decimal,
-				changeTvlEth: Number(changeTvlEth) as unknown as prisma.Prisma.Decimal,
-				totalStakers: totalStakers + changeStakers,
-				changeStakers,
-				timestamp: toHour
-			})
+			if (!(changeStakers === 0 && changeTvlEth === 0)) {
+				// Record all data back to rolling last operator metrics
+				lastOperatorMetrics.set(operatorAddress, {
+					id: 0,
+					operatorAddress,
+					tvlEth: Number(
+						tvlEth + changeTvlEth
+					) as unknown as prisma.Prisma.Decimal,
+					changeTvlEth: Number(
+						changeTvlEth
+					) as unknown as prisma.Prisma.Decimal,
+					totalStakers: totalStakers + changeStakers,
+					changeStakers,
+					timestamp: toHour
+				})
 
-			// Add data to tvl records
-			tvlRecords.push({
-				operatorAddress,
-				timestamp: toHour,
-				tvlEth: tvlEth + changeTvlEth,
-				totalStakers: totalStakers + changeStakers,
-				changeTvlEth,
-				changeStakers
-			})
+				// Add data to tvl records
+				tvlRecords.push({
+					operatorAddress,
+					timestamp: toHour,
+					tvlEth: tvlEth + changeTvlEth,
+					totalStakers: totalStakers + changeStakers,
+					changeTvlEth,
+					changeStakers
+				})
+			}
 		}
 
 		return tvlRecords
