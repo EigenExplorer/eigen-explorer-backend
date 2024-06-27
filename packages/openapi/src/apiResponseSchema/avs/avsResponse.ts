@@ -15,11 +15,31 @@ export const AvsSchema = z.object({
     metadataTelegram: AvsMetaDataSchema.shape.metadataTelegram,
     metadataWebsite: AvsMetaDataSchema.shape.metadataWebsite,
     metadataX: AvsMetaDataSchema.shape.metadataX,
-    tags: z
-        .array(z.string())
-        .optional()
-        .describe('The tags associated with the AVS')
-        .openapi({ example: ['DA', 'DeFi'] }),
+    restakeableStrategies: z
+        .array(EthereumAddressSchema)
+        .describe('The list of supported restaking strategies')
+        .openapi({ example: ['0x35f4f28a8d3ff20eed10e087e8f96ea2641e6aa1'] }),
+    createdAtBlock: z
+        .string()
+        .describe('The block number at which the AVS was created')
+        .openapi({ example: '19631203' }),
+    updatedAtBlock: z
+        .string()
+        .describe('The block number at which the AVS was last updated')
+        .openapi({ example: '19631203' }),
+    createdAt: z
+        .string()
+        .describe('The time stamp at which the AVS was created')
+        .openapi({ example: '2024-04-11T08:31:11.000Z' }),
+    updatedAt: z
+        .string()
+        .describe('The time stamp at which the AVS was last updated')
+        .openapi({ example: '2024-04-11T08:31:11.000Z' }),
+    // tags: z
+    //     .array(z.string())
+    //     .optional()
+    //     .describe('The tags associated with the AVS')
+    //     .openapi({ example: ['DA', 'DeFi'] }),
     shares: z
         .array(StrategySharesSchema)
         .describe('The strategy shares held in the AVS')
