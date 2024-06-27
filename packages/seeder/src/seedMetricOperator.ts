@@ -173,43 +173,50 @@ export async function seedMetricOperator() {
 			let changeTvlEth = 0
 			let totalStakers = 0
 
-			// Get the previous tvl metric
-			const lastOperatorMetric = lastOperatorMetrics.get(operatorAddress)
-			if (!lastOperatorMetric) {
-				lastOperatorMetrics.set(operatorAddress, {
-					id: 0,
-					operatorAddress: operatorAddress,
-					tvlEth: new prisma.Prisma.Decimal(0),
-					totalStakers: 0,
-					changeTvlEth: new prisma.Prisma.Decimal(0),
-					changeStakers: 0,
-					timestamp: toHour
-				})
-			} else {
-				tvlEth = Number(lastOperatorMetric.tvlEth)
-				totalStakers = lastOperatorMetric.totalStakers
-			}
+			if (
+				operatorStrategyShares.has(operatorAddress) ||
+				operatorStakers.has(operatorAddress)
+			) {
+				// Get the previous tvl metric
+				const lastOperatorMetric = lastOperatorMetrics.get(operatorAddress)
+				if (!lastOperatorMetric) {
+					lastOperatorMetrics.set(operatorAddress, {
+						id: 0,
+						operatorAddress: operatorAddress,
+						tvlEth: new prisma.Prisma.Decimal(0),
+						totalStakers: 0,
+						changeTvlEth: new prisma.Prisma.Decimal(0),
+						changeStakers: 0,
+						timestamp: toHour
+					})
+				} else {
+					tvlEth = Number(lastOperatorMetric.tvlEth)
+					totalStakers = lastOperatorMetric.totalStakers
+				}
 
-			// Capture and calculate changeTvlEth value
-			const strategyMap = operatorStrategyShares.get(operatorAddress)
-			if (strategyMap) {
-				Array.from(strategyMap).map(([strategyAddress, shares]) => {
-					const sharesToUnderlying = BigInt(
-						sharesToUnderlyingList.find((s) => s.address === strategyAddress)
-							?.sharesToUnderlying || 1
-					)
+				// Capture and calculate changeTvlEth value
+				const strategyMap = operatorStrategyShares.get(operatorAddress)
+				if (strategyMap) {
+					Array.from(strategyMap).map(([strategyAddress, shares]) => {
+						const foundSharesToUnderlying = sharesToUnderlyingList.find(
+							(s) => s.address === strategyAddress
+						)
 
-					const ethPrice = 1
+						if (foundSharesToUnderlying) {
+							const ethPrice = 1
+							const sharesToUnderlying = BigInt(
+								foundSharesToUnderlying.sharesToUnderlying
+							)
 
-					changeTvlEth +=
-						(Number(shares * sharesToUnderlying) / 1e36) * ethPrice
-				})
-			}
+							changeTvlEth +=
+								(Number(shares * sharesToUnderlying) / 1e36) * ethPrice
+						}
+					})
+				}
 
-			// Capture and calculate changeStakers value
-			const changeStakers = operatorStakers.get(operatorAddress) || 0
+				// Capture and calculate changeStakers value
+				const changeStakers = operatorStakers.get(operatorAddress) || 0
 
-			if (!(changeStakers === 0 && changeTvlEth === 0)) {
 				// Record all data back to rolling last operator metrics
 				lastOperatorMetrics.set(operatorAddress, {
 					id: 0,
