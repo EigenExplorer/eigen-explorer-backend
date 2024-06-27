@@ -23,6 +23,8 @@ export async function getSharesToUnderlying() {
 		)
 	}
 
+	sharesToUnderlying.set('0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0', '1')
+
 	return sharesToUnderlying
 }
 
@@ -38,6 +40,8 @@ export async function getEthPrices() {
 	for (const strategy of strategiesData) {
 		ethPrices.set(strategy.address.toLowerCase(), 1)
 	}
+
+	ethPrices.set('0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0', 1)
 
 	return ethPrices
 }

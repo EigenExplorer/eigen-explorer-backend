@@ -14,18 +14,19 @@ export async function seedMetricsDepositHourly() {
 	const depositHourlyList: Omit<prisma.MetricDepositHourly, 'id'>[] = []
 
 	const startAt = await fetchLastSyncTime(timeSyncKey)
-	const { timestamp: endAt } =
+	const { timestamp: endAtTimestamp } =
 		await prismaClient.view_hourly_deposit_data.findFirstOrThrow({
 			select: { timestamp: true },
 			orderBy: { timestamp: 'desc' }
 		})
+	const endAt = endAtTimestamp.getTime()
 
 	// Bail early if there is no time diff to sync
-	if (endAt.getTime() - startAt <= 0) {
+	if (endAt - startAt <= 0) {
 		console.log(
 			`[In Sync] [Metrics] Deposit Hourly from: ${new Date(
 				startAt
-			)} to: ${endAt}`
+			)} to: ${new Date(endAt)}`
 		)
 		return
 	}
@@ -36,7 +37,8 @@ export async function seedMetricsDepositHourly() {
 	const logs = await prismaClient.view_hourly_deposit_data.findMany({
 		where: {
 			timestamp: {
-				gt: new Date(startAt)
+				gte: new Date(startAt),
+				lte: new Date(endAt)
 			}
 		},
 		orderBy: { timestamp: 'desc' }
@@ -49,11 +51,11 @@ export async function seedMetricsDepositHourly() {
 	for (const l in logs) {
 		const log = logs[l]
 
-		const hour = log.timestamp
+		const hour = log.timestamp.getTime()
 
 		if (hour !== currentTimestamp) {
 			depositHourlyList.push({
-				timestamp: currentTimestamp,
+				timestamp: new Date(currentTimestamp),
 				totalCount,
 				totalValue: new prisma.Prisma.Decimal(totalValue)
 			})
@@ -75,6 +77,14 @@ export async function seedMetricsDepositHourly() {
 		}
 	}
 
+	if (totalCount > 0 || totalValue > 0) {
+		depositHourlyList.push({
+			timestamp: new Date(currentTimestamp),
+			totalCount,
+			totalValue: new prisma.Prisma.Decimal(totalValue)
+		})
+	}
+
 	// Prepare db transaction object
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	const dbTransactions: any[] = []
@@ -90,11 +100,11 @@ export async function seedMetricsDepositHourly() {
 
 	await bulkUpdateDbTransactions(
 		dbTransactions,
-		`[Metrics] Deposit Hourly from: ${new Date(startAt)} to: ${endAt} size: ${
-			depositHourlyList.length
-		}`
+		`[Metrics] Deposit Hourly from: ${new Date(startAt)} to: ${new Date(
+			endAt
+		)} size: ${depositHourlyList.length}`
 	)
 
 	// Storing last synced block
-	await saveLastSyncBlock(timeSyncKey, BigInt(endAt.getTime()))
+	await saveLastSyncBlock(timeSyncKey, BigInt(endAt))
 }
