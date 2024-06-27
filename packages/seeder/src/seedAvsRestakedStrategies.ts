@@ -34,20 +34,14 @@ export async function seedRestakedStrategies() {
 				})
 			)
 
-			if (avs.operators.length > 0) {
-				const operatorRestakedStrategies = await Promise.all(
-					avs.operators.map((o) =>
-						viemClient.readContract({
-							address: avs.address as `0x${string}`,
-							abi: serviceManagerUIAbi,
-							functionName: 'getOperatorRestakedStrategies',
-							args: [o.operatorAddress]
-						})
-					)
-				)
-
-				avs.operators.map((o, i) => {
-					const strategies = operatorRestakedStrategies[i] as string[]
+			for (const o of avs.operators) {
+				try {
+					const strategies = (await viemClient.readContract({
+						address: avs.address as `0x${string}`,
+						abi: serviceManagerUIAbi,
+						functionName: 'getOperatorRestakedStrategies',
+						args: [o.operatorAddress]
+					})) as string[]
 
 					if (strategies && strategies.length > 0) {
 						dbTransactions.push(
@@ -62,7 +56,7 @@ export async function seedRestakedStrategies() {
 							})
 						)
 					}
-				})
+				} catch {}
 			}
 
 			await bulkUpdateDbTransactions(

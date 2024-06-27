@@ -90,13 +90,13 @@ async function seedMetadata() {
 }
 
 async function seedEigenPodValidators() {
-	await delay(120)
+	await delay(3600)
 
 	while (true) {
 		try {
 			console.log('\nSeeding Validators data ...')
 
-			await seedValidators()
+			await seedValidators(true)
 		} catch (error) {
 			console.log(error)
 			console.log('Failed to seed Validators at:', Date.now())
@@ -119,7 +119,7 @@ async function seedEigenStrategiesData() {
 			console.log('Failed to seed strategies at:', Date.now())
 		}
 
-		await delay(3600)
+		await delay(3600 * 24)
 	}
 }
 
