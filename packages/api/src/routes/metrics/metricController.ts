@@ -109,9 +109,7 @@ export async function getTotalAvs(req: Request, res: Response) {
 	try {
 		const total = await doGetTotalAvsCount()
 
-		res.send({
-			total
-		})
+		res.send(total)
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
 	}
@@ -121,9 +119,7 @@ export async function getTotalOperators(req: Request, res: Response) {
 	try {
 		const total = await doGetTotalOperatorCount()
 
-		res.send({
-			total
-		})
+		res.send(total)
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
 	}
@@ -133,9 +129,7 @@ export async function getTotalStakers(req: Request, res: Response) {
 	try {
 		const total = await doGetTotalStakerCount()
 
-		res.send({
-			total
-		})
+		res.send(total)
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
 	}
@@ -226,7 +220,10 @@ export async function getHistoricalStakerCount(req: Request, res: Response) {
 	}
 }
 
-export async function getHistoricalWithdrawalCount(req: Request, res: Response) {
+export async function getHistoricalWithdrawalCount(
+	req: Request,
+	res: Response
+) {
 	const paramCheck = HistoricalCountSchema.safeParse(req.query)
 	if (!paramCheck.success) {
 		return handleAndReturnErrorResponse(req, res, paramCheck.error)
@@ -386,19 +383,137 @@ async function doGetTvlBeaconChain() {
 }
 
 async function doGetTotalAvsCount() {
-	return await prisma.avs.count({ where: getAvsFilterQuery(true) })
+	const timestampNow = new Date()
+	const timestamp24h = new Date(
+		new Date().setUTCHours(timestampNow.getUTCHours() - 24)
+	)
+	const timestamp7d = new Date(
+		new Date().setUTCDate(timestampNow.getUTCDate() - 7)
+	)
+
+	const totalNow = await prisma.avs.count({
+		where: getAvsFilterQuery(true)
+	})
+	const total24h = await prisma.avs.count({
+		where: {
+			createdAt: { lte: timestamp24h },
+			...getAvsFilterQuery(true)
+		}
+	})
+	const total7d = await prisma.avs.count({
+		where: {
+			createdAt: { lte: timestamp7d },
+			...getAvsFilterQuery(true)
+		}
+	})
+
+	const change24hValue = totalNow - total24h
+	const change24hPercent =
+		total24h !== 0 ? Math.round((change24hValue / total24h) * 1000) / 1000 : 0
+
+	const change7dValue = totalNow - total7d
+	const change7dPercent =
+		total7d !== 0 ? Math.round((change7dValue / total7d) * 1000) / 1000 : 0
+
+	return {
+		total: totalNow,
+		change24h: {
+			value: change24hValue,
+			percent: change24hPercent
+		},
+		change7d: {
+			value: change7dValue,
+			percent: change7dPercent
+		}
+	}
 }
 
 async function doGetTotalOperatorCount() {
-	return await prisma.operator.count()
+	const timestampNow = new Date()
+	const timestamp24h = new Date(
+		new Date().setUTCHours(timestampNow.getUTCHours() - 24)
+	)
+	const timestamp7d = new Date(
+		new Date().setUTCDate(timestampNow.getUTCDate() - 7)
+	)
+
+	const totalNow = await prisma.operator.count()
+	const total24h = await prisma.operator.count({
+		where: {
+			createdAt: { lte: timestamp24h }
+		}
+	})
+	const total7d = await prisma.operator.count({
+		where: {
+			createdAt: { lte: timestamp7d }
+		}
+	})
+
+	const change24hValue = totalNow - total24h
+	const change24hPercent =
+		total24h !== 0 ? Math.round((change24hValue / total24h) * 1000) / 1000 : 0
+
+	const change7dValue = totalNow - total7d
+	const change7dPercent =
+		total7d !== 0 ? Math.round((change7dValue / total7d) * 1000) / 1000 : 0
+
+	return {
+		total: totalNow,
+		change24h: {
+			value: change24hValue,
+			percent: change24hPercent
+		},
+		change7d: {
+			value: change7dValue,
+			percent: change7dPercent
+		}
+	}
 }
 
 async function doGetTotalStakerCount() {
-	const stakers = await prisma.staker.count({
+	const timestampNow = new Date()
+	const timestamp24h = new Date(
+		new Date().setUTCHours(timestampNow.getUTCHours() - 24)
+	)
+	const timestamp7d = new Date(
+		new Date().setUTCDate(timestampNow.getUTCDate() - 7)
+	)
+
+	const totalNow = await prisma.staker.count({
 		where: { operatorAddress: { not: null } }
 	})
+	const total24h = await prisma.staker.count({
+		where: {
+			createdAt: { lte: timestamp24h },
+			operatorAddress: { not: null }
+		}
+	})
+	const total7d = await prisma.staker.count({
+		where: {
+			createdAt: { lte: timestamp7d },
+			operatorAddress: { not: null }
+		}
+	})
 
-	return stakers
+	const change24hValue = totalNow - total24h
+	const change24hPercent =
+		total24h !== 0 ? Math.round((change24hValue / total24h) * 1000) / 1000 : 0
+
+	const change7dValue = totalNow - total7d
+	const change7dPercent =
+		total7d !== 0 ? Math.round((change7dValue / total7d) * 1000) / 1000 : 0
+
+	return {
+		total: totalNow,
+		change24h: {
+			value: change24hValue,
+			percent: change24hPercent
+		},
+		change7d: {
+			value: change7dValue,
+			percent: change7dPercent
+		}
+	}
 }
 
 async function doGetTotalWithdrawals() {
@@ -434,7 +549,11 @@ async function doGetHistoricalCount(
 	const startDate = resetTime(new Date(startAt))
 	const endDate = resetTime(new Date(endAt))
 
-	if (!['avs', 'operator', 'staker', 'withdrawalQueued', 'deposit'].includes(modelName)) {
+	if (
+		!['avs', 'operator', 'staker', 'withdrawalQueued', 'deposit'].includes(
+			modelName
+		)
+	) {
 		throw new Error('Invalid model name')
 	}
 
