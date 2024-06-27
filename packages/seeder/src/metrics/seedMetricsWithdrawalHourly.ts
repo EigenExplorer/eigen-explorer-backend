@@ -14,7 +14,13 @@ export async function seedMetricsWithdrawalHourly() {
 	const prismaClient = getPrismaClient()
 	const withdrawalHourlyList: Omit<prisma.MetricWithdrawalHourly, 'id'>[] = []
 
-	const startAt = await fetchLastSyncTime(timeSyncKey)
+	let startAt = await fetchLastSyncTime(timeSyncKey)
+
+	// TODO: Get appropirate start at time
+	if (!startAt) {
+		startAt = new Date(baseTime)
+	}
+
 	const { timestamp: endAtTimestamp } =
 		await prismaClient.viewHourlyWithdrawalData.findFirstOrThrow({
 			select: { timestamp: true },
@@ -23,11 +29,11 @@ export async function seedMetricsWithdrawalHourly() {
 	const endAt = endAtTimestamp.getTime()
 
 	// Bail early if there is no time diff to sync
-	if (endAt - startAt <= 0) {
+	if (endAt - startAt.getTime() <= 0) {
 		console.log(
-			`[In Sync] [Metrics] Withdrawal Hourly from: ${new Date(
-				startAt
-			)} to: ${new Date(endAt)}`
+			`[In Sync] [Metrics] Withdrawal Hourly from: ${startAt} to: ${new Date(
+				endAt
+			)}`
 		)
 		return
 	}
@@ -115,7 +121,7 @@ export async function seedMetricsWithdrawalHourly() {
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	const dbTransactions: any[] = []
 
-	if (startAt === baseTime) {
+	if (startAt.getTime() === baseTime) {
 		dbTransactions.push(prismaClient.metricWithdrawalHourly.deleteMany())
 	}
 

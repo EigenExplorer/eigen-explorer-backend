@@ -28,6 +28,7 @@ import { seedMetricsDepositHourly } from './metrics/seedMetricsDepositHourly'
 import { seedMetricsWithdrawalHourly } from './metrics/seedMetricsWithdrawalHourly'
 import { seedStrategies } from './seedStrategies'
 import { seedRestakedStrategies } from './seedAvsRestakedStrategies'
+import { seedMetricOperator } from './seedMetricOperator'
 
 console.log('Initializing Seeder ...')
 
@@ -149,6 +150,8 @@ async function seedMetricsData() {
 
 			await seedMetricsDepositHourly()
 			await seedMetricsWithdrawalHourly()
+
+			await seedMetricOperator()
 		} catch (error) {
 			console.log(error)
 			console.log('Failed to seed metrics data at:', Date.now())
