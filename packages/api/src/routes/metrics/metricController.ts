@@ -394,26 +394,24 @@ async function doGetTotalAvsCount() {
 	const totalNow = await prisma.avs.count({
 		where: getAvsFilterQuery(true)
 	})
-	const total24h = await prisma.avs.count({
+	const change24hValue = await prisma.avs.count({
 		where: {
-			createdAt: { lte: timestamp24h },
+			createdAt: { gte: timestamp24h },
 			...getAvsFilterQuery(true)
 		}
 	})
-	const total7d = await prisma.avs.count({
+	const change7dValue = await prisma.avs.count({
 		where: {
-			createdAt: { lte: timestamp7d },
+			createdAt: { gte: timestamp7d },
 			...getAvsFilterQuery(true)
 		}
 	})
 
-	const change24hValue = totalNow - total24h
 	const change24hPercent =
-		total24h !== 0 ? Math.round((change24hValue / total24h) * 1000) / 1000 : 0
+		change24hValue !== 0 ? Math.round((change24hValue / (totalNow - change24hValue)) * 1000) / 1000 : 0
 
-	const change7dValue = totalNow - total7d
 	const change7dPercent =
-		total7d !== 0 ? Math.round((change7dValue / total7d) * 1000) / 1000 : 0
+		change7dValue !== 0 ? Math.round((change7dValue / (totalNow - change7dValue)) * 1000) / 1000 : 0
 
 	return {
 		total: totalNow,
@@ -438,24 +436,22 @@ async function doGetTotalOperatorCount() {
 	)
 
 	const totalNow = await prisma.operator.count()
-	const total24h = await prisma.operator.count({
+	const change24hValue = await prisma.operator.count({
 		where: {
-			createdAt: { lte: timestamp24h }
+			createdAt: { gte: timestamp24h }
 		}
 	})
-	const total7d = await prisma.operator.count({
+	const change7dValue = await prisma.operator.count({
 		where: {
-			createdAt: { lte: timestamp7d }
+			createdAt: { gte: timestamp7d }
 		}
 	})
 
-	const change24hValue = totalNow - total24h
 	const change24hPercent =
-		total24h !== 0 ? Math.round((change24hValue / total24h) * 1000) / 1000 : 0
+		change24hValue !== 0 ? Math.round((change24hValue / (totalNow - change24hValue)) * 1000) / 1000 : 0
 
-	const change7dValue = totalNow - total7d
 	const change7dPercent =
-		total7d !== 0 ? Math.round((change7dValue / total7d) * 1000) / 1000 : 0
+		change7dValue !== 0 ? Math.round((change7dValue / (totalNow - change7dValue)) * 1000) / 1000 : 0
 
 	return {
 		total: totalNow,
@@ -482,26 +478,24 @@ async function doGetTotalStakerCount() {
 	const totalNow = await prisma.staker.count({
 		where: { operatorAddress: { not: null } }
 	})
-	const total24h = await prisma.staker.count({
+	const change24hValue = await prisma.staker.count({
 		where: {
-			createdAt: { lte: timestamp24h },
+			createdAt: { gte: timestamp24h },
 			operatorAddress: { not: null }
 		}
 	})
-	const total7d = await prisma.staker.count({
+	const change7dValue = await prisma.staker.count({
 		where: {
-			createdAt: { lte: timestamp7d },
+			createdAt: { gte: timestamp7d },
 			operatorAddress: { not: null }
 		}
 	})
 
-	const change24hValue = totalNow - total24h
 	const change24hPercent =
-		total24h !== 0 ? Math.round((change24hValue / total24h) * 1000) / 1000 : 0
+		change24hValue !== 0 ? Math.round((change24hValue / (totalNow - change24hValue)) * 1000) / 1000 : 0
 
-	const change7dValue = totalNow - total7d
 	const change7dPercent =
-		total7d !== 0 ? Math.round((change7dValue / total7d) * 1000) / 1000 : 0
+		change7dValue !== 0 ? Math.round((change7dValue / (totalNow - change7dValue)) * 1000) / 1000 : 0
 
 	return {
 		total: totalNow,
