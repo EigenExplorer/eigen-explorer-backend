@@ -179,7 +179,7 @@ model Validator {
 }
 
 model WithdrawalQueued {
-  withdrawalRoot String  @id @unique
+  withdrawalRoot String @id @unique
   nonce          Int
 
   stakerAddress     String
@@ -195,13 +195,13 @@ model WithdrawalQueued {
 }
 
 model WithdrawalCompleted {
-  withdrawalRoot    String  @id @unique
-  receiveAsTokens   Boolean @default(false)
+  withdrawalRoot  String  @id @unique
+  receiveAsTokens Boolean @default(false)
 
   createdAtBlock BigInt   @default(0)
   createdAt      DateTime @default(now())
 
-  queuedWithdrawal WithdrawalQueued  @relation(fields: [withdrawalRoot], references: [withdrawalRoot])
+  queuedWithdrawal WithdrawalQueued @relation(fields: [withdrawalRoot], references: [withdrawalRoot])
 }
 
 // Collection to store system settings
@@ -210,6 +210,58 @@ model Settings {
   value     Json     @db.Json
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// Metric routes
+
+model MetricAvsHourly {
+  id         Int    @id @default(autoincrement())
+  avsAddress String
+
+  tvlEth          Decimal @db.Decimal(20, 8)
+  totalOperators  Int
+  totalStakers    Int
+  changeTvlEth    Decimal @db.Decimal(20, 8)
+  changeOperators Int
+  changeStakers   Int
+
+  timestamp DateTime
+
+  @@unique([avsAddress, timestamp])
+  @@index([avsAddress])
+  @@index([timestamp])
+}
+
+model MetricOperatorHourly {
+  id              Int    @id @default(autoincrement())
+  operatorAddress String
+
+  tvlEth        Decimal @db.Decimal(20, 8)
+  totalStakers  Int
+  changeTvlEth  Decimal @db.Decimal(20, 8)
+  changeStakers Int
+
+  timestamp DateTime
+
+  @@unique([operatorAddress, timestamp])
+  @@index([operatorAddress])
+  @@index([timestamp])
+}
+
+model MetricStrategyHourly {
+  id Int @id @default(autoincrement())
+
+  strategyAddress String
+
+  tvl          Decimal @db.Decimal(20, 8)
+  tvlEth       Decimal @db.Decimal(20, 8)
+  changeTvl    Decimal @db.Decimal(20, 8)
+  changeTvlEth Decimal @db.Decimal(20, 8)
+
+  timestamp DateTime
+
+  @@unique([strategyAddress, timestamp])
+  @@index([timestamp])
 }
 
 // RAW Event Logs
