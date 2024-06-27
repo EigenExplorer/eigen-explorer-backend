@@ -1,10 +1,10 @@
 -- CreateView
-CREATE OR REPLACE VIEW "view_hourly_deposit_data" AS
+CREATE OR REPLACE VIEW "viewHourlyDepositData" AS
 SELECT
     date_trunc('hour', d."createdAt") AS timestamp,
     d."strategyAddress",
-    COUNT(*) AS total_count,
-    SUM(CAST(shares AS numeric)) AS total_shares
+    COUNT(*) AS "totalDeposits",
+    SUM(CAST(shares AS numeric)) AS "totalShares"
 FROM
     "Deposit" d
 GROUP BY
@@ -15,7 +15,7 @@ ORDER BY
     d."strategyAddress";
 
 -- CreateView
-CREATE OR REPLACE VIEW "view_hourly_withdrawal_data" AS
+CREATE OR REPLACE VIEW "viewHourlyWithdrawalData" AS
 WITH unnested AS (
     SELECT
         date_trunc('hour', c."createdAt") AS timestamp,
@@ -33,8 +33,8 @@ WITH unnested AS (
 SELECT
     timestamp,
     strategy,
-    COUNT(*) AS total_count,
-    SUM(CAST(share AS numeric)) AS total_shares
+    COUNT(*) AS "totalWithdrawals",
+    SUM(CAST(share AS numeric)) AS "totalShares"
 FROM
     unnested
 GROUP BY

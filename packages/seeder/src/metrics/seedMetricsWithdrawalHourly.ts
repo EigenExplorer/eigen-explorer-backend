@@ -15,7 +15,7 @@ export async function seedMetricsWithdrawalHourly() {
 
 	const startAt = await fetchLastSyncTime(timeSyncKey)
 	const { timestamp: endAtTimestamp } =
-		await prismaClient.view_hourly_withdrawal_data.findFirstOrThrow({
+		await prismaClient.viewHourlyWithdrawalData.findFirstOrThrow({
 			select: { timestamp: true },
 			orderBy: { timestamp: 'desc' }
 		})
@@ -34,7 +34,7 @@ export async function seedMetricsWithdrawalHourly() {
 	const sharesToUnderlying = await getSharesToUnderlying()
 	const ethPrices = await getEthPrices()
 
-	const logs = await prismaClient.view_hourly_withdrawal_data.findMany({
+	const logs = await prismaClient.viewHourlyWithdrawalData.findMany({
 		where: {
 			timestamp: {
 				gte: new Date(startAt),
@@ -45,8 +45,8 @@ export async function seedMetricsWithdrawalHourly() {
 	})
 
 	let currentTimestamp = endAt
-	let totalCount = 0
-	let totalValue = 0
+	let totalWithdrawals = 0
+	let tvlEth = 0
 
 	for (const l in logs) {
 		const log = logs[l]
@@ -56,12 +56,12 @@ export async function seedMetricsWithdrawalHourly() {
 		if (hour !== currentTimestamp) {
 			withdrawalHourlyList.push({
 				timestamp: new Date(currentTimestamp),
-				totalCount,
-				totalValue: new prisma.Prisma.Decimal(totalValue)
+				totalWithdrawals,
+				tvlEth: new prisma.Prisma.Decimal(tvlEth)
 			})
 
-			totalCount = 0
-			totalValue = 0
+			totalWithdrawals = 0
+			tvlEth = 0
 			currentTimestamp = hour
 		}
 
@@ -71,17 +71,17 @@ export async function seedMetricsWithdrawalHourly() {
 		const ethPrice = Number(ethPrices.get(log.strategy.toLowerCase()))
 
 		if (sharesMultiplier && ethPrice) {
-			totalCount += log.total_count
-			totalValue +=
-				(Number(log.total_shares) / 1e18) * sharesMultiplier * ethPrice
+			totalWithdrawals += log.totalWithdrawals
+			tvlEth +=
+				(Number(log.totalShares) / 1e18) * sharesMultiplier * ethPrice
 		}
 	}
 
-	if (totalCount > 0 || totalValue > 0) {
+	if (totalWithdrawals > 0 || tvlEth > 0) {
 		withdrawalHourlyList.push({
 			timestamp: new Date(currentTimestamp),
-			totalCount,
-			totalValue: new prisma.Prisma.Decimal(totalValue)
+			totalWithdrawals,
+			tvlEth: new prisma.Prisma.Decimal(tvlEth)
 		})
 	}
 

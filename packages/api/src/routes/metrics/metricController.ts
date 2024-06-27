@@ -566,7 +566,7 @@ async function doGetHistoricalAggregate(
 	const startDate = resetTime(new Date(startAt))
 	const endDate = resetTime(new Date(endAt))
 
-	let valueEth = 0
+	let tvlEth = 0
 
 	// Prepare dataset
 	if (variant === 'discrete') {
@@ -590,7 +590,7 @@ async function doGetHistoricalAggregate(
 		for (const record of initialData.filter(
 			(data) => data.timestamp < startDate
 		)) {
-			valueEth += Number(record.totalValue)
+			tvlEth += Number(record.tvlEth)
 		}
 
 		hourlyData = initialData.filter((data) => data.timestamp >= startDate)
@@ -598,7 +598,7 @@ async function doGetHistoricalAggregate(
 
 	const results: {
 		timestamp: string
-		valueEth: number
+		tvlEth: number
 	}[] = []
 	const timeInterval =
 		{
@@ -617,15 +617,15 @@ async function doGetHistoricalAggregate(
 		)
 
 		for (const record of intervalData) {
-			valueEth += Number(record.totalValue)
+			tvlEth += Number(record.tvlEth)
 		}
 
 		results.push({
 			timestamp: new Date(Number(currentDate)).toISOString(),
-			valueEth: Number(valueEth)
+			tvlEth: Number(tvlEth)
 		})
 
-		valueEth = variant === 'discrete' ? 0 : valueEth
+		tvlEth = variant === 'discrete' ? 0 : tvlEth
 
 		currentDate = nextDate
 	}

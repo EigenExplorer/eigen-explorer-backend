@@ -15,7 +15,7 @@ export async function seedMetricsDepositHourly() {
 
 	const startAt = await fetchLastSyncTime(timeSyncKey)
 	const { timestamp: endAtTimestamp } =
-		await prismaClient.view_hourly_deposit_data.findFirstOrThrow({
+		await prismaClient.viewHourlyDepositData.findFirstOrThrow({
 			select: { timestamp: true },
 			orderBy: { timestamp: 'desc' }
 		})
@@ -34,7 +34,7 @@ export async function seedMetricsDepositHourly() {
 	const sharesToUnderlying = await getSharesToUnderlying()
 	const ethPrices = await getEthPrices()
 
-	const logs = await prismaClient.view_hourly_deposit_data.findMany({
+	const logs = await prismaClient.viewHourlyDepositData.findMany({
 		where: {
 			timestamp: {
 				gte: new Date(startAt),
@@ -45,8 +45,8 @@ export async function seedMetricsDepositHourly() {
 	})
 
 	let currentTimestamp = endAt
-	let totalCount = 0
-	let totalValue = 0
+	let totalDeposits = 0
+	let tvlEth = 0
 
 	for (const l in logs) {
 		const log = logs[l]
@@ -56,12 +56,12 @@ export async function seedMetricsDepositHourly() {
 		if (hour !== currentTimestamp) {
 			depositHourlyList.push({
 				timestamp: new Date(currentTimestamp),
-				totalCount,
-				totalValue: new prisma.Prisma.Decimal(totalValue)
+				totalDeposits,
+				tvlEth: new prisma.Prisma.Decimal(tvlEth)
 			})
 
-			totalCount = 0
-			totalValue = 0
+			totalDeposits = 0
+			tvlEth = 0
 			currentTimestamp = hour
 		}
 
@@ -71,17 +71,17 @@ export async function seedMetricsDepositHourly() {
 		const ethPrice = Number(ethPrices.get(log.strategyAddress.toLowerCase()))
 
 		if (sharesMultiplier && ethPrice) {
-			totalCount += log.total_count
-			totalValue +=
-				(Number(log.total_shares) / 1e18) * sharesMultiplier * ethPrice
+			totalDeposits += log.totalDeposits
+			tvlEth +=
+				(Number(log.totalShares) / 1e18) * sharesMultiplier * ethPrice
 		}
 	}
 
-	if (totalCount > 0 || totalValue > 0) {
+	if (totalDeposits > 0 || tvlEth > 0) {
 		depositHourlyList.push({
 			timestamp: new Date(currentTimestamp),
-			totalCount,
-			totalValue: new prisma.Prisma.Decimal(totalValue)
+			totalDeposits,
+			tvlEth: new prisma.Prisma.Decimal(tvlEth)
 		})
 	}
 
