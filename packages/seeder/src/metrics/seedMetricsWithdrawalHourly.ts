@@ -31,22 +31,35 @@ export async function seedMetricsWithdrawalHourly() {
 		return
 	}
 
-	const sharesToUnderlying = await getSharesToUnderlying()
-	const ethPrices = await getEthPrices()
+	// Get latest values of cumulative fields
+	let { tvlEth: tvlEthDecimal, totalWithdrawals } =
+		(await prismaClient.metricWithdrawalHourly.findFirst({
+			select: {
+				tvlEth: true,
+				totalWithdrawals: true
+			},
+			orderBy: { timestamp: 'desc' }
+		})) || { tvlEth: 0, totalWithdrawals: 0 }
+	let tvlEth = tvlEthDecimal ? Number(tvlEthDecimal) : 0
 
+	// Get logs from view
 	const logs = await prismaClient.viewHourlyWithdrawalData.findMany({
 		where: {
 			timestamp: {
-				gte: new Date(startAt),
+				gt: new Date(startAt),
 				lte: new Date(endAt)
 			}
 		},
-		orderBy: { timestamp: 'desc' }
+		orderBy: { timestamp: 'asc' } // Since we're calculating cumulative metrics
 	})
 
-	let currentTimestamp = endAt
-	let totalWithdrawals = 0
-	let tvlEth = 0
+	let currentTimestamp = logs[0].timestamp.getTime()
+	let changeTvlEth = 0
+	let changeWithdrawals = 0
+
+	// Get multipliers for each strategy
+	const sharesToUnderlying = await getSharesToUnderlying()
+	const ethPrices = await getEthPrices()
 
 	for (const l in logs) {
 		const log = logs[l]
@@ -54,38 +67,50 @@ export async function seedMetricsWithdrawalHourly() {
 		const hour = log.timestamp.getTime()
 
 		if (hour !== currentTimestamp) {
+			// Completed data capture for records for a given hour
+			tvlEth += changeTvlEth
+			totalWithdrawals += changeWithdrawals
+
 			withdrawalHourlyList.push({
 				timestamp: new Date(currentTimestamp),
+				tvlEth: new prisma.Prisma.Decimal(tvlEth),
 				totalWithdrawals,
-				tvlEth: new prisma.Prisma.Decimal(tvlEth)
+				changeTvlEth: new prisma.Prisma.Decimal(changeTvlEth),
+				changeWithdrawals
 			})
 
-			totalWithdrawals = 0
-			tvlEth = 0
+			// Reset for next hour
+			changeTvlEth = 0
+			changeWithdrawals = 0
 			currentTimestamp = hour
 		}
 
 		const sharesMultiplier = Number(
-			sharesToUnderlying.get(log.strategy.toLowerCase())
+			sharesToUnderlying.get(log.strategyAddress.toLowerCase())
 		)
-		const ethPrice = Number(ethPrices.get(log.strategy.toLowerCase()))
+		const ethPrice = Number(ethPrices.get(log.strategyAddress.toLowerCase()))
 
 		if (sharesMultiplier && ethPrice) {
-			totalWithdrawals += log.totalWithdrawals
-			tvlEth +=
+			changeTvlEth +=
 				(Number(log.totalShares) / 1e18) * sharesMultiplier * ethPrice
+			changeWithdrawals += log.totalWithdrawals
 		}
 	}
 
-	if (totalWithdrawals > 0 || tvlEth > 0) {
+	// Last hour
+	if (changeTvlEth > 0 || changeWithdrawals > 0) {
+		tvlEth += changeTvlEth
+		totalWithdrawals += changeWithdrawals
+
 		withdrawalHourlyList.push({
 			timestamp: new Date(currentTimestamp),
+			tvlEth: new prisma.Prisma.Decimal(tvlEth),
 			totalWithdrawals,
-			tvlEth: new prisma.Prisma.Decimal(tvlEth)
+			changeTvlEth: new prisma.Prisma.Decimal(changeTvlEth),
+			changeWithdrawals
 		})
 	}
 
-	// Prepare db transaction object
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	const dbTransactions: any[] = []
 

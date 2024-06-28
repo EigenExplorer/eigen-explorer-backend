@@ -19,7 +19,7 @@ CREATE OR REPLACE VIEW "viewHourlyWithdrawalData" AS
 WITH unnested AS (
     SELECT
         date_trunc('hour', c."createdAt") AS timestamp,
-        unnest(q."strategies") AS strategy,
+        unnest(q."strategies") AS "strategyAddress",
         unnest(q."shares") AS share
     FROM
         "WithdrawalCompleted" c
@@ -32,14 +32,14 @@ WITH unnested AS (
     )
 SELECT
     timestamp,
-    strategy,
+    "strategyAddress",
     COUNT(*) AS "totalWithdrawals",
     SUM(CAST(share AS numeric)) AS "totalShares"
 FROM
     unnested
 GROUP BY
     timestamp,
-    strategy
+    "strategyAddress"
 ORDER BY
     timestamp DESC,
-    strategy;
+    "strategyAddress";

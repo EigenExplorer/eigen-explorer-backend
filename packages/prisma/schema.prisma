@@ -434,8 +434,10 @@ model EventLogs_Deposit {
 model MetricDepositHourly {
   id Int      @id @default(autoincrement())
   
-  tvlEth        Decimal @db.Decimal(20, 8)
-  totalDeposits Int
+  tvlEth         Decimal @db.Decimal(20, 8)
+  totalDeposits  Int
+  changeTvlEth   Decimal @db.Decimal(20, 8)
+  changeDeposits Int
 
   timestamp DateTime
 
@@ -445,8 +447,10 @@ model MetricDepositHourly {
 model MetricWithdrawalHourly {
   id Int      @id @default(autoincrement())
   
-  tvlEth           Decimal @db.Decimal(20, 8)
-  totalWithdrawals Int
+  tvlEth            Decimal @db.Decimal(20, 8)
+  totalWithdrawals  Int
+  changeTvlEth      Decimal @db.Decimal(20, 8)
+  changeWithdrawals Int
 
   timestamp DateTime
 
