@@ -561,44 +561,9 @@ async function doGetHistoricalAggregate(
 		throw new Error('Invalid model name')
 	}
 
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-	const model = prisma[modelName] as any
-
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-	let hourlyData: any[] = []
-
-	const startDate = resetTime(new Date(startAt))
-	const endDate = resetTime(new Date(endAt))
-
-	let tvlEth = 0
-
-	// Prepare dataset
-	if (variant === 'discrete') {
-		hourlyData = await model.findMany({
-			where: {
-				timestamp: {
-					gte: startDate,
-					lte: endDate
-				}
-			}
-		})
-	} else {
-		const initialData = await model.findMany({
-			where: {
-				timestamp: {
-					lte: endDate
-				}
-			}
-		})
-
-		for (const record of initialData.filter(
-			(data) => data.timestamp < startDate
-		)) {
-			tvlEth += Number(record.tvlEth)
-		}
-
-		hourlyData = initialData.filter((data) => data.timestamp >= startDate)
-	}
+	const startTimestamp = resetTime(new Date(startAt))
+	const endTimestamp = resetTime(new Date(endAt))
+	let currentTimestamp = startTimestamp
 
 	const results: {
 		timestamp: string
@@ -610,29 +575,75 @@ async function doGetHistoricalAggregate(
 			'1d': 86400000,
 			'7d': 604800000
 		}[frequency] || 3600000
-	let currentDate = startDate
 
-	// Prepare response
-	while (currentDate <= endDate) {
-		const nextDate = new Date(currentDate.getTime() + timeInterval)
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+	const model = prisma[modelName] as any
 
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+	let hourlyData: any[] = []
+
+	hourlyData = await model.findMany({
+		where: {
+			timestamp: {
+				gte: startTimestamp,
+				lte: endTimestamp
+			}
+		},
+		orderBy: {
+			timestamp: 'asc'
+		}
+	})
+
+	let tvlEth = 0
+
+	// Set the first tvlEth value to prevent the first n responses returning 0 in case no records exist for the first n timestamps
+	if (variant === 'cumulative') {
+		if (hourlyData[0].timestamp.getTime() === startTimestamp.getTime()) {
+			tvlEth = hourlyData[0].tvlEth
+		} else {
+			const result = await model.findFirst({
+				select: {
+					tvlEth: true
+				},
+				where: {
+					timestamp: {
+						lt: startTimestamp
+					}
+				},
+				orderBy: {
+					timestamp: 'desc'
+				}
+			})
+
+			tvlEth = result ? Number(result.tvlEth) : 0
+		}
+	}
+
+	while (currentTimestamp <= endTimestamp) {
+		const nextTimestamp = new Date(currentTimestamp.getTime() + timeInterval)
 		const intervalData = hourlyData.filter(
-			(data) => data.timestamp >= currentDate && data.timestamp < nextDate
+			(data) =>
+				data.timestamp >= currentTimestamp && data.timestamp < nextTimestamp
 		)
 
-		for (const record of intervalData) {
-			tvlEth += Number(record.tvlEth)
+		if (variant === 'cumulative') {
+			if (intervalData.length > 0) {
+				tvlEth = intervalData[intervalData.length - 1].tvlEth
+			} // If no records exist in the time period, previous tvlEth value is returned
+		} else {
+			tvlEth = intervalData.reduce((sum, record) => {
+				return sum + record.changeTvlEth
+			}, 0)
 		}
 
 		results.push({
-			timestamp: new Date(Number(currentDate)).toISOString(),
+			timestamp: new Date(Number(currentTimestamp)).toISOString(),
 			tvlEth: Number(tvlEth)
 		})
 
-		tvlEth = variant === 'discrete' ? 0 : tvlEth
-
-		currentDate = nextDate
+		currentTimestamp = nextTimestamp
 	}
+
 	return results
 }
 

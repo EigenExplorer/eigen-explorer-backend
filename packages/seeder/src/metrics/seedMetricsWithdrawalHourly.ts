@@ -4,6 +4,7 @@ import { getSharesToUnderlying, getEthPrices } from '../utils/strategies'
 import {
 	bulkUpdateDbTransactions,
 	fetchLastSyncTime,
+	baseTime,
 	saveLastSyncBlock
 } from '../utils/seeder'
 
@@ -113,6 +114,10 @@ export async function seedMetricsWithdrawalHourly() {
 
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	const dbTransactions: any[] = []
+
+	if (startAt === baseTime) {
+		dbTransactions.push(prismaClient.metricWithdrawalHourly.deleteMany())
+	}
 
 	if (withdrawalHourlyList.length > 0) {
 		dbTransactions.push(
