@@ -147,8 +147,6 @@ model Deposit {
 
   createdAtBlock BigInt   @default(0)
   createdAt      DateTime @default(now())
-
-  @@index([createdAt])
 }
 
 model Pod {
