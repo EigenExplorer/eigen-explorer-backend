@@ -109,9 +109,7 @@ export async function getTotalAvs(req: Request, res: Response) {
 	try {
 		const total = await doGetTotalAvsCount()
 
-		res.send({
-			total
-		})
+		res.send(total)
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
 	}
@@ -121,9 +119,7 @@ export async function getTotalOperators(req: Request, res: Response) {
 	try {
 		const total = await doGetTotalOperatorCount()
 
-		res.send({
-			total
-		})
+		res.send(total)
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
 	}
@@ -133,9 +129,7 @@ export async function getTotalStakers(req: Request, res: Response) {
 	try {
 		const total = await doGetTotalStakerCount()
 
-		res.send({
-			total
-		})
+		res.send(total)
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
 	}
@@ -437,19 +431,131 @@ async function doGetTvlBeaconChain() {
 }
 
 async function doGetTotalAvsCount() {
-	return await prisma.avs.count({ where: getAvsFilterQuery(true) })
+	const timestampNow = new Date()
+	const timestamp24h = new Date(
+		new Date().setUTCHours(timestampNow.getUTCHours() - 24)
+	)
+	const timestamp7d = new Date(
+		new Date().setUTCDate(timestampNow.getUTCDate() - 7)
+	)
+
+	const totalNow = await prisma.avs.count({
+		where: getAvsFilterQuery(true)
+	})
+	const change24hValue = await prisma.avs.count({
+		where: {
+			createdAt: { gte: timestamp24h },
+			...getAvsFilterQuery(true)
+		}
+	})
+	const change7dValue = await prisma.avs.count({
+		where: {
+			createdAt: { gte: timestamp7d },
+			...getAvsFilterQuery(true)
+		}
+	})
+
+	const change24hPercent =
+		change24hValue !== 0 ? Math.round((change24hValue / (totalNow - change24hValue)) * 1000) / 1000 : 0
+
+	const change7dPercent =
+		change7dValue !== 0 ? Math.round((change7dValue / (totalNow - change7dValue)) * 1000) / 1000 : 0
+
+	return {
+		total: totalNow,
+		change24h: {
+			value: change24hValue,
+			percent: change24hPercent
+		},
+		change7d: {
+			value: change7dValue,
+			percent: change7dPercent
+		}
+	}
 }
 
 async function doGetTotalOperatorCount() {
-	return await prisma.operator.count()
+	const timestampNow = new Date()
+	const timestamp24h = new Date(
+		new Date().setUTCHours(timestampNow.getUTCHours() - 24)
+	)
+	const timestamp7d = new Date(
+		new Date().setUTCDate(timestampNow.getUTCDate() - 7)
+	)
+
+	const totalNow = await prisma.operator.count()
+	const change24hValue = await prisma.operator.count({
+		where: {
+			createdAt: { gte: timestamp24h }
+		}
+	})
+	const change7dValue = await prisma.operator.count({
+		where: {
+			createdAt: { gte: timestamp7d }
+		}
+	})
+
+	const change24hPercent =
+		change24hValue !== 0 ? Math.round((change24hValue / (totalNow - change24hValue)) * 1000) / 1000 : 0
+
+	const change7dPercent =
+		change7dValue !== 0 ? Math.round((change7dValue / (totalNow - change7dValue)) * 1000) / 1000 : 0
+
+	return {
+		total: totalNow,
+		change24h: {
+			value: change24hValue,
+			percent: change24hPercent
+		},
+		change7d: {
+			value: change7dValue,
+			percent: change7dPercent
+		}
+	}
 }
 
 async function doGetTotalStakerCount() {
-	const stakers = await prisma.staker.count({
+	const timestampNow = new Date()
+	const timestamp24h = new Date(
+		new Date().setUTCHours(timestampNow.getUTCHours() - 24)
+	)
+	const timestamp7d = new Date(
+		new Date().setUTCDate(timestampNow.getUTCDate() - 7)
+	)
+
+	const totalNow = await prisma.staker.count({
 		where: { operatorAddress: { not: null } }
 	})
+	const change24hValue = await prisma.staker.count({
+		where: {
+			createdAt: { gte: timestamp24h },
+			operatorAddress: { not: null }
+		}
+	})
+	const change7dValue = await prisma.staker.count({
+		where: {
+			createdAt: { gte: timestamp7d },
+			operatorAddress: { not: null }
+		}
+	})
 
-	return stakers
+	const change24hPercent =
+		change24hValue !== 0 ? Math.round((change24hValue / (totalNow - change24hValue)) * 1000) / 1000 : 0
+
+	const change7dPercent =
+		change7dValue !== 0 ? Math.round((change7dValue / (totalNow - change7dValue)) * 1000) / 1000 : 0
+
+	return {
+		total: totalNow,
+		change24h: {
+			value: change24hValue,
+			percent: change24hPercent
+		},
+		change7d: {
+			value: change7dValue,
+			percent: change7dPercent
+		}
+	}
 }
 
 async function doGetTotalWithdrawals() {
