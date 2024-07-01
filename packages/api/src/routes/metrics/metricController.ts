@@ -1019,7 +1019,6 @@ async function doGetHistoricalTvl(
 	const results: {
 		timestamp: string
 		tvlEth: number
-		totalStakers: number
 	}[] = []
 	const timeInterval =
 		{
