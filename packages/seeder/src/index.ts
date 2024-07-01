@@ -150,7 +150,6 @@ async function seedMetricsData() {
 
 			await seedMetricsDepositHourly()
 			await seedMetricsWithdrawalHourly()
-
 			await seedMetricsOperatorHourly()
 		} catch (error) {
 			console.log(error)

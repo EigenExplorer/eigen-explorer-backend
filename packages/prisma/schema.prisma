@@ -61,6 +61,11 @@ model AvsOperator {
   isActive           Boolean
   restakedStrategies String[]
 
+  createdAtBlock BigInt   @default(0)
+  updatedAtBlock BigInt   @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now())
+
   @@id([avsAddress, operatorAddress])
   @@index([avsAddress])
 }
@@ -529,3 +534,4 @@ model Evm_BlockData {
   number    BigInt   @id
   timestamp DateTime
 }
+
