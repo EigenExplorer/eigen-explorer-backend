@@ -12,6 +12,7 @@ import { getAvsFilterQuery } from '../avs/avsController'
 import { fetchStrategyTokenPrices } from '../../utils/tokenPrices'
 import { getStrategiesWithShareUnderlying } from '../strategies/strategiesController'
 import { HistoricalCountSchema } from '../../schema/zod/schemas/historicalCountQuery'
+import { EthereumAddressSchema } from '../../schema/zod/schemas/base/ethereumAddress'
 
 /**
  * Route to get explorer metrics
@@ -220,17 +221,77 @@ export async function getHistoricalStakerCount(req: Request, res: Response) {
 	}
 }
 
-export async function getHistoricalWithdrawalAggregate(
+export async function getHistoricalAvsAggregate(
 	req: Request,
 	res: Response
 ) {
-	const paramCheck = HistoricalCountSchema.safeParse(req.query)
+	const queryCheck = HistoricalCountSchema.safeParse(req.query)
+	if (!queryCheck.success) {
+		return handleAndReturnErrorResponse(req, res, queryCheck.error)
+	}
+
+	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
 	if (!paramCheck.success) {
 		return handleAndReturnErrorResponse(req, res, paramCheck.error)
 	}
 
 	try {
-		const { frequency, variant, startAt, endAt } = paramCheck.data
+		const { address } = req.params
+		const { frequency, variant, startAt, endAt } = queryCheck.data
+		const data = await doGetHistoricalAvsAggregate(
+			address,
+			startAt,
+			endAt,
+			frequency,
+			variant
+		)
+		res.status(200).send({ data })
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+export async function getHistoricalOperatorsAggregate(
+	req: Request,
+	res: Response
+) {
+	const queryCheck = HistoricalCountSchema.safeParse(req.query)
+	if (!queryCheck.success) {
+		return handleAndReturnErrorResponse(req, res, queryCheck.error)
+	}
+
+	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	}
+
+	try {
+		const { address } = req.params
+		const { frequency, variant, startAt, endAt } = queryCheck.data
+		const data = await doGetHistoricalOperatorsAggregate(
+			address,
+			startAt,
+			endAt,
+			frequency,
+			variant
+		)
+		res.status(200).send({ data })
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+export async function getHistoricalWithdrawalAggregate(
+	req: Request,
+	res: Response
+) {
+	const queryCheck = HistoricalCountSchema.safeParse(req.query)
+	if (!queryCheck.success) {
+		return handleAndReturnErrorResponse(req, res, queryCheck.error)
+	}
+
+	try {
+		const { frequency, variant, startAt, endAt } = queryCheck.data
 		const data = await doGetHistoricalAggregate(
 			'metricWithdrawalHourly',
 			startAt,
@@ -248,13 +309,13 @@ export async function getHistoricalDepositAggregate(
 	req: Request,
 	res: Response
 ) {
-	const paramCheck = HistoricalCountSchema.safeParse(req.query)
-	if (!paramCheck.success) {
-		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	const queryCheck = HistoricalCountSchema.safeParse(req.query)
+	if (!queryCheck.success) {
+		return handleAndReturnErrorResponse(req, res, queryCheck.error)
 	}
 
 	try {
-		const { frequency, variant, startAt, endAt } = paramCheck.data
+		const { frequency, variant, startAt, endAt } = queryCheck.data
 		const data = await doGetHistoricalAggregate(
 			'metricDepositHourly',
 			startAt,
@@ -272,13 +333,13 @@ export async function getHistoricalWithdrawalCount(
 	req: Request,
 	res: Response
 ) {
-	const paramCheck = HistoricalCountSchema.safeParse(req.query)
-	if (!paramCheck.success) {
-		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	const queryCheck = HistoricalCountSchema.safeParse(req.query)
+	if (!queryCheck.success) {
+		return handleAndReturnErrorResponse(req, res, queryCheck.error)
 	}
 
 	try {
-		const { frequency, variant, startAt, endAt } = paramCheck.data
+		const { frequency, variant, startAt, endAt } = queryCheck.data
 		const data = await doGetHistoricalCount(
 			'withdrawalQueued',
 			startAt,
@@ -293,13 +354,13 @@ export async function getHistoricalWithdrawalCount(
 }
 
 export async function getHistoricalDepositCount(req: Request, res: Response) {
-	const paramCheck = HistoricalCountSchema.safeParse(req.query)
-	if (!paramCheck.success) {
-		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	const queryCheck = HistoricalCountSchema.safeParse(req.query)
+	if (!queryCheck.success) {
+		return handleAndReturnErrorResponse(req, res, queryCheck.error)
 	}
 
 	try {
-		const { frequency, variant, startAt, endAt } = paramCheck.data
+		const { frequency, variant, startAt, endAt } = queryCheck.data
 		const data = await doGetHistoricalCount(
 			'deposit',
 			startAt,
@@ -656,6 +717,214 @@ async function doGetHistoricalCount(
 	return results
 }
 
+async function doGetHistoricalAvsAggregate(
+	address: string,
+	startAt: string,
+	endAt: string,
+	frequency: string,
+	variant: string
+) {
+	const startTimestamp = resetTime(new Date(startAt))
+	const endTimestamp = resetTime(new Date(endAt))
+	let currentTimestamp = startTimestamp
+
+	const results: {
+		timestamp: string
+		tvlEth: number
+		totalStakers: number
+		totalOperators: number
+	}[] = []
+	const timeInterval =
+		{
+			'1h': 3600000,
+			'1d': 86400000,
+			'7d': 604800000
+		}[frequency] || 3600000
+
+	const hourlyData = await prisma.metricAvsHourly.findMany({
+		where: {
+			timestamp: {
+				gte: startTimestamp,
+				lte: endTimestamp
+			},
+			avsAddress: address.toLowerCase()
+		},
+		orderBy: {
+			timestamp: 'asc'
+		}
+	})
+
+	let tvlEth = 0
+	let totalStakers = 0
+	let totalOperators = 0
+
+	// Set the first tvlEth, totalStakers & totalOperators value to prevent the first n responses returning 0 in case no records exist for the first n timestamps
+	if (variant === 'cumulative') {
+		if (hourlyData.length > 0 && hourlyData[0].timestamp.getTime() === startTimestamp.getTime()) {
+			tvlEth = Number(hourlyData[0].tvlEth)
+		} else {
+			const result = await prisma.metricAvsHourly.findFirst({
+				select: {
+					tvlEth: true,
+					totalStakers: true,
+					totalOperators: true
+				},
+				where: {
+					timestamp: {
+						lt: startTimestamp
+					},
+					avsAddress: address.toLowerCase()
+				},
+				orderBy: {
+					timestamp: 'desc'
+				}
+			})
+
+			tvlEth = result ? Number(result.tvlEth) : 0
+			totalStakers = result ? Number(result.totalStakers) : 0
+			totalOperators = result ? Number(result.totalOperators) : 0
+		}
+	}
+
+	while (currentTimestamp <= endTimestamp) {
+		const nextTimestamp = new Date(currentTimestamp.getTime() + timeInterval)
+		const intervalData = hourlyData.filter(
+			(data) =>
+				data.timestamp >= currentTimestamp && data.timestamp < nextTimestamp
+		)
+
+		if (variant === 'cumulative') {
+			if (intervalData.length > 0) {
+				tvlEth = Number(intervalData[intervalData.length - 1].tvlEth)
+				totalStakers = intervalData[intervalData.length - 1].totalStakers
+				totalOperators = intervalData[intervalData.length - 1].totalOperators
+			} // If no records exist in the time period, previous tvlEth, totalStakers & totalOperators value is returned
+		} else {
+			tvlEth = intervalData.reduce((sum, record) => {
+				return sum + Number(record.changeTvlEth)
+			}, 0)
+
+			totalStakers = intervalData.reduce((sum, record) => {
+				return sum + record.changeStakers
+			}, 0)
+
+			totalOperators = intervalData.reduce((sum, record) => {
+				return sum + record.changeOperators
+			}, 0)
+		}
+
+		results.push({
+			timestamp: new Date(Number(currentTimestamp)).toISOString(),
+			tvlEth,
+			totalStakers,
+			totalOperators
+		})
+
+		currentTimestamp = nextTimestamp
+	}
+
+	return results
+}
+
+async function doGetHistoricalOperatorsAggregate(
+	address: string,
+	startAt: string,
+	endAt: string,
+	frequency: string,
+	variant: string
+) {
+	const startTimestamp = resetTime(new Date(startAt))
+	const endTimestamp = resetTime(new Date(endAt))
+	let currentTimestamp = startTimestamp
+
+	const results: {
+		timestamp: string
+		tvlEth: number
+		totalStakers: number
+	}[] = []
+	const timeInterval =
+		{
+			'1h': 3600000,
+			'1d': 86400000,
+			'7d': 604800000
+		}[frequency] || 3600000
+
+	const hourlyData = await prisma.metricOperatorHourly.findMany({
+		where: {
+			timestamp: {
+				gte: startTimestamp,
+				lte: endTimestamp
+			},
+			operatorAddress: address.toLowerCase()
+		},
+		orderBy: {
+			timestamp: 'asc'
+		}
+	})
+
+	let tvlEth = 0
+	let totalStakers = 0
+
+	// Set the first tvlEth & totalStakers value to prevent the first n responses returning 0 in case no records exist for the first n timestamps
+	if (variant === 'cumulative') {
+		if (hourlyData.length > 0 && hourlyData[0].timestamp.getTime() === startTimestamp.getTime()) {
+			tvlEth = Number(hourlyData[0].tvlEth)
+		} else {
+			const result = await prisma.metricOperatorHourly.findFirst({
+				select: {
+					tvlEth: true,
+					totalStakers: true
+				},
+				where: {
+					timestamp: {
+						lt: startTimestamp
+					},
+					operatorAddress: address.toLowerCase()
+				},
+				orderBy: {
+					timestamp: 'desc'
+				}
+			})
+
+			tvlEth = result ? Number(result.tvlEth) : 0
+			totalStakers = result ? Number(result.totalStakers) : 0
+		}
+	}
+
+	while (currentTimestamp <= endTimestamp) {
+		const nextTimestamp = new Date(currentTimestamp.getTime() + timeInterval)
+		const intervalData = hourlyData.filter(
+			(data) =>
+				data.timestamp >= currentTimestamp && data.timestamp < nextTimestamp
+		)
+
+		if (variant === 'cumulative') {
+			if (intervalData.length > 0) {
+				tvlEth = Number(intervalData[intervalData.length - 1].tvlEth)
+				totalStakers = intervalData[intervalData.length - 1].totalStakers
+			} // If no records exist in the time period, previous tvlEth & totalStakers value is returned
+		} else {
+			tvlEth = intervalData.reduce((sum, record) => {
+				return sum + Number(record.changeTvlEth)
+			}, 0)
+
+			totalStakers = intervalData.reduce((sum, record) => {
+				return sum + record.changeStakers
+			}, 0)
+		}
+
+		results.push({
+			timestamp: new Date(Number(currentTimestamp)).toISOString(),
+			tvlEth,
+			totalStakers
+		})
+
+		currentTimestamp = nextTimestamp
+	}
+
+	return results
+}
+
 async function doGetHistoricalAggregate(
 	modelName: string,
 	startAt: string,
@@ -704,8 +973,8 @@ async function doGetHistoricalAggregate(
 
 	// Set the first tvlEth value to prevent the first n responses returning 0 in case no records exist for the first n timestamps
 	if (variant === 'cumulative') {
-		if (hourlyData[0].timestamp.getTime() === startTimestamp.getTime()) {
-			tvlEth = hourlyData[0].tvlEth
+		if (hourlyData.length > 0 && hourlyData[0].timestamp.getTime() === startTimestamp.getTime()) {
+			tvlEth = Number(hourlyData[0].tvlEth)
 		} else {
 			const result = await model.findFirst({
 				select: {
@@ -734,17 +1003,17 @@ async function doGetHistoricalAggregate(
 
 		if (variant === 'cumulative') {
 			if (intervalData.length > 0) {
-				tvlEth = intervalData[intervalData.length - 1].tvlEth
+				tvlEth = Number(intervalData[intervalData.length - 1].tvlEth)
 			} // If no records exist in the time period, previous tvlEth value is returned
 		} else {
 			tvlEth = intervalData.reduce((sum, record) => {
-				return sum + record.changeTvlEth
+				return sum + Number(record.changeTvlEth)
 			}, 0)
 		}
 
 		results.push({
 			timestamp: new Date(Number(currentTimestamp)).toISOString(),
-			tvlEth: Number(tvlEth)
+			tvlEth
 		})
 
 		currentTimestamp = nextTimestamp
