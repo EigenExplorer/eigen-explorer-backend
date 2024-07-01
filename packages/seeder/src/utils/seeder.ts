@@ -12,6 +12,12 @@ export const baseBlock =
 		? 1159609n
 		: 17000000n
 
+// Base time
+export const baseTime =
+	process.env.NETWORK && process.env.NETWORK === 'holesky'
+		? 1710684720000
+		: 1680911891000
+
 export async function loopThroughBlocks(
 	firstBlock: bigint,
 	lastBlock: bigint,
@@ -64,6 +70,18 @@ export async function fetchLastSyncBlock(key: string): Promise<bigint> {
 	return lastSyncedBlockData?.value
 		? BigInt(lastSyncedBlockData.value as number)
 		: baseBlock
+}
+
+export async function fetchLastSyncTime(key: string): Promise<number> {
+	const prismaClient = getPrismaClient()
+
+	const lastSyncedTimeData = await prismaClient.settings.findUnique({
+		where: { key }
+	})
+
+	return lastSyncedTimeData?.value
+		? lastSyncedTimeData.value as number
+		: baseTime
 }
 
 export async function saveLastSyncBlock(key: string, blockNumber: bigint) {

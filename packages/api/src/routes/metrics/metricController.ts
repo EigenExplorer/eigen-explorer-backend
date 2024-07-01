@@ -220,6 +220,54 @@ export async function getHistoricalStakerCount(req: Request, res: Response) {
 	}
 }
 
+export async function getHistoricalWithdrawalAggregate(
+	req: Request,
+	res: Response
+) {
+	const paramCheck = HistoricalCountSchema.safeParse(req.query)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	}
+
+	try {
+		const { frequency, variant, startAt, endAt } = paramCheck.data
+		const data = await doGetHistoricalAggregate(
+			'metricWithdrawalHourly',
+			startAt,
+			endAt,
+			frequency,
+			variant
+		)
+		res.status(200).send({ data })
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+export async function getHistoricalDepositAggregate(
+	req: Request,
+	res: Response
+) {
+	const paramCheck = HistoricalCountSchema.safeParse(req.query)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	}
+
+	try {
+		const { frequency, variant, startAt, endAt } = paramCheck.data
+		const data = await doGetHistoricalAggregate(
+			'metricDepositHourly',
+			startAt,
+			endAt,
+			frequency,
+			variant
+		)
+		res.status(200).send({ data })
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
 export async function getHistoricalWithdrawalCount(
 	req: Request,
 	res: Response
@@ -529,20 +577,12 @@ async function doGetTotalDeposits() {
 }
 
 async function doGetHistoricalCount(
-	modelName: 'avs' | 'operator' | 'staker' | 'withdrawalQueued' | 'deposit',
+	modelName: string,
 	startAt: string,
 	endAt: string,
 	frequency: string,
 	variant: string
 ) {
-	function resetTime(date: Date) {
-		date.setUTCMinutes(0, 0, 0)
-		return date
-	}
-
-	const startDate = resetTime(new Date(startAt))
-	const endDate = resetTime(new Date(endAt))
-
 	if (
 		!['avs', 'operator', 'staker', 'withdrawalQueued', 'deposit'].includes(
 			modelName
@@ -554,6 +594,9 @@ async function doGetHistoricalCount(
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	const model = prisma[modelName] as any
 
+	const startDate = resetTime(new Date(startAt))
+	const endDate = resetTime(new Date(endAt))
+
 	const initialTally = await model.count({
 		where: {
 			createdAt: {
@@ -563,6 +606,9 @@ async function doGetHistoricalCount(
 	})
 
 	const modelData = await model.findMany({
+		select: {
+			createdAt: true
+		},
 		where: {
 			createdAt: {
 				gte: startDate,
@@ -574,35 +620,32 @@ async function doGetHistoricalCount(
 		}
 	})
 
-	let tally = initialTally
-	const results: { ts: string; value: number }[] = []
-	let currentDate = startDate.getTime()
-
+	const results: { timestamp: string; value: number }[] = []
 	const timeInterval =
 		{
 			'1h': 3600000,
 			'1d': 86400000,
 			'7d': 604800000
 		}[frequency] || 3600000
+	let currentDate = startDate
+	let tally = initialTally
 
-	while (currentDate <= endDate.getTime()) {
-		const nextDate = new Date(currentDate + timeInterval).getTime()
+	while (currentDate <= endDate) {
+		const nextDate = new Date(currentDate.getTime() + timeInterval)
 
 		const intervalData = modelData.filter(
-			(data) =>
-				data.createdAt.getTime() >= currentDate &&
-				data.createdAt.getTime() < nextDate
+			(data) => data.createdAt >= currentDate && data.createdAt < nextDate
 		)
 
-		if (variant === 'count') {
+		if (variant === 'discrete') {
 			results.push({
-				ts: new Date(Number(currentDate)).toISOString(),
+				timestamp: new Date(Number(currentDate)).toISOString(),
 				value: intervalData.length
 			})
 		} else {
 			tally += intervalData.length
 			results.push({
-				ts: new Date(Number(currentDate)).toISOString(),
+				timestamp: new Date(Number(currentDate)).toISOString(),
 				value: tally
 			})
 		}
@@ -611,4 +654,107 @@ async function doGetHistoricalCount(
 	}
 
 	return results
+}
+
+async function doGetHistoricalAggregate(
+	modelName: string,
+	startAt: string,
+	endAt: string,
+	frequency: string,
+	variant: string
+) {
+	if (!['metricWithdrawalHourly', 'metricDepositHourly'].includes(modelName)) {
+		throw new Error('Invalid model name')
+	}
+
+	const startTimestamp = resetTime(new Date(startAt))
+	const endTimestamp = resetTime(new Date(endAt))
+	let currentTimestamp = startTimestamp
+
+	const results: {
+		timestamp: string
+		tvlEth: number
+	}[] = []
+	const timeInterval =
+		{
+			'1h': 3600000,
+			'1d': 86400000,
+			'7d': 604800000
+		}[frequency] || 3600000
+
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+	const model = prisma[modelName] as any
+
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+	let hourlyData: any[] = []
+
+	hourlyData = await model.findMany({
+		where: {
+			timestamp: {
+				gte: startTimestamp,
+				lte: endTimestamp
+			}
+		},
+		orderBy: {
+			timestamp: 'asc'
+		}
+	})
+
+	let tvlEth = 0
+
+	// Set the first tvlEth value to prevent the first n responses returning 0 in case no records exist for the first n timestamps
+	if (variant === 'cumulative') {
+		if (hourlyData[0].timestamp.getTime() === startTimestamp.getTime()) {
+			tvlEth = hourlyData[0].tvlEth
+		} else {
+			const result = await model.findFirst({
+				select: {
+					tvlEth: true
+				},
+				where: {
+					timestamp: {
+						lt: startTimestamp
+					}
+				},
+				orderBy: {
+					timestamp: 'desc'
+				}
+			})
+
+			tvlEth = result ? Number(result.tvlEth) : 0
+		}
+	}
+
+	while (currentTimestamp <= endTimestamp) {
+		const nextTimestamp = new Date(currentTimestamp.getTime() + timeInterval)
+		const intervalData = hourlyData.filter(
+			(data) =>
+				data.timestamp >= currentTimestamp && data.timestamp < nextTimestamp
+		)
+
+		if (variant === 'cumulative') {
+			if (intervalData.length > 0) {
+				tvlEth = intervalData[intervalData.length - 1].tvlEth
+			} // If no records exist in the time period, previous tvlEth value is returned
+		} else {
+			tvlEth = intervalData.reduce((sum, record) => {
+				return sum + record.changeTvlEth
+			}, 0)
+		}
+
+		results.push({
+			timestamp: new Date(Number(currentTimestamp)).toISOString(),
+			tvlEth: Number(tvlEth)
+		})
+
+		currentTimestamp = nextTimestamp
+	}
+
+	return results
+}
+
+// Trim timestamp
+function resetTime(date: Date) {
+	date.setUTCMinutes(0, 0, 0)
+	return date
 }

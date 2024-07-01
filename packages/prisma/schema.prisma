@@ -429,6 +429,32 @@ model EventLogs_Deposit {
   @@index([blockNumber])
 }
 
+model MetricDepositHourly {
+  id Int      @id @default(autoincrement())
+  
+  tvlEth         Decimal @db.Decimal(20, 8)
+  totalDeposits  Int
+  changeTvlEth   Decimal @db.Decimal(20, 8)
+  changeDeposits Int
+
+  timestamp DateTime
+
+  @@index([timestamp])
+}
+
+model MetricWithdrawalHourly {
+  id Int      @id @default(autoincrement())
+  
+  tvlEth            Decimal @db.Decimal(20, 8)
+  totalWithdrawals  Int
+  changeTvlEth      Decimal @db.Decimal(20, 8)
+  changeWithdrawals Int
+
+  timestamp DateTime
+
+  @@index([timestamp])
+}
+
 // Misc
 
 model Evm_BlockData {
