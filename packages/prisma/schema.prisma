@@ -176,6 +176,8 @@ model Validator {
   effectiveBalance      BigInt
   slashed               Boolean
   withdrawalCredentials String
+  activationEpoch       BigInt
+  exitEpoch             BigInt
 }
 
 model WithdrawalQueued {

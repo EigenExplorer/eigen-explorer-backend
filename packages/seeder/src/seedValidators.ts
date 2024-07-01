@@ -35,7 +35,7 @@ export async function seedValidators(shouldClearPrev?: boolean) {
 			: 0
 	const chunkSize = 8000
 	const batchSize = 120_000
-	const clearPerv = shouldClearPrev
+	const clearPrev = shouldClearPrev
 		? shouldClearPrev
 		: lastValidatorIndex?.validatorIndex
 		  ? false
@@ -71,6 +71,16 @@ export async function seedValidators(shouldClearPrev?: boolean) {
 						.slice(-40)
 						.toLowerCase()}`
 
+					const activationEpoch =
+						v.validator.activation_epoch === '18446744073709551615'
+							? 0n
+							: BigInt(v.validator.activation_epoch)
+
+					const exitEpoch =
+						v.validator.exit_epoch === '18446744073709551615'
+							? 0n
+							: BigInt(v.validator.exit_epoch)
+
 					if (podAddressList.indexOf(withdrawalCredentials) !== -1) {
 						podValidators.push({
 							validatorIndex: v.index as bigint,
@@ -80,7 +90,9 @@ export async function seedValidators(shouldClearPrev?: boolean) {
 							effectiveBalance: v.validator.effective_balance as bigint,
 							slashed: v.validator.slashed as boolean,
 							withdrawalCredentials: v.validator
-								.withdrawal_credentials as string
+								.withdrawal_credentials as string,
+							activationEpoch: activationEpoch as bigint,
+							exitEpoch: exitEpoch as bigint
 						})
 					}
 				})
@@ -99,7 +111,7 @@ export async function seedValidators(shouldClearPrev?: boolean) {
 	const dbTransactions: any[] = []
 
 	// Clear all validator data
-	if (clearPerv) {
+	if (clearPrev) {
 		dbTransactions.push(prismaClient.validator.deleteMany())
 	}
 
