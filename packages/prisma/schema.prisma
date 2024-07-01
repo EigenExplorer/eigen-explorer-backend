@@ -264,6 +264,20 @@ model MetricStrategyHourly {
   @@index([timestamp])
 }
 
+model MetricEigenPodsHourly {
+  id Int @id @default(autoincrement())
+
+  tvlEth       Decimal @db.Decimal(20, 8)
+  changeTvlEth Decimal @db.Decimal(20, 8)
+  totalPods    Int
+  changePods   Int
+
+  timestamp DateTime
+
+  @@unique([timestamp])
+  @@index([timestamp])
+}
+
 // RAW Event Logs
 
 model EventLogs_AVSMetadataURIUpdated {
