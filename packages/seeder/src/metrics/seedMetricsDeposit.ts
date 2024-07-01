@@ -4,7 +4,6 @@ import { getSharesToUnderlying, getEthPrices } from '../utils/strategies'
 import {
 	bulkUpdateDbTransactions,
 	fetchLastSyncTime,
-	baseTime,
 	saveLastSyncBlock
 } from '../utils/seeder'
 
@@ -13,14 +12,19 @@ const timeSyncKey = 'lastSyncedTime_metrics_depositHourly'
 export async function seedMetricsDepositHourly() {
 	const prismaClient = getPrismaClient()
 	const depositHourlyList: Omit<prisma.MetricDepositHourly, 'id'>[] = []
+	let clearPrev = false
 
-	let startAt = await fetchLastSyncTime(timeSyncKey)
-
-	// TODO: Get appropirate start at time
+	// Get appropriate startAt
+	let startAt = Number(await fetchLastSyncTime(timeSyncKey))
 	if (!startAt) {
-		startAt = new Date(baseTime)
+		const firstLogTimestamp = await getFirstLogTimestamp()
+		startAt = firstLogTimestamp
+			? firstLogTimestamp.getTime()
+			: new Date().getTime()
+		clearPrev = true
 	}
 
+	// Get appropriate endAt
 	const { timestamp: endAtTimestamp } =
 		await prismaClient.viewHourlyDepositData.findFirstOrThrow({
 			select: { timestamp: true },
@@ -29,11 +33,9 @@ export async function seedMetricsDepositHourly() {
 	const endAt = endAtTimestamp.getTime()
 
 	// Bail early if there is no time diff to sync
-	if (endAt - startAt.getTime() <= 0) {
+	if (endAt - startAt <= 0) {
 		console.log(
-			`[In Sync] [Metrics] Deposit Hourly from: ${startAt} to: ${new Date(
-				endAt
-			)}`
+			`[In Sync] [Metrics] Deposit Hourly from: ${startAt} to: ${endAt}`
 		)
 		return
 	}
@@ -121,7 +123,7 @@ export async function seedMetricsDepositHourly() {
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	const dbTransactions: any[] = []
 
-	if (startAt.getTime() === baseTime) {
+	if (clearPrev) {
 		dbTransactions.push(prismaClient.metricDepositHourly.deleteMany())
 	}
 
@@ -136,11 +138,25 @@ export async function seedMetricsDepositHourly() {
 
 	await bulkUpdateDbTransactions(
 		dbTransactions,
-		`[Metrics] Deposit Hourly from: ${startAt} to: ${new Date(endAt)} size: ${
-			depositHourlyList.length
-		}`
+		`[Metrics] Deposit Hourly from: ${startAt} to: ${endAt} size: ${depositHourlyList.length}`
 	)
 
 	// Storing last synced block
 	await saveLastSyncBlock(timeSyncKey, BigInt(endAt))
+}
+
+/**
+ * Get first log timestamp
+ *
+ * @returns
+ */
+async function getFirstLogTimestamp() {
+	const prismaClient = getPrismaClient()
+
+	const firstLog = await prismaClient.deposit.findFirst({
+		select: { createdAt: true },
+		orderBy: { createdAt: 'asc' }
+	})
+
+	return firstLog ? firstLog.createdAt : null
 }

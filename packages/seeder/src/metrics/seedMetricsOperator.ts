@@ -88,7 +88,7 @@ export async function seedMetricsOperatorHourly() {
 
 			await bulkUpdateDbTransactions(
 				dbTransactions,
-				`[Data] Metric Operator from: ${from.getTime()} to: ${to.getTime()} size: ${
+				`[Metrics] Metric Operator from: ${from.getTime()} to: ${to.getTime()} size: ${
 					tvlRecords.length
 				}`
 			)
