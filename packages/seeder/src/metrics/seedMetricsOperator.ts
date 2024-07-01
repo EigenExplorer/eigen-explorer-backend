@@ -1,15 +1,15 @@
 import prisma from '@prisma/client'
-import { getPrismaClient } from './utils/prismaClient'
+import { getPrismaClient } from '../utils/prismaClient'
 import {
 	bulkUpdateDbTransactions,
 	fetchLastSyncTime,
 	IMap,
 	loopThroughDates
-} from './utils/seeder'
+} from '../utils/seeder'
 
-const blockSyncKey = 'lastSyncedTimestamp_metricOperatorHourly'
+const blockSyncKey = 'lastSyncedTimestamp_metrics_operatorHourly'
 
-export async function seedMetricOperator() {
+export async function seedMetricsOperatorHourly() {
 	const prismaClient = getPrismaClient()
 
 	// Constants
