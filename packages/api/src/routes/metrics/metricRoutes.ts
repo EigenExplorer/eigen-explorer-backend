@@ -15,6 +15,9 @@ import {
 	getHistoricalWithdrawalCount,
 	getHistoricalAvsAggregate,
 	getHistoricalOperatorsAggregate,
+	getHistoricalTvl,
+	getHistoricalTvlBeaconChain,
+	getHistoricalTvlRestaking,
 	getHistoricalWithdrawalAggregate,
 	getHistoricalDepositAggregate,
 	getTotalWithdrawals,
@@ -66,7 +69,21 @@ router.get(
 	routeCache.cacheSeconds(120),
 	getHistoricalOperatorsAggregate
 )
- 
+
+router.get('/historical/tvl', routeCache.cacheSeconds(120), getHistoricalTvl)
+
+router.get(
+	'/historical/tvl/beacon-chain',
+	routeCache.cacheSeconds(120),
+	getHistoricalTvlBeaconChain
+)
+
+router.get(
+	'/historical/tvl/restaking/:address',
+	routeCache.cacheSeconds(120),
+	getHistoricalTvlRestaking
+)
+
 router.get(
 	'/historical/stakers',
 	routeCache.cacheSeconds(120),

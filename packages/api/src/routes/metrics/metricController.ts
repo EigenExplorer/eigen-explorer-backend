@@ -221,10 +221,7 @@ export async function getHistoricalStakerCount(req: Request, res: Response) {
 	}
 }
 
-export async function getHistoricalAvsAggregate(
-	req: Request,
-	res: Response
-) {
+export async function getHistoricalAvsAggregate(req: Request, res: Response) {
 	const queryCheck = HistoricalCountSchema.safeParse(req.query)
 	if (!queryCheck.success) {
 		return handleAndReturnErrorResponse(req, res, queryCheck.error)
@@ -274,6 +271,68 @@ export async function getHistoricalOperatorsAggregate(
 			endAt,
 			frequency,
 			variant
+		)
+		res.status(200).send({ data })
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+export async function getHistoricalTvl(req: Request, res: Response) {
+	const queryCheck = HistoricalCountSchema.safeParse(req.query)
+	if (!queryCheck.success) {
+		return handleAndReturnErrorResponse(req, res, queryCheck.error)
+	}
+
+	try {
+		const { frequency, variant, startAt, endAt } = queryCheck.data
+		const data = await doGetHistoricalTvl(startAt, endAt, frequency, variant)
+		res.status(200).send({ data })
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+export async function getHistoricalTvlBeaconChain(req: Request, res: Response) {
+	const queryCheck = HistoricalCountSchema.safeParse(req.query)
+	if (!queryCheck.success) {
+		return handleAndReturnErrorResponse(req, res, queryCheck.error)
+	}
+
+	try {
+		const { frequency, variant, startAt, endAt } = queryCheck.data
+		const data = await doGetHistoricalTvl(
+			startAt,
+			endAt,
+			frequency,
+			variant,
+			'0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0'
+		)
+		res.status(200).send({ data })
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+export async function getHistoricalTvlRestaking(req: Request, res: Response) {
+	const queryCheck = HistoricalCountSchema.safeParse(req.query)
+	if (!queryCheck.success) {
+		return handleAndReturnErrorResponse(req, res, queryCheck.error)
+	}
+	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	}
+
+	try {
+		const { address } = req.params
+		const { frequency, variant, startAt, endAt } = queryCheck.data
+		const data = await doGetHistoricalTvl(
+			startAt,
+			endAt,
+			frequency,
+			variant,
+			address
 		)
 		res.status(200).send({ data })
 	} catch (error) {
@@ -517,10 +576,14 @@ async function doGetTotalAvsCount() {
 	})
 
 	const change24hPercent =
-		change24hValue !== 0 ? Math.round((change24hValue / (totalNow - change24hValue)) * 1000) / 1000 : 0
+		change24hValue !== 0
+			? Math.round((change24hValue / (totalNow - change24hValue)) * 1000) / 1000
+			: 0
 
 	const change7dPercent =
-		change7dValue !== 0 ? Math.round((change7dValue / (totalNow - change7dValue)) * 1000) / 1000 : 0
+		change7dValue !== 0
+			? Math.round((change7dValue / (totalNow - change7dValue)) * 1000) / 1000
+			: 0
 
 	return {
 		total: totalNow,
@@ -557,10 +620,14 @@ async function doGetTotalOperatorCount() {
 	})
 
 	const change24hPercent =
-		change24hValue !== 0 ? Math.round((change24hValue / (totalNow - change24hValue)) * 1000) / 1000 : 0
+		change24hValue !== 0
+			? Math.round((change24hValue / (totalNow - change24hValue)) * 1000) / 1000
+			: 0
 
 	const change7dPercent =
-		change7dValue !== 0 ? Math.round((change7dValue / (totalNow - change7dValue)) * 1000) / 1000 : 0
+		change7dValue !== 0
+			? Math.round((change7dValue / (totalNow - change7dValue)) * 1000) / 1000
+			: 0
 
 	return {
 		total: totalNow,
@@ -601,10 +668,14 @@ async function doGetTotalStakerCount() {
 	})
 
 	const change24hPercent =
-		change24hValue !== 0 ? Math.round((change24hValue / (totalNow - change24hValue)) * 1000) / 1000 : 0
+		change24hValue !== 0
+			? Math.round((change24hValue / (totalNow - change24hValue)) * 1000) / 1000
+			: 0
 
 	const change7dPercent =
-		change7dValue !== 0 ? Math.round((change7dValue / (totalNow - change7dValue)) * 1000) / 1000 : 0
+		change7dValue !== 0
+			? Math.round((change7dValue / (totalNow - change7dValue)) * 1000) / 1000
+			: 0
 
 	return {
 		total: totalNow,
@@ -760,8 +831,13 @@ async function doGetHistoricalAvsAggregate(
 
 	// Set the first tvlEth, totalStakers & totalOperators value to prevent the first n responses returning 0 in case no records exist for the first n timestamps
 	if (variant === 'cumulative') {
-		if (hourlyData.length > 0 && hourlyData[0].timestamp.getTime() === startTimestamp.getTime()) {
+		if (
+			hourlyData.length > 0 &&
+			hourlyData[0].timestamp.getTime() === startTimestamp.getTime()
+		) {
 			tvlEth = Number(hourlyData[0].tvlEth)
+			totalStakers = hourlyData[0].totalStakers
+			totalOperators = hourlyData[0].totalOperators
 		} else {
 			const result = await prisma.metricAvsHourly.findFirst({
 				select: {
@@ -867,8 +943,12 @@ async function doGetHistoricalOperatorsAggregate(
 
 	// Set the first tvlEth & totalStakers value to prevent the first n responses returning 0 in case no records exist for the first n timestamps
 	if (variant === 'cumulative') {
-		if (hourlyData.length > 0 && hourlyData[0].timestamp.getTime() === startTimestamp.getTime()) {
+		if (
+			hourlyData.length > 0 &&
+			hourlyData[0].timestamp.getTime() === startTimestamp.getTime()
+		) {
 			tvlEth = Number(hourlyData[0].tvlEth)
+			totalStakers = hourlyData[0].totalStakers
 		} else {
 			const result = await prisma.metricOperatorHourly.findFirst({
 				select: {
@@ -925,6 +1005,99 @@ async function doGetHistoricalOperatorsAggregate(
 	return results
 }
 
+async function doGetHistoricalTvl(
+	startAt: string,
+	endAt: string,
+	frequency: string,
+	variant: string,
+	address?: string
+) {
+	const startTimestamp = resetTime(new Date(startAt))
+	const endTimestamp = resetTime(new Date(endAt))
+	let currentTimestamp = startTimestamp
+
+	const results: {
+		timestamp: string
+		tvlEth: number
+		totalStakers: number
+	}[] = []
+	const timeInterval =
+		{
+			'1h': 3600000,
+			'1d': 86400000,
+			'7d': 604800000
+		}[frequency] || 3600000
+
+	const hourlyData = await prisma.metricStrategyHourly.findMany({
+		where: {
+			timestamp: {
+				gte: startTimestamp,
+				lte: endTimestamp
+			},
+			...(address && { strategyAddress: address.toLowerCase() })
+		},
+		orderBy: {
+			timestamp: 'asc'
+		}
+	})
+
+	let tvlEth = 0
+
+	// Set the first tvlEth value to prevent the first n responses returning 0 in case no records exist for the first n timestamps
+	if (variant === 'cumulative') {
+		if (
+			hourlyData.length > 0 &&
+			hourlyData[0].timestamp.getTime() === startTimestamp.getTime()
+		) {
+			tvlEth = Number(hourlyData[0].tvlEth)
+		} else {
+			const result = await prisma.metricStrategyHourly.findFirst({
+				select: {
+					tvlEth: true
+				},
+				where: {
+					timestamp: {
+						lt: startTimestamp
+					},
+					...(address && { strategyAddress: address.toLowerCase() })
+				},
+				orderBy: {
+					timestamp: 'desc'
+				}
+			})
+
+			tvlEth = result ? Number(result.tvlEth) : 0
+		}
+	}
+
+	while (currentTimestamp <= endTimestamp) {
+		const nextTimestamp = new Date(currentTimestamp.getTime() + timeInterval)
+		const intervalData = hourlyData.filter(
+			(data) =>
+				data.timestamp >= currentTimestamp && data.timestamp < nextTimestamp
+		)
+
+		if (variant === 'cumulative') {
+			if (intervalData.length > 0) {
+				tvlEth = Number(intervalData[intervalData.length - 1].tvlEth)
+			} // If no records exist in the time period, previous tvlEth value is returned
+		} else {
+			tvlEth = intervalData.reduce((sum, record) => {
+				return sum + Number(record.changeTvlEth)
+			}, 0)
+		}
+
+		results.push({
+			timestamp: new Date(Number(currentTimestamp)).toISOString(),
+			tvlEth
+		})
+
+		currentTimestamp = nextTimestamp
+	}
+
+	return results
+}
+
 async function doGetHistoricalAggregate(
 	modelName: string,
 	startAt: string,
@@ -973,7 +1146,10 @@ async function doGetHistoricalAggregate(
 
 	// Set the first tvlEth value to prevent the first n responses returning 0 in case no records exist for the first n timestamps
 	if (variant === 'cumulative') {
-		if (hourlyData.length > 0 && hourlyData[0].timestamp.getTime() === startTimestamp.getTime()) {
+		if (
+			hourlyData.length > 0 &&
+			hourlyData[0].timestamp.getTime() === startTimestamp.getTime()
+		) {
 			tvlEth = Number(hourlyData[0].tvlEth)
 		} else {
 			const result = await model.findFirst({
