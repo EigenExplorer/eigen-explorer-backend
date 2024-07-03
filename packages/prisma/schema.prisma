@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["views"]
 }
 
 datasource db {
@@ -430,8 +431,8 @@ model EventLogs_Deposit {
 }
 
 model MetricDepositHourly {
-  id Int      @id @default(autoincrement())
-  
+  id Int @id @default(autoincrement())
+
   tvlEth         Decimal @db.Decimal(20, 8)
   totalDeposits  Int
   changeTvlEth   Decimal @db.Decimal(20, 8)
@@ -443,8 +444,8 @@ model MetricDepositHourly {
 }
 
 model MetricWithdrawalHourly {
-  id Int      @id @default(autoincrement())
-  
+  id Int @id @default(autoincrement())
+
   tvlEth            Decimal @db.Decimal(20, 8)
   totalWithdrawals  Int
   changeTvlEth      Decimal @db.Decimal(20, 8)
@@ -460,4 +461,24 @@ model MetricWithdrawalHourly {
 model Evm_BlockData {
   number    BigInt   @id
   timestamp DateTime
+}
+
+// Views
+
+view viewHourlyDepositData {
+  strategyAddress  String
+  totalDeposits Int
+  totalShares      BigInt
+  timestamp        DateTime
+
+  @@unique([strategyAddress, timestamp])
+}
+
+view viewHourlyWithdrawalData {
+  strategyAddress  String
+  totalWithdrawals Int
+  totalShares      BigInt
+  timestamp        DateTime
+
+  @@unique([strategyAddress, timestamp])
 }
