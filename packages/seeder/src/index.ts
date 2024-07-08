@@ -92,7 +92,7 @@ async function seedEigenPodValidators() {
 		try {
 			console.log('\nSeeding Validators data ...')
 
-			await seedValidators(true)
+			await seedValidators()
 		} catch (error) {
 			console.log(error)
 			console.log('Failed to seed Validators at:', Date.now())
