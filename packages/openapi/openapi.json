@@ -714,16 +714,36 @@
                             "description": "The URL of the AVS's X",
                             "example": "https://twitter.com/acme"
                           },
-                          "tags": {
+                          "restakeableStrategies": {
                             "type": "array",
                             "items": {
-                              "type": "string"
+                              "type": "string",
+                              "pattern": "^0x[a-fA-F0-9]{40}$"
                             },
-                            "description": "The tags associated with the AVS",
+                            "description": "The list of supported restaking strategies",
                             "example": [
-                              "DA",
-                              "DeFi"
+                              "0x35f4f28a8d3ff20eed10e087e8f96ea2641e6aa1"
                             ]
+                          },
+                          "createdAtBlock": {
+                            "type": "string",
+                            "description": "The block number at which the AVS was created",
+                            "example": "19631203"
+                          },
+                          "updatedAtBlock": {
+                            "type": "string",
+                            "description": "The block number at which the AVS was last updated",
+                            "example": "19631203"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "description": "The time stamp at which the AVS was created",
+                            "example": "2024-04-11T08:31:11.000Z"
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "description": "The time stamp at which the AVS was last updated",
+                            "example": "2024-04-11T08:31:11.000Z"
                           },
                           "shares": {
                             "type": "array",
@@ -853,6 +873,11 @@
                           "metadataTelegram",
                           "metadataWebsite",
                           "metadataX",
+                          "restakeableStrategies",
+                          "createdAtBlock",
+                          "updatedAtBlock",
+                          "createdAt",
+                          "updatedAt",
                           "shares",
                           "totalOperators",
                           "totalStakers"
@@ -1131,16 +1156,36 @@
                       "description": "The URL of the AVS's X",
                       "example": "https://twitter.com/acme"
                     },
-                    "tags": {
+                    "restakeableStrategies": {
                       "type": "array",
                       "items": {
-                        "type": "string"
+                        "type": "string",
+                        "pattern": "^0x[a-fA-F0-9]{40}$"
                       },
-                      "description": "The tags associated with the AVS",
+                      "description": "The list of supported restaking strategies",
                       "example": [
-                        "DA",
-                        "DeFi"
+                        "0x35f4f28a8d3ff20eed10e087e8f96ea2641e6aa1"
                       ]
+                    },
+                    "createdAtBlock": {
+                      "type": "string",
+                      "description": "The block number at which the AVS was created",
+                      "example": "19631203"
+                    },
+                    "updatedAtBlock": {
+                      "type": "string",
+                      "description": "The block number at which the AVS was last updated",
+                      "example": "19631203"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "description": "The time stamp at which the AVS was created",
+                      "example": "2024-04-11T08:31:11.000Z"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "description": "The time stamp at which the AVS was last updated",
+                      "example": "2024-04-11T08:31:11.000Z"
                     },
                     "shares": {
                       "type": "array",
@@ -1270,6 +1315,11 @@
                     "metadataTelegram",
                     "metadataWebsite",
                     "metadataX",
+                    "restakeableStrategies",
+                    "createdAtBlock",
+                    "updatedAtBlock",
+                    "createdAt",
+                    "updatedAt",
                     "shares",
                     "totalOperators",
                     "totalStakers"
