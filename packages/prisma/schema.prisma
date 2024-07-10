@@ -551,7 +551,7 @@ model Evm_BlockData {
 view viewHourlyDepositData {
   strategyAddress  String
   totalDeposits Int
-  totalShares      BigInt
+  totalShares      Decimal      @db.Decimal(36, 0)
   timestamp        DateTime
 
   @@unique([strategyAddress, timestamp])
@@ -560,7 +560,7 @@ view viewHourlyDepositData {
 view viewHourlyWithdrawalData {
   strategyAddress  String
   totalWithdrawals Int
-  totalShares      BigInt
+  totalShares      Decimal      @db.Decimal(36, 0)
   timestamp        DateTime
 
   @@unique([strategyAddress, timestamp])
