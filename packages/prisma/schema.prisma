@@ -529,11 +529,11 @@ model MetricWithdrawalHourly {
   @@index([timestamp])
 }
 
-model EthPriceHourly {
+model EthPricesDaily {
   id Int @id @default(autoincrement())
 
-  tokenName String
-  price     Decimal @db.Decimal(20, 8)
+  symbol    String
+  ethPrice  Decimal @db.Decimal(20, 8)
   timestamp DateTime
 
   @@index([timestamp])

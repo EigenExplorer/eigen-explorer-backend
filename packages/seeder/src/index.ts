@@ -29,7 +29,7 @@ import { seedMetricsWithdrawalHourly } from './metrics/seedMetricsWithdrawal'
 import { seedMetricsOperatorHourly } from './metrics/seedMetricsOperator'
 import { seedStrategies } from './seedStrategies'
 import { seedRestakedStrategies } from './seedAvsRestakedStrategies'
-import { seedEthPriceHourly } from './seedEthPriceHourly'
+import { seedEthPricesDaily } from './seedEthPricesDaily'
 
 console.log('Initializing Seeder ...')
 
@@ -116,7 +116,7 @@ async function seedEigenStrategiesData() {
 			console.log('\nSeeding strategies data ...')
 
 			await seedStrategies()
-			await seedEthPriceHourly()
+			await seedEthPricesDaily()
 		} catch (error) {
 			console.log(error)
 			console.log('Failed to seed strategies at:', Date.now())
