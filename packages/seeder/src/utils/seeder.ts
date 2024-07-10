@@ -62,7 +62,9 @@ export async function loopThroughDates(
 
 	while (currentDate <= adjustedEndDate) {
 		const nextDate = incrementDate(currentDate)
-		await cb(new Date(currentDate), new Date(nextDate))
+		if (nextDate <= adjustedEndDate) {
+			await cb(new Date(currentDate), new Date(nextDate))
+		}
 		currentDate = nextDate
 	}
 }
