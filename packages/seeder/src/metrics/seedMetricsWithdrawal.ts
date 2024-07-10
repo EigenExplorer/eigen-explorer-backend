@@ -1,6 +1,10 @@
 import prisma from '@prisma/client'
 import { getPrismaClient } from '../utils/prismaClient'
-import { getSharesToUnderlying, getEthPrices } from '../utils/strategies'
+import {
+	getSharesToUnderlying,
+	getEthPrices,
+	getStrategyToSymbolMap
+} from '../utils/strategies'
 import {
 	bulkUpdateDbTransactions,
 	fetchLastSyncTime,
@@ -66,13 +70,15 @@ export async function seedMetricsWithdrawalHourly() {
 	let changeTvlEth = 0
 	let changeWithdrawals = 0
 
-	// Get multipliers for each strategy
+	// Get strategy and price data
+	const strategyToSymbolMap = await getStrategyToSymbolMap()
 	const sharesToUnderlying = await getSharesToUnderlying()
-	const ethPrices = await getEthPrices()
+	const ethPriceData = await getEthPrices(currentTimestamp)
 
 	for (const l in logs) {
 		const log = logs[l]
 
+		const symbol = strategyToSymbolMap.get(log.strategyAddress)?.toLowerCase()
 		const hour = log.timestamp.getTime()
 
 		if (hour !== currentTimestamp) {
@@ -97,7 +103,15 @@ export async function seedMetricsWithdrawalHourly() {
 		const sharesMultiplier = Number(
 			sharesToUnderlying.get(log.strategyAddress.toLowerCase())
 		)
-		const ethPrice = Number(ethPrices.get(log.strategyAddress.toLowerCase()))
+
+		const ethPrice =
+			Number(
+				ethPriceData.find(
+					(price) =>
+						price.symbol.toLowerCase() === symbol &&
+						price.timestamp.getTime() <= currentTimestamp
+				)?.ethPrice
+			) || 1
 
 		if (sharesMultiplier && ethPrice) {
 			changeTvlEth +=

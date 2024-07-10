@@ -28,20 +28,31 @@ export async function getSharesToUnderlying() {
 	return sharesToUnderlying
 }
 
-export async function getEthPrices() {
+export async function getEthPrices(timestamp: number) {
+	return await getPrismaClient().ethPricesDaily.findMany({
+		where: {
+			timestamp: {
+				gte: new Date(timestamp)
+			}
+		},
+		orderBy: {
+			timestamp: 'desc'
+		}
+	})
+}
+
+export async function getStrategyToSymbolMap() {
 	const strategiesData = await getPrismaClient().strategies.findMany({
 		select: {
-			address: true
+			address: true,
+			symbol: true
 		}
 	})
 
-	const ethPrices = new Map<string, number>()
-
+	const strategiesToSymbolMap = new Map<string, string>()
 	for (const strategy of strategiesData) {
-		ethPrices.set(strategy.address.toLowerCase(), 1)
+		strategiesToSymbolMap.set(strategy.address.toLowerCase(), strategy.symbol)
 	}
 
-	ethPrices.set('0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0', 1)
-
-	return ethPrices
+	return strategiesToSymbolMap
 }
