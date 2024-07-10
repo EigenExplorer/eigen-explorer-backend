@@ -34,6 +34,7 @@ export async function seedMetricsOperatorHourly() {
 
 	// Get the last known metrics for operators
 	const lastOperatorMetrics = await getLatestMetricsPerOperator()
+	const lastStrategyMetrics = await getLatestMetricsPerStrategy()
 
 	// Check date diff
 	const frequency: 'daily' | 'hourly' = 'daily'
@@ -49,27 +50,41 @@ export async function seedMetricsOperatorHourly() {
 			const orderedLogs = await fetchOrderedLogs(from, to)
 
 			// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-			let tvlRecords: any[] = []
+			let operatorTvlRecords: any[] = []
+			// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+			let strategyTvlRecords: any[] = []
 
 			if (frequency === 'daily') {
 				await loopThroughDates(
 					from,
 					to,
 					async (fromHour, toHour) => {
-						const hourlyTvlRecords = await hourlyLoopTick(
-							fromHour,
-							toHour,
-							orderedLogs
-						)
+						const [hourlyOperatorTvlRecords, hourlyStrategyTvlRecords] =
+							await hourlyLoopTick(fromHour, toHour, orderedLogs)
 
-						tvlRecords = [...tvlRecords, ...hourlyTvlRecords]
+						operatorTvlRecords = [
+							...operatorTvlRecords,
+							...hourlyOperatorTvlRecords
+						]
+						strategyTvlRecords = [
+							...strategyTvlRecords,
+							...hourlyStrategyTvlRecords
+						]
 					},
 					'hourly'
 				)
 			} else {
-				const hourlyTvlRecords = await hourlyLoopTick(from, to, orderedLogs)
+				const [hourlyOperatorTvlRecords, hourlyStrategyTvlRecords] =
+					await hourlyLoopTick(from, to, orderedLogs)
 
-				tvlRecords = [...tvlRecords, ...hourlyTvlRecords]
+				operatorTvlRecords = [
+					...operatorTvlRecords,
+					...hourlyOperatorTvlRecords
+				]
+				strategyTvlRecords = [
+					...strategyTvlRecords,
+					...hourlyStrategyTvlRecords
+				]
 			}
 
 			// Push updates
@@ -78,7 +93,14 @@ export async function seedMetricsOperatorHourly() {
 
 			dbTransactions.push(
 				prismaClient.metricOperatorHourly.createMany({
-					data: tvlRecords,
+					data: operatorTvlRecords,
+					skipDuplicates: true
+				})
+			)
+
+			dbTransactions.push(
+				prismaClient.metricStrategyHourly.createMany({
+					data: strategyTvlRecords,
 					skipDuplicates: true
 				})
 			)
@@ -93,9 +115,9 @@ export async function seedMetricsOperatorHourly() {
 
 			await bulkUpdateDbTransactions(
 				dbTransactions,
-				`[Metrics] Metric Operator from: ${from.getTime()} to: ${to.getTime()} size: ${
-					tvlRecords.length
-				}`
+				`[Metrics] Metric Operator & Strategy from: ${from.getTime()} to: ${to.getTime()} size: ${
+					operatorTvlRecords.length
+				} ${strategyTvlRecords.length}`
 			)
 		},
 		frequency
@@ -104,8 +126,10 @@ export async function seedMetricsOperatorHourly() {
 	// Hourly loop tick
 	async function hourlyLoopTick(fromHour: Date, toHour: Date, orderedLogs) {
 		const operatorAddresses = new Set<string>()
+		const strategyAddresses = new Set<string>()
 		const operatorStakers: IMap<string, number> = new Map()
 		const operatorStrategyShares: IMap<string, IMap<string, bigint>> = new Map()
+		const strategyShares: IMap<string, bigint> = new Map()
 
 		const hourlyLogs = orderedLogs.filter(
 			(ol) => ol.blockTime > fromHour && ol.blockTime <= toHour
@@ -114,14 +138,18 @@ export async function seedMetricsOperatorHourly() {
 		for (const ol of hourlyLogs) {
 			const operatorAddress = ol.operator.toLowerCase()
 
+			// Add unique operator addresses
 			operatorAddresses.add(operatorAddress)
 
 			if (
 				ol.type === 'OperatorSharesIncreased' ||
 				ol.type === 'OperatorSharesDecreased'
 			) {
-				const strategyAddress = ol.strategy.toLowerCase()
 				const shares = ol.shares
+				const strategyAddress = ol.strategy.toLowerCase()
+
+				// Add unique strategy addresses
+				strategyAddresses.add(strategyAddress)
 
 				if (!operatorStrategyShares.has(operatorAddress)) {
 					operatorStrategyShares.set(operatorAddress, new Map())
@@ -129,6 +157,10 @@ export async function seedMetricsOperatorHourly() {
 
 				if (!operatorStrategyShares.get(operatorAddress).has(strategyAddress)) {
 					operatorStrategyShares.get(operatorAddress).set(strategyAddress, 0n)
+				}
+
+				if (!strategyShares.has(strategyAddress)) {
+					strategyShares.set(strategyAddress, 0n)
 				}
 
 				if (ol.type === 'OperatorSharesIncreased') {
@@ -139,6 +171,11 @@ export async function seedMetricsOperatorHourly() {
 							operatorStrategyShares.get(operatorAddress).get(strategyAddress) +
 								BigInt(shares)
 						)
+
+					strategyShares.set(
+						strategyAddress,
+						strategyShares.get(strategyAddress) + BigInt(shares)
+					)
 				} else if (ol.type === 'OperatorSharesDecreased') {
 					operatorStrategyShares
 						.get(operatorAddress)
@@ -147,6 +184,10 @@ export async function seedMetricsOperatorHourly() {
 							operatorStrategyShares.get(operatorAddress).get(strategyAddress) -
 								BigInt(shares)
 						)
+					strategyShares.set(
+						strategyAddress,
+						strategyShares.get(strategyAddress) - BigInt(shares)
+					)
 				}
 			} else if (
 				ol.type === 'StakerDelegated' ||
@@ -171,7 +212,76 @@ export async function seedMetricsOperatorHourly() {
 		}
 
 		// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-		const tvlRecords: any[] = []
+		const strategyTvlRecords: any[] = []
+		// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+		const operatorTvlRecords: any[] = []
+
+		for (const strategyAddress of strategyAddresses) {
+			let tvl = 0
+			let changeTvl = 0
+			let tvlEth = 0
+			let changeTvlEth = 0
+
+			if (strategyShares.has(strategyAddress)) {
+				// Get the previous tvl metric
+				const lastStrategyMetric = lastStrategyMetrics.get(strategyAddress)
+				if (!lastStrategyMetric) {
+					lastStrategyMetrics.set(strategyAddress, {
+						id: 0,
+						strategyAddress: strategyAddress,
+						tvl: new prisma.Prisma.Decimal(0),
+						tvlEth: new prisma.Prisma.Decimal(0),
+						changeTvl: new prisma.Prisma.Decimal(0),
+						changeTvlEth: new prisma.Prisma.Decimal(0),
+						timestamp: toHour
+					})
+				} else {
+					tvl = Number(lastStrategyMetric.tvl)
+					tvlEth = Number(lastStrategyMetric.tvlEth)
+				}
+
+				const shares = strategyShares.get(strategyAddress)
+				const foundSharesToUnderlying = sharesToUnderlyingList.find(
+					(s) => s.address === strategyAddress
+				)
+
+				if (foundSharesToUnderlying) {
+					const ethPrice = 1
+					const sharesToUnderlying = BigInt(
+						foundSharesToUnderlying.sharesToUnderlying
+					)
+
+					changeTvl += Number(shares * sharesToUnderlying) / 1e36
+					changeTvlEth +=
+						(Number(shares * sharesToUnderlying) / 1e36) * ethPrice
+				}
+
+				// Record all data back to rolling last operator metrics
+				lastStrategyMetrics.set(strategyAddress, {
+					id: 0,
+					strategyAddress,
+					tvl: Number(tvl + changeTvl) as unknown as prisma.Prisma.Decimal,
+					changeTvl: Number(changeTvl) as unknown as prisma.Prisma.Decimal,
+					tvlEth: Number(
+						tvlEth + changeTvlEth
+					) as unknown as prisma.Prisma.Decimal,
+					changeTvlEth: Number(
+						changeTvlEth
+					) as unknown as prisma.Prisma.Decimal,
+					timestamp: toHour
+				})
+
+				// Add data to tvl records
+				strategyTvlRecords.push({
+					strategyAddress,
+					timestamp: toHour,
+					tvl: tvl + changeTvl,
+					tvlEth: tvlEth + changeTvlEth,
+					changeTvl,
+					changeTvlEth
+				})
+			}
+		}
 
 		for (const operatorAddress of operatorAddresses) {
 			let tvlEth = 0
@@ -249,7 +359,7 @@ export async function seedMetricsOperatorHourly() {
 				})
 
 				// Add data to tvl records
-				tvlRecords.push({
+				operatorTvlRecords.push({
 					operatorAddress,
 					timestamp: toHour,
 					tvlEth: tvlEth + changeTvlEth,
@@ -260,7 +370,7 @@ export async function seedMetricsOperatorHourly() {
 			}
 		}
 
-		return tvlRecords
+		return [operatorTvlRecords, strategyTvlRecords]
 	}
 }
 
@@ -382,7 +492,7 @@ async function getLatestMetricsPerOperator(): Promise<
 	const prismaClinet = getPrismaClient()
 
 	try {
-		const lastMetricsPerOperator =
+		const lastMetricsPerStrategy =
 			await prismaClinet.metricOperatorHourly.groupBy({
 				by: ['operatorAddress'],
 				_max: {
@@ -392,7 +502,7 @@ async function getLatestMetricsPerOperator(): Promise<
 
 		const metrics = await prismaClinet.metricOperatorHourly.findMany({
 			where: {
-				OR: lastMetricsPerOperator.map((metric) => ({
+				OR: lastMetricsPerStrategy.map((metric) => ({
 					operatorAddress: metric.operatorAddress,
 					timestamp: metric._max.timestamp
 				})) as prisma.Prisma.MetricOperatorHourlyWhereInput[]
@@ -404,6 +514,38 @@ async function getLatestMetricsPerOperator(): Promise<
 
 		return metrics
 			? new Map(metrics.map((metric) => [metric.operatorAddress, metric]))
+			: new Map()
+	} catch {}
+
+	return new Map()
+}
+
+async function getLatestMetricsPerStrategy() {
+	const prismaClinet = getPrismaClient()
+
+	try {
+		const lastMetricsPerStrategy =
+			await prismaClinet.metricStrategyHourly.groupBy({
+				by: ['strategyAddress'],
+				_max: {
+					timestamp: true
+				}
+			})
+
+		const metrics = await prismaClinet.metricStrategyHourly.findMany({
+			where: {
+				OR: lastMetricsPerStrategy.map((metric) => ({
+					strategyAddress: metric.strategyAddress,
+					timestamp: metric._max.timestamp
+				})) as prisma.Prisma.MetricStrategyHourlyWhereInput[]
+			},
+			orderBy: {
+				strategyAddress: 'asc'
+			}
+		})
+
+		return metrics
+			? new Map(metrics.map((metric) => [metric.strategyAddress, metric]))
 			: new Map()
 	} catch {}
 
