@@ -151,6 +151,46 @@
                       "type": "number",
                       "description": "The total number of stakers",
                       "example": 10
+                    },
+                    "totalDeposits": {
+                      "type": "number",
+                      "description": "The total number of deposits",
+                      "example": 10
+                    },
+                    "HistoricalAvsCount": {
+                      "type": "number",
+                      "description": "The historical AVS count",
+                      "example": 10
+                    },
+                    "HistoricalOperatorCount": {
+                      "type": "number",
+                      "description": "The historical Operator count",
+                      "example": 10
+                    },
+                    "HistoricalStakerCount": {
+                      "type": "number",
+                      "description": "The historical Staker count",
+                      "example": 10
+                    },
+                    "HistoricalWithdrawalAggregate": {
+                      "type": "number",
+                      "description": "The historical withdrawal aggregate",
+                      "example": 10
+                    },
+                    "HistoricalDepositAggregate": {
+                      "type": "number",
+                      "description": "The historical deposit aggregate",
+                      "example": 10
+                    },
+                    "HistoricalWithdrawalCount": {
+                      "type": "number",
+                      "description": "The historical withdrawal count",
+                      "example": 10
+                    },
+                    "HistoricalDepositCount": {
+                      "type": "number",
+                      "description": "The historical deposit count",
+                      "example": 10
                     }
                   },
                   "required": [
@@ -161,7 +201,15 @@
                     "tvlBeaconChain",
                     "totalAVS",
                     "totalOperators",
-                    "totalStakers"
+                    "totalStakers",
+                    "totalDeposits",
+                    "HistoricalAvsCount",
+                    "HistoricalOperatorCount",
+                    "HistoricalStakerCount",
+                    "HistoricalWithdrawalAggregate",
+                    "HistoricalDepositAggregate",
+                    "HistoricalWithdrawalCount",
+                    "HistoricalDepositCount"
                   ]
                 }
               }

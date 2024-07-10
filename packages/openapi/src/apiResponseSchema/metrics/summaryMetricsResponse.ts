@@ -37,4 +37,36 @@ export const SummaryMetricsResponseSchema = z.object({
         .number()
         .describe('The total number of stakers')
         .openapi({ example: 10 }),
+    totalDeposits: z
+        .number()
+        .describe('The total number of deposits')
+        .openapi({ example: 10 }),
+    HistoricalAvsCount:z
+    .number()
+    .describe('The historical AVS count')
+    .openapi({ example: 10 }),
+    HistoricalOperatorCount:z
+    .number()
+    .describe('The historical Operator count')
+    .openapi({ example: 10 }),
+    HistoricalStakerCount:z
+    .number()
+    .describe('The historical Staker count')
+    .openapi({ example: 10 }),
+    HistoricalWithdrawalAggregate:z
+    .number()
+    .describe('The historical withdrawal aggregate')
+    .openapi({ example: 10 }),
+    HistoricalDepositAggregate:z
+    .number()
+    .describe('The historical deposit aggregate')
+    .openapi({ example: 10 }),
+    HistoricalWithdrawalCount:z
+    .number()
+    .describe('The historical withdrawal count')
+    .openapi({ example: 10 }),
+    HistoricalDepositCount:z
+    .number()
+    .describe('The historical deposit count')
+    .openapi({ example: 10 }),
 });
