@@ -1,5 +1,6 @@
 import prisma from '@prisma/client'
 import { getPrismaClient } from '../utils/prismaClient'
+import { getEthPrices, getStrategyToSymbolMap } from '../utils/strategies'
 import {
 	bulkUpdateDbTransactions,
 	fetchLastSyncTime,
@@ -16,6 +17,7 @@ export async function seedMetricsOperatorHourly() {
 	const sharesToUnderlyingList = await prismaClient.strategies.findMany({
 		select: { sharesToUnderlying: true, address: true }
 	})
+	const strategyToSymbolMap = await getStrategyToSymbolMap()
 
 	// Define start date
 	let startDate: Date | null = await fetchLastSyncTime(blockSyncKey)
@@ -35,6 +37,9 @@ export async function seedMetricsOperatorHourly() {
 
 	// Check date diff
 	const frequency: 'daily' | 'hourly' = 'daily'
+
+	// Get historical eth prices
+	const ethPriceData = await getEthPrices(startDate.getTime())
 
 	// Loop through a daily
 	await loopThroughDates(
@@ -203,7 +208,18 @@ export async function seedMetricsOperatorHourly() {
 						)
 
 						if (foundSharesToUnderlying) {
-							const ethPrice = 1
+							const symbol = strategyToSymbolMap
+								.get(strategyAddress)
+								?.toLowerCase()
+							const ethPrice =
+								Number(
+									ethPriceData.find(
+										(price) =>
+											price.symbol.toLowerCase() === symbol &&
+											price.timestamp.getTime() <= toHour.getTime()
+									)?.ethPrice
+								) || 1
+
 							const sharesToUnderlying = BigInt(
 								foundSharesToUnderlying.sharesToUnderlying
 							)
