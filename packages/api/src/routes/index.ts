@@ -1,4 +1,5 @@
 import express from 'express'
+import authRoutes from './auth/authRoutes'
 import avsRoutes from './avs/avsRoutes'
 import strategiesRoutes from './strategies/strategiesRoutes'
 import operatorRoutes from './operators/operatorRoutes'
@@ -16,6 +17,9 @@ apiRouter.get('/health', (_, res) => res.send({ status: 'ok' }))
 apiRouter.get('/version', (_, res) =>
 	res.send({ version: process.env.API_VERSION || 'development' })
 )
+
+// Auth management routes
+apiRouter.use('/auth', authRoutes)
 
 // Remaining routes
 apiRouter.use('/avs', avsRoutes)
