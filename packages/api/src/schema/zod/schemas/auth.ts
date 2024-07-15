@@ -18,5 +18,5 @@ export const UpdateCreditsSchema = z.object({
 	id: z.string().describe('Unique identifier of user'),
 	credits: z
 		.string()
-		.describe('Number of additional credits to award to the user')
+		.describe('Number of credits to be added or deducted')
 })

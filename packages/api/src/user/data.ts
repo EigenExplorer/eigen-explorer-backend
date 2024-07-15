@@ -12,8 +12,11 @@ let userData: Prisma.User[] = []
 export async function fetchAndSyncUserData() {
 	// Write all state changes to supabase
 	const dbTransactionsJson = await redis.lrange('dbTransactions', 0, -1)
-	const dbTransactions = dbTransactionsJson.map((tx) => JSON.parse(tx))
-	bulkUpdateDbTransactions(dbTransactions, '[Auth] Updated user data')
+
+	if (dbTransactionsJson.length > 0) {
+		const dbTransactions = dbTransactionsJson.map((tx) => JSON.parse(tx))
+		bulkUpdateDbTransactions(dbTransactions, '[Auth] Updated user data')
+	}
 
 	// Get latest state from supabase
 	userData = await prisma.user.findMany({
