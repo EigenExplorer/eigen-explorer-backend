@@ -8,8 +8,8 @@ let userData: Prisma.User[] = []
 export async function fetchAndSyncUserData() {
 	// Write all state changes to supabase
 	const dbTransactions = await redis.lrange('dbTransactions', 0, -1)
-	bulkUpdateDbTransactions(dbTransactions, '[Auth] Updated user data')
-	await redis.del('dbTransactions')
+	const parsedDbTransactions = dbTransactions.map((tx) => JSON.parse(tx))
+	bulkUpdateDbTransactions(parsedDbTransactions, '[Auth] Updated user data')
 
 	// Get latest state from supabase
 	userData = await prisma.user.findMany({
@@ -25,6 +25,9 @@ export async function fetchAndSyncUserData() {
 			await redis.set(`apiToken:${apiToken}:credits`, String(user.credits))
 		}
 	}
+
+	// Clear all db transactions
+	await redis.del('dbTransactions')
 }
 
 // biome-ignore lint/suspicious/noExplicitAny: <explanation>

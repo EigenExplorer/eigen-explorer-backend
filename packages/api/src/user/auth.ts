@@ -50,11 +50,11 @@ export async function authenticateAndCheckCredits(req, res, next) {
 				throw new Error('Invalid API token')
 			}
 
-			if (Number(credits) <= 0) {
-				throw new Error('Insufficient credits')
-			}
-
 			credits = String(user.credits)
+		}
+
+		if (Number(credits) <= 0) {
+			throw new Error('Insufficient credits')
 		}
 
 		req.credits = credits
