@@ -28,7 +28,7 @@ export const apiLimiter = rateLimit({
  * @returns
  */
 export async function authenticateAndCheckCredits(req, res, next) {
-	if(req.protected) {
+	if (req.protected) {
 		return next() // Skip if route has JWT protection
 	}
 
@@ -41,9 +41,10 @@ export async function authenticateAndCheckCredits(req, res, next) {
 	try {
 		let credits = await redis.get(`apiToken:${apiToken}:credits`)
 
-		if (credits === null) { // Fallback to supabase data
+		if (credits === null) {
+			// Fallback to supabase data
 			const users = getUserData()
-			const user = users.find(user => user.apiTokens.includes(apiToken))
+			const user = users.find((user) => user.apiTokens.includes(apiToken))
 
 			if (!user) {
 				throw new Error('Invalid API token')
@@ -71,7 +72,7 @@ export async function authenticateAndCheckCredits(req, res, next) {
  */
 export function handleCreditDeduction(cost: number) {
 	return async (req, res, next) => {
-		if(req.protected) {
+		if (req.protected) {
 			return next() // Skip if route has JWT protection
 		}
 
@@ -85,18 +86,20 @@ export function handleCreditDeduction(cost: number) {
 					throw new Error('Insufficient credits')
 				}
 
-				addTransaction(prisma.user.update({
-					where: {
-						apiTokens: {
-							has: apiToken
+				addTransaction(
+					prisma.user.update({
+						where: {
+							apiTokens: {
+								has: apiToken
+							}
+						},
+						data: {
+							credits: {
+								decrement: cost
+							}
 						}
-					},
-					data: {
-						credits: {
-							decrement: cost 
-						}
-					}
-				}))
+					})
+				)
 
 				originalSend.call(this, body)
 			} catch (error) {

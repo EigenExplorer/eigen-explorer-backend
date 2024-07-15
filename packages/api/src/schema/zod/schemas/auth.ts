@@ -1,11 +1,7 @@
 import z from '../'
 
 export const GenerateTokenSchema = z.object({
-	id: z
-		.string()
-		.optional()
-		.default('0')
-		.describe('Unique identifier of user'),
+	id: z.string().optional().default('0').describe('Unique identifier of user'),
 	credits: z
 		.string()
 		.optional()
@@ -14,18 +10,12 @@ export const GenerateTokenSchema = z.object({
 })
 
 export const RemoveTokenSchema = z.object({
-	id: z
-		.string()
-		.describe('Unique identifier of user'),
-	token: z
-		.string()
-		.describe('API token to be removed')
+	id: z.string().describe('Unique identifier of user'),
+	token: z.string().describe('API token to be removed')
 })
 
 export const UpdateCreditsSchema = z.object({
-	id: z
-		.string()
-		.describe('Unique identifier of user'),
+	id: z.string().describe('Unique identifier of user'),
 	credits: z
 		.string()
 		.describe('Number of additional credits to award to the user')

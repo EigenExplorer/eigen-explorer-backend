@@ -34,11 +34,11 @@ export async function generateToken(req: Request, res: Response) {
 		})
 
 		if (!user) {
-			throw new Error ('Invalid id, user not found')
+			throw new Error('Invalid id, user not found')
 		}
 
 		if (user.apiTokens.length >= maxApiTokens) {
-			throw new Error ('Reached max number of API tokens for this account')
+			throw new Error('Reached max number of API tokens for this account')
 		}
 
 		const updatedTokens = [...user.apiTokens, newToken]
@@ -54,8 +54,7 @@ export async function generateToken(req: Request, res: Response) {
 			})
 		)
 
-		res.send({message: 'New API token created', data: newToken})
-
+		res.send({ message: 'New API token created', data: newToken })
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
 	}
@@ -82,11 +81,11 @@ export async function removeToken(req: Request, res: Response) {
 		})
 
 		if (!user) {
-			throw new Error ('Invalid id, user not found')
+			throw new Error('Invalid id, user not found')
 		}
 
 		if (!user.apiTokens.has(tokenToRemove)) {
-			throw new Error ('Invalid token')
+			throw new Error('Invalid token')
 		}
 
 		const updatedTokens = user.apiTokens.filter(
@@ -129,12 +128,11 @@ export async function addCredits(req: Request, res: Response) {
 		})
 
 		if (!user) {
-			throw new Error ('Invalid id, user not found')
+			throw new Error('Invalid id, user not found')
 		}
 
-		const updatedCredits = user.credits >= 0
-			? user.credits + Number(credits)
-			: Number(credits)
+		const updatedCredits =
+			user.credits >= 0 ? user.credits + Number(credits) : Number(credits)
 
 		addTransaction(
 			prisma.user.update({
@@ -191,12 +189,11 @@ export async function deductCredits(req: Request, res: Response) {
 		})
 
 		if (!user) {
-			throw new Error ('Invalid id, user not found')
+			throw new Error('Invalid id, user not found')
 		}
 
-		const updatedCredits = user.credits - Number(credits) >= 0
-			? user.credits - Number(credits)
-			: 0
+		const updatedCredits =
+			user.credits - Number(credits) >= 0 ? user.credits - Number(credits) : 0
 
 		addTransaction(
 			prisma.user.update({
