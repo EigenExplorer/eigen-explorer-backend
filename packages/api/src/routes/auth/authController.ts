@@ -36,7 +36,7 @@ export async function generateToken(req: Request, res: Response) {
 					credits: credits
 				}
 			})
-			await redis.set(`user:${newUser.id}:credits`, newUser.credits)
+			await redis.set(`id:${newUser.id}:credits`, newUser.credits)
 			res.send(newUser)
 		} else {
 			const updatedTokens = [...user.apiTokens, newToken]
@@ -48,7 +48,7 @@ export async function generateToken(req: Request, res: Response) {
 					credits: updatedCredits
 				}
 			})
-			await redis.set(`user:${updatedUser.id}:credits`, updatedUser.credits)
+			await redis.set(`id:${updatedUser.id}:credits`, updatedUser.credits)
 			res.send(updatedUser)
 		}
 	} catch (error) {
@@ -110,7 +110,7 @@ export async function addCredits(req: Request, res: Response) {
 
 	try {
 		const { id, credits } = req.body
-		const key = `user:${id}:credits`
+		const key = `id:${id}:credits`
 		const existingCredits = await redis.get(key)
 
 		if (existingCredits === null) {
@@ -141,7 +141,7 @@ export async function addCredits(req: Request, res: Response) {
 export async function checkCredits(req: Request, res: Response) {
 	try {
 		const { id } = req.body
-		const credits = await redis.get(`user:${id}:credits`)
+		const credits = await redis.get(`id:${id}:credits`)
 
 		if (credits === null) {
 			throw new Error(`User not found: ${id}`)
@@ -167,7 +167,7 @@ export async function removeCredits(req: Request, res: Response) {
 
 	try {
 		const { id, credits } = req.body
-		const key = `user:${id}:credits`
+		const key = `id:${id}:credits`
 		const existingCredits = await redis.get(key)
 
 		if (existingCredits === null) {

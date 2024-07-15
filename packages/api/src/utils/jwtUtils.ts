@@ -19,6 +19,7 @@ export function authenticateJWT(
 
 	try {
 		jwt.verify(token, JWT_SECRET)
+		req.route.protected = true // Enables route to skip API token middleware
 		next()
 	} catch (error) {
 		res.status(400).json({ message: 'Invalid token.' })

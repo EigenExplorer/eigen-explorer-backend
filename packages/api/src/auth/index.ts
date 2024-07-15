@@ -5,6 +5,20 @@ import rateLimit from 'express-rate-limit'
 import { handleAndReturnErrorResponse } from '../schema/errors'
 
 /**
+ * Implements rate limits
+ *
+ */
+export const apiLimiter = rateLimit({
+	windowMs: 15 * 60 * 1000,
+	max: 1000,
+	standardHeaders: true,
+	legacyHeaders: false,
+	keyGenerator: (req: Request): string => {
+		return req.header('X-API-Token') || ''
+	}
+})
+
+/**
  * Checks for valid API token and sufficient credits
  *
  * @param req
@@ -13,6 +27,10 @@ import { handleAndReturnErrorResponse } from '../schema/errors'
  * @returns
  */
 export async function authenticateAndCheckCredits(req, res, next) {
+	if(req.protected) {
+		return next() // Skip if route already has JWT protection
+	}
+
 	const token = req.header('X-API-Token')
 
 	if (!token) {
@@ -38,11 +56,11 @@ export async function authenticateAndCheckCredits(req, res, next) {
 
 		req.user = user
 
-		let credits = Number(await redis.get(`user:${user.id}:credits`))
+		let credits = Number(await redis.get(`id:${user.id}:credits`))
 		
 		if (credits === null) {
 			credits = user.credits
-			await redis.set(`user:${user.id}:credits`, credits)
+			await redis.set(`id:${user.id}:credits`, credits)
 		}
 
 		if (credits <= 0) {
@@ -56,20 +74,6 @@ export async function authenticateAndCheckCredits(req, res, next) {
 }
 
 /**
- * Implements rate limits
- *
- */
-export const apiLimiter = rateLimit({
-	windowMs: 15 * 60 * 1000,
-	max: 1000,
-	standardHeaders: true,
-	legacyHeaders: false,
-	keyGenerator: (req: Request): string => {
-		return req.header('X-API-Token') || ''
-	}
-})
-
-/**
  * Handles credit deduction after request completion
  *
  * @param cost
@@ -77,10 +81,14 @@ export const apiLimiter = rateLimit({
  */
 export function handleCreditDeduction(cost: number) {
 	return async (req, res, next) => {
+		if(req.protected) {
+			return next() // Skip if route already has JWT protection
+		}
+
 		const originalSend = res.send
 		res.send = async function (body) {
 			const userId = req.user.id
-			const key = `user:${userId}:credits`
+			const key = `id:${userId}:credits`
 
 			try {
 				const newCredits = await redis.decrby(key, cost)
