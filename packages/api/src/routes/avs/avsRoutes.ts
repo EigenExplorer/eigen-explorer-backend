@@ -7,7 +7,7 @@ import {
     getAVSStakers,
     invalidateMetadata
 } from './avsController';
-import { authenticateJWT } from '../../utils/jwtUtils'
+import { authenticateJWT } from '../../utils/jwt'
 
 import routeCache from "route-cache";
 

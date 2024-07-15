@@ -1,6 +1,6 @@
 import express from 'express'
 import { getAllOperators, getOperator, invalidateMetadata } from './operatorController'
-import { authenticateJWT } from '../../utils/jwtUtils'
+import { authenticateJWT } from '../../utils/jwt'
 
 import routeCache from "route-cache";
 

@@ -1,5 +1,9 @@
+import 'dotenv/config'
 import Redis from 'ioredis'
 
-const client = new Redis()
+const url = process.env.REDIS_URL || ''
+const client = new Redis(url)
 
 export default client
+
+

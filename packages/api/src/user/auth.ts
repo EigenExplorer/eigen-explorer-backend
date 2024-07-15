@@ -3,6 +3,7 @@ import prisma from '../utils/prismaClient'
 import redis from '../utils/redisClient'
 import rateLimit from 'express-rate-limit'
 import { handleAndReturnErrorResponse } from '../schema/errors'
+import { addTransaction, getUserData } from '../user/data'
 
 /**
  * Implements rate limits
@@ -28,45 +29,34 @@ export const apiLimiter = rateLimit({
  */
 export async function authenticateAndCheckCredits(req, res, next) {
 	if(req.protected) {
-		return next() // Skip if route already has JWT protection
+		return next() // Skip if route has JWT protection
 	}
 
-	const token = req.header('X-API-Token')
+	const apiToken = req.header('X-API-Token')
 
-	if (!token) {
+	if (!apiToken) {
 		throw new Error('API token required')
 	}
 
 	try {
-		const user = await prisma.user.findFirst({
-			where: {
-				apiTokens: {
-					has: token
-				}
-			},
-			select: {
-				id: true,
-				credits: true
+		let credits = await redis.get(`apiToken:${apiToken}:credits`)
+
+		if (credits === null) { // Fallback to supabase data
+			const users = getUserData()
+			const user = users.find(user => user.apiTokens.includes(apiToken))
+
+			if (!user) {
+				throw new Error('Invalid API token')
 			}
-		})
 
-		if (!user) {
-			throw new Error('Invalid API token')
+			if (Number(credits) <= 0) {
+				throw new Error('Insufficient credits')
+			}
+
+			credits = String(user.credits)
 		}
 
-		req.user = user
-
-		let credits = Number(await redis.get(`id:${user.id}:credits`))
-		
-		if (credits === null) {
-			credits = user.credits
-			await redis.set(`id:${user.id}:credits`, credits)
-		}
-
-		if (credits <= 0) {
-			throw new Error('Insufficient credits')
-		}
-
+		req.credits = credits
 		next()
 	} catch (error) {
 		return handleAndReturnErrorResponse(req, res, error)
@@ -82,30 +72,31 @@ export async function authenticateAndCheckCredits(req, res, next) {
 export function handleCreditDeduction(cost: number) {
 	return async (req, res, next) => {
 		if(req.protected) {
-			return next() // Skip if route already has JWT protection
+			return next() // Skip if route has JWT protection
 		}
 
+		const apiToken = req.header('X-API-Token')
 		const originalSend = res.send
+		const updatedCredits = Number(req.credits) - cost
+
 		res.send = async function (body) {
-			const userId = req.user.id
-			const key = `id:${userId}:credits`
-
 			try {
-				const newCredits = await redis.decrby(key, cost)
-
-				if (newCredits < 0) {
-					redis.incrby(key, cost)
+				if (updatedCredits < 0) {
 					throw new Error('Insufficient credits')
 				}
 
-				body.creditsRemaining = newCredits
-
-				prisma.user
-					.update({
-						where: { id: userId },
-						data: { credits: newCredits }
-					})
-					.catch((error) => console.log('Error updating Supabase:', error))
+				addTransaction(prisma.user.update({
+					where: {
+						apiTokens: {
+							has: apiToken
+						}
+					},
+					data: {
+						credits: {
+							decrement: cost 
+						}
+					}
+				}))
 
 				originalSend.call(this, body)
 			} catch (error) {

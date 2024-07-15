@@ -7,9 +7,9 @@ export const GenerateTokenSchema = z.object({
 		.default('0')
 		.describe('Unique identifier of user'),
 	credits: z
-		.number()
+		.string()
 		.optional()
-		.default(0)
+		.default('0')
 		.describe('Number of additional credits to award to the user')
 })
 
@@ -27,6 +27,6 @@ export const UpdateCreditsSchema = z.object({
 		.string()
 		.describe('Unique identifier of user'),
 	credits: z
-		.number()
+		.string()
 		.describe('Number of additional credits to award to the user')
 })

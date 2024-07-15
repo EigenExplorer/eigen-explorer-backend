@@ -4,20 +4,22 @@ import {
 	removeToken,
 	addCredits,
 	checkCredits,
-	removeCredits
+	deductCredits
 } from './authController'
-import { authenticateJWT } from '../../utils/jwtUtils'
+import { authenticateJWT } from '../../utils/jwt'
 
 const router = express.Router()
 
+// User routes
+router.get('/check-credits', checkCredits)
+
+// Protected routes
 router.post('/generate-token', authenticateJWT, generateToken)
 
 router.post('/remove-token', authenticateJWT, removeToken)
 
 router.post('/add-credits', authenticateJWT, addCredits)
 
-router.get('/check-credits', authenticateJWT, checkCredits)
-
-router.post('/remove-credits', authenticateJWT, removeCredits)
+router.post('/deduct-credits', authenticateJWT, deductCredits)
 
 export default router

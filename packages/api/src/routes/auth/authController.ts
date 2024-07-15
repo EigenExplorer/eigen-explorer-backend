@@ -3,6 +3,7 @@ import redis from '../../utils/redisClient'
 import crypto from 'node:crypto'
 import type { Request, Response } from 'express'
 import { handleAndReturnErrorResponse } from '../../schema/errors'
+import { addTransaction } from '../../user/data'
 import {
 	GenerateTokenSchema,
 	RemoveTokenSchema,
@@ -10,7 +11,7 @@ import {
 } from '../../schema/zod/schemas/auth'
 
 /**
- * Create new API token for an existing user or create new user & new API token
+ * Create new API token for an existing user
  *
  * @param req
  * @param res
@@ -25,39 +26,43 @@ export async function generateToken(req: Request, res: Response) {
 	try {
 		const { credits, id } = req.body
 		const newToken = crypto.randomBytes(32).toString('hex')
+		const maxApiTokens = 15
+
 		const user = await prisma.user.findUnique({
-			where: { id: Number(id) }
+			where: { id },
+			select: { apiTokens: true, credits: true }
 		})
 
 		if (!user) {
-			const newUser = await prisma.user.create({
-				data: {
-					apiTokens: [newToken],
-					credits: credits
-				}
-			})
-			await redis.set(`id:${newUser.id}:credits`, newUser.credits)
-			res.send(newUser)
-		} else {
-			const updatedTokens = [...user.apiTokens, newToken]
-			const updatedCredits = user.credits + credits
-			const updatedUser = await prisma.user.update({
-				where: { id: Number(id) },
+			throw new Error ('Invalid id, user not found')
+		}
+
+		if (user.apiTokens.length >= maxApiTokens) {
+			throw new Error ('Reached max number of API tokens for this account')
+		}
+
+		const updatedTokens = [...user.apiTokens, newToken]
+		const updatedCredits = user.credits + Number(credits)
+
+		addTransaction(
+			prisma.user.update({
+				where: { id },
 				data: {
 					apiTokens: updatedTokens,
 					credits: updatedCredits
 				}
 			})
-			await redis.set(`id:${updatedUser.id}:credits`, updatedUser.credits)
-			res.send(updatedUser)
-		}
+		)
+
+		res.send({message: 'New API token created', data: newToken})
+
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
 	}
 }
 
 /**
- * Remove an existing API token from an existing user
+ * Remove an existing API token for an existing user
  *
  * @param req
  * @param res
@@ -77,18 +82,26 @@ export async function removeToken(req: Request, res: Response) {
 		})
 
 		if (!user) {
-			throw new Error(`User not found: ${id}`)
+			throw new Error ('Invalid id, user not found')
+		}
+
+		if (!user.apiTokens.has(tokenToRemove)) {
+			throw new Error ('Invalid token')
 		}
 
 		const updatedTokens = user.apiTokens.filter(
 			(token) => token !== tokenToRemove
 		)
-		await prisma.user.update({
-			where: { id },
-			data: {
-				apiTokens: updatedTokens
-			}
-		})
+
+		addTransaction(
+			prisma.user.update({
+				where: { id },
+				data: {
+					apiTokens: updatedTokens
+				}
+			})
+		)
+
 		res.send({ message: 'API token revoked', data: tokenToRemove })
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
@@ -110,22 +123,29 @@ export async function addCredits(req: Request, res: Response) {
 
 	try {
 		const { id, credits } = req.body
-		const key = `id:${id}:credits`
-		const existingCredits = await redis.get(key)
+		const user = await prisma.user.findUnique({
+			where: { id },
+			select: { apiTokens: true, credits: true }
+		})
 
-		if (existingCredits === null) {
-			throw new Error(`User not found: ${id}`)
+		if (!user) {
+			throw new Error ('Invalid id, user not found')
 		}
 
-		const updatedCredits = await redis.incrby(key, credits)
+		const updatedCredits = user.credits >= 0
+			? user.credits + Number(credits)
+			: Number(credits)
 
-		prisma.user.update({
-			where: { id: Number(id) },
-			data: {
-				credits: updatedCredits
-			}
-		})
-		res.send({ id, credits: updatedCredits })
+		addTransaction(
+			prisma.user.update({
+				where: { id },
+				data: {
+					credits: updatedCredits
+				}
+			})
+		)
+
+		res.send({ message: 'Credits added', totalCredits: updatedCredits })
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
 	}
@@ -140,26 +160,24 @@ export async function addCredits(req: Request, res: Response) {
  */
 export async function checkCredits(req: Request, res: Response) {
 	try {
-		const { id } = req.body
-		const credits = await redis.get(`id:${id}:credits`)
+		const apiToken = req.header('X-API-Token')
+		const credits = await redis.get(`apiToken:${apiToken}:credits`)
+		const totalCredits = Number(credits) >= 0 ? Number(credits) : 0
 
-		if (credits === null) {
-			throw new Error(`User not found: ${id}`)
-		}
-		res.send({ id, credits: Number(credits) })
+		res.send({ totalCredits })
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
 	}
 }
 
 /**
- * Remove credits for an existing user
+ * Deduct credits for an existing user
  *
  * @param req
  * @param res
  * @returns
  */
-export async function removeCredits(req: Request, res: Response) {
+export async function deductCredits(req: Request, res: Response) {
 	const queryCheck = UpdateCreditsSchema.safeParse(req.body)
 	if (!queryCheck.success) {
 		return handleAndReturnErrorResponse(req, res, queryCheck.error)
@@ -167,22 +185,29 @@ export async function removeCredits(req: Request, res: Response) {
 
 	try {
 		const { id, credits } = req.body
-		const key = `id:${id}:credits`
-		const existingCredits = await redis.get(key)
+		const user = await prisma.user.findUnique({
+			where: { id },
+			select: { apiTokens: true, credits: true }
+		})
 
-		if (existingCredits === null) {
-			throw new Error(`User not found: ${id}`)
+		if (!user) {
+			throw new Error ('Invalid id, user not found')
 		}
 
-		const updatedCredits = await redis.decrby(key, credits)
+		const updatedCredits = user.credits - Number(credits) >= 0
+			? user.credits - Number(credits)
+			: 0
 
-		prisma.user.update({
-			where: { id: Number(id) },
-			data: {
-				credits: updatedCredits
-			}
-		})
-		res.send({ id, credits: updatedCredits })
+		addTransaction(
+			prisma.user.update({
+				where: { id },
+				data: {
+					credits: updatedCredits
+				}
+			})
+		)
+
+		res.send({ message: 'Credits deducted', totalCredits: updatedCredits })
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
 	}

@@ -6,13 +6,18 @@ import logger from 'morgan'
 import helmet from 'helmet'
 import cors from 'cors'
 import apiRouter from './routes'
-import { apiLimiter, authenticateAndCheckCredits } from './auth'
+import { apiLimiter, authenticateAndCheckCredits } from './user/auth'
+import { fetchAndSyncUserData } from './user/data'
 import {
 	EigenExplorerApiError,
 	handleAndReturnErrorResponse
 } from './schema/errors'
 
 const PORT = process.env.PORT ? Number.parseInt(process.env.PORT) : 3002
+
+function delay(seconds: number) {
+	return new Promise((resolve) => setTimeout(resolve, seconds * 1000))
+}
 
 const app = express()
 
@@ -49,7 +54,20 @@ app.use((err: Error, req: Request, res: Response) => {
 	res.render('error')
 })
 
-// Start the server
 app.listen(PORT, () => {
 	console.log(`Server is running on port ${PORT}`)
 })
+
+async function userDataLoop() {
+	while (true) {
+		try {
+			await fetchAndSyncUserData()
+		} catch (error) {
+			console.log('Failed to fetch and sync user data at:', Date.now())
+			console.log(error)
+		}
+		await delay(30)
+	}
+}
+
+userDataLoop()
