@@ -7,7 +7,7 @@ import {
 	EigenStrategiesContractAddress,
 	getEigenContracts
 } from '../../data/address'
-import { handleAndReturnErrorResponse } from '../../schema/errors'
+import { EigenExplorerApiError, handleAndReturnErrorResponse } from '../../schema/errors'
 import { getAvsFilterQuery } from '../avs/avsController'
 import { fetchStrategyTokenPrices } from '../../utils/tokenPrices'
 import { getStrategiesWithShareUnderlying } from '../strategies/strategiesController'
@@ -80,17 +80,17 @@ export async function getTvlRestakingByStrategy(req: Request, res: Response) {
 	try {
 		const { strategy } = req.params
 
-		if (!strategy) {
-			throw new Error('Invalid strategy name.')
-		}
-
 		const strategies = Object.keys(getEigenContracts().Strategies)
 		const foundStrategy = strategies.find(
 			(s) => s.toLowerCase() === strategy.toLowerCase()
 		)
 
 		if (!foundStrategy) {
-			throw new Error('Invalid strategy.')
+			const error = new EigenExplorerApiError({
+				code: 'unprocessable_entity',
+				message: 'invalid_string: Invalid Strategy',
+			});
+			return handleAndReturnErrorResponse(req, res, error);
 		}
 
 		const tvl = await doGetTvlStrategy(
