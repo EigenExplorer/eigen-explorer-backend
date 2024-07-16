@@ -3,6 +3,7 @@ import './utils/bigint'
 import express, { type Request, type Response } from 'express'
 import cookieParser from 'cookie-parser'
 import logger from 'morgan'
+import redis from './utils/redisClient'
 import helmet from 'helmet'
 import cors from 'cors'
 import apiRouter from './routes'
@@ -66,7 +67,7 @@ async function userDataLoop() {
 			console.log('Failed to fetch and sync user data at:', Date.now())
 			console.log(error)
 		}
-		await delay(30)
+		await delay(5)
 	}
 }
 

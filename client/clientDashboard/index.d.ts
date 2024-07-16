@@ -892,52 +892,62 @@ export namespace Prisma {
 
   export type UserAvgAggregateOutputType = {
     credits: number | null
+    accessLevel: number | null
   }
 
   export type UserSumAggregateOutputType = {
     credits: number | null
+    accessLevel: number | null
   }
 
   export type UserMinAggregateOutputType = {
     id: string | null
     credits: number | null
+    accessLevel: number | null
   }
 
   export type UserMaxAggregateOutputType = {
     id: string | null
     credits: number | null
+    accessLevel: number | null
   }
 
   export type UserCountAggregateOutputType = {
     id: number
     apiTokens: number
     credits: number
+    accessLevel: number
     _all: number
   }
 
 
   export type UserAvgAggregateInputType = {
     credits?: true
+    accessLevel?: true
   }
 
   export type UserSumAggregateInputType = {
     credits?: true
+    accessLevel?: true
   }
 
   export type UserMinAggregateInputType = {
     id?: true
     credits?: true
+    accessLevel?: true
   }
 
   export type UserMaxAggregateInputType = {
     id?: true
     credits?: true
+    accessLevel?: true
   }
 
   export type UserCountAggregateInputType = {
     id?: true
     apiTokens?: true
     credits?: true
+    accessLevel?: true
     _all?: true
   }
 
@@ -1031,6 +1041,7 @@ export namespace Prisma {
     id: string
     apiTokens: string[]
     credits: number | null
+    accessLevel: number
     _count: UserCountAggregateOutputType | null
     _avg: UserAvgAggregateOutputType | null
     _sum: UserSumAggregateOutputType | null
@@ -1056,18 +1067,21 @@ export namespace Prisma {
     id?: boolean
     apiTokens?: boolean
     credits?: boolean
+    accessLevel?: boolean
   }, ExtArgs["result"]["user"]>
 
   export type UserSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     apiTokens?: boolean
     credits?: boolean
+    accessLevel?: boolean
   }, ExtArgs["result"]["user"]>
 
   export type UserSelectScalar = {
     id?: boolean
     apiTokens?: boolean
     credits?: boolean
+    accessLevel?: boolean
   }
 
 
@@ -1078,6 +1092,7 @@ export namespace Prisma {
       id: string
       apiTokens: string[]
       credits: number | null
+      accessLevel: number
     }, ExtArgs["result"]["user"]>
     composites: {}
   }
@@ -1500,6 +1515,7 @@ export namespace Prisma {
     readonly id: FieldRef<"User", 'String'>
     readonly apiTokens: FieldRef<"User", 'String[]'>
     readonly credits: FieldRef<"User", 'Int'>
+    readonly accessLevel: FieldRef<"User", 'Int'>
   }
     
 
@@ -1670,7 +1686,7 @@ export namespace Prisma {
     /**
      * The data needed to create a User.
      */
-    data?: XOR<UserCreateInput, UserUncheckedCreateInput>
+    data: XOR<UserCreateInput, UserUncheckedCreateInput>
   }
 
   /**
@@ -1805,7 +1821,8 @@ export namespace Prisma {
   export const UserScalarFieldEnum: {
     id: 'id',
     apiTokens: 'apiTokens',
-    credits: 'credits'
+    credits: 'credits',
+    accessLevel: 'accessLevel'
   };
 
   export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
@@ -1892,12 +1909,14 @@ export namespace Prisma {
     id?: StringFilter<"User"> | string
     apiTokens?: StringNullableListFilter<"User">
     credits?: IntNullableFilter<"User"> | number | null
+    accessLevel?: IntFilter<"User"> | number
   }
 
   export type UserOrderByWithRelationInput = {
     id?: SortOrder
     apiTokens?: SortOrder
     credits?: SortOrderInput | SortOrder
+    accessLevel?: SortOrder
   }
 
   export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -1907,12 +1926,14 @@ export namespace Prisma {
     OR?: UserWhereInput[]
     NOT?: UserWhereInput | UserWhereInput[]
     credits?: IntNullableFilter<"User"> | number | null
+    accessLevel?: IntFilter<"User"> | number
   }, "id" | "apiTokens">
 
   export type UserOrderByWithAggregationInput = {
     id?: SortOrder
     apiTokens?: SortOrder
     credits?: SortOrderInput | SortOrder
+    accessLevel?: SortOrder
     _count?: UserCountOrderByAggregateInput
     _avg?: UserAvgOrderByAggregateInput
     _max?: UserMaxOrderByAggregateInput
@@ -1927,48 +1948,56 @@ export namespace Prisma {
     id?: StringWithAggregatesFilter<"User"> | string
     apiTokens?: StringNullableListFilter<"User">
     credits?: IntNullableWithAggregatesFilter<"User"> | number | null
+    accessLevel?: IntWithAggregatesFilter<"User"> | number
   }
 
   export type UserCreateInput = {
     id?: string
     apiTokens?: UserCreateapiTokensInput | string[]
     credits?: number | null
+    accessLevel: number
   }
 
   export type UserUncheckedCreateInput = {
     id?: string
     apiTokens?: UserCreateapiTokensInput | string[]
     credits?: number | null
+    accessLevel: number
   }
 
   export type UserUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     apiTokens?: UserUpdateapiTokensInput | string[]
     credits?: NullableIntFieldUpdateOperationsInput | number | null
+    accessLevel?: IntFieldUpdateOperationsInput | number
   }
 
   export type UserUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     apiTokens?: UserUpdateapiTokensInput | string[]
     credits?: NullableIntFieldUpdateOperationsInput | number | null
+    accessLevel?: IntFieldUpdateOperationsInput | number
   }
 
   export type UserCreateManyInput = {
     id?: string
     apiTokens?: UserCreateapiTokensInput | string[]
     credits?: number | null
+    accessLevel: number
   }
 
   export type UserUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
     apiTokens?: UserUpdateapiTokensInput | string[]
     credits?: NullableIntFieldUpdateOperationsInput | number | null
+    accessLevel?: IntFieldUpdateOperationsInput | number
   }
 
   export type UserUncheckedUpdateManyInput = {
     id?: StringFieldUpdateOperationsInput | string
     apiTokens?: UserUpdateapiTokensInput | string[]
     credits?: NullableIntFieldUpdateOperationsInput | number | null
+    accessLevel?: IntFieldUpdateOperationsInput | number
   }
 
   export type StringFilter<$PrismaModel = never> = {
@@ -2005,6 +2034,17 @@ export namespace Prisma {
     not?: NestedIntNullableFilter<$PrismaModel> | number | null
   }
 
+  export type IntFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel>
+    in?: number[] | ListIntFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntFilter<$PrismaModel> | number
+  }
+
   export type SortOrderInput = {
     sort: SortOrder
     nulls?: NullsOrder
@@ -2014,24 +2054,29 @@ export namespace Prisma {
     id?: SortOrder
     apiTokens?: SortOrder
     credits?: SortOrder
+    accessLevel?: SortOrder
   }
 
   export type UserAvgOrderByAggregateInput = {
     credits?: SortOrder
+    accessLevel?: SortOrder
   }
 
   export type UserMaxOrderByAggregateInput = {
     id?: SortOrder
     credits?: SortOrder
+    accessLevel?: SortOrder
   }
 
   export type UserMinOrderByAggregateInput = {
     id?: SortOrder
     credits?: SortOrder
+    accessLevel?: SortOrder
   }
 
   export type UserSumOrderByAggregateInput = {
     credits?: SortOrder
+    accessLevel?: SortOrder
   }
 
   export type StringWithAggregatesFilter<$PrismaModel = never> = {
@@ -2068,6 +2113,22 @@ export namespace Prisma {
     _max?: NestedIntNullableFilter<$PrismaModel>
   }
 
+  export type IntWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel>
+    in?: number[] | ListIntFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntWithAggregatesFilter<$PrismaModel> | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedIntFilter<$PrismaModel>
+    _min?: NestedIntFilter<$PrismaModel>
+    _max?: NestedIntFilter<$PrismaModel>
+  }
+
   export type UserCreateapiTokensInput = {
     set: string[]
   }
@@ -2083,6 +2144,14 @@ export namespace Prisma {
 
   export type NullableIntFieldUpdateOperationsInput = {
     set?: number | null
+    increment?: number
+    decrement?: number
+    multiply?: number
+    divide?: number
+  }
+
+  export type IntFieldUpdateOperationsInput = {
+    set?: number
     increment?: number
     decrement?: number
     multiply?: number
@@ -2114,6 +2183,17 @@ export namespace Prisma {
     not?: NestedIntNullableFilter<$PrismaModel> | number | null
   }
 
+  export type NestedIntFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel>
+    in?: number[] | ListIntFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntFilter<$PrismaModel> | number
+  }
+
   export type NestedStringWithAggregatesFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -2129,17 +2209,6 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedStringFilter<$PrismaModel>
     _max?: NestedStringFilter<$PrismaModel>
-  }
-
-  export type NestedIntFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel>
-    in?: number[] | ListIntFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntFilter<$PrismaModel> | number
   }
 
   export type NestedIntNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -2167,6 +2236,33 @@ export namespace Prisma {
     gt?: number | FloatFieldRefInput<$PrismaModel>
     gte?: number | FloatFieldRefInput<$PrismaModel>
     not?: NestedFloatNullableFilter<$PrismaModel> | number | null
+  }
+
+  export type NestedIntWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel>
+    in?: number[] | ListIntFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntWithAggregatesFilter<$PrismaModel> | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedIntFilter<$PrismaModel>
+    _min?: NestedIntFilter<$PrismaModel>
+    _max?: NestedIntFilter<$PrismaModel>
+  }
+
+  export type NestedFloatFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel>
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatFilter<$PrismaModel> | number
   }
 
 

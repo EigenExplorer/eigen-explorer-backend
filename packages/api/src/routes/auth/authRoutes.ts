@@ -6,7 +6,6 @@ import {
 	checkCredits,
 	deductCredits
 } from './authController'
-import { authenticateJWT } from '../../utils/jwt'
 
 const router = express.Router()
 
@@ -14,12 +13,12 @@ const router = express.Router()
 router.get('/check-credits', checkCredits)
 
 // Protected routes
-router.post('/generate-token', authenticateJWT, generateToken)
+router.post('/generate-token', generateToken)
 
-router.post('/remove-token', authenticateJWT, removeToken)
+router.post('/remove-token', removeToken)
 
-router.post('/add-credits', authenticateJWT, addCredits)
+router.post('/add-credits', addCredits)
 
-router.post('/deduct-credits', authenticateJWT, deductCredits)
+router.post('/deduct-credits', deductCredits)
 
 export default router

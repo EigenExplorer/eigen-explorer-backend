@@ -2,8 +2,8 @@ import { PrismaClient } from '@prisma/client'
 import { PrismaClient as PrismaClientDashboard } from '../../../../client/clientDashboard'
 
 // Ensure the Prisma client is only instantiated once in your application
-export let prisma: PrismaClient
-export let prismaDashboard: PrismaClientDashboard
+let prisma: PrismaClient
+let prismaDashboard: PrismaClientDashboard
 
 export function getPrismaClient() {
 	if (!prisma) {
@@ -20,3 +20,16 @@ export function getPrismaClientDashboard() {
 
 	return prismaDashboard
 }
+
+// ====================== DEPRECATED ======================
+// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+if (!(global as any).prisma) {
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+	;(global as any).prisma = new PrismaClient()
+}
+
+// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+prisma = (global as any).prisma
+
+export default prisma
+// ====================== DEPRECATED ======================

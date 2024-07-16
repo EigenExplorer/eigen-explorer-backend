@@ -12,6 +12,7 @@ datasource db {
 model User {
   id String @id @default(uuid())
 
-  apiTokens String[] @unique
-  credits   Int?
+  apiTokens   String[] @unique
+  credits     Int?
+  accessLevel Int
 }

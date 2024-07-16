@@ -1,7 +1,6 @@
-import type { Request } from 'express'
+import type { Request, Response } from 'express'
 import redis from '../utils/redisClient'
 import rateLimit from 'express-rate-limit'
-import { prismaDashboard } from '../utils/prismaClient'
 import { handleAndReturnErrorResponse } from '../schema/errors'
 import { addTransaction, getUserData } from '../user/data'
 
@@ -27,11 +26,11 @@ export const apiLimiter = rateLimit({
  * @param next
  * @returns
  */
-export async function authenticateAndCheckCredits(req, res, next) {
-	if (req.protected) {
-		return next() // Skip if route has JWT protection
-	}
-
+export async function authenticateAndCheckCredits(
+	req: Request,
+	res: Response,
+	next
+) {
 	const apiToken = req.header('X-API-Token')
 
 	if (!apiToken) {
@@ -40,8 +39,9 @@ export async function authenticateAndCheckCredits(req, res, next) {
 
 	try {
 		let credits = await redis.get(`apiToken:${apiToken}:credits`)
+		let accessLevel = await redis.get(`apiToken:${apiToken}:accessLevel`)
 
-		if (credits === null) {
+		if (credits === null || accessLevel === null) {
 			// Fallback to supabase data
 			const users = getUserData()
 			const user = users.find((user) => user.apiTokens?.includes(apiToken))
@@ -51,6 +51,7 @@ export async function authenticateAndCheckCredits(req, res, next) {
 			}
 
 			credits = String(user.credits)
+			accessLevel = String(user.accessLevel)
 		}
 
 		if (Number(credits) <= 0) {
@@ -58,6 +59,8 @@ export async function authenticateAndCheckCredits(req, res, next) {
 		}
 
 		req.credits = credits
+		req.accessLevel = accessLevel
+		req.deducted = false
 		next()
 	} catch (error) {
 		return handleAndReturnErrorResponse(req, res, error)
@@ -71,40 +74,45 @@ export async function authenticateAndCheckCredits(req, res, next) {
  * @returns
  */
 export function handleCreditDeduction(cost: number) {
-	return async (req, res, next) => {
-		if (req.protected) {
-			return next() // Skip if route has JWT protection
+	return async (req: Request, res: Response, next) => {
+		if (req.accessLevel === '0') {
+			return next()
 		}
-
-		const apiToken = req.header('X-API-Token')
+		const apiToken = req.header('X-API-Token') || ''
 		const originalSend = res.send
 		const updatedCredits = Number(req.credits) - cost
 
-		res.send = async function (body) {
+		// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+		res.send = (body: any) => {
+			if (req.deducted) {
+				return originalSend.call(res, body)
+			}
+
 			try {
 				if (updatedCredits < 0) {
 					throw new Error('Insufficient credits')
 				}
-				
+
 				const users = getUserData()
 				const user = users.find((user) => user.apiTokens?.includes(apiToken))
 
 				if (user) {
 					addTransaction(
-						prismaDashboard.user.update({
+						`prismaClientDashboard.user.update({
 							where: {
-								id: user.id
+								id: "${user.id}"
 							},
 							data: {
 								credits: {
-									decrement: cost
+									decrement: ${cost}
 								}
 							}
-						})
+						})`
 					)
 				}
 
-				originalSend.call(this, body)
+				req.deducted = true
+				return originalSend.call(res, body)
 			} catch (error) {
 				return handleAndReturnErrorResponse(req, res, error)
 			}

@@ -1,4 +1,5 @@
 import express from 'express'
+import { handleCreditDeduction } from '../../user/auth'
 import {
 	getMetrics,
 	getTotalAvs,
@@ -25,9 +26,19 @@ const router = express.Router()
 
 // API routes for /metrics
 
-router.get('/', routeCache.cacheSeconds(120), getMetrics)
+router.get(
+	'/',
+	handleCreditDeduction(5),
+	routeCache.cacheSeconds(120),
+	getMetrics
+)
 
-router.get('/tvl', routeCache.cacheSeconds(120), getTvl)
+router.get(
+	'/tvl',
+	handleCreditDeduction(5),
+	routeCache.cacheSeconds(120),
+	getTvl
+)
 
 router.get('/tvl/beacon-chain', routeCache.cacheSeconds(120), getTvlBeaconChain)
 

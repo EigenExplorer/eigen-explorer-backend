@@ -90,7 +90,8 @@ exports.Prisma.TransactionIsolationLevel = makeStrictEnum({
 exports.Prisma.UserScalarFieldEnum = {
   id: 'id',
   apiTokens: 'apiTokens',
-  credits: 'credits'
+  credits: 'credits',
+  accessLevel: 'accessLevel'
 };
 
 exports.Prisma.SortOrder = {
@@ -158,13 +159,13 @@ const config = {
       }
     }
   },
-  "inlineSchema": "generator clientDashboard {\n  provider = \"prisma-client-js\"\n  output   = \"../../client/clientDashboard\"\n}\n\ndatasource db {\n  provider  = \"postgresql\"\n  url       = env(\"DATABASE_URL_DASHBOARD\")\n  directUrl = env(\"DIRECT_URL_DASHBOARD\")\n}\n\nmodel User {\n  id String @id @default(uuid())\n\n  apiTokens String[] @unique\n  credits   Int?\n}\n",
-  "inlineSchemaHash": "4bc9e52f5aa321316948aed683d2b0d11875841cd3f76efe531a3f2dd907d0a8",
+  "inlineSchema": "generator clientDashboard {\n  provider = \"prisma-client-js\"\n  output   = \"../../client/clientDashboard\"\n}\n\ndatasource db {\n  provider  = \"postgresql\"\n  url       = env(\"DATABASE_URL_DASHBOARD\")\n  directUrl = env(\"DIRECT_URL_DASHBOARD\")\n}\n\nmodel User {\n  id String @id @default(uuid())\n\n  apiTokens   String[] @unique\n  credits     Int?\n  accessLevel Int\n}\n",
+  "inlineSchemaHash": "73aca3e3babce48f3ed49ead9cf2ca064e9671d0876a23609ebc05a21ab8659a",
   "copyEngine": true
 }
 config.dirname = '/'
 
-config.runtimeDataModel = JSON.parse("{\"models\":{\"User\":{\"dbName\":null,\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":true,\"isReadOnly\":false,\"hasDefaultValue\":true,\"type\":\"String\",\"default\":{\"name\":\"uuid\",\"args\":[]},\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"apiTokens\",\"kind\":\"scalar\",\"isList\":true,\"isRequired\":true,\"isUnique\":true,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"credits\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"Int\",\"isGenerated\":false,\"isUpdatedAt\":false}],\"primaryKey\":null,\"uniqueFields\":[],\"uniqueIndexes\":[],\"isGenerated\":false}},\"enums\":{},\"types\":{}}")
+config.runtimeDataModel = JSON.parse("{\"models\":{\"User\":{\"dbName\":null,\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":true,\"isReadOnly\":false,\"hasDefaultValue\":true,\"type\":\"String\",\"default\":{\"name\":\"uuid\",\"args\":[]},\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"apiTokens\",\"kind\":\"scalar\",\"isList\":true,\"isRequired\":true,\"isUnique\":true,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"String\",\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"credits\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":false,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"Int\",\"isGenerated\":false,\"isUpdatedAt\":false},{\"name\":\"accessLevel\",\"kind\":\"scalar\",\"isList\":false,\"isRequired\":true,\"isUnique\":false,\"isId\":false,\"isReadOnly\":false,\"hasDefaultValue\":false,\"type\":\"Int\",\"isGenerated\":false,\"isUpdatedAt\":false}],\"primaryKey\":null,\"uniqueFields\":[],\"uniqueIndexes\":[],\"isGenerated\":false}},\"enums\":{},\"types\":{}}")
 defineDmmfProperty(exports.Prisma, config.runtimeDataModel)
 config.engineWasm = undefined
 

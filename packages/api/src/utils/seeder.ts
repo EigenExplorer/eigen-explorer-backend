@@ -1,4 +1,4 @@
-import prisma from '../utils/prismaClient'
+import { getPrismaClientDashboard } from '../utils/prismaClient'
 import { chunkArray } from '../utils/array'
 
 export async function bulkUpdateDbTransactions(
@@ -6,13 +6,14 @@ export async function bulkUpdateDbTransactions(
 	dbTransactions: any[],
 	label?: string
 ) {
+	const prismaClientDashboard = getPrismaClientDashboard()
 	const chunkSize = 1000
 
 	let i = 0
 	console.time(`[DB Write (${dbTransactions.length})] ${label || ''}`)
 
 	for (const chunk of chunkArray(dbTransactions, chunkSize)) {
-		await prisma.$transaction(chunk)
+		await prismaClientDashboard.$transaction(chunk)
 
 		i++
 	}

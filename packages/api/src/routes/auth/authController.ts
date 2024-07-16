@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express'
 import redis from '../../utils/redisClient'
 import crypto from 'node:crypto'
-import { prismaDashboard } from '../../utils/prismaClient'
+import { getPrismaClientDashboard } from '../../utils/prismaClient'
 import { handleAndReturnErrorResponse } from '../../schema/errors'
 import { addTransaction } from '../../user/data'
 import {
@@ -9,6 +9,8 @@ import {
 	RemoveTokenSchema,
 	UpdateCreditsSchema
 } from '../../schema/zod/schemas/auth'
+
+const prismaClientDashboard = getPrismaClientDashboard()
 
 /**
  * Create new API token for an existing user
@@ -18,6 +20,10 @@ import {
  * @returns
  */
 export async function generateToken(req: Request, res: Response) {
+	if (req.accessLevel !== '0') {
+		throw new Error('Access denied')
+	}
+
 	const queryCheck = GenerateTokenSchema.safeParse(req.body)
 	if (!queryCheck.success) {
 		return handleAndReturnErrorResponse(req, res, queryCheck.error)
@@ -28,7 +34,7 @@ export async function generateToken(req: Request, res: Response) {
 		const newToken = crypto.randomBytes(32).toString('hex')
 		const maxApiTokens = 15
 
-		const user = await prismaDashboard.user.findUnique({
+		const user = await prismaClientDashboard.user.findUnique({
 			where: { id },
 			select: { apiTokens: true, credits: true }
 		})
@@ -42,18 +48,19 @@ export async function generateToken(req: Request, res: Response) {
 		}
 
 		const updatedTokens = [...user.apiTokens, newToken]
-		const updatedCredits = user.credits && user.credits >= 0
-			? user.credits + Number(credits)
-			: Number(credits)
+		const updatedCredits =
+			user.credits && user.credits >= 0
+				? user.credits + Number(credits)
+				: Number(credits)
 
-		addTransaction(
-			prismaDashboard.user.update({
-				where: { id },
+		await addTransaction(
+			`prismaClientDashboard.user.update({
+				where: { id: "${id}" },
 				data: {
-					apiTokens: updatedTokens,
-					credits: updatedCredits
+				apiTokens: ${JSON.stringify(updatedTokens)},
+				credits: ${updatedCredits}
 				}
-			})
+			})`
 		)
 
 		res.send({ message: 'New API token created', data: newToken })
@@ -77,7 +84,7 @@ export async function removeToken(req: Request, res: Response) {
 
 	try {
 		const { id, token: tokenToRemove } = req.body
-		const user = await prismaDashboard.user.findUnique({
+		const user = await prismaClientDashboard.user.findUnique({
 			where: { id },
 			select: { apiTokens: true }
 		})
@@ -95,12 +102,12 @@ export async function removeToken(req: Request, res: Response) {
 		)
 
 		addTransaction(
-			prismaDashboard.user.update({
-				where: { id },
+			`prismaClientDashboard.user.update({
+				where: { id: "${id}" },
 				data: {
-					apiTokens: updatedTokens
+					apiTokens: ${updatedTokens}
 				}
-			})
+			})`
 		)
 
 		res.send({ message: 'API token revoked', data: tokenToRemove })
@@ -124,7 +131,7 @@ export async function addCredits(req: Request, res: Response) {
 
 	try {
 		const { id, credits } = req.body
-		const user = await prismaDashboard.user.findUnique({
+		const user = await prismaClientDashboard.user.findUnique({
 			where: { id },
 			select: { apiTokens: true, credits: true }
 		})
@@ -133,17 +140,18 @@ export async function addCredits(req: Request, res: Response) {
 			throw new Error('Invalid id, user not found')
 		}
 
-		const updatedCredits = user.credits && user.credits >= 0
-			? user.credits + Number(credits)
-			: Number(credits)
+		const updatedCredits =
+			user.credits && user.credits >= 0
+				? user.credits + Number(credits)
+				: Number(credits)
 
 		addTransaction(
-			prismaDashboard.user.update({
-				where: { id },
+			`prismaClientDashboard.user.update({
+				where: { id: "${id}" },
 				data: {
-					credits: updatedCredits
+					credits: ${updatedCredits}
 				}
-			})
+			})`
 		)
 
 		res.send({ message: 'Credits added', totalCredits: updatedCredits })
@@ -172,13 +180,17 @@ export async function checkCredits(req: Request, res: Response) {
 }
 
 /**
- * Deduct credits for an existing user
+ * Deduct credits for an existing user. Only accessible by admin.
  *
  * @param req
  * @param res
  * @returns
  */
 export async function deductCredits(req: Request, res: Response) {
+	if (req.accessLevel !== '0') {
+		throw new Error('Access denied')
+	}
+
 	const queryCheck = UpdateCreditsSchema.safeParse(req.body)
 	if (!queryCheck.success) {
 		return handleAndReturnErrorResponse(req, res, queryCheck.error)
@@ -186,7 +198,7 @@ export async function deductCredits(req: Request, res: Response) {
 
 	try {
 		const { id, credits } = req.body
-		const user = await prismaDashboard.user.findUnique({
+		const user = await prismaClientDashboard.user.findUnique({
 			where: { id },
 			select: { apiTokens: true, credits: true }
 		})
@@ -195,17 +207,18 @@ export async function deductCredits(req: Request, res: Response) {
 			throw new Error('Invalid id, user not found')
 		}
 
-		const updatedCredits = user.credits && user.credits >= 0
-			? user.credits + Number(credits)
-			: Number(credits)
+		const updatedCredits =
+			user.credits && user.credits >= 0
+				? user.credits + Number(credits)
+				: Number(credits)
 
 		addTransaction(
-			prismaDashboard.user.update({
-				where: { id },
+			`prismaClientDashboard.user.update({
+				where: { id: "${id}" },
 				data: {
-					credits: updatedCredits
+					credits: ${updatedCredits}
 				}
-			})
+			})`
 		)
 
 		res.send({ message: 'Credits deducted', totalCredits: updatedCredits })
@@ -213,3 +226,5 @@ export async function deductCredits(req: Request, res: Response) {
 		handleAndReturnErrorResponse(req, res, error)
 	}
 }
+
+// TODO: Update access level
