@@ -37,6 +37,40 @@ export async function getMetrics(req: Request, res: Response) {
 	}
 }
 
+export async function getMetricsV2(req: Request, res: Response) {
+	try {
+		const results = await Promise.allSettled([
+			doGetTvl(),
+			doGetTvlBeaconChain(),
+			doGetTotalAvsCount(),
+			doGetTotalOperatorCount(),
+			doGetTotalStakerCount()
+		]);
+
+		const metrics = {
+			tvlRestaking: results[0].status === 'fulfilled' ? results[0].value : null,
+			tvlBeaconChain: results[1].status === 'fulfilled' ? results[1].value : null,
+			totalAvs: results[2].status === 'fulfilled' ? results[2].value : null,
+			totalOperators: results[3].status === 'fulfilled' ? results[3].value : null,
+			totalStakers: results[4].status === 'fulfilled' ? results[4].value : null,
+			errors: results.filter(result => result.status === 'rejected').map(result => result.reason)
+		};
+
+		console.log(metrics.errors);
+
+		res.send({
+			tvl: (metrics.tvlRestaking ? metrics.tvlRestaking.tvlRestaking : 0) + (metrics.tvlBeaconChain ? metrics.tvlBeaconChain : 0),
+			tvlBeaconChain: metrics.tvlBeaconChain,
+			...metrics.tvlRestaking,
+			totalAvs: metrics.totalAvs,
+			totalOperators: metrics.totalOperators,
+			totalStakers: metrics.totalStakers
+		});
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error);
+	}
+}
+
 export async function getTvl(req: Request, res: Response) {
 	try {
 		const tvlRestaking = (await doGetTvl()).tvlRestaking

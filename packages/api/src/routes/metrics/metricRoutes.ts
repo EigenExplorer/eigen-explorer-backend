@@ -1,6 +1,7 @@
 import express from 'express'
 import {
 	getMetrics,
+	getMetricsV2,
 	getTotalAvs,
 	getTotalOperators,
 	getTotalStakers,
@@ -26,6 +27,9 @@ const router = express.Router()
 // API routes for /metrics
 
 router.get('/', routeCache.cacheSeconds(120), getMetrics)
+
+router.get('/v2', routeCache.cacheSeconds(120), getMetricsV2)
+
 
 router.get('/tvl', routeCache.cacheSeconds(120), getTvl)
 
