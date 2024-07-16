@@ -67,7 +67,7 @@ async function userDataLoop() {
 			console.log('Failed to fetch and sync user data at:', Date.now())
 			console.log(error)
 		}
-		await delay(5)
+		await delay(30)
 	}
 }
 
