@@ -13,7 +13,7 @@ import {
 const prismaClientDashboard = getPrismaClientDashboard()
 
 /**
- * Create new API token for an existing user
+ * Create new API token for an existing user. Only accessible by admin.
  *
  * @param req
  * @param res
@@ -70,13 +70,17 @@ export async function generateToken(req: Request, res: Response) {
 }
 
 /**
- * Remove an existing API token for an existing user
+ * Remove an existing API token for an existing user. Only accessible by admin.
  *
  * @param req
  * @param res
  * @returns
  */
 export async function removeToken(req: Request, res: Response) {
+	if (req.accessLevel !== '0') {
+		throw new Error('Access denied')
+	}
+	
 	const queryCheck = RemoveTokenSchema.safeParse(req.body)
 	if (!queryCheck.success) {
 		return handleAndReturnErrorResponse(req, res, queryCheck.error)
@@ -117,13 +121,17 @@ export async function removeToken(req: Request, res: Response) {
 }
 
 /**
- * Add credits for an existing user
+ * Add credits for an existing user. Only accessible by admin.
  *
  * @param req
  * @param res
  * @returns
  */
 export async function addCredits(req: Request, res: Response) {
+	if (req.accessLevel !== '0') {
+		throw new Error('Access denied')
+	}
+
 	const queryCheck = UpdateCreditsSchema.safeParse(req.body)
 	if (!queryCheck.success) {
 		return handleAndReturnErrorResponse(req, res, queryCheck.error)
