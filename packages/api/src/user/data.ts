@@ -1,9 +1,9 @@
-import type { Prisma } from '@prisma/client'
-import prisma from '../utils/prismaClient'
 import redis from '../utils/redisClient'
+import type prisma from '../../../../client/clientDashboard/default'
+import { prismaDashboard } from '../utils/prismaClient'
 import { bulkUpdateDbTransactions } from '../utils/seeder'
 
-let userData: Prisma.User[] = []
+let userData: prisma.User[] = []
 
 /**
  * Update db transactions collected by auth middleware + management routes & write latest supabase db state to redis
@@ -19,17 +19,14 @@ export async function fetchAndSyncUserData() {
 	}
 
 	// Get latest state from supabase
-	userData = await prisma.user.findMany({
-		select: {
-			apiTokens: true,
-			credits: true
-		}
-	})
+	userData = await prismaDashboard.user.findMany({})
 
 	// Write latest state to redis
 	for (const user of userData) {
-		for (const apiToken of user.apiTokens) {
-			await redis.set(`apiToken:${apiToken}:credits`, String(user.credits))
+		if(user.apiTokens) {
+			for (const apiToken of user.apiTokens) {
+				await redis.set(`apiToken:${apiToken}:credits`, String(user.credits))
+			}
 		}
 	}
 

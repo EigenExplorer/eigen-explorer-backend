@@ -1,7 +1,7 @@
-import prisma from '../../utils/prismaClient'
+import type { Request, Response } from 'express'
 import redis from '../../utils/redisClient'
 import crypto from 'node:crypto'
-import type { Request, Response } from 'express'
+import { prismaDashboard } from '../../utils/prismaClient'
 import { handleAndReturnErrorResponse } from '../../schema/errors'
 import { addTransaction } from '../../user/data'
 import {
@@ -28,7 +28,7 @@ export async function generateToken(req: Request, res: Response) {
 		const newToken = crypto.randomBytes(32).toString('hex')
 		const maxApiTokens = 15
 
-		const user = await prisma.user.findUnique({
+		const user = await prismaDashboard.user.findUnique({
 			where: { id },
 			select: { apiTokens: true, credits: true }
 		})
@@ -42,10 +42,12 @@ export async function generateToken(req: Request, res: Response) {
 		}
 
 		const updatedTokens = [...user.apiTokens, newToken]
-		const updatedCredits = user.credits + Number(credits)
+		const updatedCredits = user.credits && user.credits >= 0
+			? user.credits + Number(credits)
+			: Number(credits)
 
 		addTransaction(
-			prisma.user.update({
+			prismaDashboard.user.update({
 				where: { id },
 				data: {
 					apiTokens: updatedTokens,
@@ -75,7 +77,7 @@ export async function removeToken(req: Request, res: Response) {
 
 	try {
 		const { id, token: tokenToRemove } = req.body
-		const user = await prisma.user.findUnique({
+		const user = await prismaDashboard.user.findUnique({
 			where: { id },
 			select: { apiTokens: true }
 		})
@@ -84,7 +86,7 @@ export async function removeToken(req: Request, res: Response) {
 			throw new Error('Invalid id, user not found')
 		}
 
-		if (!user.apiTokens.has(tokenToRemove)) {
+		if (!user.apiTokens.includes(tokenToRemove)) {
 			throw new Error('Invalid token')
 		}
 
@@ -93,7 +95,7 @@ export async function removeToken(req: Request, res: Response) {
 		)
 
 		addTransaction(
-			prisma.user.update({
+			prismaDashboard.user.update({
 				where: { id },
 				data: {
 					apiTokens: updatedTokens
@@ -122,7 +124,7 @@ export async function addCredits(req: Request, res: Response) {
 
 	try {
 		const { id, credits } = req.body
-		const user = await prisma.user.findUnique({
+		const user = await prismaDashboard.user.findUnique({
 			where: { id },
 			select: { apiTokens: true, credits: true }
 		})
@@ -131,11 +133,12 @@ export async function addCredits(req: Request, res: Response) {
 			throw new Error('Invalid id, user not found')
 		}
 
-		const updatedCredits =
-			user.credits >= 0 ? user.credits + Number(credits) : Number(credits)
+		const updatedCredits = user.credits && user.credits >= 0
+			? user.credits + Number(credits)
+			: Number(credits)
 
 		addTransaction(
-			prisma.user.update({
+			prismaDashboard.user.update({
 				where: { id },
 				data: {
 					credits: updatedCredits
@@ -183,7 +186,7 @@ export async function deductCredits(req: Request, res: Response) {
 
 	try {
 		const { id, credits } = req.body
-		const user = await prisma.user.findUnique({
+		const user = await prismaDashboard.user.findUnique({
 			where: { id },
 			select: { apiTokens: true, credits: true }
 		})
@@ -192,11 +195,12 @@ export async function deductCredits(req: Request, res: Response) {
 			throw new Error('Invalid id, user not found')
 		}
 
-		const updatedCredits =
-			user.credits - Number(credits) >= 0 ? user.credits - Number(credits) : 0
+		const updatedCredits = user.credits && user.credits >= 0
+			? user.credits + Number(credits)
+			: Number(credits)
 
 		addTransaction(
-			prisma.user.update({
+			prismaDashboard.user.update({
 				where: { id },
 				data: {
 					credits: updatedCredits

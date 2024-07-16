@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "prisma:generate": "prisma generate --schema=./schema.prisma",
-    "prisma:format": "prisma format --schema=./schema.prisma"
+    "prisma:generate": "prisma generate --schema=./schema.prisma && prisma generate --schema=./schemaDashboard.prisma",
+    "prisma:format": "prisma format --schema=./schema.prisma && prisma format --schema=./schemaDashboard.prisma"
   },
   "prisma": {
     "schema": "./schema.prisma"

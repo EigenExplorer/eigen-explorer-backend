@@ -1,7 +1,7 @@
 import type { Request } from 'express'
-import prisma from '../utils/prismaClient'
 import redis from '../utils/redisClient'
 import rateLimit from 'express-rate-limit'
+import { prismaDashboard } from '../utils/prismaClient'
 import { handleAndReturnErrorResponse } from '../schema/errors'
 import { addTransaction, getUserData } from '../user/data'
 
@@ -44,7 +44,7 @@ export async function authenticateAndCheckCredits(req, res, next) {
 		if (credits === null) {
 			// Fallback to supabase data
 			const users = getUserData()
-			const user = users.find((user) => user.apiTokens.includes(apiToken))
+			const user = users.find((user) => user.apiTokens?.includes(apiToken))
 
 			if (!user) {
 				throw new Error('Invalid API token')
@@ -85,21 +85,24 @@ export function handleCreditDeduction(cost: number) {
 				if (updatedCredits < 0) {
 					throw new Error('Insufficient credits')
 				}
+				
+				const users = getUserData()
+				const user = users.find((user) => user.apiTokens?.includes(apiToken))
 
-				addTransaction(
-					prisma.user.update({
-						where: {
-							apiTokens: {
-								has: apiToken
+				if (user) {
+					addTransaction(
+						prismaDashboard.user.update({
+							where: {
+								id: user.id
+							},
+							data: {
+								credits: {
+									decrement: cost
+								}
 							}
-						},
-						data: {
-							credits: {
-								decrement: cost
-							}
-						}
-					})
-				)
+						})
+					)
+				}
 
 				originalSend.call(this, body)
 			} catch (error) {
