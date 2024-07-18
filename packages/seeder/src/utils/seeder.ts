@@ -77,31 +77,21 @@ export async function bulkUpdateDbTransactionsV2(
     console.time(`[DB Write (${dbTransactions.length})] ${label || ''}`);
 
     for (const transaction of dbTransactions) {
-        if (transaction.table === 'evm_BlockData') {
-            const formattedData = formatForUnnest(transaction.data);
+        const formattedData = formatForUnnest(transaction.data);
 
-            await prismaClient.$queryRaw`
-                INSERT INTO "evm_BlockData" ("number", "timestamp")
-                SELECT * FROM unnest(
-                    ${formattedData.numbers}::bigint[],
-                    ${formattedData.timestamps}::timestamptz[]
-                )
-                ON CONFLICT DO NOTHING;
-            `;
-        } else {
-            const chunkSize = 1000;
-            for (let i = 0; i < transaction.data.length; i += chunkSize) {
-                const chunk = transaction.data.slice(i, i + chunkSize);
-                await prismaClient[transaction.table].createMany({
-                    data: chunk,
-                    skipDuplicates: true,
-                });
-            }
-        }
+        await prismaClient.$queryRaw`
+            INSERT INTO "Evm_BlockData" ("number", "timestamp")
+            SELECT * FROM unnest(
+                ${formattedData.numbers}::bigint[],
+                ${formattedData.timestamps}::timestamptz[]
+            )
+            ON CONFLICT DO NOTHING;
+        `;
     }
 
     console.timeEnd(`[DB Write (${dbTransactions.length})] ${label || ''}`);
 }
+
 
 export async function fetchLastSyncBlock(key: string): Promise<bigint> {
 	const prismaClient = getPrismaClient()

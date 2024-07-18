@@ -1,37 +1,38 @@
 import 'dotenv/config';
 import { expect } from 'chai';
 import { getPrismaClient } from '../src/utils/prismaClient';
-import { seedBlockData as originalSeedBlockData,seedBlockDataV2 as modifiedSeedBlockData  } from '../src/blocks/seedBlockData';
-import { getViemClient } from '../src/utils/viemClient';
+import { seedBlockData as originalSeedBlockData, seedBlockDataV2 as modifiedSeedBlockData } from '../src/blocks/seedBlockData';
 
 describe('Seed Block Data', async function () {
-  this.timeout(100000)
+  this.timeout(100000);
 
-  it('should seed block data using original method and measure performance', async function () {
-    
-	const fromBlock1 = 1250000n
-	const toBlock1 = 1250200n
+  it('should seed block data using original and modified methods and measure performance', async function () {
+    // Define block ranges for testing
+    const fromBlock1 = 1250000n;
+    const toBlock1 = 1260000n;
 
-    const fromBlock2 = 1260000n
-	const toBlock2 = 1260200n
-    const prismaClient = getPrismaClient()
+    const fromBlock2 = 1260001n;
+    const toBlock2 = 1270001n;
 
-    console.time('Original Method');
-    await originalSeedBlockData(toBlock1,fromBlock1);
-    console.timeEnd('Original Method');
-    // const originalData = await prismaClient.evm_BlockData.findMany();
+    // const prismaClient = getPrismaClient();
 
-    // console.log(originalData)
+    // Measure performance for the original method
+    const originalStart = performance.now();
+    await originalSeedBlockData(toBlock1, fromBlock1);
+    const originalEnd = performance.now();
+    const originalDuration = originalEnd - originalStart;
 
-    // // Cleanup database before next test
-    // await prismaClient.evm_BlockData.deleteMany({});
-    // await cleanupDatabase(getPrismaClient);
+    // Measure performance for the modified method
+    const modifiedStart = performance.now();
+    await modifiedSeedBlockData(toBlock2, fromBlock2);
+    const modifiedEnd = performance.now();
+    const modifiedDuration = modifiedEnd - modifiedStart;
 
-    console.time('Modified Method');
-    await modifiedSeedBlockData(toBlock2,fromBlock2);
-    console.timeEnd('Modified Method');
-    // const modifiedData = await prismaClient.evm_BlockData.findMany();
-    // console.log(modifiedData)
-    // expect(originalData).to.deep.equal(modifiedData);
+    // Expect the modified method to be faster than the original method
+    expect(modifiedDuration).to.be.lessThan(originalDuration);
+
+    // Log the results for verification
+    console.log(`Original Method Duration: ${originalDuration.toFixed(2)}ms`);
+    console.log(`Modified Method Duration: ${modifiedDuration.toFixed(2)}ms`);
   });
 });
