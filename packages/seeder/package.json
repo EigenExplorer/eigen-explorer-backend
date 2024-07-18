@@ -17,10 +17,10 @@
     "prisma": "^5.11.0",
     "ts-node": "^10.9.2",
     "tsx": "^4.7.1",
-    "typescript": "^5.5.3"
+    "typescript": "^5.4.3"
   },
   "dependencies": {
-    "dotenv": "^16.4.5",
-    "viem": "^2.9.21"
+    "viem": "^2.9.21",
+    "dotenv": "^16.4.5"
   }
 }
