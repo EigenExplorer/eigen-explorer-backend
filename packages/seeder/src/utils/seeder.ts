@@ -60,6 +60,49 @@ export async function bulkUpdateDbTransactions(
 	console.timeEnd(`[DB Write (${dbTransactions.length})] ${label || ''}`)
 }
 
+// Utility function to format data for UNNEST
+function formatForUnnest(data: { number: bigint, timestamp: Date }[]) {
+    return {
+        numbers: data.map(d => d.number),
+        timestamps: data.map(d => d.timestamp.toISOString()),
+    };
+}
+
+// Modified bulk update function using raw SQL and UNNEST
+export async function bulkUpdateDbTransactionsV2(
+    dbTransactions: { table: string, data: any[] }[],
+    label?: string
+) {
+    const prismaClient = getPrismaClient();
+    console.time(`[DB Write (${dbTransactions.length})] ${label || ''}`);
+
+    for (const transaction of dbTransactions) {
+        if (transaction.table === 'evm_BlockData') {
+            const formattedData = formatForUnnest(transaction.data);
+
+            await prismaClient.$queryRaw`
+                INSERT INTO "evm_BlockData" ("number", "timestamp")
+                SELECT * FROM unnest(
+                    ${formattedData.numbers}::bigint[],
+                    ${formattedData.timestamps}::timestamptz[]
+                )
+                ON CONFLICT DO NOTHING;
+            `;
+        } else {
+            const chunkSize = 1000;
+            for (let i = 0; i < transaction.data.length; i += chunkSize) {
+                const chunk = transaction.data.slice(i, i + chunkSize);
+                await prismaClient[transaction.table].createMany({
+                    data: chunk,
+                    skipDuplicates: true,
+                });
+            }
+        }
+    }
+
+    console.timeEnd(`[DB Write (${dbTransactions.length})] ${label || ''}`);
+}
+
 export async function fetchLastSyncBlock(key: string): Promise<bigint> {
 	const prismaClient = getPrismaClient()
 
