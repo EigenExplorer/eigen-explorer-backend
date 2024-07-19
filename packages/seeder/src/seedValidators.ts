@@ -4,12 +4,9 @@ import type prisma from '@prisma/client'
 import { getPrismaClient } from './utils/prismaClient'
 import { bulkUpdateDbTransactions } from './utils/seeder'
 
-const url = process.env.VALIDATOR_SERVER_URL
-
 export async function seedValidators() {
 	const prismaClient = getPrismaClient()
 
-	const token = process.env.VALIDATOR_BEARER_TOKEN
 	const startAt = await getLastUpdate()
 	const endAt = new Date()
 
@@ -27,77 +24,36 @@ export async function seedValidators() {
 
 	try {
 		// Get all pod addresses and add it to the request
-		const podAddresses = await prismaClient.pod.findMany({
-			select: { address: true }
-		})
-		const podAddressList = podAddresses.map((p) => p.address.toLowerCase())
+		const maxPodsPerPage = 10000
+		const totalPods = await prismaClient.pod.count()
+		const totalPodsPages = Math.ceil(totalPods / maxPodsPerPage)
 
 		// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 		const dbTransactions: any[] = []
-		const validatorList: prisma.Validator[] = []
+		let validatorList: prisma.Validator[] = []
 
-		const requestBody = {
-			podAddresses: podAddressList,
-			...(startAt && { startAt: startAt.toISOString() })
+		for (let i = 0; i < totalPodsPages; i++) {
+			const podAddresses = await prismaClient.pod.findMany({
+				select: { address: true },
+				take: maxPodsPerPage,
+				skip: i * maxPodsPerPage
+			})
+
+			const podAddressList = podAddresses.map((p) => p.address.toLowerCase())
+			const validators = await fetchValidators(podAddressList, startAt)
+			validatorList = validatorList.concat(validators)
 		}
 
-		const response = await fetch(`${url}/validators`, {
-			method: 'POST',
-			headers: {
-				Authorization: `Bearer ${token}`,
-				'Content-Type': 'application/json',
-				'Accept-Encoding': 'gzip'
-			},
-			body: JSON.stringify(requestBody)
-		})
-		if (!response.ok) {
-			throw new Error(`HTTP error: ${response.status}`)
-		}
-		if (!response.body) {
-			throw new Error('Empty response')
-		}
-
-		const reader = response.body.getReader()
-		const decoder = new TextDecoder()
-
-		const chunks: Uint8Array[] = []
-		let totalSize = 0
-
-		while (true) {
-			const { done, value } = await reader.read()
-
-			if (done) {
-				break
-			}
-
-			chunks.push(value)
-			totalSize += value.length
-		}
-
-		const fullBuffer = new Uint8Array(totalSize)
-		let offset = 0
-
-		for (const chunk of chunks) {
-			fullBuffer.set(chunk, offset)
-			offset += chunk.length
-		}
-
-		const jsonString = decoder.decode(fullBuffer)
-		const validatorsData = JSON.parse(jsonString)
-		const totalValidators = validatorsData.length
-
-		if (totalValidators > 0) {
+		if (validatorList.length > 0) {
 			if (!startAt) {
-				for (const validatorData of validatorsData) {
-					validatorList.push(validatorData)
-				}
+				dbTransactions.push(prismaClient.validator.deleteMany())
 				dbTransactions.push(
 					prismaClient.validator.createMany({
 						data: validatorList
 					})
 				)
 			} else {
-				for (const validatorData of validatorsData) {
+				for (const validatorData of validatorList) {
 					dbTransactions.push(
 						prismaClient.validator.upsert({
 							where: {
@@ -129,16 +85,74 @@ export async function seedValidators() {
 					)
 				}
 			}
-		}
 
-		await bulkUpdateDbTransactions(
-			dbTransactions,
-			`[Data] Validators updated: ${totalValidators}`
-		)
+			await bulkUpdateDbTransactions(
+				dbTransactions,
+				`[Data] Validators updated: ${validatorList.length}`
+			)
+		}
 	} catch (error) {
 		console.log('Error seeding Validators: ', error)
 	}
 	console.timeEnd('Done in')
+}
+
+async function fetchValidators(podAddressList: string[], startAt: Date | null) {
+	const url = process.env.VALIDATOR_SERVER_URL
+	const token = process.env.VALIDATOR_BEARER_TOKEN
+
+	const requestBody = {
+		podAddresses: podAddressList,
+		startAt: startAt ? startAt.toISOString() : undefined
+	}
+
+	const response = await fetch(`${url}/validators`, {
+		method: 'POST',
+		headers: {
+			Authorization: `Bearer ${token}`,
+			'Content-Type': 'application/json',
+			'Accept-Encoding': 'gzip'
+		},
+		body: JSON.stringify(requestBody)
+	})
+
+	if (!response.ok) {
+		throw new Error(`HTTP error: ${response.status}`)
+	}
+
+	if (!response.body) {
+		throw new Error('Empty response')
+	}
+
+	const reader = response.body.getReader()
+	const decoder = new TextDecoder()
+
+	const chunks: Uint8Array[] = []
+	let totalSize = 0
+
+	while (true) {
+		const { done, value } = await reader.read()
+
+		if (done) {
+			break
+		}
+
+		chunks.push(value)
+		totalSize += value.length
+	}
+
+	const fullBuffer = new Uint8Array(totalSize)
+	let offset = 0
+
+	for (const chunk of chunks) {
+		fullBuffer.set(chunk, offset)
+		offset += chunk.length
+	}
+
+	const jsonString = decoder.decode(fullBuffer)
+	const validatorsData = JSON.parse(jsonString)
+
+	return validatorsData
 }
 
 async function getLastUpdate() {
