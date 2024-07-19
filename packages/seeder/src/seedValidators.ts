@@ -33,8 +33,8 @@ export async function seedValidators(shouldClearPrev?: boolean) {
 		!shouldClearPrev && lastValidatorIndex
 			? Number(lastValidatorIndex.validatorIndex) + 1
 			: 0
-	const chunkSize = 8000
-	const batchSize = 120_000
+	const chunkSize = 6000
+	const batchSize = 24_000
 	const clearPerv = shouldClearPrev
 		? shouldClearPrev
 		: lastValidatorIndex?.validatorIndex

@@ -86,7 +86,7 @@ async function seedMetadata() {
 }
 
 async function seedEigenPodValidators() {
-	await delay(3600)
+	await delay(360)
 
 	while (true) {
 		try {
