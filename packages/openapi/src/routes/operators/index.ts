@@ -4,5 +4,5 @@ import { getOperatorByAddress } from './getOperatorByAddress';
 
 export const operatorsRoutes: ZodOpenApiPathsObject = {
     '/operators': { get: getAllOperators },
-    '/operators/{address}': { get: getOperatorByAddress },
+    '/operators/{address}': { get: getOperatorByAddress }
 };

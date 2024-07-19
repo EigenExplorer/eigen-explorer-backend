@@ -603,6 +603,381 @@
         }
       }
     },
+    "/metrics/historical/avs": {
+      "get": {
+        "operationId": "getHistoricalAvsCount",
+        "summary": "Retrieve historical AVS data",
+        "description": "Returns the historical number of AVS registered. ",
+        "tags": [
+          "Metrics"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "frequency",
+            "description": "Frequency of data points",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1h",
+                "1d",
+                "7d"
+              ],
+              "default": "1h",
+              "description": "Frequency of data points"
+            }
+          },
+          {
+            "in": "query",
+            "name": "variant",
+            "description": "Type of tally, discrete or cumulative",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "discrete",
+                "cumulative"
+              ],
+              "default": "cumulative",
+              "description": "Type of tally, discrete or cumulative"
+            }
+          },
+          {
+            "in": "query",
+            "name": "startAt",
+            "description": "Start date in ISO string format",
+            "schema": {
+              "type": "string",
+              "description": "Start date in ISO string format",
+              "default": ""
+            }
+          },
+          {
+            "in": "query",
+            "name": "endAt",
+            "description": "End date in ISO string format",
+            "schema": {
+              "type": "string",
+              "description": "End date in ISO string format",
+              "default": ""
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The historical AVS data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "ts": {
+                            "type": "string",
+                            "format": "date-time",
+                            "description": "Timestamp in ISO 8601 format"
+                          },
+                          "value": {
+                            "type": "number",
+                            "description": "AVS count at the given timestamp"
+                          }
+                        },
+                        "required": [
+                          "ts",
+                          "value"
+                        ],
+                        "example": {
+                          "ts": "2024-07-09T03:00:00.000Z",
+                          "value": 20
+                        }
+                      },
+                      "description": "Array of historical AVS data points"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/metrics/historical/operators": {
+      "get": {
+        "operationId": "getHistoricalOperatorCount",
+        "summary": "Retrieve historical Operator data",
+        "description": "Returns the historical number of Operator registered. ",
+        "tags": [
+          "Metrics"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "frequency",
+            "description": "Frequency of data points",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1h",
+                "1d",
+                "7d"
+              ],
+              "default": "1h",
+              "description": "Frequency of data points"
+            }
+          },
+          {
+            "in": "query",
+            "name": "variant",
+            "description": "Type of tally, discrete or cumulative",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "discrete",
+                "cumulative"
+              ],
+              "default": "cumulative",
+              "description": "Type of tally, discrete or cumulative"
+            }
+          },
+          {
+            "in": "query",
+            "name": "startAt",
+            "description": "Start date in ISO string format",
+            "schema": {
+              "type": "string",
+              "description": "Start date in ISO string format",
+              "default": ""
+            }
+          },
+          {
+            "in": "query",
+            "name": "endAt",
+            "description": "End date in ISO string format",
+            "schema": {
+              "type": "string",
+              "description": "End date in ISO string format",
+              "default": ""
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The historical Operator data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "ts": {
+                            "type": "string",
+                            "format": "date-time",
+                            "description": "Timestamp in ISO 8601 format"
+                          },
+                          "value": {
+                            "type": "number",
+                            "description": "AVS count at the given timestamp"
+                          }
+                        },
+                        "required": [
+                          "ts",
+                          "value"
+                        ],
+                        "example": {
+                          "ts": "2024-07-09T03:00:00.000Z",
+                          "value": 20
+                        }
+                      },
+                      "description": "Array of historical operator data points"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/metrics/historical/stakers": {
+      "get": {
+        "operationId": "getHistoricalStakerCount",
+        "summary": "Retrieve historical Staker data",
+        "description": "Returns the historical number of Staker registered. ",
+        "tags": [
+          "Metrics"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "frequency",
+            "description": "Frequency of data points",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1h",
+                "1d",
+                "7d"
+              ],
+              "default": "1h",
+              "description": "Frequency of data points"
+            }
+          },
+          {
+            "in": "query",
+            "name": "variant",
+            "description": "Type of tally, discrete or cumulative",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "discrete",
+                "cumulative"
+              ],
+              "default": "cumulative",
+              "description": "Type of tally, discrete or cumulative"
+            }
+          },
+          {
+            "in": "query",
+            "name": "startAt",
+            "description": "Start date in ISO string format",
+            "schema": {
+              "type": "string",
+              "description": "Start date in ISO string format",
+              "default": ""
+            }
+          },
+          {
+            "in": "query",
+            "name": "endAt",
+            "description": "End date in ISO string format",
+            "schema": {
+              "type": "string",
+              "description": "End date in ISO string format",
+              "default": ""
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The historical Staker data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "ts": {
+                            "type": "string",
+                            "format": "date-time",
+                            "description": "Timestamp in ISO 8601 format"
+                          },
+                          "value": {
+                            "type": "number",
+                            "description": "AVS count at the given timestamp"
+                          }
+                        },
+                        "required": [
+                          "ts",
+                          "value"
+                        ],
+                        "example": {
+                          "ts": "2024-07-09T03:00:00.000Z",
+                          "value": 20
+                        }
+                      },
+                      "description": "Array of historical staker data points"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
     "/avs": {
       "get": {
         "operationId": "getAllAvs",
@@ -4095,6 +4470,181 @@
           },
           "500": {
             "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/strategies/tvl": {
+      "get": {
+        "operationId": "getTotalTvl",
+        "summary": "Get Total TVL",
+        "description": "Returns the total value locked (TVL) across all strategies.",
+        "tags": [
+          "TVL"
+        ],
+        "responses": {
+          "200": {
+            "description": "Total TVL retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "totalTvl": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "totalTvl"
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                },
+                "examples": {
+                  "serverError": {
+                    "summary": "Server Error",
+                    "value": {
+                      "error": "An error occurred while fetching data."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/strategies/tvl/:strategyName": {
+      "get": {
+        "operationId": "getStrategyTvl",
+        "summary": "Get Strategy TVL",
+        "description": "Returns the Total Value Locked (TVL) for a given strategy.",
+        "tags": [
+          "Strategy"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "strategyName",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "TVL retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "strategyTvl": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "strategyTvl"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid strategy name.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                },
+                "examples": {
+                  "invalidStrategyName": {
+                    "summary": "Invalid Strategy Name",
+                    "value": {
+                      "error": "Strategy name is required."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Strategy not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                },
+                "examples": {
+                  "strategyNotFound": {
+                    "summary": "Strategy Not Found",
+                    "value": {
+                      "error": "Strategy not found."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                },
+                "examples": {
+                  "serverError": {
+                    "summary": "Server Error",
+                    "value": {
+                      "error": "An error occurred while fetching data."
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
