@@ -42,6 +42,12 @@ export async function seedValidators() {
 			const podAddressList = podAddresses.map((p) => p.address.toLowerCase())
 			const validators = await fetchValidators(podAddressList, startAt)
 			validatorList = validatorList.concat(validators)
+
+			console.log(
+				`[Batch] Validators loaded count: ${validators.length} from: ${
+					i * maxPodsPerPage
+				} to ${Math.min(totalPods, (i + 1) * maxPodsPerPage)}`
+			)
 		}
 
 		if (validatorList.length > 0) {
@@ -94,6 +100,7 @@ export async function seedValidators() {
 	} catch (error) {
 		console.log('Error seeding Validators: ', error)
 	}
+
 	console.timeEnd('Done in')
 }
 
