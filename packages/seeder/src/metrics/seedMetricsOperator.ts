@@ -227,7 +227,6 @@ export async function seedMetricsOperatorHourly() {
 				const lastStrategyMetric = lastStrategyMetrics.get(strategyAddress)
 				if (!lastStrategyMetric) {
 					lastStrategyMetrics.set(strategyAddress, {
-						id: 0,
 						strategyAddress: strategyAddress,
 						tvl: new prisma.Prisma.Decimal(0),
 						tvlEth: new prisma.Prisma.Decimal(0),
@@ -258,7 +257,6 @@ export async function seedMetricsOperatorHourly() {
 
 				// Record all data back to rolling last operator metrics
 				lastStrategyMetrics.set(strategyAddress, {
-					id: 0,
 					strategyAddress,
 					tvl: Number(tvl + changeTvl) as unknown as prisma.Prisma.Decimal,
 					changeTvl: Number(changeTvl) as unknown as prisma.Prisma.Decimal,
@@ -296,7 +294,6 @@ export async function seedMetricsOperatorHourly() {
 				const lastOperatorMetric = lastOperatorMetrics.get(operatorAddress)
 				if (!lastOperatorMetric) {
 					lastOperatorMetrics.set(operatorAddress, {
-						id: 0,
 						operatorAddress: operatorAddress,
 						tvlEth: new prisma.Prisma.Decimal(0),
 						totalStakers: 0,
@@ -345,7 +342,6 @@ export async function seedMetricsOperatorHourly() {
 
 				// Record all data back to rolling last operator metrics
 				lastOperatorMetrics.set(operatorAddress, {
-					id: 0,
 					operatorAddress,
 					tvlEth: Number(
 						tvlEth + changeTvlEth
@@ -487,7 +483,7 @@ async function getFirstLogTimestamp() {
  * @returns
  */
 async function getLatestMetricsPerOperator(): Promise<
-	IMap<string, prisma.MetricOperatorHourly>
+	IMap<string, Omit<prisma.MetricOperatorHourly, 'id'>>
 > {
 	const prismaClinet = getPrismaClient()
 
@@ -520,7 +516,9 @@ async function getLatestMetricsPerOperator(): Promise<
 	return new Map()
 }
 
-async function getLatestMetricsPerStrategy() {
+async function getLatestMetricsPerStrategy(): Promise<
+	IMap<string, Omit<prisma.MetricStrategyHourly, 'id'>>
+> {
 	const prismaClinet = getPrismaClient()
 
 	try {
