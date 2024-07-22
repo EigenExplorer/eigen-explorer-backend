@@ -59,6 +59,7 @@ async function seedEigenData() {
 			await seedCompletedWithdrawals()
 			await seedDeposits()
 			await seedPods()
+			await seedValidators()
 		} catch (error) {
 			console.log('Failed to seed data at:', Date.now())
 			console.log(error)
@@ -82,23 +83,6 @@ async function seedMetadata() {
 		}
 
 		await delay(120)
-	}
-}
-
-async function seedEigenPodValidators() {
-	await delay(360)
-
-	while (true) {
-		try {
-			console.log('\nSeeding Validators data ...')
-
-			await seedValidators()
-		} catch (error) {
-			console.log(error)
-			console.log('Failed to seed Validators at:', Date.now())
-		}
-
-		await delay(3600)
 	}
 }
 
@@ -138,6 +122,5 @@ async function seedRestakedData() {
 
 seedEigenData()
 seedMetadata()
-seedEigenPodValidators()
 seedEigenStrategiesData()
 seedRestakedData()
