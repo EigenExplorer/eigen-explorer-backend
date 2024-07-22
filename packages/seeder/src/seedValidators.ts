@@ -57,37 +57,18 @@ export async function seedValidators() {
 					})
 				)
 			} else {
-				for (const validatorData of validatorList) {
-					dbTransactions.push(
-						prismaClient.validator.upsert({
-							where: {
-								validatorIndex: BigInt(validatorData.validatorIndex)
-							},
-							create: {
-								validatorIndex: BigInt(validatorData.validatorIndex),
-								pubkey: String(validatorData.pubkey).toLowerCase(),
-								status: String(validatorData.status),
-								balance: BigInt(validatorData.balance),
-								effectiveBalance: BigInt(validatorData.effectiveBalance),
-								slashed: Boolean(validatorData.slashed),
-								withdrawalCredentials: String(
-									validatorData.withdrawalCredentials
-								).toLowerCase(),
-								activationEpoch: validatorData.activationEpoch,
-								exitEpoch: validatorData.exitEpoch,
-								updatedAt: validatorData.updatedAt
-							},
-							update: {
-								status: String(validatorData.status),
-								balance: BigInt(validatorData.balance),
-								effectiveBalance: BigInt(validatorData.effectiveBalance),
-								slashed: Boolean(validatorData.slashed),
-								exitEpoch: validatorData.exitEpoch,
-								updatedAt: validatorData.updatedAt
-							}
-						})
-					)
-				}
+				const validatorIndexs = validatorList.map((v) => v.validatorIndex)				
+				dbTransactions.push(
+					prismaClient.validator.deleteMany({
+						where: { validatorIndex: { in: validatorIndexs } }
+					})
+				)
+
+				dbTransactions.push(
+					prismaClient.validator.createMany({
+						data: validatorList
+					})
+				)
 			}
 
 			await bulkUpdateDbTransactions(
