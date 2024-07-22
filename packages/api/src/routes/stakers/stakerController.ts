@@ -24,7 +24,7 @@ export async function getAllStakers(req: Request, res: Response) {
 	if (!result.success) {
 		return handleAndReturnErrorResponse(req, res, result.error)
 	}
-	const { skip, take, withTvl } = result.data
+	const { skip, take, withTvl, sortByTvl } = result.data
 
 	try {
 		// Fetch count and record
@@ -54,6 +54,14 @@ export async function getAllStakers(req: Request, res: Response) {
 				  )
 				: undefined
 		}))
+
+		// Sort by tvl if sortByTvl is provided
+		if (sortByTvl && withTvl) {
+			stakers.sort((a, b) => {
+				if (a.tvl === undefined || b.tvl === undefined) return 0
+				return sortByTvl === 'desc' ? b.tvl.tvl - a.tvl.tvl : a.tvl.tvl - b.tvl.tvl
+			})
+		}
 
 		res.send({
 			data: stakers,

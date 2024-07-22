@@ -30,7 +30,7 @@ export async function getAllAVS(req: Request, res: Response) {
 	}
 
 	try {
-		const { skip, take, withTvl, withCuratedMetadata } = queryCheck.data
+		const { skip, take, withTvl, withCuratedMetadata, sortByTvl } = queryCheck.data
 
 		// Fetch count and record
 		const avsCount = await prisma.avs.count({ where: getAvsFilterQuery(true) })
@@ -97,6 +97,14 @@ export async function getAllAVS(req: Request, res: Response) {
 				}
 			})
 		)
+
+		// Sort by tvl if sortByTvl is provided
+		if (sortByTvl && withTvl) {
+			data.sort((a, b) => {
+				if (a.tvl === undefined || b.tvl === undefined) return 0
+				return sortByTvl === 'desc' ? b.tvl.tvl - a.tvl.tvl : a.tvl.tvl - b.tvl.tvl
+			})
+		}
 
 		res.send({
 			data,
@@ -261,7 +269,7 @@ export async function getAVSStakers(req: Request, res: Response) {
 
 	try {
 		const { address } = req.params
-		const { skip, take, withTvl } = queryCheck.data
+		const { skip, take, withTvl, sortByTvl } = queryCheck.data
 
 		const avs = await prisma.avs.findUniqueOrThrow({
 			where: { address: address.toLowerCase(), ...getAvsFilterQuery() },
@@ -306,6 +314,14 @@ export async function getAVSStakers(req: Request, res: Response) {
 			}
 		})
 
+		// Sort by tvl if sortByTvl is provided
+		if (sortByTvl && withTvl) {
+			stakers.sort((a, b) => {
+				if (a.tvl === undefined || b.tvl === undefined) return 0
+				return sortByTvl === 'desc' ? b.tvl.tvl - a.tvl.tvl : a.tvl.tvl - b.tvl.tvl
+			})
+		}
+
 		res.send({
 			data: stakers,
 			meta: {
@@ -342,7 +358,7 @@ export async function getAVSOperators(req: Request, res: Response) {
 
 	try {
 		const { address } = req.params
-		const { skip, take, withTvl } = queryCheck.data
+		const { skip, take, withTvl, sortByTvl } = queryCheck.data
 
 		const avs = await prisma.avs.findUniqueOrThrow({
 			where: { address: address.toLowerCase(), ...getAvsFilterQuery() },
@@ -397,6 +413,14 @@ export async function getAVSOperators(req: Request, res: Response) {
 				stakers: undefined
 			}
 		})
+
+		// Sort by tvl if sortByTvl is provided
+		if (sortByTvl && withTvl) {
+			data.sort((a, b) => {
+				if (a.tvl === undefined || b.tvl === undefined) return 0
+				return sortByTvl === 'desc' ? b.tvl.tvl - a.tvl.tvl : a.tvl.tvl - b.tvl.tvl
+			})
+		}
 
 		res.send({
 			data,

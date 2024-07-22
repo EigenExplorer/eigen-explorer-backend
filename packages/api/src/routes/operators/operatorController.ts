@@ -24,7 +24,7 @@ export async function getAllOperators(req: Request, res: Response) {
 	if (!result.success) {
 		return handleAndReturnErrorResponse(req, res, result.error)
 	}
-	const { skip, take, withTvl } = result.data
+	const { skip, take, withTvl, sortByTvl } = result.data
 
 	try {
 		// Fetch count and record
@@ -59,6 +59,14 @@ export async function getAllOperators(req: Request, res: Response) {
 			metadataUrl: undefined,
 			isMetadataSynced: undefined
 		}))
+
+		// Sort by tvl if sortByTvl is provided
+		if (sortByTvl && withTvl) {
+			operators.sort((a, b) => {
+				if (a.tvl === undefined || b.tvl === undefined) return 0
+				return sortByTvl === 'desc' ? b.tvl.tvl - a.tvl.tvl : a.tvl.tvl - b.tvl.tvl
+			})
+		}
 
 		res.send({
 			data: operators,
