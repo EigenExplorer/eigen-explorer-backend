@@ -10,8 +10,6 @@ export async function seedValidators() {
 	const startAt = await getLastUpdate()
 	const endAt = new Date()
 
-	console.time('Done in')
-
 	// Bail early if there is no time diff to sync
 	if (startAt) {
 		if (endAt.getTime() - startAt.getTime() <= 0) {
@@ -96,12 +94,14 @@ export async function seedValidators() {
 				dbTransactions,
 				`[Data] Validators updated: ${validatorList.length}`
 			)
+		} else {
+			console.log(
+				`[In Sync] [Data] Validators from: ${startAt?.getTime()} to: ${endAt.getTime()}`
+			)
 		}
 	} catch (error) {
 		console.log('Error seeding Validators: ', error)
 	}
-
-	console.timeEnd('Done in')
 }
 
 async function fetchValidators(podAddressList: string[], startAt: Date | null) {
