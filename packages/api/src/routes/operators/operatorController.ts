@@ -64,7 +64,9 @@ export async function getAllOperators(req: Request, res: Response) {
 		if (sortByTvl && withTvl) {
 			operators.sort((a, b) => {
 				if (a.tvl === undefined || b.tvl === undefined) return 0
-				return sortByTvl === 'desc' ? b.tvl.tvl - a.tvl.tvl : a.tvl.tvl - b.tvl.tvl
+				return sortByTvl === 'desc'
+					? b.tvl.tvl - a.tvl.tvl
+					: a.tvl.tvl - b.tvl.tvl
 			})
 		}
 
@@ -98,7 +100,7 @@ export async function getOperator(req: Request, res: Response) {
 	try {
 		const { address } = req.params
 
-		const operator  = await prisma.operator.findUniqueOrThrow({
+		const operator = await prisma.operator.findUniqueOrThrow({
 			where: { address: address.toLowerCase() },
 			include: {
 				shares: {
@@ -112,7 +114,6 @@ export async function getOperator(req: Request, res: Response) {
 		const strategiesWithSharesUnderlying = withTvl
 			? await getStrategiesWithShareUnderlying()
 			: []
-
 
 		res.send({
 			...operator,
@@ -134,11 +135,11 @@ export async function getOperator(req: Request, res: Response) {
 }
 
 /**
-  * Protected route to invalidate the metadata of a given address
-  *
-  * @param req
-  * @param res
-  */
+ * Protected route to invalidate the metadata of a given address
+ *
+ * @param req
+ * @param res
+ */
 export async function invalidateMetadata(req: Request, res: Response) {
 	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
 	if (!paramCheck.success) {

@@ -30,7 +30,8 @@ export async function getAllAVS(req: Request, res: Response) {
 	}
 
 	try {
-		const { skip, take, withTvl, withCuratedMetadata, sortByTvl } = queryCheck.data
+		const { skip, take, withTvl, withCuratedMetadata, sortByTvl } =
+			queryCheck.data
 
 		// Fetch count and record
 		const avsCount = await prisma.avs.count({ where: getAvsFilterQuery(true) })
@@ -102,7 +103,9 @@ export async function getAllAVS(req: Request, res: Response) {
 		if (sortByTvl && withTvl) {
 			data.sort((a, b) => {
 				if (a.tvl === undefined || b.tvl === undefined) return 0
-				return sortByTvl === 'desc' ? b.tvl.tvl - a.tvl.tvl : a.tvl.tvl - b.tvl.tvl
+				return sortByTvl === 'desc'
+					? b.tvl.tvl - a.tvl.tvl
+					: a.tvl.tvl - b.tvl.tvl
 			})
 		}
 
@@ -318,7 +321,9 @@ export async function getAVSStakers(req: Request, res: Response) {
 		if (sortByTvl && withTvl) {
 			stakers.sort((a, b) => {
 				if (a.tvl === undefined || b.tvl === undefined) return 0
-				return sortByTvl === 'desc' ? b.tvl.tvl - a.tvl.tvl : a.tvl.tvl - b.tvl.tvl
+				return sortByTvl === 'desc'
+					? b.tvl.tvl - a.tvl.tvl
+					: a.tvl.tvl - b.tvl.tvl
 			})
 		}
 
@@ -418,7 +423,9 @@ export async function getAVSOperators(req: Request, res: Response) {
 		if (sortByTvl && withTvl) {
 			data.sort((a, b) => {
 				if (a.tvl === undefined || b.tvl === undefined) return 0
-				return sortByTvl === 'desc' ? b.tvl.tvl - a.tvl.tvl : a.tvl.tvl - b.tvl.tvl
+				return sortByTvl === 'desc'
+					? b.tvl.tvl - a.tvl.tvl
+					: a.tvl.tvl - b.tvl.tvl
 			})
 		}
 

@@ -59,7 +59,9 @@ export async function getAllStakers(req: Request, res: Response) {
 		if (sortByTvl && withTvl) {
 			stakers.sort((a, b) => {
 				if (a.tvl === undefined || b.tvl === undefined) return 0
-				return sortByTvl === 'desc' ? b.tvl.tvl - a.tvl.tvl : a.tvl.tvl - b.tvl.tvl
+				return sortByTvl === 'desc'
+					? b.tvl.tvl - a.tvl.tvl
+					: a.tvl.tvl - b.tvl.tvl
 			})
 		}
 
@@ -213,7 +215,7 @@ export async function getStakerWithdrawalsQueued(req: Request, res: Response) {
 			return {
 				...withdrawal,
 				shares,
-				strategies: undefined,
+				strategies: undefined
 			}
 		})
 
@@ -278,7 +280,7 @@ export async function getStakerWithdrawalsWithdrawable(
 			return {
 				...withdrawal,
 				shares,
-				strategies: undefined,
+				strategies: undefined
 			}
 		})
 
@@ -386,7 +388,7 @@ export async function getStakerDeposits(req: Request, res: Response) {
 
 		const data = depositRecords.map((deposit) => {
 			return {
-				...deposit,
+				...deposit
 			}
 		})
 
