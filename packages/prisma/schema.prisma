@@ -176,6 +176,7 @@ model ValidatorRestake {
 
 model Validator {
   validatorIndex BigInt @id
+  pubkey         String
   status         String
 
   balance               BigInt
@@ -184,6 +185,7 @@ model Validator {
   withdrawalCredentials String
   activationEpoch       BigInt
   exitEpoch             BigInt
+  updatedAt             DateTime
 }
 
 model WithdrawalQueued {
