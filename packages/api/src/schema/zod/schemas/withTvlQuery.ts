@@ -10,7 +10,7 @@ export const WithTvlQuerySchema = z.object({
 	sortByTvl: z
 	.enum(['asc', 'desc'])
 	.optional()
-	.describe('Toggle whether the route should calculate the TVL from shares')
+	.describe('Sort results in asc or desc order of TVL value')
 	.openapi({ example: 'desc' })
 }).refine(
 	(data) => {
