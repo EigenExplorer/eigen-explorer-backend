@@ -32,13 +32,14 @@ export async function getAllAVS(req: Request, res: Response) {
 	try {
 		const { skip, take, withTvl, withCuratedMetadata, sortByTvl } =
 			queryCheck.data
-
-		// Fetch count and record
+		a
+		// Fetch count
 		const avsCount = await prisma.avs.count({ where: getAvsFilterQuery(true) })
+
+		// Fetch all records if sorting by TVL, otherwise use pagination
 		const avsRecords = await prisma.avs.findMany({
 			where: getAvsFilterQuery(true),
-			skip,
-			take,
+			...(sortByTvl ? {} : { skip, take }),
 			include: {
 				curatedMetadata: withCuratedMetadata,
 				operators: {
@@ -59,7 +60,7 @@ export async function getAllAVS(req: Request, res: Response) {
 			? await getStrategiesWithShareUnderlying()
 			: []
 
-		const data = await Promise.all(
+		let data = await Promise.all(
 			avsRecords.map(async (avs) => {
 				const totalOperators = avs.operators.length
 				const totalStakers = await prisma.staker.count({
@@ -99,14 +100,16 @@ export async function getAllAVS(req: Request, res: Response) {
 			})
 		)
 
-		// Sort by tvl if sortByTvl is provided
-		if (sortByTvl && withTvl) {
+		// Sort by tvl & apply skip/take if sortByTvl is provided
+		if (sortByTvl) {
 			data.sort((a, b) => {
 				if (a.tvl === undefined || b.tvl === undefined) return 0
 				return sortByTvl === 'desc'
 					? b.tvl.tvl - a.tvl.tvl
 					: a.tvl.tvl - b.tvl.tvl
 			})
+
+			data = data.slice(skip, skip + take)
 		}
 
 		res.send({
@@ -289,8 +292,7 @@ export async function getAVSStakers(req: Request, res: Response) {
 
 		const stakersRecords = await prisma.staker.findMany({
 			where: { operatorAddress: { in: operatorAddresses } },
-			skip,
-			take,
+			...(sortByTvl ? {} : { skip, take }),
 			include: { shares: true }
 		})
 
@@ -299,7 +301,7 @@ export async function getAVSStakers(req: Request, res: Response) {
 			? await getStrategiesWithShareUnderlying()
 			: []
 
-		const stakers = stakersRecords.map((staker) => {
+		let stakers = stakersRecords.map((staker) => {
 			const shares = staker.shares.filter(
 				(s) => avs.restakeableStrategies.indexOf(s.strategyAddress) !== -1
 			)
@@ -317,7 +319,7 @@ export async function getAVSStakers(req: Request, res: Response) {
 			}
 		})
 
-		// Sort by tvl if sortByTvl is provided
+		// Sort by tvl & apply skip/take if sortByTvl is provided
 		if (sortByTvl && withTvl) {
 			stakers.sort((a, b) => {
 				if (a.tvl === undefined || b.tvl === undefined) return 0
@@ -325,6 +327,8 @@ export async function getAVSStakers(req: Request, res: Response) {
 					? b.tvl.tvl - a.tvl.tvl
 					: a.tvl.tvl - b.tvl.tvl
 			})
+
+			stakers = stakers.slice(skip, skip + take)
 		}
 
 		res.send({
@@ -378,8 +382,7 @@ export async function getAVSOperators(req: Request, res: Response) {
 			where: {
 				address: { in: avs.operators.map((o) => o.operatorAddress) }
 			},
-			skip,
-			take,
+			...(sortByTvl ? {} : { skip, take }),
 			include: {
 				shares: {
 					select: { strategyAddress: true, shares: true }
@@ -393,7 +396,7 @@ export async function getAVSOperators(req: Request, res: Response) {
 			? await getStrategiesWithShareUnderlying()
 			: []
 
-		const data = operatorsRecords.map((operator) => {
+		let data = operatorsRecords.map((operator) => {
 			const avsOperator = avs.operators.find(
 				(o) =>
 					o.operatorAddress.toLowerCase() === operator.address.toLowerCase()
@@ -419,7 +422,7 @@ export async function getAVSOperators(req: Request, res: Response) {
 			}
 		})
 
-		// Sort by tvl if sortByTvl is provided
+		// Sort by tvl & apply skip/take if sortByTvl is provided
 		if (sortByTvl && withTvl) {
 			data.sort((a, b) => {
 				if (a.tvl === undefined || b.tvl === undefined) return 0
@@ -427,6 +430,8 @@ export async function getAVSOperators(req: Request, res: Response) {
 					? b.tvl.tvl - a.tvl.tvl
 					: a.tvl.tvl - b.tvl.tvl
 			})
+
+			data = data.slice(skip, skip + take)
 		}
 
 		res.send({

@@ -27,11 +27,12 @@ export async function getAllStakers(req: Request, res: Response) {
 	const { skip, take, withTvl, sortByTvl } = result.data
 
 	try {
-		// Fetch count and record
+		// Fetch count
 		const stakersCount = await prisma.staker.count()
+
+		// Fetch all records if sorting by TVL, otherwise use pagination
 		const stakersRecords = await prisma.staker.findMany({
-			skip,
-			take,
+			...(sortByTvl ? {} : { skip, take }),
 			include: {
 				shares: {
 					select: { strategyAddress: true, shares: true }
@@ -44,7 +45,7 @@ export async function getAllStakers(req: Request, res: Response) {
 			? await getStrategiesWithShareUnderlying()
 			: []
 
-		const stakers = stakersRecords.map((staker) => ({
+		let stakers = stakersRecords.map((staker) => ({
 			...staker,
 			tvl: withTvl
 				? sharesToTVL(
@@ -55,7 +56,7 @@ export async function getAllStakers(req: Request, res: Response) {
 				: undefined
 		}))
 
-		// Sort by tvl if sortByTvl is provided
+		// Sort by tvl & apply skip/take if sortByTvl is provided
 		if (sortByTvl && withTvl) {
 			stakers.sort((a, b) => {
 				if (a.tvl === undefined || b.tvl === undefined) return 0
@@ -63,6 +64,8 @@ export async function getAllStakers(req: Request, res: Response) {
 					? b.tvl.tvl - a.tvl.tvl
 					: a.tvl.tvl - b.tvl.tvl
 			})
+
+			stakers = stakers.slice(skip, skip + take)
 		}
 
 		res.send({
