@@ -1,19 +1,8 @@
-/*
-  Warnings:
-
-  - Added the required column `activationEpoch` to the `Validator` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `exitEpoch` to the `Validator` table without a default value. This is not possible if the table is not empty.
-
-*/
 -- AlterTable
 ALTER TABLE "AvsOperator" ADD COLUMN     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 ADD COLUMN     "createdAtBlock" BIGINT NOT NULL DEFAULT 0,
 ADD COLUMN     "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 ADD COLUMN     "updatedAtBlock" BIGINT NOT NULL DEFAULT 0;
-
--- AlterTable
-ALTER TABLE "Validator" ADD COLUMN     "activationEpoch" BIGINT NOT NULL,
-ADD COLUMN     "exitEpoch" BIGINT NOT NULL;
 
 -- CreateTable
 CREATE TABLE "MetricAvsHourly" (
