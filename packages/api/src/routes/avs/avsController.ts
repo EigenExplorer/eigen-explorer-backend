@@ -32,7 +32,7 @@ export async function getAllAVS(req: Request, res: Response) {
 	try {
 		const { skip, take, withTvl, withCuratedMetadata, sortByTvl } =
 			queryCheck.data
-		a
+
 		// Fetch count
 		const avsCount = await prisma.avs.count({ where: getAvsFilterQuery(true) })
 
