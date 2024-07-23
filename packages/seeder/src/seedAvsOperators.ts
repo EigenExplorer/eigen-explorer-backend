@@ -10,9 +10,20 @@ import {
 const blockSyncKey = 'lastSyncedBlock_avsOperators'
 const blockSyncKeyLogs = 'lastSyncedBlock_logs_avsOperators'
 
+type AvsOperatorRecord = {
+	status: number
+	createdAtBlock: bigint
+	updatedAtBlock: bigint
+	createdAt: Date
+	updatedAt: Date
+}
+
 export async function seedAvsOperators(toBlock?: bigint, fromBlock?: bigint) {
 	const prismaClient = getPrismaClient()
-	const avsOperatorsList: Map<string, Map<string, number>> = new Map()
+	const avsOperatorsList: Map<
+		string,
+		Map<string, AvsOperatorRecord>
+	> = new Map()
 
 	const firstBlock = fromBlock
 		? fromBlock
@@ -59,9 +70,34 @@ export async function seedAvsOperators(toBlock?: bigint, fromBlock?: bigint) {
 				const operatorAddress = String(log.operator).toLowerCase()
 
 				if (avsOperatorsList.has(avsAddress)) {
-					avsOperatorsList
-						.get(avsAddress)
-						?.set(operatorAddress, log.status || 0)
+					const operatorMap = avsOperatorsList.get(avsAddress)
+
+					if (operatorMap?.has(operatorAddress)) {
+						const existingRecord = operatorMap.get(operatorAddress)
+
+						if (existingRecord) {
+							// AvsOperator has been registered before in this fetch
+							const updatedRecord: AvsOperatorRecord = {
+								status: log.status || 0,
+								createdAtBlock: existingRecord.createdAtBlock,
+								updatedAtBlock: log.blockNumber,
+								createdAt: existingRecord.createdAt,
+								updatedAt: log.blockTime
+							}
+							operatorMap.set(operatorAddress, updatedRecord)
+						}
+					} else {
+						// AvsOperator being registered for the first time in this fetch
+						// createdAt & createdAtBlock will be omitted in upsert if avs<>operator already exists in db
+						const newRecord: AvsOperatorRecord = {
+							status: log.status || 0,
+							createdAtBlock: log.blockNumber,
+							updatedAtBlock: log.blockNumber,
+							createdAt: log.blockTime,
+							updatedAt: log.blockTime
+						}
+						operatorMap?.set(operatorAddress, newRecord)
+					}
 				}
 			}
 		},
@@ -79,14 +115,22 @@ export async function seedAvsOperators(toBlock?: bigint, fromBlock?: bigint) {
 			avsAddress: string
 			operatorAddress: string
 			isActive: boolean
+			createdAtBlock: bigint
+			updatedAtBlock: bigint
+			createdAt: Date
+			updatedAt: Date
 		}[] = []
 
 		for (const [avsAddress, operatorsMap] of avsOperatorsList) {
-			for (const [operatorAddress, status] of operatorsMap) {
+			for (const [operatorAddress, record] of operatorsMap) {
 				newAvsOperator.push({
 					operatorAddress,
 					avsAddress,
-					isActive: status === 1
+					isActive: record.status === 1,
+					createdAtBlock: record.createdAtBlock,
+					updatedAtBlock: record.updatedAtBlock,
+					createdAt: record.createdAt,
+					updatedAt: record.updatedAt
 				})
 			}
 		}
@@ -99,7 +143,7 @@ export async function seedAvsOperators(toBlock?: bigint, fromBlock?: bigint) {
 		)
 	} else {
 		for (const [avsAddress, operatorsMap] of avsOperatorsList) {
-			for (const [operatorAddress, status] of operatorsMap) {
+			for (const [operatorAddress, record] of operatorsMap) {
 				dbTransactions.push(
 					prismaClient.avsOperator.upsert({
 						where: {
@@ -108,10 +152,16 @@ export async function seedAvsOperators(toBlock?: bigint, fromBlock?: bigint) {
 						create: {
 							operatorAddress,
 							avsAddress,
-							isActive: status === 1
+							isActive: record.status === 1,
+							createdAtBlock: record.createdAtBlock,
+							updatedAtBlock: record.updatedAtBlock,
+							createdAt: record.createdAt,
+							updatedAt: record.updatedAt
 						},
 						update: {
-							isActive: status === 1
+							isActive: record.status === 1,
+							updatedAtBlock: record.updatedAtBlock,
+							updatedAt: record.updatedAt
 						}
 					})
 				)

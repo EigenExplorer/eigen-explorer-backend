@@ -57,7 +57,7 @@ export async function seedValidators() {
 					})
 				)
 			} else {
-				const validatorIndexs = validatorList.map((v) => v.validatorIndex)				
+				const validatorIndexs = validatorList.map((v) => v.validatorIndex)
 				dbTransactions.push(
 					prismaClient.validator.deleteMany({
 						where: { validatorIndex: { in: validatorIndexs } }

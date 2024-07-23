@@ -62,6 +62,11 @@ model AvsOperator {
   isActive           Boolean
   restakedStrategies String[]
 
+  createdAtBlock BigInt   @default(0)
+  updatedAtBlock BigInt   @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now())
+
   @@id([avsAddress, operatorAddress])
   @@index([avsAddress])
 }
@@ -184,7 +189,7 @@ model Validator {
 }
 
 model WithdrawalQueued {
-  withdrawalRoot String  @id @unique
+  withdrawalRoot String @id @unique
   nonce          Int
 
   stakerAddress     String
@@ -200,13 +205,13 @@ model WithdrawalQueued {
 }
 
 model WithdrawalCompleted {
-  withdrawalRoot    String  @id @unique
-  receiveAsTokens   Boolean @default(false)
+  withdrawalRoot  String  @id @unique
+  receiveAsTokens Boolean @default(false)
 
   createdAtBlock BigInt   @default(0)
   createdAt      DateTime @default(now())
 
-  queuedWithdrawal WithdrawalQueued  @relation(fields: [withdrawalRoot], references: [withdrawalRoot])
+  queuedWithdrawal WithdrawalQueued @relation(fields: [withdrawalRoot], references: [withdrawalRoot])
 }
 
 // Collection to store system settings
@@ -215,6 +220,72 @@ model Settings {
   value     Json     @db.Json
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// Metric routes
+
+model MetricAvsHourly {
+  id         Int    @id @default(autoincrement())
+  avsAddress String
+
+  tvlEth          Decimal @db.Decimal(20, 8)
+  totalOperators  Int
+  totalStakers    Int
+  changeTvlEth    Decimal @db.Decimal(20, 8)
+  changeOperators Int
+  changeStakers   Int
+
+  timestamp DateTime
+
+  @@unique([avsAddress, timestamp])
+  @@index([avsAddress])
+  @@index([timestamp])
+}
+
+model MetricOperatorHourly {
+  id              Int    @id @default(autoincrement())
+  operatorAddress String
+
+  tvlEth        Decimal @db.Decimal(20, 8)
+  totalStakers  Int
+  changeTvlEth  Decimal @db.Decimal(20, 8)
+  changeStakers Int
+
+  timestamp DateTime
+
+  @@unique([operatorAddress, timestamp])
+  @@index([operatorAddress])
+  @@index([timestamp])
+}
+
+model MetricStrategyHourly {
+  id Int @id @default(autoincrement())
+
+  strategyAddress String
+
+  tvl          Decimal @db.Decimal(20, 8)
+  tvlEth       Decimal @db.Decimal(20, 8)
+  changeTvl    Decimal @db.Decimal(20, 8)
+  changeTvlEth Decimal @db.Decimal(20, 8)
+
+  timestamp DateTime
+
+  @@unique([strategyAddress, timestamp])
+  @@index([timestamp])
+}
+
+model MetricEigenPodsHourly {
+  id Int @id @default(autoincrement())
+
+  tvlEth       Decimal @db.Decimal(20, 8)
+  changeTvlEth Decimal @db.Decimal(20, 8)
+  totalPods    Int
+  changePods   Int
+
+  timestamp DateTime
+
+  @@unique([timestamp])
+  @@index([timestamp])
 }
 
 // RAW Event Logs
@@ -460,6 +531,16 @@ model MetricWithdrawalHourly {
   @@index([timestamp])
 }
 
+model EthPricesDaily {
+  id Int @id @default(autoincrement())
+
+  symbol    String
+  ethPrice  Decimal @db.Decimal(20, 8)
+  timestamp DateTime
+
+  @@index([timestamp])
+}
+
 // Misc
 
 model Evm_BlockData {
@@ -472,7 +553,7 @@ model Evm_BlockData {
 view viewHourlyDepositData {
   strategyAddress  String
   totalDeposits Int
-  totalShares      BigInt
+  totalShares      Decimal      @db.Decimal(36, 0)
   timestamp        DateTime
 
   @@unique([strategyAddress, timestamp])
@@ -481,7 +562,7 @@ view viewHourlyDepositData {
 view viewHourlyWithdrawalData {
   strategyAddress  String
   totalWithdrawals Int
-  totalShares      BigInt
+  totalShares      Decimal      @db.Decimal(36, 0)
   timestamp        DateTime
 
   @@unique([strategyAddress, timestamp])

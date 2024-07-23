@@ -12,12 +12,6 @@ export const baseBlock =
 		? 1159609n
 		: 17000000n
 
-// Base time
-export const baseTime =
-	process.env.NETWORK && process.env.NETWORK === 'holesky'
-		? 1710684720000
-		: 1680911891000
-
 export async function loopThroughBlocks(
 	firstBlock: bigint,
 	lastBlock: bigint,
@@ -38,6 +32,41 @@ export async function loopThroughBlocks(
 	}
 
 	return lastBlock
+}
+
+export async function loopThroughDates(
+	startDate: Date,
+	endDate: Date,
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+	cb: (from: Date, to: Date) => Promise<any>,
+	frequency: 'hourly' | 'daily' = 'hourly'
+) {
+	const setToStartOfHour = (date: Date): Date => {
+		const hourlyDate = new Date(date)
+		hourlyDate.setMinutes(0, 0, 0)
+		return hourlyDate
+	}
+
+	let currentDate = setToStartOfHour(startDate)
+	const adjustedEndDate = setToStartOfHour(endDate)
+
+	const incrementDate = (date: Date): Date => {
+		const nextDate = new Date(date)
+		if (frequency === 'hourly') {
+			nextDate.setHours(nextDate.getHours() + 1)
+		} else if (frequency === 'daily') {
+			nextDate.setDate(nextDate.getDate() + 1)
+		}
+		return nextDate
+	}
+
+	while (currentDate <= adjustedEndDate) {
+		const nextDate = incrementDate(currentDate)
+		if (nextDate <= adjustedEndDate) {
+			await cb(new Date(currentDate), new Date(nextDate))
+		}
+		currentDate = nextDate
+	}
 }
 
 export async function bulkUpdateDbTransactions(
@@ -72,16 +101,16 @@ export async function fetchLastSyncBlock(key: string): Promise<bigint> {
 		: baseBlock
 }
 
-export async function fetchLastSyncTime(key: string): Promise<number> {
+export async function fetchLastSyncTime(key: string): Promise<Date | null> {
 	const prismaClient = getPrismaClient()
 
 	const lastSyncedTimeData = await prismaClient.settings.findUnique({
 		where: { key }
 	})
 
-	return lastSyncedTimeData?.value
-		? lastSyncedTimeData.value as number
-		: baseTime
+	return lastSyncedTimeData
+		? new Date(lastSyncedTimeData.value as number)
+		: null
 }
 
 export async function saveLastSyncBlock(key: string, blockNumber: bigint) {
