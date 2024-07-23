@@ -26,10 +26,11 @@ import { monitorAvsMetadata } from './monitors/avsMetadata'
 import { monitorOperatorMetadata } from './monitors/operatorMetadata'
 import { seedMetricsDepositHourly } from './metrics/seedMetricsDeposit'
 import { seedMetricsWithdrawalHourly } from './metrics/seedMetricsWithdrawal'
-import { seedMetricsOperatorHourly } from './metrics/seedMetricsOperator'
+import { seedMetricsRestakingHourly } from './metrics/seedMetricsRestaking'
 import { seedStrategies } from './seedStrategies'
 import { seedRestakedStrategies } from './seedAvsRestakedStrategies'
 import { seedEthPricesDaily } from './seedEthPricesDaily'
+import { seedMetricsEigenPodsHourly } from './metrics/seedMetricsEigenPods'
 
 console.log('Initializing Seeder ...')
 
@@ -136,7 +137,8 @@ async function seedMetricsData() {
 
 			await seedMetricsDepositHourly()
 			await seedMetricsWithdrawalHourly()
-			await seedMetricsOperatorHourly()
+			await seedMetricsRestakingHourly()
+			await seedMetricsEigenPodsHourly()
 		} catch (error) {
 			console.log(error)
 			console.log('Failed to seed metrics data at:', Date.now())

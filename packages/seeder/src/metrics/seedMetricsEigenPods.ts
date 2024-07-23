@@ -39,6 +39,8 @@ export async function seedMetricsEigenPodsHourly() {
 	// Get the last known metrics for eigen pods
 	const lastEigenPodsMetric = await getLatestMetrics()
 
+	console.log('[Prep] Metric EigenPods ...')
+
 	const hourlyMetrics = await processLogsInBatches(
 		startDate,
 		endDate,
@@ -60,7 +62,7 @@ export async function seedMetricsEigenPodsHourly() {
 
 	await bulkUpdateDbTransactions(
 		dbTransactions,
-		`[Data] EigenPods metric from: ${startDate.getTime()} to: ${endDate.getTime()} size: ${
+		`[Data] Metric EigenPods from: ${startDate.toISOString()} to: ${endDate.toISOString()} size: ${
 			hourlyMetrics.length
 		}`
 	)
@@ -73,10 +75,14 @@ async function processLogsInBatches(
 ) {
 	let lastMetric = lastEigenPodsMetric
 	let hourlyMetrics: LastMetricEigenPodsHourly[] = []
-	let currentDate = new Date(startDate)
 
-	while (currentDate < endDate) {
-		// Increment the batch end date to 1d + BATCH_DAYS
+	for (
+		let currentDate = new Date(startDate);
+		currentDate < endDate;
+		currentDate = new Date(
+			currentDate.getTime() + 24 * 60 * 60 * 1000 * BATCH_DAYS
+		)
+	) {
 		const batchEndDate = new Date(
 			Math.min(
 				currentDate.getTime() + 24 * 60 * 60 * 1000 * BATCH_DAYS,
@@ -85,8 +91,6 @@ async function processLogsInBatches(
 		)
 
 		const batchLogs = await fetchOrderedLogs(currentDate, batchEndDate)
-
-		console.log('Log batch', currentDate, batchEndDate, batchLogs.length)
 
 		await loopThroughDates(
 			currentDate,
@@ -105,7 +109,11 @@ async function processLogsInBatches(
 			'hourly'
 		)
 
-		currentDate = batchEndDate
+		console.log(
+			`[Batch] Metric EigenPods from: ${currentDate.toISOString()} to: ${batchEndDate.toISOString()} count: ${
+				hourlyMetrics.length
+			}`
+		)
 	}
 
 	return hourlyMetrics
@@ -125,8 +133,6 @@ async function hourlyLoopTick(
 	const hourlyLogs = orderedLogs.filter(
 		(ol) => ol.blockTime > fromHour && ol.blockTime <= toHour
 	)
-
-	console.log('Log hourly tick', fromHour, toHour, orderedLogs.length)
 
 	let tvlEth = 0
 	let totalPods = 0
@@ -160,13 +166,6 @@ async function hourlyLoopTick(
 		])
 
 		const changeTvlEth = (newValidators - exitedValidators) * 32
-
-		console.log(
-			'Validators count new/exited',
-			newValidators,
-			exitedValidators,
-			toHour
-		)
 
 		return [
 			{

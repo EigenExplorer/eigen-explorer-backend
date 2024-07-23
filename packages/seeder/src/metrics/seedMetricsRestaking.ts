@@ -8,20 +8,14 @@ import {
 	loopThroughDates
 } from '../utils/seeder'
 
-const blockSyncKey = 'lastSyncedTimestamp_metrics_operatorHourly'
+const blockSyncKey = 'lastSyncedTimestamp_metrics_restakingHourly'
 const BATCH_DAYS = 30
 
 // Define the type for our log entries
 type ILastOperatorMetric = Omit<prisma.MetricOperatorHourly, 'id'>
 type ILastStrategyMetric = Omit<prisma.MetricStrategyHourly, 'id'>
-type ILastOperatorMetrics = IMap<
-	string,
-	Omit<prisma.MetricOperatorHourly, 'id'>
->
-type ILastStrategyMetrics = IMap<
-	string,
-	Omit<prisma.MetricStrategyHourly, 'id'>
->
+type ILastOperatorMetrics = IMap<string, ILastOperatorMetric>
+type ILastStrategyMetrics = IMap<string, ILastStrategyMetric>
 type LogEntry = {
 	blockTime: Date
 	blockNumber: bigint
@@ -33,7 +27,7 @@ type LogEntry = {
 	shares: string
 }
 
-export async function seedMetricsOperatorHourly() {
+export async function seedMetricsRestakingHourly() {
 	const prismaClient = getPrismaClient()
 
 	// Define start date
@@ -64,6 +58,8 @@ export async function seedMetricsOperatorHourly() {
 		getLatestMetricsPerOperator(),
 		getLatestMetricsPerStrategy()
 	])
+
+	console.log('[Prep] Metric Restaking ...')
 
 	// Process logs in batches
 	const [hourlyOperatorMetrics, hourlyStrategyMetrics] =
@@ -98,7 +94,7 @@ export async function seedMetricsOperatorHourly() {
 
 	await bulkUpdateDbTransactions(
 		dbTransactions,
-		`[Metrics] Metric Operator & Strategy from: ${startDate.getTime()} to: ${endDate.getTime()} size: ${
+		`[Metrics] Metric Restaking from: ${startDate.toISOString()} to: ${endDate.toISOString()} size: ${
 			hourlyOperatorMetrics.length
 		} ${hourlyStrategyMetrics.length}`
 	)
@@ -148,9 +144,8 @@ async function processLogsInBatches(
 				endDate.getTime()
 			)
 		)
-		const batchLogs = await fetchOrderedLogs(currentDate, batchEndDate)
 
-		console.log('Log batch', currentDate, batchEndDate, batchLogs.length)
+		const batchLogs = await fetchOrderedLogs(currentDate, batchEndDate)
 
 		await loopThroughDates(
 			currentDate,
@@ -172,6 +167,12 @@ async function processLogsInBatches(
 				hourlyStrategyMetrics.push(...hourlyStrategyTvlRecords)
 			},
 			'hourly'
+		)
+
+		console.log(
+			`[Batch] Metric Restaking from: ${currentDate.toISOString()} to: ${batchEndDate.toISOString()} count: ${
+				hourlyOperatorMetrics.length + hourlyStrategyMetrics.length
+			}`
 		)
 	}
 
@@ -261,6 +262,7 @@ async function hourlyLoopTick(
 	const operatorTvlRecords: ILastOperatorMetric[] = []
 
 	for (const strategyAddress of strategyAddresses) {
+		// Fetch last known metric
 		const lastMetric = lastStrategyMetrics.get(strategyAddress) || {
 			strategyAddress,
 			tvl: new prisma.Prisma.Decimal(0),
@@ -272,31 +274,34 @@ async function hourlyLoopTick(
 
 		const shares = strategyShares.get(strategyAddress) || 0n
 		const sharesToUnderlying = sharesToUnderlyingMap.get(strategyAddress)
+		if (!sharesToUnderlying) continue
 
-		if (sharesToUnderlying) {
-			const symbol = strategyToSymbolMap.get(strategyAddress)?.toLowerCase()
-			const ethPrice = getLatestEthPrice(ethPriceData, symbol, toHour) || 1
+		const symbol = strategyToSymbolMap.get(strategyAddress)?.toLowerCase()
+		const ethPrice = getLatestEthPrice(ethPriceData, symbol, toHour) || 1
 
-			const changeTvl = Number(shares * sharesToUnderlying) / 1e36
-			const changeTvlEth = changeTvl * ethPrice
+		const changeTvl = Number(shares * sharesToUnderlying) / 1e36
+		const changeTvlEth = changeTvl * ethPrice
 
-			const newMetric = {
-				...lastMetric,
-				tvl: new prisma.Prisma.Decimal(Number(lastMetric.tvl) + changeTvl),
-				tvlEth: new prisma.Prisma.Decimal(
-					Number(lastMetric.tvlEth) + changeTvlEth
-				),
-				changeTvl: new prisma.Prisma.Decimal(changeTvl),
-				changeTvlEth: new prisma.Prisma.Decimal(changeTvlEth),
-				timestamp: toHour
-			}
-
-			lastStrategyMetrics.set(strategyAddress, newMetric)
-			strategyTvlRecords.push(newMetric)
+		const newMetric = {
+			...lastMetric,
+			tvl: new prisma.Prisma.Decimal(Number(lastMetric.tvl) + changeTvl),
+			tvlEth: new prisma.Prisma.Decimal(
+				Number(lastMetric.tvlEth) + changeTvlEth
+			),
+			changeTvl: new prisma.Prisma.Decimal(changeTvl),
+			changeTvlEth: new prisma.Prisma.Decimal(changeTvlEth),
+			timestamp: toHour
 		}
+
+		lastStrategyMetrics.set(strategyAddress, newMetric)
+		strategyTvlRecords.push(newMetric)
 	}
 
 	for (const operatorAddress of operatorAddresses) {
+		let changeTvlEth = 0
+		let changeStakers = 0
+
+		// Fetch last known metric
 		const lastMetric = lastOperatorMetrics.get(operatorAddress) || {
 			operatorAddress,
 			tvlEth: new prisma.Prisma.Decimal(0),
@@ -306,22 +311,22 @@ async function hourlyLoopTick(
 			timestamp: toHour
 		}
 
-		let changeTvlEth = 0
+		// Update TVL Change
 		const strategyMap = operatorStrategyShares.get(operatorAddress)
-		if (strategyMap) {
-			for (const [strategyAddress, shares] of strategyMap) {
-				const sharesToUnderlying = sharesToUnderlyingMap.get(strategyAddress)
-				if (sharesToUnderlying) {
-					const symbol = strategyToSymbolMap.get(strategyAddress)?.toLowerCase()
-					const ethPrice = getLatestEthPrice(ethPriceData, symbol, toHour) || 1
+		if (!strategyMap) continue
 
-					changeTvlEth +=
-						(Number(shares * sharesToUnderlying) / 1e36) * ethPrice
-				}
+		for (const [strategyAddress, shares] of strategyMap) {
+			const sharesToUnderlying = sharesToUnderlyingMap.get(strategyAddress)
+			if (sharesToUnderlying) {
+				const symbol = strategyToSymbolMap.get(strategyAddress)?.toLowerCase()
+				const ethPrice = getLatestEthPrice(ethPriceData, symbol, toHour) || 1
+
+				changeTvlEth += (Number(shares * sharesToUnderlying) / 1e36) * ethPrice
 			}
 		}
 
-		const changeStakers = operatorStakers.get(operatorAddress) || 0
+		// Update Staker Change
+		changeStakers = operatorStakers.get(operatorAddress) || 0
 
 		const newMetric = {
 			...lastMetric,
