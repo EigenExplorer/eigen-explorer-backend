@@ -12,5 +12,5 @@ export const avsRoutes: ZodOpenApiPathsObject = {
     },
     '/avs/{address}': { get: getAvsByAddress },
     '/avs/{address}/stakers': { get: getAvsStakersByAddress },
-    '/avs/{address}/operators': { get: getAvsOperatorsByAddress },
+    '/avs/{address}/operators': { get: getAvsOperatorsByAddress }
 };
