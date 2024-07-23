@@ -8,6 +8,17 @@ import {
 import { dateToEpoch } from '../utils/beaconChain'
 
 const blockSyncKey = 'lastSyncedTimestamp_metrics_eigenPodsHourly'
+const BATCH_DAYS = 30
+
+// Define the type for our log entries
+type LastMetricEigenPodsHourly = Omit<prisma.MetricEigenPodsHourly, 'id'>
+type LogEntry = {
+	blockTime: Date
+	eigenPod: string
+	blockNumber: bigint
+	transactionIndex: number
+	type: string
+}
 
 export async function seedMetricsEigenPodsHourly() {
 	const prismaClient = getPrismaClient()
@@ -26,157 +37,149 @@ export async function seedMetricsEigenPodsHourly() {
 	}
 
 	// Get the last known metrics for eigen pods
-	let lastEigenPodsMetric = await getLatestMetrics()
+	const lastEigenPodsMetric = await getLatestMetrics()
 
-	// Check date diff
-	const frequency: 'daily' | 'hourly' = 'daily'
-
-	// Loop through a daily
-	await loopThroughDates(
+	const hourlyMetrics = await processLogsInBatches(
 		startDate,
 		endDate,
-		async (from: Date, to: Date) => {
-			const orderedLogs = await fetchOrderedLogs(from, to)
-
-			// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-			let tvlRecords: any[] = []
-
-			if (frequency === 'daily') {
-				await loopThroughDates(
-					from,
-					to,
-					async (fromHour, toHour) => {
-						const hourlyTvlRecords = await hourlyLoopTick(
-							fromHour,
-							toHour,
-							orderedLogs
-						)
-
-						tvlRecords = [...tvlRecords, ...hourlyTvlRecords]
-					},
-					'hourly'
-				)
-			} else {
-				const hourlyTvlRecords = await hourlyLoopTick(from, to, orderedLogs)
-
-				tvlRecords = [...tvlRecords, ...hourlyTvlRecords]
-			}
-
-			// Push updates
-			// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-			const dbTransactions: any[] = []
-
-			dbTransactions.push(
-				prismaClient.metricEigenPodsHourly.createMany({
-					data: tvlRecords,
-					skipDuplicates: true
-				})
-			)
-
-			dbTransactions.push(
-				prismaClient.settings.upsert({
-					where: { key: blockSyncKey },
-					update: { value: Number(to.getTime()) },
-					create: { key: blockSyncKey, value: Number(to.getTime()) }
-				})
-			)
-
-			await bulkUpdateDbTransactions(
-				dbTransactions,
-				`[Data] EigenPods metric from: ${from.getTime()} to: ${to.getTime()} size: ${
-					tvlRecords.length
-				}`
-			)
-		},
-		frequency
+		lastEigenPodsMetric
 	)
 
-	async function hourlyLoopTick(fromHour: Date, toHour: Date, orderedLogs) {
-		const prismaClient = getPrismaClient()
-		const podAddresses = new Set<string>()
-		const startEpoch = dateToEpoch(fromHour)
-		const endEpoch = dateToEpoch(toHour)
+	const dbTransactions = [
+		prismaClient.metricEigenPodsHourly.createMany({
+			data: hourlyMetrics,
+			skipDuplicates: true
+		}),
 
-		const hourlyLogs = orderedLogs.filter(
-			(ol) => ol.blockTime > fromHour && ol.blockTime <= toHour
+		prismaClient.settings.upsert({
+			where: { key: blockSyncKey },
+			update: { value: Number(endDate.getTime()) },
+			create: { key: blockSyncKey, value: Number(endDate.getTime()) }
+		})
+	]
+
+	await bulkUpdateDbTransactions(
+		dbTransactions,
+		`[Data] EigenPods metric from: ${startDate.getTime()} to: ${endDate.getTime()} size: ${
+			hourlyMetrics.length
+		}`
+	)
+}
+
+async function processLogsInBatches(
+	startDate: Date,
+	endDate: Date,
+	lastEigenPodsMetric: LastMetricEigenPodsHourly | null
+) {
+	let lastMetric = lastEigenPodsMetric
+	let hourlyMetrics: LastMetricEigenPodsHourly[] = []
+	let currentDate = new Date(startDate)
+
+	while (currentDate < endDate) {
+		// Increment the batch end date to 1d + BATCH_DAYS
+		const batchEndDate = new Date(
+			Math.min(
+				currentDate.getTime() + 24 * 60 * 60 * 1000 * BATCH_DAYS,
+				endDate.getTime()
+			)
 		)
 
-		let tvlEth = 0
-		let changeTvlEth = 0
-		let totalPods = 0
-		let changePods = 0
+		const batchLogs = await fetchOrderedLogs(currentDate, batchEndDate)
 
-		if (!lastEigenPodsMetric) {
-			lastEigenPodsMetric = {
-				tvlEth: new prisma.Prisma.Decimal(0),
-				changeTvlEth: new prisma.Prisma.Decimal(0),
-				totalPods: 0,
-				changePods: 0,
-				timestamp: toHour
-			}
-		} else {
-			tvlEth = Number(lastEigenPodsMetric.tvlEth)
-			totalPods = lastEigenPodsMetric.totalPods
-		}
+		console.log('Log batch', currentDate, batchEndDate, batchLogs.length)
 
-		for (const ol of hourlyLogs) {
-			const podAddress = ol.eigenPod.toLowerCase()
-			podAddresses.add(podAddress)
-		}
-
-		// Calculate
-		changePods = podAddresses.size
-
-		if (changePods > 0) {
-			const withdrawalCredentials: string[] = []
-
-			for (const address of podAddresses) {
-				withdrawalCredentials.push(
-					address.replace('0x', '0x010000000000000000000000')
+		await loopThroughDates(
+			currentDate,
+			batchEndDate,
+			async (fromHour, toHour) => {
+				const hourlyTvlRecords = await hourlyLoopTick(
+					fromHour,
+					toHour,
+					batchLogs,
+					lastMetric
 				)
-			}
 
-			const newValidators = await prismaClient.validator.count({
-				where: {
-					withdrawalCredentials: { in: withdrawalCredentials }
-				}
-			})
+				lastMetric = hourlyTvlRecords[hourlyTvlRecords.length - 1]
+				hourlyMetrics = [...hourlyMetrics, ...hourlyTvlRecords]
+			},
+			'hourly'
+		)
 
-			const exitedValidators = await prismaClient.validator.count({
+		currentDate = batchEndDate
+	}
+
+	return hourlyMetrics
+}
+
+async function hourlyLoopTick(
+	fromHour: Date,
+	toHour: Date,
+	orderedLogs: LogEntry[],
+	lastEigenPodsMetric: LastMetricEigenPodsHourly | null
+): Promise<LastMetricEigenPodsHourly[]> {
+	const prismaClient = getPrismaClient()
+	const podAddresses = new Set<string>()
+	const startEpoch = dateToEpoch(fromHour)
+	const endEpoch = dateToEpoch(toHour)
+
+	const hourlyLogs = orderedLogs.filter(
+		(ol) => ol.blockTime > fromHour && ol.blockTime <= toHour
+	)
+
+	console.log('Log hourly tick', fromHour, toHour, orderedLogs.length)
+
+	let tvlEth = 0
+	let totalPods = 0
+	let changePods = 0
+
+	if (lastEigenPodsMetric) {
+		tvlEth = Number(lastEigenPodsMetric.tvlEth)
+		totalPods = lastEigenPodsMetric.totalPods
+	}
+
+	for (const ol of hourlyLogs) {
+		const podAddress = ol.eigenPod.toLowerCase()
+		podAddresses.add(podAddress)
+	}
+
+	// Calculate
+	changePods = podAddresses.size
+
+	if (changePods > 0) {
+		const withdrawalCredentials = Array.from(podAddresses).map((address) =>
+			address.replace('0x', '0x010000000000000000000000')
+		)
+
+		const [newValidators, exitedValidators] = await Promise.all([
+			prismaClient.validator.count({
+				where: { withdrawalCredentials: { in: withdrawalCredentials } }
+			}),
+			prismaClient.validator.count({
 				where: { exitEpoch: { gt: startEpoch, lte: endEpoch } }
 			})
+		])
 
-			changeTvlEth = (newValidators - exitedValidators) * 32
+		const changeTvlEth = (newValidators - exitedValidators) * 32
 
-			console.log(
-				'Validators count new/exited',
-				String(newValidators),
-				String(exitedValidators),
-				new Date(toHour)
-			)
+		console.log(
+			'Validators count new/exited',
+			newValidators,
+			exitedValidators,
+			toHour
+		)
 
-			// Update
-			lastEigenPodsMetric = {
+		return [
+			{
 				timestamp: toHour,
 				tvlEth: (tvlEth + changeTvlEth) as unknown as prisma.Prisma.Decimal,
 				changeTvlEth: changeTvlEth as unknown as prisma.Prisma.Decimal,
 				totalPods: totalPods + changePods,
 				changePods
 			}
-
-			return [
-				{
-					timestamp: toHour,
-					tvlEth: tvlEth + changeTvlEth,
-					changeTvlEth,
-					totalPods: totalPods + changePods,
-					changePods
-				}
-			]
-		}
-
-		return []
+		]
 	}
+
+	return []
 }
 
 /**
@@ -210,7 +213,7 @@ async function getFirstLogTimestamp() {
  * @param to
  * @returns
  */
-async function fetchOrderedLogs(from: Date, to: Date) {
+async function fetchOrderedLogs(from: Date, to: Date): Promise<LogEntry[]> {
 	const prismaClient = getPrismaClient()
 	const query = { blockTime: { gt: from, lte: to } }
 
@@ -241,15 +244,7 @@ async function getLatestMetrics(): Promise<Omit<
 	'id'
 > | null> {
 	const prismaClient = getPrismaClient()
-
-	try {
-		const lastEigenPodsMetric =
-			await prismaClient.metricEigenPodsHourly.findFirst({
-				orderBy: { timestamp: 'desc' }
-			})
-
-		return lastEigenPodsMetric
-	} catch {}
-
-	return null
+	return prismaClient.metricEigenPodsHourly.findFirst({
+		orderBy: { timestamp: 'desc' }
+	})
 }
