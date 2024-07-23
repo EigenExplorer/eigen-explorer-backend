@@ -21,19 +21,32 @@ import { HistoricalCountSchema } from '../../schema/zod/schemas/historicalCountQ
  */
 export async function getMetrics(req: Request, res: Response) {
 	try {
-		const tvlRestaking = await doGetTvl()
-		const tvlBeaconChain = await doGetTvlBeaconChain()
+		const [tvlRestaking, tvlBeaconChain, totalAvs, totalOperators, totalStakers] = await Promise.all([
+			doGetTvl(),
+			doGetTvlBeaconChain(),
+			doGetTotalAvsCount(),
+			doGetTotalOperatorCount(),
+			doGetTotalStakerCount()
+		]);
+
+		const metrics = {
+			tvlRestaking,
+			tvlBeaconChain,
+			totalAvs,
+			totalOperators,
+			totalStakers
+		};
 
 		res.send({
-			tvl: tvlRestaking.tvlRestaking + tvlBeaconChain,
-			tvlBeaconChain: await doGetTvlBeaconChain(),
-			...tvlRestaking,
-			totalAvs: await doGetTotalAvsCount(),
-			totalOperators: await doGetTotalOperatorCount(),
-			totalStakers: await doGetTotalStakerCount()
-		})
+			tvl: (metrics.tvlRestaking ? metrics.tvlRestaking.tvlRestaking : 0) + (metrics.tvlBeaconChain ? metrics.tvlBeaconChain : 0),
+			tvlBeaconChain: metrics.tvlBeaconChain,
+			...metrics.tvlRestaking,
+			totalAvs: metrics.totalAvs,
+			totalOperators: metrics.totalOperators,
+			totalStakers: metrics.totalStakers
+		});
 	} catch (error) {
-		handleAndReturnErrorResponse(req, res, error)
+		handleAndReturnErrorResponse(req, res, error);
 	}
 }
 
