@@ -27,7 +27,11 @@ export async function getAllOperators(req: Request, res: Response) {
 	const { skip, take, withTvl, sortByTvl } = result.data
 
 	try {
+<<<<<<< HEAD
 		// Fetch count
+=======
+		// Fetch count and records
+>>>>>>> dev
 		const operatorCount = await prisma.operator.count()
 
 		// Fetch all records if sorting by TVL, otherwise use pagination
@@ -37,7 +41,12 @@ export async function getAllOperators(req: Request, res: Response) {
 				shares: {
 					select: { strategyAddress: true, shares: true }
 				},
-				stakers: true
+				_count: {
+					select: {
+						avs: true,
+						stakers: true
+					}
+				}
 			}
 		})
 
@@ -48,7 +57,8 @@ export async function getAllOperators(req: Request, res: Response) {
 
 		let operators = operatorRecords.map((operator) => ({
 			...operator,
-			totalStakers: operator.stakers.length,
+			totalStakers: operator._count.stakers,
+			totalAvs: operator._count.avs,
 			tvl: withTvl
 				? sharesToTVL(
 						operator.shares,
@@ -58,7 +68,8 @@ export async function getAllOperators(req: Request, res: Response) {
 				: undefined,
 			stakers: undefined,
 			metadataUrl: undefined,
-			isMetadataSynced: undefined
+			isMetadataSynced: undefined,
+			_count: undefined
 		}))
 
 		// Sort by tvl & apply skip/take if sortByTvl is provided
@@ -109,7 +120,12 @@ export async function getOperator(req: Request, res: Response) {
 				shares: {
 					select: { strategyAddress: true, shares: true }
 				},
-				stakers: true
+				_count: {
+					select: {
+						stakers: true,
+						avs: true
+					}
+				}
 			}
 		})
 
@@ -120,7 +136,8 @@ export async function getOperator(req: Request, res: Response) {
 
 		res.send({
 			...operator,
-			totalStakers: operator.stakers.length,
+			totalStakers: operator._count.stakers,
+			totalAvs: operator._count.avs,
 			tvl: withTvl
 				? sharesToTVL(
 						operator.shares,
@@ -130,7 +147,8 @@ export async function getOperator(req: Request, res: Response) {
 				: undefined,
 			stakers: undefined,
 			metadataUrl: undefined,
-			isMetadataSynced: undefined
+			isMetadataSynced: undefined,
+			_count: undefined
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)

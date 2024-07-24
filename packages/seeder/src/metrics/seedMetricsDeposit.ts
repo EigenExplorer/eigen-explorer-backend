@@ -1,10 +1,13 @@
 import prisma from '@prisma/client'
 import { getPrismaClient } from '../utils/prismaClient'
-import { getSharesToUnderlying, getEthPrices } from '../utils/strategies'
+import {
+	getSharesToUnderlying,
+	getEthPrices,
+	getStrategyToSymbolMap
+} from '../utils/strategies'
 import {
 	bulkUpdateDbTransactions,
 	fetchLastSyncTime,
-	baseTime,
 	saveLastSyncBlock
 } from '../utils/seeder'
 
@@ -13,8 +16,19 @@ const timeSyncKey = 'lastSyncedTime_metrics_depositHourly'
 export async function seedMetricsDepositHourly() {
 	const prismaClient = getPrismaClient()
 	const depositHourlyList: Omit<prisma.MetricDepositHourly, 'id'>[] = []
+	let clearPrev = false
 
-	const startAt = await fetchLastSyncTime(timeSyncKey)
+	// Get appropriate startAt
+	let startAt = Number(await fetchLastSyncTime(timeSyncKey))
+	if (!startAt) {
+		const firstLogTimestamp = await getFirstLogTimestamp()
+		startAt = firstLogTimestamp
+			? firstLogTimestamp.getTime()
+			: new Date().getTime()
+		clearPrev = true
+	}
+
+	// Get appropriate endAt
 	const { timestamp: endAtTimestamp } =
 		await prismaClient.viewHourlyDepositData.findFirstOrThrow({
 			select: { timestamp: true },
@@ -25,9 +39,7 @@ export async function seedMetricsDepositHourly() {
 	// Bail early if there is no time diff to sync
 	if (endAt - startAt <= 0) {
 		console.log(
-			`[In Sync] [Metrics] Deposit Hourly from: ${new Date(
-				startAt
-			)} to: ${new Date(endAt)}`
+			`[In Sync] [Metrics] Deposit Hourly from: ${startAt} to: ${endAt}`
 		)
 		return
 	}
@@ -58,13 +70,15 @@ export async function seedMetricsDepositHourly() {
 	let changeTvlEth = 0
 	let changeDeposits = 0
 
-	// Get multipliers for each strategy
+	// Get strategy and price data
+	const strategyToSymbolMap = await getStrategyToSymbolMap()
 	const sharesToUnderlying = await getSharesToUnderlying()
-	const ethPrices = await getEthPrices()
+	const ethPriceData = await getEthPrices(currentTimestamp)
 
 	for (const l in logs) {
 		const log = logs[l]
 
+		const symbol = strategyToSymbolMap.get(log.strategyAddress)?.toLowerCase()
 		const hour = log.timestamp.getTime()
 
 		if (hour !== currentTimestamp) {
@@ -89,7 +103,15 @@ export async function seedMetricsDepositHourly() {
 		const sharesMultiplier = Number(
 			sharesToUnderlying.get(log.strategyAddress.toLowerCase())
 		)
-		const ethPrice = Number(ethPrices.get(log.strategyAddress.toLowerCase()))
+
+		const ethPrice =
+			Number(
+				ethPriceData.find(
+					(price) =>
+						price.symbol.toLowerCase() === symbol &&
+						price.timestamp.getTime() <= currentTimestamp
+				)?.ethPrice
+			) || 1
 
 		if (sharesMultiplier && ethPrice) {
 			changeTvlEth +=
@@ -115,7 +137,7 @@ export async function seedMetricsDepositHourly() {
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	const dbTransactions: any[] = []
 
-	if (startAt === baseTime) {
+	if (clearPrev) {
 		dbTransactions.push(prismaClient.metricDepositHourly.deleteMany())
 	}
 
@@ -130,11 +152,25 @@ export async function seedMetricsDepositHourly() {
 
 	await bulkUpdateDbTransactions(
 		dbTransactions,
-		`[Metrics] Deposit Hourly from: ${new Date(startAt)} to: ${new Date(
-			endAt
-		)} size: ${depositHourlyList.length}`
+		`[Metrics] Deposit Hourly from: ${startAt} to: ${endAt} size: ${depositHourlyList.length}`
 	)
 
 	// Storing last synced block
 	await saveLastSyncBlock(timeSyncKey, BigInt(endAt))
+}
+
+/**
+ * Get first log timestamp
+ *
+ * @returns
+ */
+async function getFirstLogTimestamp() {
+	const prismaClient = getPrismaClient()
+
+	const firstLog = await prismaClient.deposit.findFirst({
+		select: { createdAt: true },
+		orderBy: { createdAt: 'asc' }
+	})
+
+	return firstLog ? firstLog.createdAt : null
 }

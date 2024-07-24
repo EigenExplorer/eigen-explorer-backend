@@ -13,6 +13,11 @@ import {
 	getHistoricalStakerCount,
 	getHistoricalDepositCount,
 	getHistoricalWithdrawalCount,
+	getHistoricalAvsAggregate,
+	getHistoricalOperatorsAggregate,
+	getHistoricalTvl,
+	getHistoricalTvlBeaconChain,
+	getHistoricalTvlRestaking,
 	getHistoricalWithdrawalAggregate,
 	getHistoricalDepositAggregate,
 	getTotalWithdrawals,
@@ -54,15 +59,29 @@ router.get(
 router.get('/total-deposits', routeCache.cacheSeconds(120), getTotalDeposits)
 
 router.get(
-	'/historical/avs',
+	'/historical/avs/:address',
 	routeCache.cacheSeconds(120),
-	getHistoricalAvsCount
+	getHistoricalAvsAggregate
 )
 
 router.get(
-	'/historical/operators',
+	'/historical/operators/:address',
 	routeCache.cacheSeconds(120),
-	getHistoricalOperatorCount
+	getHistoricalOperatorsAggregate
+)
+
+router.get('/historical/tvl', routeCache.cacheSeconds(120), getHistoricalTvl)
+
+router.get(
+	'/historical/tvl/beacon-chain',
+	routeCache.cacheSeconds(120),
+	getHistoricalTvlBeaconChain
+)
+
+router.get(
+	'/historical/tvl/restaking/:address',
+	routeCache.cacheSeconds(120),
+	getHistoricalTvlRestaking
 )
 
 router.get(
@@ -81,6 +100,18 @@ router.get(
 	'/historical/deposits',
 	routeCache.cacheSeconds(120),
 	getHistoricalDepositAggregate
+)
+
+router.get(
+	'/historical/count-avs',
+	routeCache.cacheSeconds(120),
+	getHistoricalAvsCount
+)
+
+router.get(
+	'/historical/count-operators',
+	routeCache.cacheSeconds(120),
+	getHistoricalOperatorCount
 )
 
 router.get(
