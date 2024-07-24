@@ -27,16 +27,35 @@ export async function getAllOperators(req: Request, res: Response) {
 	const { skip, take, withTvl, sortByTvl } = result.data
 
 	try {
-<<<<<<< HEAD
-		// Fetch count
-=======
-		// Fetch count and records
->>>>>>> dev
+		// Count records
 		const operatorCount = await prisma.operator.count()
 
-		// Fetch all records if sorting by TVL, otherwise use pagination
+		// If sorting by tvl, apply skip/take and fetch relevant addresses
+		const operatorMetrics = sortByTvl
+			? await prisma.metricOperatorHourly.groupBy({
+					by: ['operatorAddress'],
+					_max: {
+						tvlEth: true
+					},
+					orderBy: {
+						_max: {
+							tvlEth: sortByTvl === 'desc' ? 'desc' : 'asc'
+						}
+					},
+					skip,
+					take
+			  })
+			: null
+
+		// Fetch records from relevant addresses if sorting by tvl, else apply skip/take
 		const operatorRecords = await prisma.operator.findMany({
-			...(sortByTvl ? {} : { skip, take }),
+			where: operatorMetrics
+				? {
+						address: {
+							in: operatorMetrics.map((op) => op.operatorAddress)
+						}
+				  }
+				: {},
 			include: {
 				shares: {
 					select: { strategyAddress: true, shares: true }
@@ -47,7 +66,8 @@ export async function getAllOperators(req: Request, res: Response) {
 						stakers: true
 					}
 				}
-			}
+			},
+			...(operatorMetrics ? {} : { skip, take })
 		})
 
 		const strategyTokenPrices = withTvl ? await fetchStrategyTokenPrices() : {}
@@ -55,7 +75,7 @@ export async function getAllOperators(req: Request, res: Response) {
 			? await getStrategiesWithShareUnderlying()
 			: []
 
-		let operators = operatorRecords.map((operator) => ({
+		const operators = operatorRecords.map((operator) => ({
 			...operator,
 			totalStakers: operator._count.stakers,
 			totalAvs: operator._count.avs,
@@ -71,18 +91,6 @@ export async function getAllOperators(req: Request, res: Response) {
 			isMetadataSynced: undefined,
 			_count: undefined
 		}))
-
-		// Sort by tvl & apply skip/take if sortByTvl is provided
-		if (sortByTvl) {
-			operators.sort((a, b) => {
-				if (a.tvl === undefined || b.tvl === undefined) return 0
-				return sortByTvl === 'desc'
-					? b.tvl.tvl - a.tvl.tvl
-					: a.tvl.tvl - b.tvl.tvl
-			})
-
-			operators = operators.slice(skip, skip + take)
-		}
 
 		res.send({
 			data: operators,
