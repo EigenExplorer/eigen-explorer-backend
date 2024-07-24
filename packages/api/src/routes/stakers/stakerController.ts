@@ -270,7 +270,7 @@ export async function getStakerWithdrawalsWithdrawable(
 			return {
 				...withdrawal,
 				shares,
-				strategies: undefined
+				strategies: undefined,
 			}
 		})
 
@@ -378,7 +378,7 @@ export async function getStakerDeposits(req: Request, res: Response) {
 
 		const data = depositRecords.map((deposit) => {
 			return {
-				...deposit
+				...deposit,
 			}
 		})
 
