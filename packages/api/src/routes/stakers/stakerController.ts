@@ -205,7 +205,7 @@ export async function getStakerWithdrawalsQueued(req: Request, res: Response) {
 			return {
 				...withdrawal,
 				shares,
-				strategies: undefined
+				strategies: undefined,
 			}
 		})
 
