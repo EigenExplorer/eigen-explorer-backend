@@ -57,13 +57,18 @@ export async function getAllAVS(req: Request, res: Response) {
 
 		// Fetch records from relevant addresses if sorting by tvl, else apply skip/take
 		const avsRecords = await prisma.avs.findMany({
-			where: avsAddresses
-				? {
-						address: {
-							in: avsAddresses
-						}
-				  }
-				: {},
+			where: {
+				AND: [
+					avsAddresses
+						? {
+								address: {
+									in: avsAddresses
+								}
+						  }
+						: {},
+					getAvsFilterQuery(true)
+				]
+			},
 			include: {
 				curatedMetadata: withCuratedMetadata,
 				operators: {
