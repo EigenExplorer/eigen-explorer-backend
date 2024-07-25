@@ -37,28 +37,30 @@ export async function getAllAVS(req: Request, res: Response) {
 		const avsCount = await prisma.avs.count({ where: getAvsFilterQuery(true) })
 
 		// If sorting by tvl, apply skip/take and fetch relevant addresses
-		const avsMetrics = sortByTvl
-			? await prisma.metricAvsHourly.groupBy({
-					by: ['avsAddress'],
-					_max: {
-						tvlEth: true
-					},
-					orderBy: {
+		const avsAddresses = sortByTvl
+			? (
+					await prisma.metricAvsHourly.groupBy({
+						by: ['avsAddress'],
 						_max: {
-							tvlEth: sortByTvl === 'desc' ? 'desc' : 'asc'
-						}
-					},
-					skip,
-					take
-			  })
+							tvlEth: true
+						},
+						orderBy: {
+							_max: {
+								tvlEth: sortByTvl === 'desc' ? 'desc' : 'asc'
+							}
+						},
+						skip,
+						take
+					})
+			  )?.map((a) => a.avsAddress)
 			: null
 
 		// Fetch records from relevant addresses if sorting by tvl, else apply skip/take
 		const avsRecords = await prisma.avs.findMany({
-			where: avsMetrics
+			where: avsAddresses
 				? {
 						address: {
-							in: avsMetrics.map((a) => a.avsAddress)
+							in: avsAddresses
 						}
 				  }
 				: {},
@@ -75,8 +77,16 @@ export async function getAllAVS(req: Request, res: Response) {
 					}
 				}
 			},
-			...(avsMetrics ? {} : { skip, take })
+			...(avsAddresses ? {} : { skip, take })
 		})
+
+		// Re-order the records
+		if (avsAddresses) {
+			avsRecords.sort(
+				(a, b) =>
+					avsAddresses.indexOf(a.address) - avsAddresses.indexOf(b.address)
+			)
+		}
 
 		const strategyTokenPrices = withTvl ? await fetchStrategyTokenPrices() : {}
 		const strategiesWithSharesUnderlying = withTvl
