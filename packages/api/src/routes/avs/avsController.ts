@@ -46,7 +46,7 @@ export async function getAllAVS(req: Request, res: Response) {
 						},
 						orderBy: {
 							_max: {
-								tvlEth: sortByTvl === 'desc' ? 'desc' : 'asc'
+								tvlEth: sortByTvl
 							}
 						},
 						skip,

@@ -40,7 +40,7 @@ export async function getAllOperators(req: Request, res: Response) {
 						},
 						orderBy: {
 							_max: {
-								tvlEth: sortByTvl === 'desc' ? 'desc' : 'asc'
+								tvlEth: sortByTvl
 							}
 						},
 						skip,
