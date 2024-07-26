@@ -1,5 +1,87 @@
 import z from '..'
 
+const dayInMs = 24 * 60 * 60 * 1000
+
+/**
+ * Rate limits and default time ranges basis requested frequency
+ *
+ */
+const frequencyConfig = {
+	'1h': { allowance: 7 * dayInMs, defaultRange: 2 * dayInMs },
+	'1d': { allowance: 31 * dayInMs, defaultRange: 31 * dayInMs },
+	'7d': { allowance: 720 * dayInMs, defaultRange: 365 * dayInMs }
+}
+
+/**
+ * Validates that the given time range doesn't exceed the rate limits for the given frequency
+ *
+ * @param startAt
+ * @param endAt
+ * @param frequency
+ * @returns
+ */
+const validateDateRange = (
+	startAt: string,
+	endAt: string,
+	frequency: keyof typeof frequencyConfig
+) => {
+	const start = new Date(startAt)
+	const end = new Date(endAt)
+	const durationMs = end.getTime() - start.getTime()
+	return durationMs <= frequencyConfig[frequency].allowance
+}
+
+/**
+ * In case startAt and/or endAt not specified by user, applies default ranges basis frequency
+ *
+ * @param frequency
+ * @param startAt
+ * @param endAt
+ * @returns
+ */
+const getDefaultDates = (
+	frequency: keyof typeof frequencyConfig,
+	startAt?: string,
+	endAt?: string
+) => {
+	const now = new Date()
+	const { defaultRange } = frequencyConfig[frequency]
+
+	if (!startAt && !endAt) {
+		// Implement range defaults
+		return {
+			startAt: new Date(now.getTime() - defaultRange).toISOString(),
+			endAt: now.toISOString()
+		}
+	}
+
+	if (startAt && !endAt) {
+		// Implement range defaults and cap endAt to current time
+		const start = new Date(startAt)
+		return {
+			startAt,
+			endAt: new Date(
+				Math.min(start.getTime() + defaultRange, now.getTime())
+			).toISOString()
+		}
+	}
+
+	if (!startAt && endAt) {
+		// Implement range defaults
+		const end = new Date(endAt)
+		return {
+			startAt: new Date(end.getTime() - defaultRange).toISOString(),
+			endAt
+		}
+	}
+
+	return { startAt, endAt }
+}
+
+/**
+ * Schema definition with limits applied for startAt and endAt range basis frequency
+ *
+ */
 export const HistoricalCountSchema = z
 	.object({
 		frequency: z
@@ -31,57 +113,13 @@ export const HistoricalCountSchema = z
 	})
 	.refine(
 		(data) => {
-			const { startAt, endAt, frequency } = data
-			if (!endAt) {
-				if (startAt) {
-					const startDate = new Date(startAt)
-
-					if (frequency === '1h') {
-						const endDate = new Date(startDate.getTime() + 48 * 60 * 60 * 1000)
-						data.endAt = endDate.toISOString()
-					}
-					if (frequency === '1d') {
-						const endDate = new Date(
-							startDate.getTime() + 31 * 24 * 60 * 60 * 1000
-						)
-						data.endAt = endDate.toISOString()
-					}
-					if (frequency === '7d') {
-						const endDate = new Date(
-							startDate.getTime() + 365 * 24 * 60 * 60 * 1000
-						)
-						data.endAt = endDate.toISOString()
-					}
-				} else {
-					const endDate = new Date()
-					data.endAt = endDate.toISOString()
-				}
+			const { startAt, endAt } = data
+			if (startAt && endAt) {
+				const start = new Date(data.startAt)
+				const end = new Date(data.endAt)
+				return end.getTime() >= start.getTime()
 			}
-
-			if (!startAt) {
-				const endDate = new Date(data.endAt)
-
-				if (frequency === '1h') {
-					const startDate = new Date(endDate.getTime() - 48 * 60 * 60 * 1000)
-					data.startAt = startDate.toISOString()
-				}
-				if (frequency === '1d') {
-					const startDate = new Date(
-						endDate.getTime() - 31 * 24 * 60 * 60 * 1000
-					)
-					data.startAt = startDate.toISOString()
-				}
-				if (frequency === '7d') {
-					const startDate = new Date(
-						endDate.getTime() - 365 * 24 * 60 * 60 * 1000
-					)
-					data.startAt = startDate.toISOString()
-				}
-			}
-
-			const start = new Date(data.startAt)
-			const end = new Date(data.endAt)
-			return end.getTime() >= start.getTime()
+			return true
 		},
 		{
 			message: 'endAt must be after startAt',
@@ -90,21 +128,22 @@ export const HistoricalCountSchema = z
 	)
 	.refine(
 		(data) => {
-			const { frequency, startAt, endAt } = data
-			const start = new Date(startAt)
-			const end = new Date(endAt)
-			const durationMs = end.getTime() - start.getTime()
-
-			if (frequency === '1h' && durationMs > 48 * 60 * 60 * 1000) {
-				return false
-			}
-			if (frequency === '1d' && durationMs > 31 * 24 * 60 * 60 * 1000) {
-				return false
-			}
-			if (frequency === '7d' && durationMs > 365 * 24 * 60 * 60 * 1000) {
-				return false
+			if (data.startAt && data.endAt) {
+				return (
+					new Date(data.endAt).getTime() >= new Date(data.startAt).getTime()
+				)
 			}
 			return true
+		},
+		{ message: 'endAt must be after startAt', path: ['endAt'] }
+	)
+	.refine(
+		(data) => {
+			const { frequency, startAt, endAt } = data
+			const dates = getDefaultDates(frequency, startAt, endAt)
+			Object.assign(data, dates)
+
+			return validateDateRange(data.startAt, data.endAt, frequency)
 		},
 		{
 			message:
