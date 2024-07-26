@@ -1,15 +1,16 @@
 import z from '..'
 
 const dayInMs = 24 * 60 * 60 * 1000
+const gracePeriod = 10 * 60 * 1000 // 10 mins
 
 /**
  * Rate limits and default time ranges basis requested frequency
  *
  */
 const frequencyConfig = {
-	'1h': { allowance: 7 * dayInMs, defaultRange: 2 * dayInMs },
-	'1d': { allowance: 31 * dayInMs, defaultRange: 31 * dayInMs },
-	'7d': { allowance: 720 * dayInMs, defaultRange: 365 * dayInMs }
+	'1h': { allowance: 7 * dayInMs + gracePeriod, defaultRange: 2 * dayInMs },
+	'1d': { allowance: 31 * dayInMs + gracePeriod, defaultRange: 31 * dayInMs },
+	'7d': { allowance: 720 * dayInMs + gracePeriod, defaultRange: 365 * dayInMs }
 }
 
 /**
