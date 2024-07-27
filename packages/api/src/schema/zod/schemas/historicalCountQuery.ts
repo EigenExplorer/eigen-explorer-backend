@@ -46,7 +46,7 @@ const getDefaultDates = (
 	endAt?: string
 ) => {
 	const now = new Date()
-	const { defaultRange } = frequencyConfig[frequency]
+	const { defaultRange, allowance } = frequencyConfig[frequency]
 
 	if (!startAt && !endAt) {
 		// Implement range defaults
@@ -62,7 +62,7 @@ const getDefaultDates = (
 		return {
 			startAt,
 			endAt: new Date(
-				Math.min(start.getTime() + defaultRange, now.getTime())
+				Math.min(start.getTime() + allowance, now.getTime())
 			).toISOString()
 		}
 	}
