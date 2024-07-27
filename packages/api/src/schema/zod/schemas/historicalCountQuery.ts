@@ -115,16 +115,18 @@ export const HistoricalCountSchema = z
 	.refine(
 		(data) => {
 			const { startAt, endAt } = data
-			if (startAt && endAt) {
-				const start = new Date(data.startAt)
-				const end = new Date(data.endAt)
-				return end.getTime() >= start.getTime()
+			if (!startAt && !endAt) return true
+			if (startAt && new Date(startAt)) {
+				if (endAt && new Date(endAt)) {
+					return true
+				}
+				return true
 			}
-			return true
+			return false
 		},
 		{
-			message: 'endAt must be after startAt',
-			path: ['endAt']
+			message: 'Provide valid date string in ISO format',
+			path: ['endAt', 'startAt']
 		}
 	)
 	.refine(
@@ -136,7 +138,10 @@ export const HistoricalCountSchema = z
 			}
 			return true
 		},
-		{ message: 'endAt must be after startAt', path: ['endAt'] }
+		{
+			message: 'endAt must be after startAt',
+			path: ['endAt']
+		}
 	)
 	.refine(
 		(data) => {
@@ -148,7 +153,7 @@ export const HistoricalCountSchema = z
 		},
 		{
 			message:
-				'Duration between startAt and endAt exceeds the allowed maximum for the selected frequency',
+				'Duration between startAt and endAt exceeds the range allowance for selected frequency',
 			path: ['startAt', 'endAt']
 		}
 	)
