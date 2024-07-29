@@ -24,23 +24,30 @@ export async function getAllOperators(req: Request, res: Response) {
 	if (!result.success) {
 		return handleAndReturnErrorResponse(req, res, result.error)
 	}
-	const { skip, take, withTvl, sortByTvl } = result.data
+	const { skip, take, withTvl, sortByTvl, sortByTotalStakers } = result.data
 
 	try {
 		// Count records
 		const operatorCount = await prisma.operator.count()
 
-		// If sorting by tvl, apply skip/take and fetch relevant addresses
-		const operatorAddresses = sortByTvl
+		// Setup sort if applicable
+		const sortConfig = sortByTvl
+			? { field: 'tvlEth', order: sortByTvl }
+			: sortByTotalStakers
+			  ? { field: 'totalStakers', order: sortByTotalStakers }
+			  : null
+
+		// If sorting, apply skip/take and fetch relevant addresses
+		const operatorAddresses = sortConfig
 			? (
 					await prisma.metricOperatorHourly.groupBy({
 						by: ['operatorAddress'],
 						_max: {
-							tvlEth: true
+							[sortConfig.field]: true
 						},
 						orderBy: {
 							_max: {
-								tvlEth: sortByTvl
+								[sortConfig.field]: sortConfig.order
 							}
 						},
 						skip,
@@ -49,7 +56,7 @@ export async function getAllOperators(req: Request, res: Response) {
 			  )?.map((op) => op.operatorAddress)
 			: null
 
-		// If sorting by tvl, fetch records from relevant addresses, else apply skip/take
+		// If sorting, fetch records from relevant addresses, else apply skip/take
 		const operatorRecords = await prisma.operator.findMany({
 			include: {
 				shares: {
@@ -72,7 +79,7 @@ export async function getAllOperators(req: Request, res: Response) {
 			...(operatorAddresses ? {} : { skip, take })
 		})
 
-		// Re-order the records
+		// If sorting, re-order the records
 		if (operatorAddresses) {
 			operatorRecords.sort(
 				(a, b) =>

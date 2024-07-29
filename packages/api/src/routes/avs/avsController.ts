@@ -30,8 +30,15 @@ export async function getAllAVS(req: Request, res: Response) {
 	}
 
 	try {
-		const { skip, take, withTvl, withCuratedMetadata, sortByTvl, sortByTotalStakers, sortByTotalOperators } =
-			queryCheck.data
+		const {
+			skip,
+			take,
+			withTvl,
+			withCuratedMetadata,
+			sortByTvl,
+			sortByTotalStakers,
+			sortByTotalOperators
+		} = queryCheck.data
 
 		// Fetch count
 		const avsCount = await prisma.avs.count({ where: getAvsFilterQuery(true) })
@@ -40,10 +47,10 @@ export async function getAllAVS(req: Request, res: Response) {
 		const sortConfig = sortByTvl
 			? { field: 'tvlEth', order: sortByTvl }
 			: sortByTotalStakers
-			? { field: 'totalStakers', order: sortByTotalStakers }
-			: sortByTotalOperators
-			? { field: 'totalOperators', order: sortByTotalOperators }
-			: null;
+			  ? { field: 'totalStakers', order: sortByTotalStakers }
+			  : sortByTotalOperators
+				  ? { field: 'totalOperators', order: sortByTotalOperators }
+				  : null
 
 		// If sorting, apply skip/take and fetch relevant addresses
 		const avsAddresses = sortConfig
