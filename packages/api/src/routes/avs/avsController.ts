@@ -30,23 +30,32 @@ export async function getAllAVS(req: Request, res: Response) {
 	}
 
 	try {
-		const { skip, take, withTvl, withCuratedMetadata, sortByTvl } =
+		const { skip, take, withTvl, withCuratedMetadata, sortByTvl, sortByTotalStakers, sortByTotalOperators } =
 			queryCheck.data
 
 		// Fetch count
 		const avsCount = await prisma.avs.count({ where: getAvsFilterQuery(true) })
 
-		// If sorting by tvl, apply skip/take and fetch relevant addresses
-		const avsAddresses = sortByTvl
+		// Setup sort if applicable
+		const sortConfig = sortByTvl
+			? { field: 'tvlEth', order: sortByTvl }
+			: sortByTotalStakers
+			? { field: 'totalStakers', order: sortByTotalStakers }
+			: sortByTotalOperators
+			? { field: 'totalOperators', order: sortByTotalOperators }
+			: null;
+
+		// If sorting, apply skip/take and fetch relevant addresses
+		const avsAddresses = sortConfig
 			? (
 					await prisma.metricAvsHourly.groupBy({
 						by: ['avsAddress'],
 						_max: {
-							tvlEth: true
+							[sortConfig.field]: true
 						},
 						orderBy: {
 							_max: {
-								tvlEth: sortByTvl
+								[sortConfig.field]: sortConfig.order
 							}
 						},
 						skip,
@@ -55,7 +64,7 @@ export async function getAllAVS(req: Request, res: Response) {
 			  )?.map((a) => a.avsAddress)
 			: null
 
-		// Fetch records from relevant addresses if sorting by tvl, else apply skip/take
+		// If sorting, fetch records from relevant addresses, else apply skip/take
 		const avsRecords = await prisma.avs.findMany({
 			where: {
 				AND: [
@@ -85,7 +94,7 @@ export async function getAllAVS(req: Request, res: Response) {
 			...(avsAddresses ? {} : { skip, take })
 		})
 
-		// Re-order the records
+		// If sorting, re-order the records
 		if (avsAddresses) {
 			avsRecords.sort(
 				(a, b) =>
