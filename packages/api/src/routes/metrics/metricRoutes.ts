@@ -85,12 +85,6 @@ router.get(
 )
 
 router.get(
-	'/historical/stakers',
-	routeCache.cacheSeconds(120),
-	getHistoricalStakerCount
-)
-
-router.get(
 	'/historical/withdrawals',
 	routeCache.cacheSeconds(120),
 	getHistoricalWithdrawalAggregate
@@ -112,6 +106,12 @@ router.get(
 	'/historical/count-operators',
 	routeCache.cacheSeconds(120),
 	getHistoricalOperatorCount
+)
+
+router.get(
+	'/historical/count-stakers',
+	routeCache.cacheSeconds(120),
+	getHistoricalStakerCount
 )
 
 router.get(
