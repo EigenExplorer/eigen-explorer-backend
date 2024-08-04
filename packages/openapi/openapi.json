@@ -1463,6 +1463,26 @@
                             "description": "The address of the operator",
                             "example": "0x71c6f7ed8c2d4925d0baf16f6a85bb1736d412eb"
                           },
+                          "createdAtBlock": {
+                            "type": "string",
+                            "description": "The block number at which the Staker made first delegation",
+                            "example": "19631203"
+                          },
+                          "updatedAtBlock": {
+                            "type": "string",
+                            "description": "The block number at which the Staker made last delegation",
+                            "example": "19631203"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "description": "The time stamp at which the Staker made first delegation",
+                            "example": "2024-04-11T08:31:11.000Z"
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "description": "The time stamp at which the Staker made last delegation",
+                            "example": "2024-04-11T08:31:11.000Z"
+                          },
                           "shares": {
                             "type": "array",
                             "items": {
@@ -1571,6 +1591,10 @@
                         "required": [
                           "address",
                           "operatorAddress",
+                          "createdAtBlock",
+                          "updatedAtBlock",
+                          "createdAt",
+                          "updatedAt",
                           "shares"
                         ]
                       }
@@ -2968,6 +2992,26 @@
                             "description": "The address of the operator",
                             "example": "0x71c6f7ed8c2d4925d0baf16f6a85bb1736d412eb"
                           },
+                          "createdAtBlock": {
+                            "type": "string",
+                            "description": "The block number at which the Staker made first delegation",
+                            "example": "19631203"
+                          },
+                          "updatedAtBlock": {
+                            "type": "string",
+                            "description": "The block number at which the Staker made last delegation",
+                            "example": "19631203"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "description": "The time stamp at which the Staker made first delegation",
+                            "example": "2024-04-11T08:31:11.000Z"
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "description": "The time stamp at which the Staker made last delegation",
+                            "example": "2024-04-11T08:31:11.000Z"
+                          },
                           "shares": {
                             "type": "array",
                             "items": {
@@ -3076,6 +3120,10 @@
                         "required": [
                           "address",
                           "operatorAddress",
+                          "createdAtBlock",
+                          "updatedAtBlock",
+                          "createdAt",
+                          "updatedAt",
                           "shares"
                         ]
                       }
@@ -3195,6 +3243,26 @@
                       "description": "The address of the operator",
                       "example": "0x71c6f7ed8c2d4925d0baf16f6a85bb1736d412eb"
                     },
+                    "createdAtBlock": {
+                      "type": "string",
+                      "description": "The block number at which the Staker made first delegation",
+                      "example": "19631203"
+                    },
+                    "updatedAtBlock": {
+                      "type": "string",
+                      "description": "The block number at which the Staker made last delegation",
+                      "example": "19631203"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "description": "The time stamp at which the Staker made first delegation",
+                      "example": "2024-04-11T08:31:11.000Z"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "description": "The time stamp at which the Staker made last delegation",
+                      "example": "2024-04-11T08:31:11.000Z"
+                    },
                     "shares": {
                       "type": "array",
                       "items": {
@@ -3303,6 +3371,10 @@
                   "required": [
                     "address",
                     "operatorAddress",
+                    "createdAtBlock",
+                    "updatedAtBlock",
+                    "createdAt",
+                    "updatedAt",
                     "shares"
                   ]
                 }
