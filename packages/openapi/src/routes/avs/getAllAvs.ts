@@ -5,6 +5,7 @@ import { openApiErrorResponses } from '../../apiResponseSchema/base/errorRespons
 import { AvsSchema } from '../../apiResponseSchema/avs/avsResponse';
 import { PaginationMetaResponsesSchema } from '../../apiResponseSchema/base/paginationMetaResponses';
 import { WithTvlQuerySchema } from '../../../../api/src/schema/zod/schemas/withTvlQuery';
+import { WithCuratedMetadata } from '../../../../api/src/schema/zod/schemas/withCuratedMetadataQuery';
 
 const AvsResponseSchema = z.object({
     data: z.array(AvsSchema),
@@ -14,7 +15,8 @@ const AvsResponseSchema = z.object({
 const CombinedQuerySchema = z
     .object({})
     .merge(WithTvlQuerySchema)
-    .merge(PaginationQuerySchema);
+    .merge(PaginationQuerySchema)
+    .merge(WithCuratedMetadata);
 
 export const getAllAvs: ZodOpenApiOperationObject = {
     operationId: 'getAllAvs',

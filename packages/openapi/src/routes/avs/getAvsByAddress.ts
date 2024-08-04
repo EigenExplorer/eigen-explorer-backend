@@ -4,6 +4,12 @@ import { EthereumAddressSchema } from '../../../../api/src/schema/zod/schemas/ba
 import { AvsSchema } from '../../apiResponseSchema/avs/avsResponse';
 import { ZodOpenApiOperationObject } from 'zod-openapi';
 import { WithTvlQuerySchema } from '../../../../api/src/schema/zod/schemas/withTvlQuery';
+import { WithCuratedMetadata } from '../../../../api/src/schema/zod/schemas/withCuratedMetadataQuery';
+
+const CombinedQuerySchema = z
+    .object({})
+    .merge(WithTvlQuerySchema)
+    .merge(WithCuratedMetadata);
 
 const EthereumAddressParam = z.object({
     address: EthereumAddressSchema,
@@ -15,7 +21,7 @@ export const getAvsByAddress: ZodOpenApiOperationObject = {
     description: 'Returns a single AVS record by address.',
     tags: ['AVS'],
     requestParams: {
-        query: WithTvlQuerySchema,
+        query: CombinedQuerySchema,
         path: EthereumAddressParam,
     },
     responses: {
