@@ -648,6 +648,21 @@
               "description": "The number of records to return for pagination",
               "example": 12
             }
+          },
+          {
+            "in": "query",
+            "name": "withCuratedMetadata",
+            "description": "Toggle whether the route should send curated metadata",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ],
+              "default": "false",
+              "description": "Toggle whether the route should send curated metadata",
+              "example": "false"
+            }
           }
         ],
         "responses": {
@@ -1093,6 +1108,21 @@
               ],
               "default": "false",
               "description": "Toggle whether the route should calculate the TVL from shares",
+              "example": "false"
+            }
+          },
+          {
+            "in": "query",
+            "name": "withCuratedMetadata",
+            "description": "Toggle whether the route should send curated metadata",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ],
+              "default": "false",
+              "description": "Toggle whether the route should send curated metadata",
               "example": "false"
             }
           }
