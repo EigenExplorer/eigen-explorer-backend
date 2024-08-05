@@ -1816,6 +1816,11 @@
                             "description": "The total number of stakers opted into the AVS operator",
                             "example": 10
                           },
+                          "totalAvs": {
+                            "type": "number",
+                            "description": "The total number of AVS opted by the AVS operator",
+                            "example": 10
+                          },
                           "tvl": {
                             "type": "object",
                             "properties": {
@@ -1901,7 +1906,8 @@
                           "metadataWebsite",
                           "metadataX",
                           "shares",
-                          "totalStakers"
+                          "totalStakers",
+                          "totalAvs"
                         ]
                       }
                     },
@@ -2113,6 +2119,11 @@
                             "description": "The total number of stakers opted into the AVS operator",
                             "example": 10
                           },
+                          "totalAvs": {
+                            "type": "number",
+                            "description": "The total number of AVS opted by the AVS operator",
+                            "example": 10
+                          },
                           "tvl": {
                             "type": "object",
                             "properties": {
@@ -2198,7 +2209,8 @@
                           "metadataWebsite",
                           "metadataX",
                           "shares",
-                          "totalStakers"
+                          "totalStakers",
+                          "totalAvs"
                         ]
                       }
                     },
@@ -2395,6 +2407,11 @@
                       "description": "The total number of stakers opted into the AVS operator",
                       "example": 10
                     },
+                    "totalAvs": {
+                      "type": "number",
+                      "description": "The total number of AVS opted by the AVS operator",
+                      "example": 10
+                    },
                     "tvl": {
                       "type": "object",
                       "properties": {
@@ -2480,7 +2497,8 @@
                     "metadataWebsite",
                     "metadataX",
                     "shares",
-                    "totalStakers"
+                    "totalStakers",
+                    "totalAvs"
                   ]
                 }
               }
