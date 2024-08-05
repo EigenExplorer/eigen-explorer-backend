@@ -1,17 +1,18 @@
-import prisma from '../../utils/prismaClient'
 import type { Request, Response } from 'express'
+import type prisma from '@prisma/client'
+import type { IMap } from '../../schema/generic'
+import prismaClient from '../../utils/prismaClient'
 import { PaginationQuerySchema } from '../../schema/zod/schemas/paginationQuery'
 import { handleAndReturnErrorResponse } from '../../schema/errors'
 import { EthereumAddressSchema } from '../../schema/zod/schemas/base/ethereumAddress'
-import { IMap } from '../../schema/generic'
 import { WithTvlQuerySchema } from '../../schema/zod/schemas/withTvlQuery'
+import { getNetwork } from '../../viem/viemClient'
+import { fetchStrategyTokenPrices } from '../../utils/tokenPrices'
+import { WithCuratedMetadata } from '../../schema/zod/schemas/withCuratedMetadataQuery'
 import {
 	getStrategiesWithShareUnderlying,
 	sharesToTVL
 } from '../strategies/strategiesController'
-import { getNetwork } from '../../viem/viemClient'
-import { fetchStrategyTokenPrices } from '../../utils/tokenPrices'
-import { WithCuratedMetadata } from '../../schema/zod/schemas/withCuratedMetadataQuery'
 
 /**
  * Route to get a list of all AVSs
@@ -41,7 +42,9 @@ export async function getAllAVS(req: Request, res: Response) {
 		} = queryCheck.data
 
 		// Fetch count
-		const avsCount = await prisma.avs.count({ where: getAvsFilterQuery(true) })
+		const avsCount = await prismaClient.avs.count({
+			where: getAvsFilterQuery(true)
+		})
 
 		// Setup sort if applicable
 		const sortConfig = sortByTvl
@@ -53,26 +56,35 @@ export async function getAllAVS(req: Request, res: Response) {
 				  : null
 
 		// If sorting, apply skip/take and fetch relevant addresses
+		const latestTimestamps = sortConfig
+			? await prismaClient.metricAvsHourly.groupBy({
+					by: ['avsAddress'],
+					_max: {
+						timestamp: true
+					}
+			  })
+			: null
+
 		const avsAddresses = sortConfig
 			? (
-					await prisma.metricAvsHourly.groupBy({
-						by: ['avsAddress'],
-						_max: {
-							[sortConfig.field]: true
+					await prismaClient.metricAvsHourly.findMany({
+						where: {
+							OR: latestTimestamps?.map((lt) => ({
+								operatorAddress: lt.avsAddress,
+								timestamp: lt._max.timestamp
+							})) as prisma.Prisma.MetricAvsHourlyWhereInput[]
 						},
 						orderBy: {
-							_max: {
-								[sortConfig.field]: sortConfig.order
-							}
+							[sortConfig.field]: sortConfig.order
 						},
 						skip,
 						take
 					})
-			  )?.map((a) => a.avsAddress)
+			  )?.map((avs) => avs.avsAddress)
 			: null
 
 		// If sorting, fetch records from relevant addresses, else apply skip/take
-		const avsRecords = await prisma.avs.findMany({
+		const avsRecords = await prismaClient.avs.findMany({
 			where: {
 				AND: [
 					avsAddresses
@@ -117,7 +129,7 @@ export async function getAllAVS(req: Request, res: Response) {
 		const data = await Promise.all(
 			avsRecords.map(async (avs) => {
 				const totalOperators = avs.operators.length
-				const totalStakers = await prisma.staker.count({
+				const totalStakers = await prismaClient.staker.count({
 					where: {
 						operatorAddress: {
 							in: avs.operators.map((o) => o.operatorAddress)
@@ -184,8 +196,10 @@ export async function getAllAVSAddresses(req: Request, res: Response) {
 		const { skip, take } = queryCheck.data
 
 		// Fetch count and records
-		const avsCount = await prisma.avs.count({ where: getAvsFilterQuery(true) })
-		const avsRecords = await prisma.avs.findMany({
+		const avsCount = await prismaClient.avs.count({
+			where: getAvsFilterQuery(true)
+		})
+		const avsRecords = await prismaClient.avs.findMany({
 			where: getAvsFilterQuery(true),
 			skip,
 			take
@@ -235,7 +249,7 @@ export async function getAVS(req: Request, res: Response) {
 		const { address } = req.params
 		const { withTvl, withCuratedMetadata } = queryCheck.data
 
-		const avs = await prisma.avs.findUniqueOrThrow({
+		const avs = await prismaClient.avs.findUniqueOrThrow({
 			where: { address: address.toLowerCase(), ...getAvsFilterQuery() },
 			include: {
 				curatedMetadata: withCuratedMetadata,
@@ -253,7 +267,7 @@ export async function getAVS(req: Request, res: Response) {
 		})
 
 		const totalOperators = avs.operators.length
-		const totalStakers = await prisma.staker.count({
+		const totalStakers = await prismaClient.staker.count({
 			where: {
 				operatorAddress: {
 					in: avs.operators.map((o) => o.operatorAddress)
@@ -319,7 +333,7 @@ export async function getAVSStakers(req: Request, res: Response) {
 		const { address } = req.params
 		const { skip, take, withTvl } = queryCheck.data
 
-		const avs = await prisma.avs.findUniqueOrThrow({
+		const avs = await prismaClient.avs.findUniqueOrThrow({
 			where: { address: address.toLowerCase(), ...getAvsFilterQuery() },
 			include: { operators: true }
 		})
@@ -328,11 +342,11 @@ export async function getAVSStakers(req: Request, res: Response) {
 			.filter((o) => o.isActive)
 			.map((o) => o.operatorAddress)
 
-		const stakersCount = await prisma.staker.count({
+		const stakersCount = await prismaClient.staker.count({
 			where: { operatorAddress: { in: operatorAddresses } }
 		})
 
-		const stakersRecords = await prisma.staker.findMany({
+		const stakersRecords = await prismaClient.staker.findMany({
 			where: { operatorAddress: { in: operatorAddresses } },
 			skip,
 			take,
@@ -400,7 +414,7 @@ export async function getAVSOperators(req: Request, res: Response) {
 		const { address } = req.params
 		const { skip, take, withTvl } = queryCheck.data
 
-		const avs = await prisma.avs.findUniqueOrThrow({
+		const avs = await prismaClient.avs.findUniqueOrThrow({
 			where: { address: address.toLowerCase(), ...getAvsFilterQuery() },
 			include: {
 				operators: {
@@ -409,7 +423,7 @@ export async function getAVSOperators(req: Request, res: Response) {
 			}
 		})
 
-		const operatorsRecords = await prisma.operator.findMany({
+		const operatorsRecords = await prismaClient.operator.findMany({
 			where: {
 				address: { in: avs.operators.map((o) => o.operatorAddress) }
 			},
@@ -512,7 +526,7 @@ export async function invalidateMetadata(req: Request, res: Response) {
 	try {
 		const { address } = req.params
 
-		const updateResult = await prisma.avs.updateMany({
+		const updateResult = await prismaClient.avs.updateMany({
 			where: { address: address.toLowerCase() },
 			data: { isMetadataSynced: false }
 		})

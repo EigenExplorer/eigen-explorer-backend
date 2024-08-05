@@ -1,14 +1,15 @@
 import type { Request, Response } from 'express'
-import prisma from '../../utils/prismaClient'
+import type prisma from '@prisma/client'
+import prismaClient from '../../utils/prismaClient'
 import { PaginationQuerySchema } from '../../schema/zod/schemas/paginationQuery'
 import { EthereumAddressSchema } from '../../schema/zod/schemas/base/ethereumAddress'
 import { WithTvlQuerySchema } from '../../schema/zod/schemas/withTvlQuery'
 import { handleAndReturnErrorResponse } from '../../schema/errors'
+import { fetchStrategyTokenPrices } from '../../utils/tokenPrices'
 import {
 	getStrategiesWithShareUnderlying,
 	sharesToTVL
 } from '../strategies/strategiesController'
-import { fetchStrategyTokenPrices } from '../../utils/tokenPrices'
 
 /**
  * Route to get a list of all operators
@@ -28,7 +29,7 @@ export async function getAllOperators(req: Request, res: Response) {
 
 	try {
 		// Count records
-		const operatorCount = await prisma.operator.count()
+		const operatorCount = await prismaClient.operator.count()
 
 		// Setup sort if applicable
 		const sortConfig = sortByTvl
@@ -38,17 +39,26 @@ export async function getAllOperators(req: Request, res: Response) {
 			  : null
 
 		// If sorting, apply skip/take and fetch relevant addresses
+		const latestTimestamps = sortConfig
+			? await prismaClient.metricOperatorHourly.groupBy({
+					by: ['operatorAddress'],
+					_max: {
+						timestamp: true
+					}
+			  })
+			: null
+
 		const operatorAddresses = sortConfig
 			? (
-					await prisma.metricOperatorHourly.groupBy({
-						by: ['operatorAddress'],
-						_max: {
-							[sortConfig.field]: true
+					await prismaClient.metricOperatorHourly.findMany({
+						where: {
+							OR: latestTimestamps?.map((lt) => ({
+								operatorAddress: lt.operatorAddress,
+								timestamp: lt._max.timestamp
+							})) as prisma.Prisma.MetricOperatorHourlyWhereInput[]
 						},
 						orderBy: {
-							_max: {
-								[sortConfig.field]: sortConfig.order
-							}
+							[sortConfig.field]: sortConfig.order
 						},
 						skip,
 						take
@@ -57,7 +67,7 @@ export async function getAllOperators(req: Request, res: Response) {
 			: null
 
 		// If sorting, fetch records from relevant addresses, else apply skip/take
-		const operatorRecords = await prisma.operator.findMany({
+		const operatorRecords = await prismaClient.operator.findMany({
 			include: {
 				shares: {
 					select: { strategyAddress: true, shares: true }
@@ -140,7 +150,7 @@ export async function getOperator(req: Request, res: Response) {
 	try {
 		const { address } = req.params
 
-		const operator = await prisma.operator.findUniqueOrThrow({
+		const operator = await prismaClient.operator.findUniqueOrThrow({
 			where: { address: address.toLowerCase() },
 			include: {
 				shares: {
@@ -196,7 +206,7 @@ export async function invalidateMetadata(req: Request, res: Response) {
 	try {
 		const { address } = req.params
 
-		const updateResult = await prisma.operator.updateMany({
+		const updateResult = await prismaClient.operator.updateMany({
 			where: { address: address.toLowerCase() },
 			data: { isMetadataSynced: false }
 		})
