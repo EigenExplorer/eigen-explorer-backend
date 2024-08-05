@@ -25,7 +25,8 @@ export async function getAllOperators(req: Request, res: Response) {
 	if (!result.success) {
 		return handleAndReturnErrorResponse(req, res, result.error)
 	}
-	const { skip, take, withTvl, sortByTvl, sortByTotalStakers } = result.data
+	const { skip, take, withTvl, sortByTvl, sortByTotalStakers, sortByTotalAvs } =
+		result.data
 
 	try {
 		// Count records
@@ -36,7 +37,9 @@ export async function getAllOperators(req: Request, res: Response) {
 			? { field: 'tvlEth', order: sortByTvl }
 			: sortByTotalStakers
 			  ? { field: 'totalStakers', order: sortByTotalStakers }
-			  : null
+			  : sortByTotalAvs
+				  ? { field: 'totalAvs', order: sortByTotalAvs }
+				  : null
 
 		// If sorting, apply skip/take and fetch relevant addresses
 		const latestTimestamps = sortConfig
