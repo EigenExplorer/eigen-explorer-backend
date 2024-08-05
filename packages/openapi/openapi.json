@@ -464,10 +464,46 @@
                       "type": "number",
                       "description": "The total number of AVS registered",
                       "example": 1000000
+                    },
+                    "change24h": {
+                      "type": "object",
+                      "properties": {
+                        "value": {
+                          "type": "number",
+                          "example": 10
+                        },
+                        "percent": {
+                          "type": "number",
+                          "example": 0.01
+                        }
+                      },
+                      "required": [
+                        "value",
+                        "percent"
+                      ]
+                    },
+                    "change7d": {
+                      "type": "object",
+                      "properties": {
+                        "value": {
+                          "type": "number",
+                          "example": 10
+                        },
+                        "percent": {
+                          "type": "number",
+                          "example": 0.01
+                        }
+                      },
+                      "required": [
+                        "value",
+                        "percent"
+                      ]
                     }
                   },
                   "required": [
-                    "totalAvs"
+                    "totalAvs",
+                    "change24h",
+                    "change7d"
                   ]
                 }
               }
@@ -517,10 +553,46 @@
                       "type": "number",
                       "description": "The total number of AVS operators registered",
                       "example": 1000000
+                    },
+                    "change24h": {
+                      "type": "object",
+                      "properties": {
+                        "value": {
+                          "type": "number",
+                          "example": 10
+                        },
+                        "percent": {
+                          "type": "number",
+                          "example": 0.01
+                        }
+                      },
+                      "required": [
+                        "value",
+                        "percent"
+                      ]
+                    },
+                    "change7d": {
+                      "type": "object",
+                      "properties": {
+                        "value": {
+                          "type": "number",
+                          "example": 10
+                        },
+                        "percent": {
+                          "type": "number",
+                          "example": 0.01
+                        }
+                      },
+                      "required": [
+                        "value",
+                        "percent"
+                      ]
                     }
                   },
                   "required": [
-                    "totalOperators"
+                    "totalOperators",
+                    "change24h",
+                    "change7d"
                   ]
                 }
               }
@@ -570,10 +642,46 @@
                       "type": "number",
                       "description": "The total number of AVS stakers registered",
                       "example": 1000000
+                    },
+                    "change24h": {
+                      "type": "object",
+                      "properties": {
+                        "value": {
+                          "type": "number",
+                          "example": 10
+                        },
+                        "percent": {
+                          "type": "number",
+                          "example": 0.01
+                        }
+                      },
+                      "required": [
+                        "value",
+                        "percent"
+                      ]
+                    },
+                    "change7d": {
+                      "type": "object",
+                      "properties": {
+                        "value": {
+                          "type": "number",
+                          "example": 10
+                        },
+                        "percent": {
+                          "type": "number",
+                          "example": 0.01
+                        }
+                      },
+                      "required": [
+                        "value",
+                        "percent"
+                      ]
                     }
                   },
                   "required": [
-                    "totalStakers"
+                    "totalStakers",
+                    "change24h",
+                    "change7d"
                   ]
                 }
               }
