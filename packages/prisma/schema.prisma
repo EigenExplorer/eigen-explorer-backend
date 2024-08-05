@@ -246,10 +246,10 @@ model MetricOperatorHourly {
   id              Int    @id @default(autoincrement())
   operatorAddress String
 
-  tvlEth        Decimal @db.Decimal(20, 8)
   totalStakers  Int
-  changeTvlEth  Decimal @db.Decimal(20, 8)
+  totalAvs      Int
   changeStakers Int
+  changeAvs     Int
 
   timestamp DateTime
 
@@ -258,15 +258,28 @@ model MetricOperatorHourly {
   @@index([timestamp])
 }
 
+model MetricOperatorStrategyHourly {
+  id              Int    @id @default(autoincrement())
+  operatorAddress String
+  strategyAddress String
+
+  tvl       Decimal @db.Decimal(20, 8)
+  changeTvl Decimal @db.Decimal(20, 8)
+
+  timestamp DateTime
+
+  @@unique([operatorAddress, strategyAddress, timestamp])
+  @@index([operatorAddress, strategyAddress])
+  @@index([timestamp])
+}
+
 model MetricStrategyHourly {
   id Int @id @default(autoincrement())
 
   strategyAddress String
 
-  tvl          Decimal @db.Decimal(20, 8)
-  tvlEth       Decimal @db.Decimal(20, 8)
-  changeTvl    Decimal @db.Decimal(20, 8)
-  changeTvlEth Decimal @db.Decimal(20, 8)
+  tvl       Decimal @db.Decimal(20, 8)
+  changeTvl Decimal @db.Decimal(20, 8)
 
   timestamp DateTime
 
@@ -277,14 +290,40 @@ model MetricStrategyHourly {
 model MetricEigenPodsHourly {
   id Int @id @default(autoincrement())
 
-  tvlEth       Decimal @db.Decimal(20, 8)
-  changeTvlEth Decimal @db.Decimal(20, 8)
-  totalPods    Int
-  changePods   Int
+  tvl        Decimal @db.Decimal(20, 8)
+  changeTvl  Decimal @db.Decimal(20, 8)
+  totalPods  Int
+  changePods Int
 
   timestamp DateTime
 
   @@unique([timestamp])
+  @@index([timestamp])
+}
+
+model MetricDepositHourly {
+  id Int @id @default(autoincrement())
+
+  tvlEth         Decimal @db.Decimal(20, 8)
+  totalDeposits  Int
+  changeTvlEth   Decimal @db.Decimal(20, 8)
+  changeDeposits Int
+
+  timestamp DateTime
+
+  @@index([timestamp])
+}
+
+model MetricWithdrawalHourly {
+  id Int @id @default(autoincrement())
+
+  tvlEth            Decimal @db.Decimal(20, 8)
+  totalWithdrawals  Int
+  changeTvlEth      Decimal @db.Decimal(20, 8)
+  changeWithdrawals Int
+
+  timestamp DateTime
+
   @@index([timestamp])
 }
 
@@ -505,37 +544,11 @@ model EventLogs_Deposit {
   @@index([blockNumber])
 }
 
-model MetricDepositHourly {
-  id Int @id @default(autoincrement())
-
-  tvlEth         Decimal @db.Decimal(20, 8)
-  totalDeposits  Int
-  changeTvlEth   Decimal @db.Decimal(20, 8)
-  changeDeposits Int
-
-  timestamp DateTime
-
-  @@index([timestamp])
-}
-
-model MetricWithdrawalHourly {
-  id Int @id @default(autoincrement())
-
-  tvlEth            Decimal @db.Decimal(20, 8)
-  totalWithdrawals  Int
-  changeTvlEth      Decimal @db.Decimal(20, 8)
-  changeWithdrawals Int
-
-  timestamp DateTime
-
-  @@index([timestamp])
-}
-
 model EthPricesDaily {
   id Int @id @default(autoincrement())
 
   symbol    String
-  ethPrice  Decimal @db.Decimal(20, 8)
+  ethPrice  Decimal  @db.Decimal(20, 8)
   timestamp DateTime
 
   @@index([timestamp])
@@ -551,10 +564,10 @@ model Evm_BlockData {
 // Views
 
 view viewHourlyDepositData {
-  strategyAddress  String
-  totalDeposits Int
-  totalShares      Decimal      @db.Decimal(36, 0)
-  timestamp        DateTime
+  strategyAddress String
+  totalDeposits   Int
+  totalShares     Decimal  @db.Decimal(36, 0)
+  timestamp       DateTime
 
   @@unique([strategyAddress, timestamp])
 }
@@ -562,7 +575,7 @@ view viewHourlyDepositData {
 view viewHourlyWithdrawalData {
   strategyAddress  String
   totalWithdrawals Int
-  totalShares      Decimal      @db.Decimal(36, 0)
+  totalShares      Decimal  @db.Decimal(36, 0)
   timestamp        DateTime
 
   @@unique([strategyAddress, timestamp])

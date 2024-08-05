@@ -8,7 +8,7 @@ import {
 import { dateToEpoch } from '../utils/beaconChain'
 
 const blockSyncKey = 'lastSyncedTimestamp_metrics_eigenPodsHourly'
-const BATCH_DAYS = 30
+const BATCH_DAYS = 10
 
 // Define the type for our log entries
 type LastMetricEigenPodsHourly = Omit<prisma.MetricEigenPodsHourly, 'id'>
@@ -71,9 +71,8 @@ export async function seedMetricsEigenPodsHourly() {
 async function processLogsInBatches(
 	startDate: Date,
 	endDate: Date,
-	lastEigenPodsMetric: LastMetricEigenPodsHourly | null
+	lastEigenPodsMetric: LastMetricEigenPodsHourly
 ) {
-	let lastMetric = lastEigenPodsMetric
 	let hourlyMetrics: LastMetricEigenPodsHourly[] = []
 
 	for (
@@ -100,10 +99,9 @@ async function processLogsInBatches(
 					fromHour,
 					toHour,
 					batchLogs,
-					lastMetric
+					lastEigenPodsMetric
 				)
 
-				lastMetric = hourlyTvlRecords[hourlyTvlRecords.length - 1]
 				hourlyMetrics = [...hourlyMetrics, ...hourlyTvlRecords]
 			},
 			'hourly'
@@ -123,7 +121,7 @@ async function hourlyLoopTick(
 	fromHour: Date,
 	toHour: Date,
 	orderedLogs: LogEntry[],
-	lastEigenPodsMetric: LastMetricEigenPodsHourly | null
+	lastEigenPodsMetric: LastMetricEigenPodsHourly
 ): Promise<LastMetricEigenPodsHourly[]> {
 	const prismaClient = getPrismaClient()
 	const podAddresses = new Set<string>()
@@ -134,12 +132,12 @@ async function hourlyLoopTick(
 		(ol) => ol.blockTime > fromHour && ol.blockTime <= toHour
 	)
 
-	let tvlEth = 0
+	let tvl = 0
 	let totalPods = 0
 	let changePods = 0
 
 	if (lastEigenPodsMetric) {
-		tvlEth = Number(lastEigenPodsMetric.tvlEth)
+		tvl = Number(lastEigenPodsMetric.tvl)
 		totalPods = lastEigenPodsMetric.totalPods
 	}
 
@@ -165,17 +163,19 @@ async function hourlyLoopTick(
 			})
 		])
 
-		const changeTvlEth = (newValidators - exitedValidators) * 32
+		const changeTvl = (newValidators - exitedValidators) * 32
 
-		return [
-			{
-				timestamp: toHour,
-				tvlEth: (tvlEth + changeTvlEth) as unknown as prisma.Prisma.Decimal,
-				changeTvlEth: changeTvlEth as unknown as prisma.Prisma.Decimal,
-				totalPods: totalPods + changePods,
-				changePods
-			}
-		]
+		const tvlRecord = {
+			timestamp: toHour,
+			tvl: (tvl + changeTvl) as unknown as prisma.Prisma.Decimal,
+			changeTvl: changeTvl as unknown as prisma.Prisma.Decimal,
+			totalPods: totalPods + changePods,
+			changePods
+		}
+
+		Object.assign(lastEigenPodsMetric, tvlRecord)
+
+		return [tvlRecord]
 	}
 
 	return []
@@ -238,12 +238,21 @@ async function fetchOrderedLogs(from: Date, to: Date): Promise<LogEntry[]> {
  *
  * @returns
  */
-async function getLatestMetrics(): Promise<Omit<
-	prisma.MetricEigenPodsHourly,
-	'id'
-> | null> {
+async function getLatestMetrics(): Promise<
+	Omit<prisma.MetricEigenPodsHourly, 'id'>
+> {
 	const prismaClient = getPrismaClient()
-	return prismaClient.metricEigenPodsHourly.findFirst({
+	const lastMetric = await prismaClient.metricEigenPodsHourly.findFirst({
 		orderBy: { timestamp: 'desc' }
 	})
+
+	return (
+		lastMetric || {
+			tvl: new prisma.Prisma.Decimal(0),
+			changeTvl: new prisma.Prisma.Decimal(0),
+			totalPods: 0,
+			changePods: 0,
+			timestamp: new Date()
+		}
+	)
 }

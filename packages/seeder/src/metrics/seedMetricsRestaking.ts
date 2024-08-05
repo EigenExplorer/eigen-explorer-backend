@@ -9,12 +9,20 @@ import {
 } from '../utils/seeder'
 
 const blockSyncKey = 'lastSyncedTimestamp_metrics_restakingHourly'
-const BATCH_DAYS = 30
+const BATCH_DAYS = 10
 
 // Define the type for our log entries
 type ILastOperatorMetric = Omit<prisma.MetricOperatorHourly, 'id'>
+type ILastOperatorStrategyMetric = Omit<
+	prisma.MetricOperatorStrategyHourly,
+	'id'
+>
 type ILastStrategyMetric = Omit<prisma.MetricStrategyHourly, 'id'>
 type ILastOperatorMetrics = IMap<string, ILastOperatorMetric>
+type ILastOperatorStrategyMetrics = IMap<
+	string,
+	IMap<string, ILastOperatorStrategyMetric>
+>
 type ILastStrategyMetrics = IMap<string, ILastStrategyMetric>
 type LogEntry = {
 	blockTime: Date
@@ -54,29 +62,41 @@ export async function seedMetricsRestakingHourly() {
 		])
 
 	// Fetch last metrics
-	const [lastOperatorMetrics, lastStrategyMetrics] = await Promise.all([
+	const [
+		lastOperatorMetrics,
+		lastOperatorStrategyMetrics,
+		lastStrategyMetrics
+	] = await Promise.all([
 		getLatestMetricsPerOperator(),
+		getLatestMetricsPerOperatorStrategy(),
 		getLatestMetricsPerStrategy()
 	])
 
 	console.log('[Prep] Metric Restaking ...')
 
 	// Process logs in batches
-	const [hourlyOperatorMetrics, hourlyStrategyMetrics] =
-		await processLogsInBatches(
-			startDate,
-			endDate,
-			lastOperatorMetrics,
-			lastStrategyMetrics,
-			sharesToUnderlyingList,
-			strategyToSymbolMap,
-			ethPriceData
-		)
+	const [
+		hourlyOperatorMetrics,
+		hourlyOperatorStrategyMetrics,
+		hourlyStrategyMetrics
+	] = await processLogsInBatches(
+		startDate,
+		endDate,
+		lastOperatorMetrics,
+		lastOperatorStrategyMetrics,
+		lastStrategyMetrics,
+		sharesToUnderlyingList
+	)
 
 	// Update data
 	const dbTransactions = [
 		prismaClient.metricOperatorHourly.createMany({
 			data: hourlyOperatorMetrics,
+			skipDuplicates: true
+		}),
+
+		prismaClient.metricOperatorStrategyHourly.createMany({
+			data: hourlyOperatorStrategyMetrics,
 			skipDuplicates: true
 		}),
 
@@ -106,26 +126,23 @@ export async function seedMetricsRestakingHourly() {
  * @param startDate
  * @param endDate
  * @param lastOperatorMetrics
+ * @param lastOperatorStrategyMetrics
  * @param lastStrategyMetrics
  * @param sharesToUnderlyingList
- * @param strategyToSymbolMap
- * @param ethPriceData
  * @returns
  */
 async function processLogsInBatches(
 	startDate: Date,
 	endDate: Date,
 	lastOperatorMetrics: ILastOperatorMetrics,
+	lastOperatorStrategyMetrics: ILastOperatorStrategyMetrics,
 	lastStrategyMetrics: ILastStrategyMetrics,
-	sharesToUnderlyingList: { sharesToUnderlying: string; address: string }[],
-	strategyToSymbolMap: Map<string, string>,
-	ethPriceData: {
-		symbol: string
-		timestamp: Date
-		ethPrice: prisma.Prisma.Decimal
-	}[]
-): Promise<[ILastOperatorMetric[], ILastStrategyMetric[]]> {
+	sharesToUnderlyingList: { sharesToUnderlying: string; address: string }[]
+): Promise<
+	[ILastOperatorMetric[], ILastOperatorStrategyMetric[], ILastStrategyMetric[]]
+> {
 	const hourlyOperatorMetrics: ILastOperatorMetric[] = []
+	const hourlyOperatorStrategyMetrics: ILastOperatorStrategyMetric[] = []
 	const hourlyStrategyMetrics: ILastStrategyMetric[] = []
 	const sharesToUnderlyingMap = new Map(
 		sharesToUnderlyingList.map((s) => [s.address, BigInt(s.sharesToUnderlying)])
@@ -151,19 +168,22 @@ async function processLogsInBatches(
 			currentDate,
 			batchEndDate,
 			async (fromHour, toHour) => {
-				const [hourlyOperatorTvlRecords, hourlyStrategyTvlRecords] =
-					await hourlyLoopTick(
-						fromHour,
-						toHour,
-						batchLogs,
-						lastOperatorMetrics,
-						lastStrategyMetrics,
-						sharesToUnderlyingMap,
-						strategyToSymbolMap,
-						ethPriceData
-					)
+				const [
+					hourlyOperatorTvlRecords,
+					hourlyOperatorStrategyRecords,
+					hourlyStrategyTvlRecords
+				] = await hourlyLoopTick(
+					fromHour,
+					toHour,
+					batchLogs,
+					lastOperatorMetrics,
+					lastOperatorStrategyMetrics,
+					lastStrategyMetrics,
+					sharesToUnderlyingMap
+				)
 
 				hourlyOperatorMetrics.push(...hourlyOperatorTvlRecords)
+				hourlyOperatorStrategyMetrics.push(...hourlyOperatorStrategyRecords)
 				hourlyStrategyMetrics.push(...hourlyStrategyTvlRecords)
 			},
 			'hourly'
@@ -176,7 +196,11 @@ async function processLogsInBatches(
 		)
 	}
 
-	return [hourlyOperatorMetrics, hourlyStrategyMetrics]
+	return [
+		hourlyOperatorMetrics,
+		hourlyOperatorStrategyMetrics,
+		hourlyStrategyMetrics
+	]
 }
 
 /**
@@ -186,26 +210,22 @@ async function processLogsInBatches(
  * @param toHour
  * @param orderedLogs
  * @param lastOperatorMetrics
+ * @param lastOperatorStrategyMetrics
  * @param lastStrategyMetrics
  * @param sharesToUnderlyingMap
- * @param strategyToSymbolMap
- * @param ethPriceData
  * @returns
  */
 async function hourlyLoopTick(
 	fromHour: Date,
 	toHour: Date,
 	orderedLogs: LogEntry[],
-	lastOperatorMetrics: Map<string, ILastOperatorMetric>,
-	lastStrategyMetrics: Map<string, ILastStrategyMetric>,
-	sharesToUnderlyingMap: Map<string, bigint>,
-	strategyToSymbolMap: Map<string, string>,
-	ethPriceData: {
-		symbol: string
-		timestamp: Date
-		ethPrice: prisma.Prisma.Decimal
-	}[]
-): Promise<[ILastOperatorMetric[], ILastStrategyMetric[]]> {
+	lastOperatorMetrics: ILastOperatorMetrics,
+	lastOperatorStrategyMetrics: ILastOperatorStrategyMetrics,
+	lastStrategyMetrics: ILastStrategyMetrics,
+	sharesToUnderlyingMap: Map<string, bigint>
+): Promise<
+	[ILastOperatorMetric[], ILastOperatorStrategyMetric[], ILastStrategyMetric[]]
+> {
 	const operatorAddresses = new Set<string>()
 	const strategyAddresses = new Set<string>()
 	const operatorStakers = new Map<string, number>()
@@ -260,15 +280,14 @@ async function hourlyLoopTick(
 
 	const strategyTvlRecords: ILastStrategyMetric[] = []
 	const operatorTvlRecords: ILastOperatorMetric[] = []
+	const operatorStrategyTvlRecords: ILastOperatorStrategyMetric[] = []
 
 	for (const strategyAddress of strategyAddresses) {
 		// Fetch last known metric
 		const lastMetric = lastStrategyMetrics.get(strategyAddress) || {
 			strategyAddress,
 			tvl: new prisma.Prisma.Decimal(0),
-			tvlEth: new prisma.Prisma.Decimal(0),
 			changeTvl: new prisma.Prisma.Decimal(0),
-			changeTvlEth: new prisma.Prisma.Decimal(0),
 			timestamp: toHour
 		}
 
@@ -276,38 +295,26 @@ async function hourlyLoopTick(
 		const sharesToUnderlying = sharesToUnderlyingMap.get(strategyAddress)
 		if (!sharesToUnderlying) continue
 
-		const symbol = strategyToSymbolMap.get(strategyAddress)?.toLowerCase()
-		const ethPrice = getLatestEthPrice(ethPriceData, symbol, toHour) || 1
-
 		const changeTvl = Number(shares * sharesToUnderlying) / 1e36
-		const changeTvlEth = changeTvl * ethPrice
-
-		const newMetric = {
+		const newStrategyMetric = {
 			...lastMetric,
 			tvl: new prisma.Prisma.Decimal(Number(lastMetric.tvl) + changeTvl),
-			tvlEth: new prisma.Prisma.Decimal(
-				Number(lastMetric.tvlEth) + changeTvlEth
-			),
 			changeTvl: new prisma.Prisma.Decimal(changeTvl),
-			changeTvlEth: new prisma.Prisma.Decimal(changeTvlEth),
 			timestamp: toHour
 		}
 
-		lastStrategyMetrics.set(strategyAddress, newMetric)
-		strategyTvlRecords.push(newMetric)
+		lastStrategyMetrics.set(strategyAddress, newStrategyMetric)
+		strategyTvlRecords.push(newStrategyMetric)
 	}
 
 	for (const operatorAddress of operatorAddresses) {
-		let changeTvlEth = 0
-		let changeStakers = 0
-
 		// Fetch last known metric
 		const lastMetric = lastOperatorMetrics.get(operatorAddress) || {
 			operatorAddress,
-			tvlEth: new prisma.Prisma.Decimal(0),
 			totalStakers: 0,
-			changeTvlEth: new prisma.Prisma.Decimal(0),
 			changeStakers: 0,
+			totalAvs: 0,
+			changeAvs: 0,
 			timestamp: toHour
 		}
 
@@ -316,65 +323,61 @@ async function hourlyLoopTick(
 		if (!strategyMap) continue
 
 		for (const [strategyAddress, shares] of strategyMap) {
+			let changeTvl = 0
+
 			const sharesToUnderlying = sharesToUnderlyingMap.get(strategyAddress)
 			if (sharesToUnderlying) {
-				const symbol = strategyToSymbolMap.get(strategyAddress)?.toLowerCase()
-				const ethPrice = getLatestEthPrice(ethPriceData, symbol, toHour) || 1
-
-				changeTvlEth += (Number(shares * sharesToUnderlying) / 1e36) * ethPrice
+				changeTvl += Number(shares * sharesToUnderlying) / 1e36
 			}
+
+			if (!lastOperatorStrategyMetrics.has(operatorAddress)) {
+				lastOperatorStrategyMetrics.set(operatorAddress, new Map())
+			}
+
+			const lastOperatorStrategyMetric = lastOperatorStrategyMetrics
+				.get(operatorAddress)
+				.get(strategyAddress) || {
+				operatorAddress,
+				strategyAddress,
+				tvl: new prisma.Prisma.Decimal(0),
+				changeTvl: new prisma.Prisma.Decimal(0),
+				timestamp: toHour
+			}
+
+			// TODO: DO SOMETHING HERE
+			const newOperatorStrategyMetric = {
+				...lastOperatorStrategyMetric,
+				tvl: new prisma.Prisma.Decimal(
+					Number(lastOperatorStrategyMetric.tvl) + changeTvl
+				),
+				changeTvl: new prisma.Prisma.Decimal(changeTvl),
+				timestamp: toHour
+			}
+
+			lastOperatorStrategyMetrics
+				.get(operatorAddress)
+				.set(strategyAddress, newOperatorStrategyMetric)
+
+			operatorStrategyTvlRecords.push(newOperatorStrategyMetric)
 		}
 
 		// Update Staker Change
-		changeStakers = operatorStakers.get(operatorAddress) || 0
+		const changeStakers = operatorStakers.get(operatorAddress) || 0
 
-		const newMetric = {
+		const newOperatorMetric = {
 			...lastMetric,
-			tvlEth: new prisma.Prisma.Decimal(
-				Number(lastMetric.tvlEth) + changeTvlEth
-			),
-			changeTvlEth: new prisma.Prisma.Decimal(changeTvlEth),
 			totalStakers: lastMetric.totalStakers + changeStakers,
 			changeStakers,
+			totalAvs: 0,
+			changeAvs: 0,
 			timestamp: toHour
 		}
 
-		lastOperatorMetrics.set(operatorAddress, newMetric)
-		operatorTvlRecords.push(newMetric)
+		lastOperatorMetrics.set(operatorAddress, newOperatorMetric)
+		operatorTvlRecords.push(newOperatorMetric)
 	}
 
-	return [operatorTvlRecords, strategyTvlRecords]
-}
-
-/**
- * Fetch eth prices
- *
- * @param ethPriceData
- * @param symbol
- * @param toHour
- * @returns
- */
-function getLatestEthPrice(
-	ethPriceData: {
-		symbol: string
-		timestamp: Date
-		ethPrice: prisma.Prisma.Decimal
-	}[],
-	symbol: string | undefined,
-	toHour: Date
-): number {
-	return (
-		Number(
-			ethPriceData
-				.filter(
-					(price) =>
-						price.symbol.toLowerCase() === symbol &&
-						price.timestamp.getTime() <= toHour.getTime()
-				)
-				.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0]
-				?.ethPrice
-		) || 1
-	)
+	return [operatorTvlRecords, operatorStrategyTvlRecords, strategyTvlRecords]
 }
 
 /**
@@ -488,6 +491,61 @@ async function getLatestMetricsPerOperator(): Promise<ILastOperatorMetrics> {
 	} catch {}
 
 	return new Map()
+}
+
+/**
+ * Get latest metrics per operator strategy
+ *
+ * @returns
+ */
+async function getLatestMetricsPerOperatorStrategy(): Promise<ILastOperatorStrategyMetrics> {
+	const groupedMetrics: ILastOperatorStrategyMetrics = new Map()
+	const prismaClinet = getPrismaClient()
+
+	try {
+		const lastMetricsPerOperatorStrategy =
+			await prismaClinet.metricOperatorStrategyHourly.groupBy({
+				by: ['operatorAddress', 'strategyAddress'],
+				_max: {
+					timestamp: true
+				}
+			})
+
+		const metrics = await prismaClinet.metricOperatorStrategyHourly.findMany({
+			where: {
+				OR: lastMetricsPerOperatorStrategy.map((metric) => ({
+					operatorAddress: metric.operatorAddress,
+					strategyAddress: metric.strategyAddress,
+					timestamp: metric._max.timestamp
+				})) as prisma.Prisma.MetricOperatorStrategyHourlyWhereInput[]
+			},
+			orderBy: {
+				operatorAddress: 'asc'
+			}
+		})
+
+		for (const metric of metrics) {
+			const { operatorAddress, strategyAddress } = metric
+
+			if (!groupedMetrics.has(operatorAddress)) {
+				groupedMetrics.set(operatorAddress, new Map())
+			}
+
+			const operatorMetrics = groupedMetrics.get(operatorAddress)
+
+			const metricWithoutId: ILastOperatorStrategyMetric = {
+				operatorAddress: metric.operatorAddress,
+				strategyAddress: metric.strategyAddress,
+				tvl: metric.tvl,
+				changeTvl: metric.changeTvl,
+				timestamp: metric.timestamp
+			}
+
+			operatorMetrics.set(strategyAddress, metricWithoutId)
+		}
+	} catch {}
+
+	return groupedMetrics
 }
 
 /**
