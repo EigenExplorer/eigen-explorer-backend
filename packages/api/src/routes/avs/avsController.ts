@@ -1,17 +1,18 @@
-import prisma from '../../utils/prismaClient'
 import type { Request, Response } from 'express'
+import type Prisma from '@prisma/client'
+import type { IMap } from '../../schema/generic'
+import prisma from '../../utils/prismaClient'
 import { PaginationQuerySchema } from '../../schema/zod/schemas/paginationQuery'
 import { handleAndReturnErrorResponse } from '../../schema/errors'
 import { EthereumAddressSchema } from '../../schema/zod/schemas/base/ethereumAddress'
-import { IMap } from '../../schema/generic'
 import { WithTvlQuerySchema } from '../../schema/zod/schemas/withTvlQuery'
+import { getNetwork } from '../../viem/viemClient'
+import { fetchStrategyTokenPrices } from '../../utils/tokenPrices'
+import { WithCuratedMetadata } from '../../schema/zod/schemas/withCuratedMetadataQuery'
 import {
 	getStrategiesWithShareUnderlying,
 	sharesToTVL
 } from '../strategies/strategiesController'
-import { getNetwork } from '../../viem/viemClient'
-import { fetchStrategyTokenPrices } from '../../utils/tokenPrices'
-import { WithCuratedMetadata } from '../../schema/zod/schemas/withCuratedMetadataQuery'
 
 /**
  * Route to get a list of all AVSs
@@ -30,14 +31,72 @@ export async function getAllAVS(req: Request, res: Response) {
 	}
 
 	try {
-		const { skip, take, withTvl, withCuratedMetadata } = queryCheck.data
-
-		// Fetch count and record
-		const avsCount = await prisma.avs.count({ where: getAvsFilterQuery(true) })
-		const avsRecords = await prisma.avs.findMany({
-			where: getAvsFilterQuery(true),
+		const {
 			skip,
 			take,
+			withTvl,
+			withCuratedMetadata,
+			sortByTvl,
+			sortByTotalStakers,
+			sortByTotalOperators
+		} = queryCheck.data
+
+		// Fetch count
+		const avsCount = await prisma.avs.count({
+			where: getAvsFilterQuery(true)
+		})
+
+		// Setup sort if applicable
+		const sortConfig = sortByTvl
+			? { field: 'tvlEth', order: sortByTvl }
+			: sortByTotalStakers
+			  ? { field: 'totalStakers', order: sortByTotalStakers }
+			  : sortByTotalOperators
+				  ? { field: 'totalOperators', order: sortByTotalOperators }
+				  : null
+
+		// If sorting, apply skip/take and fetch relevant addresses
+		const latestTimestamps = sortConfig
+			? await prisma.metricAvsHourly.groupBy({
+					by: ['avsAddress'],
+					_max: {
+						timestamp: true
+					}
+			  })
+			: null
+
+		const avsAddresses = sortConfig
+			? (
+					await prisma.metricAvsHourly.findMany({
+						where: {
+							OR: latestTimestamps?.map((lt) => ({
+								operatorAddress: lt.avsAddress,
+								timestamp: lt._max.timestamp
+							})) as Prisma.Prisma.MetricAvsHourlyWhereInput[]
+						},
+						orderBy: {
+							[sortConfig.field]: sortConfig.order
+						},
+						skip,
+						take
+					})
+			  )?.map((avs) => avs.avsAddress)
+			: null
+
+		// If sorting, fetch records from relevant addresses, else apply skip/take
+		const avsRecords = await prisma.avs.findMany({
+			where: {
+				AND: [
+					avsAddresses
+						? {
+								address: {
+									in: avsAddresses
+								}
+						  }
+						: {},
+					getAvsFilterQuery(true)
+				]
+			},
 			include: {
 				curatedMetadata: withCuratedMetadata,
 				operators: {
@@ -50,8 +109,17 @@ export async function getAllAVS(req: Request, res: Response) {
 						}
 					}
 				}
-			}
+			},
+			...(avsAddresses ? {} : { skip, take })
 		})
+
+		// If sorting, re-order the records
+		if (avsAddresses) {
+			avsRecords.sort(
+				(a, b) =>
+					avsAddresses.indexOf(a.address) - avsAddresses.indexOf(b.address)
+			)
+		}
 
 		const strategyTokenPrices = withTvl ? await fetchStrategyTokenPrices() : {}
 		const strategiesWithSharesUnderlying = withTvl
@@ -128,7 +196,9 @@ export async function getAllAVSAddresses(req: Request, res: Response) {
 		const { skip, take } = queryCheck.data
 
 		// Fetch count and records
-		const avsCount = await prisma.avs.count({ where: getAvsFilterQuery(true) })
+		const avsCount = await prisma.avs.count({
+			where: getAvsFilterQuery(true)
+		})
 		const avsRecords = await prisma.avs.findMany({
 			where: getAvsFilterQuery(true),
 			skip,
