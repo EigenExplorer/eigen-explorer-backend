@@ -9,6 +9,7 @@ import {
 	getStrategiesWithShareUnderlying,
 	sharesToTVL
 } from '../strategies/strategiesController'
+import { EthereumAddressSchema } from '../../schema/zod/schemas/base/ethereumAddress'
 
 /**
  * Route to get a list of all stakers
@@ -80,6 +81,12 @@ export async function getStaker(req: Request, res: Response) {
 	if (!result.success) {
 		return handleAndReturnErrorResponse(req, res, result.error)
 	}
+
+	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	}
+	
 	const { withTvl } = result.data
 
 	try {
@@ -119,6 +126,11 @@ export async function getStakerWithdrawals(req: Request, res: Response) {
 	const result = PaginationQuerySchema.safeParse(req.query)
 	if (!result.success) {
 		return handleAndReturnErrorResponse(req, res, result.error)
+	}
+
+	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
 	}
 
 	const { skip, take } = result.data
@@ -180,6 +192,11 @@ export async function getStakerWithdrawalsQueued(req: Request, res: Response) {
 		return handleAndReturnErrorResponse(req, res, result.error)
 	}
 
+	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	}
+
 	const { skip, take } = result.data
 
 	try {
@@ -230,6 +247,11 @@ export async function getStakerWithdrawalsWithdrawable(
 	const result = PaginationQuerySchema.safeParse(req.query)
 	if (!result.success) {
 		return handleAndReturnErrorResponse(req, res, result.error)
+	}
+
+	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
 	}
 
 	const { skip, take } = result.data
@@ -297,6 +319,11 @@ export async function getStakerWithdrawalsCompleted(
 		return handleAndReturnErrorResponse(req, res, result.error)
 	}
 
+	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	}
+
 	const { skip, take } = result.data
 
 	try {
@@ -358,6 +385,11 @@ export async function getStakerDeposits(req: Request, res: Response) {
 	const result = PaginationQuerySchema.safeParse(req.query)
 	if (!result.success) {
 		return handleAndReturnErrorResponse(req, res, result.error)
+	}
+
+	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
 	}
 
 	const { skip, take } = result.data
