@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express'
+import Prisma from '@prisma/client'
 import prisma from '../../utils/prismaClient'
 import { getContract } from 'viem'
 import { getViemClient } from '../../viem/viemClient'
@@ -13,22 +14,40 @@ import { fetchStrategyTokenPrices } from '../../utils/tokenPrices'
 import { getStrategiesWithShareUnderlying } from '../strategies/strategiesController'
 import { HistoricalCountSchema } from '../../schema/zod/schemas/historicalCountQuery'
 import { EthereumAddressSchema } from '../../schema/zod/schemas/base/ethereumAddress'
+import { fetchCurrentEthPrices } from '../../utils/strategies'
+
+const beaconAddress = '0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0'
+
+/* 
+========================
+====== All Routes ======
+======================== 
+*/
+
+// --- Holistic Routes ---
 
 /**
- * Route to get explorer metrics
+ * Returns all TVL metrics & count metrics for AVS, Operator & Stakers
  *
  * @param req
  * @param res
  */
 export async function getMetrics(req: Request, res: Response) {
+	//TODO: Cleanup
 	try {
-		const [tvlRestaking, tvlBeaconChain, totalAvs, totalOperators, totalStakers] = await Promise.all([
-			doGetTvl(),
+		const [
+			tvlRestaking,
+			tvlBeaconChain,
+			totalAvs,
+			totalOperators,
+			totalStakers
+		] = await Promise.all([
+			doGetTvlRestaking(),
 			doGetTvlBeaconChain(),
 			doGetTotalAvsCount(),
 			doGetTotalOperatorCount(),
 			doGetTotalStakerCount()
-		]);
+		])
 
 		const metrics = {
 			tvlRestaking,
@@ -36,34 +55,59 @@ export async function getMetrics(req: Request, res: Response) {
 			totalAvs,
 			totalOperators,
 			totalStakers
-		};
+		}
 
 		res.send({
-			tvl: (metrics.tvlRestaking ? metrics.tvlRestaking.tvlRestaking : 0) + (metrics.tvlBeaconChain ? metrics.tvlBeaconChain : 0),
+			tvl:
+				(metrics.tvlRestaking ? metrics.tvlRestaking.tvlRestaking.tvl : 0) +
+				(metrics.tvlBeaconChain ? metrics.tvlBeaconChain.tvl : 0),
 			tvlBeaconChain: metrics.tvlBeaconChain,
 			...metrics.tvlRestaking,
 			totalAvs: metrics.totalAvs,
 			totalOperators: metrics.totalOperators,
 			totalStakers: metrics.totalStakers
-		});
-	} catch (error) {
-		handleAndReturnErrorResponse(req, res, error);
-	}
-}
-
-export async function getTvl(req: Request, res: Response) {
-	try {
-		const tvlRestaking = (await doGetTvl()).tvlRestaking
-		const tvlBeaconChain = await doGetTvlBeaconChain()
-
-		res.send({
-			tvl: tvlRestaking + tvlBeaconChain
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
 	}
 }
 
+// --- TVL Routes ---
+
+/**
+ * Returns total EL TVL along with 24h/7d change
+ *
+ * @param req
+ * @param res
+ */
+export async function getTvl(req: Request, res: Response) {
+	try {
+		const tvlRestaking = (await doGetTvlRestaking(false)).tvlRestaking
+		const tvlBeaconChain = await doGetTvlBeaconChain()
+
+		res.send({
+			tvl: tvlRestaking.tvl + tvlBeaconChain.tvl,
+			change24h: {
+				value: tvlRestaking.change24h.value + tvlBeaconChain.change24h.value,
+				percent:
+					tvlRestaking.change24h.percent + tvlBeaconChain.change24h.percent
+			},
+			change7d: {
+				value: tvlRestaking.change7d.value + tvlBeaconChain.change7d.value,
+				percent: tvlRestaking.change7d.percent + tvlBeaconChain.change7d.percent
+			}
+		})
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+/**
+ * Returns Beacon Chain TVL along with 24h/7d change
+ *
+ * @param req
+ * @param res
+ */
 export async function getTvlBeaconChain(req: Request, res: Response) {
 	try {
 		const tvlBeaconChain = await doGetTvlBeaconChain()
@@ -76,9 +120,16 @@ export async function getTvlBeaconChain(req: Request, res: Response) {
 	}
 }
 
+/**
+ * Returns Liquid Staking TVL along with 24h/7d change
+ * Note: This TVL value includes Beacon ETH that's restaked (which is different from TVL Beacon Chain)
+ *
+ * @param req
+ * @param res
+ */
 export async function getTvlRestaking(req: Request, res: Response) {
 	try {
-		const tvlRestaking = await doGetTvl()
+		const tvlRestaking = await doGetTvlRestaking(true)
 
 		res.send({
 			tvl: tvlRestaking.tvlRestaking,
@@ -90,6 +141,12 @@ export async function getTvlRestaking(req: Request, res: Response) {
 	}
 }
 
+/**
+ * Returns strategy TVL along with 24h/7d change for any given strategy address
+ *
+ * @param req
+ * @param res
+ */
 export async function getTvlRestakingByStrategy(req: Request, res: Response) {
 	try {
 		const { strategy } = req.params
@@ -107,9 +164,9 @@ export async function getTvlRestakingByStrategy(req: Request, res: Response) {
 			throw new Error('Invalid strategy.')
 		}
 
-		const tvl = await doGetTvlStrategy(
+		const tvl = await doGetTvlRestaking(true, [
 			getEigenContracts().Strategies[foundStrategy].strategyContract
-		)
+		])
 
 		res.send({
 			...tvl
@@ -119,6 +176,14 @@ export async function getTvlRestakingByStrategy(req: Request, res: Response) {
 	}
 }
 
+// --- Total Routes ---
+
+/**
+ * Returns number of whitelisted AVSs along with 24h/7d change
+ *
+ * @param req
+ * @param res
+ */
 export async function getTotalAvs(req: Request, res: Response) {
 	try {
 		const total = await doGetTotalAvsCount()
@@ -129,6 +194,12 @@ export async function getTotalAvs(req: Request, res: Response) {
 	}
 }
 
+/**
+ * Returns number of Operators along with 24h/7d change
+ *
+ * @param req
+ * @param res
+ */
 export async function getTotalOperators(req: Request, res: Response) {
 	try {
 		const total = await doGetTotalOperatorCount()
@@ -139,6 +210,12 @@ export async function getTotalOperators(req: Request, res: Response) {
 	}
 }
 
+/**
+ * Returns number of Stakers along with 24h/7d change
+ *
+ * @param req
+ * @param res
+ */
 export async function getTotalStakers(req: Request, res: Response) {
 	try {
 		const total = await doGetTotalStakerCount()
@@ -149,6 +226,12 @@ export async function getTotalStakers(req: Request, res: Response) {
 	}
 }
 
+/**
+ * Returns number total, pending and completed Withdrawals
+ *
+ * @param req
+ * @param res
+ */
 export async function getTotalWithdrawals(req: Request, res: Response) {
 	try {
 		const total = await doGetTotalWithdrawals()
@@ -159,6 +242,12 @@ export async function getTotalWithdrawals(req: Request, res: Response) {
 	}
 }
 
+/**
+ * Returns number total Deposits
+ *
+ * @param req
+ * @param res
+ */
 export async function getTotalDeposits(req: Request, res: Response) {
 	try {
 		const total = await doGetTotalDeposits()
@@ -171,6 +260,14 @@ export async function getTotalDeposits(req: Request, res: Response) {
 	}
 }
 
+// --- Historical Count Routes ---
+
+/**
+ * Returns total number of whitelisted AVSs in historical format
+ *
+ * @param req
+ * @param res
+ */
 export async function getHistoricalAvsCount(req: Request, res: Response) {
 	const paramCheck = HistoricalCountSchema.safeParse(req.query)
 	if (!paramCheck.success) {
@@ -192,6 +289,12 @@ export async function getHistoricalAvsCount(req: Request, res: Response) {
 	}
 }
 
+/**
+ * Returns total number of Operators in historical format
+ *
+ * @param req
+ * @param res
+ */
 export async function getHistoricalOperatorCount(req: Request, res: Response) {
 	const paramCheck = HistoricalCountSchema.safeParse(req.query)
 	if (!paramCheck.success) {
@@ -213,6 +316,12 @@ export async function getHistoricalOperatorCount(req: Request, res: Response) {
 	}
 }
 
+/**
+ * Returns total number of Stakers in historical format
+ *
+ * @param req
+ * @param res
+ */
 export async function getHistoricalStakerCount(req: Request, res: Response) {
 	const paramCheck = HistoricalCountSchema.safeParse(req.query)
 	if (!paramCheck.success) {
@@ -234,6 +343,71 @@ export async function getHistoricalStakerCount(req: Request, res: Response) {
 	}
 }
 
+/**
+ * Returns total number of queued withdrawals in historical format
+ *
+ * @param req
+ * @param res
+ */
+export async function getHistoricalWithdrawalCount(
+	req: Request,
+	res: Response
+) {
+	const queryCheck = HistoricalCountSchema.safeParse(req.query)
+	if (!queryCheck.success) {
+		return handleAndReturnErrorResponse(req, res, queryCheck.error)
+	}
+
+	try {
+		const { frequency, variant, startAt, endAt } = queryCheck.data
+		const data = await doGetHistoricalCount(
+			'withdrawalQueued',
+			startAt,
+			endAt,
+			frequency,
+			variant
+		)
+		res.status(200).send({ data })
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+/**
+ * Returns total number of deposits in historical format
+ *
+ * @param req
+ * @param res
+ */
+export async function getHistoricalDepositCount(req: Request, res: Response) {
+	const queryCheck = HistoricalCountSchema.safeParse(req.query)
+	if (!queryCheck.success) {
+		return handleAndReturnErrorResponse(req, res, queryCheck.error)
+	}
+
+	try {
+		const { frequency, variant, startAt, endAt } = queryCheck.data
+		const data = await doGetHistoricalCount(
+			'deposit',
+			startAt,
+			endAt,
+			frequency,
+			variant
+		)
+		res.status(200).send({ data })
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+// --- Historical Aggregate Routes ---
+
+/**
+ * Returns TVL in ETH, totalOperators and totalStakers for a given whiteliested AVS in historical format
+ *
+ * @param req
+ * @param res
+ */
 export async function getHistoricalAvsAggregate(req: Request, res: Response) {
 	const queryCheck = HistoricalCountSchema.safeParse(req.query)
 	if (!queryCheck.success) {
@@ -261,6 +435,12 @@ export async function getHistoricalAvsAggregate(req: Request, res: Response) {
 	}
 }
 
+/**
+ * Returns TVL in ETH, totalAvs and totalStakers for a given Operator in historical format
+ *
+ * @param req
+ * @param res
+ */
 export async function getHistoricalOperatorsAggregate(
 	req: Request,
 	res: Response
@@ -291,6 +471,14 @@ export async function getHistoricalOperatorsAggregate(
 	}
 }
 
+// --- Historical TVL Routes ---
+
+/**
+ * Returns total EL TVL in historical format
+ *
+ * @param req
+ * @param res
+ */
 export async function getHistoricalTvl(req: Request, res: Response) {
 	const queryCheck = HistoricalCountSchema.safeParse(req.query)
 	if (!queryCheck.success) {
@@ -306,6 +494,12 @@ export async function getHistoricalTvl(req: Request, res: Response) {
 	}
 }
 
+/**
+ * Returns total Beacon Chain TVL in historical format
+ *
+ * @param req
+ * @param res
+ */
 export async function getHistoricalTvlBeaconChain(req: Request, res: Response) {
 	const queryCheck = HistoricalCountSchema.safeParse(req.query)
 	if (!queryCheck.success) {
@@ -327,6 +521,12 @@ export async function getHistoricalTvlBeaconChain(req: Request, res: Response) {
 	}
 }
 
+/**
+ * Returns Liquid Staking TVL for a given strategy in historical format
+ *
+ * @param req
+ * @param res
+ */
 export async function getHistoricalTvlRestaking(req: Request, res: Response) {
 	const queryCheck = HistoricalCountSchema.safeParse(req.query)
 	if (!queryCheck.success) {
@@ -353,6 +553,12 @@ export async function getHistoricalTvlRestaking(req: Request, res: Response) {
 	}
 }
 
+/**
+ * Returns completed withdrawals TVL (net outflow from EL) in historical format
+ *
+ * @param req
+ * @param res
+ */
 export async function getHistoricalWithdrawalAggregate(
 	req: Request,
 	res: Response
@@ -377,6 +583,12 @@ export async function getHistoricalWithdrawalAggregate(
 	}
 }
 
+/**
+ * Returns deposits TVL in historical format
+ *
+ * @param req
+ * @param res
+ */
 export async function getHistoricalDepositAggregate(
 	req: Request,
 	res: Response
@@ -401,166 +613,150 @@ export async function getHistoricalDepositAggregate(
 	}
 }
 
-export async function getHistoricalWithdrawalCount(
-	req: Request,
-	res: Response
+/*
+========================
+=== Helper Functions ===
+========================
+*/
+
+// --- TVL Routes ---
+
+/**
+ * For a given list of strategies, processes total TVL, overall 24h/7d change and individual strategy tvl
+ * If `strategies` is not passed, all liquid staking strategies are considered
+ * `excludeBeaconFromTvl` excludes restaked Beacon ETH when calculating total TVL. Typically used when this function is called alongside getTvlBeaconChain() to avoid double-counting
+ * Used by getMetrics(), getTvl() & getTvlRestaking()
+ *
+ * @param strategies
+ * @param excludeBeaconFromTvl
+ * @returns
+ */
+async function doGetTvlRestaking(
+	includeBeaconInTvl = true,
+	strategies?: string[]
 ) {
-	const queryCheck = HistoricalCountSchema.safeParse(req.query)
-	if (!queryCheck.success) {
-		return handleAndReturnErrorResponse(req, res, queryCheck.error)
-	}
+	const timeOffsets = ['', '24h', '7d']
+	const [strategyRecords, strategyPriceMap] = await Promise.all([
+		fetchLatestStrategyData(strategies),
+		fetchCurrentEthPrices()
+	])
 
-	try {
-		const { frequency, variant, startAt, endAt } = queryCheck.data
-		const data = await doGetHistoricalCount(
-			'withdrawalQueued',
-			startAt,
-			endAt,
-			frequency,
-			variant
-		)
-		res.status(200).send({ data })
-	} catch (error) {
-		handleAndReturnErrorResponse(req, res, error)
-	}
-}
+	const {
+		totalTvl,
+		totalTvl24hOffset,
+		totalTvl7dOffset,
+		tvlStrategies,
+		tvlStrategiesEth
+	} = Object.entries(strategyRecords).reduce(
+		(acc, [strategyAddress, records]) => {
+			const ethPrice = strategyPriceMap.get(strategyAddress) || 0
+			const addToTvl = includeBeaconInTvl || strategyAddress !== beaconAddress // Only use Beacon TVL in total TVL & change calc if required
 
-export async function getHistoricalDepositCount(req: Request, res: Response) {
-	const queryCheck = HistoricalCountSchema.safeParse(req.query)
-	if (!queryCheck.success) {
-		return handleAndReturnErrorResponse(req, res, queryCheck.error)
-	}
+			records.forEach((record, index) => {
+				const tvlEth = Number(record.tvl) * ethPrice
+				if (index === 0) {
+					if (addToTvl) acc.totalTvl += tvlEth
+					acc.tvlStrategies[strategyAddress] = Number(record.tvl)
+					acc.tvlStrategiesEth[strategyAddress] = tvlEth
+				} else if (index === 1 && addToTvl) {
+					acc.totalTvl24hOffset += tvlEth
+				} else if (index === 2 && addToTvl) {
+					acc.totalTvl7dOffset += tvlEth
+				}
+			})
 
-	try {
-		const { frequency, variant, startAt, endAt } = queryCheck.data
-		const data = await doGetHistoricalCount(
-			'deposit',
-			startAt,
-			endAt,
-			frequency,
-			variant
-		)
-		res.status(200).send({ data })
-	} catch (error) {
-		handleAndReturnErrorResponse(req, res, error)
-	}
-}
-
-// ================================================
-
-async function doGetTvl() {
-	let tvlRestaking = 0
-
-	const strategyKeys = Object.keys(getEigenContracts().Strategies)
-	const strategiesContracts = strategyKeys.map((s) =>
-		getContract({
-			address: getEigenContracts().Strategies[s].strategyContract,
-			abi: strategyAbi,
-			client: getViemClient()
-		})
+			return acc
+		},
+		{
+			totalTvl: 0,
+			totalTvl24hOffset: 0,
+			totalTvl7dOffset: 0,
+			tvlStrategies: {},
+			tvlStrategiesEth: {}
+		}
 	)
 
-	const tvlStrategies = {}
-	const tvlStrategiesEth: Map<keyof EigenStrategiesContractAddress, number> =
-		new Map(
-			strategyKeys.map((sk) => [sk as keyof EigenStrategiesContractAddress, 0])
-		)
+	return {
+		tvlRestaking: calculateTvlChanges(
+			totalTvl,
+			totalTvl24hOffset,
+			totalTvl7dOffset
+		),
+		tvlStrategies,
+		tvlStrategiesEth
+	}
 
-	try {
-		const totalShares = await Promise.all(
-			strategiesContracts.map(async (sc, i) => ({
-				strategyKey: strategyKeys[i],
-				strategyAddress: sc.address.toLowerCase(),
-				shares: (await sc.read.totalShares()) as string
-			}))
-		)
-
-		const strategiesWithSharesUnderlying =
-			await getStrategiesWithShareUnderlying()
-		const strategyTokenPrices = await fetchStrategyTokenPrices()
-
-		totalShares.map((s) => {
-			const strategyTokenPrice = Object.values(strategyTokenPrices).find(
-				(stp) =>
-					stp.strategyAddress.toLowerCase() === s.strategyAddress.toLowerCase()
-			)
-			const sharesUnderlying = strategiesWithSharesUnderlying.find(
-				(su) =>
-					su.strategyAddress.toLowerCase() === s.strategyAddress.toLowerCase()
-			)
-
-			if (sharesUnderlying) {
-				const strategyShares =
-					Number(
-						(BigInt(s.shares) * BigInt(sharesUnderlying.sharesToUnderlying)) /
-							BigInt(1e18)
-					) / 1e18
-
-				tvlStrategies[s.strategyKey] = strategyShares
-
-				if (strategyTokenPrice) {
-					const strategyTvl = strategyShares * strategyTokenPrice.eth
-
-					tvlStrategiesEth.set(
-						s.strategyKey as keyof EigenStrategiesContractAddress,
-						strategyTvl
-					)
-
-					tvlRestaking += strategyTvl
-				}
+	// Function to get restaking data for each timeOffset for all relevant strategies
+	async function fetchLatestStrategyData(strategies?: string[]) {
+		const exactTimestamps = await prisma.metricStrategyHourly.groupBy({
+			by: ['strategyAddress'],
+			_max: {
+				timestamp: true
+			},
+			where: {
+				AND: [
+					strategies ? { strategyAddress: { in: strategies } } : {},
+					{
+						OR: timeOffsets.map((tf) => ({
+							timestamp: { lte: getTimestamp(tf) }
+						}))
+					}
+				]
 			}
 		})
-	} catch (error) {}
 
-	return {
-		tvlRestaking,
-		tvlStrategies,
-		tvlStrategiesEth: Object.fromEntries(tvlStrategiesEth.entries())
-	}
-}
-
-async function doGetTvlStrategy(strategy: `0x${string}`) {
-	let tvl = 0
-	let tvlEth = 0
-
-	try {
-		const strategyTokenPrices = await fetchStrategyTokenPrices()
-		const strategyTokenPrice = Object.values(strategyTokenPrices).find(
-			(stp) => stp.strategyAddress.toLowerCase() === strategy.toLowerCase()
-		)
-
-		const contract = getContract({
-			address: strategy,
-			abi: strategyAbi,
-			client: getViemClient()
+		const strategyRecords = await prisma.metricStrategyHourly.findMany({
+			where: {
+				OR: exactTimestamps.flatMap((lt) =>
+					timeOffsets.map((tf) => ({
+						strategyAddress: lt.strategyAddress,
+						timestamp: {
+							lte: getTimestamp(tf),
+							...(lt._max.timestamp ? { gte: lt._max.timestamp } : {})
+						}
+					}))
+				)
+			},
+			orderBy: [{ strategyAddress: 'asc' }, { timestamp: 'desc' }]
 		})
 
-		tvl =
-			Number(
-				await contract.read.sharesToUnderlyingView([
-					await contract.read.totalShares()
-				])
-			) / 1e18
-
-		if (strategyTokenPrice) {
-			tvlEth = tvl * strategyTokenPrice.eth
-		}
-	} catch (error) {}
-
-	return {
-		tvl,
-		tvlEth
+		return strategyRecords.reduce(
+			(acc, record) => {
+				if (!acc[record.strategyAddress]) {
+					acc[record.strategyAddress] = []
+				}
+				acc[record.strategyAddress].push(record)
+				return acc
+			},
+			{} as Record<string, typeof strategyRecords>
+		)
 	}
 }
 
+/**
+ * Processes total TVL and 24h/7d change for Beacon Chain ETH
+ * Used by getMetrics() & getBeaconChainTvl()
+ *
+ * @returns
+ */
 async function doGetTvlBeaconChain() {
-	const totalValidators = await prisma.validator.aggregate({
-		_sum: {
-			balance: true
-		}
+	const timeOffsets = ['', '24h', '7d']
+
+	const beaconRecords = await prisma.metricEigenPodsHourly.findMany({
+		where: {
+			OR: timeOffsets.map((tf) => ({
+				timestamp: { lte: getTimestamp(tf) }
+			}))
+		},
+		orderBy: { timestamp: 'desc' },
+		take: 3
 	})
 
-	return Number(totalValidators._sum.balance) / 1e9
+	const [currentTvl, tvl24hOffset, tvl7dOffset] = beaconRecords.map((record) =>
+		Number(record?.tvl ?? 0)
+	)
+
+	return calculateTvlChanges(currentTvl, tvl24hOffset, tvl7dOffset)
 }
 
 async function doGetTotalAvsCount() {
@@ -1210,8 +1406,84 @@ async function doGetHistoricalAggregate(
 	return results
 }
 
-// Trim timestamp
+/*
+=========================
+=== Utility Functions ===
+=========================
+*/
+
+/**
+ * Retrieves a Date object set to now or in the past basis an offset
+ *
+ * @param offset
+ * @returns
+ */
+function getTimestamp(offset?: string) {
+	switch (offset) {
+		case '24h': {
+			const now = new Date()
+			return new Date(new Date().setUTCHours(now.getUTCHours() - 24))
+		}
+		case '7d': {
+			const now = new Date()
+			return new Date(new Date().setUTCDate(now.getUTCDate() - 7))
+		}
+		default:
+			return new Date()
+	}
+}
+
+/**
+ * Returns offset values to calcuate consecutive timestamps in historical routes
+ *
+ * @param frequency
+ * @returns
+ */
+function getOffsetInMs(frequency: string) {
+	switch (frequency) {
+		case '1h':
+			return 3600000
+		case '1d':
+			return 86400000
+		case '7d':
+			return 604800000
+		default:
+			return 3600000
+	}
+}
+
+/**
+ * Sets any date to the beginning of the hour
+ *
+ * @param date
+ * @returns
+ */
 function resetTime(date: Date) {
 	date.setUTCMinutes(0, 0, 0)
 	return date
+}
+
+/**
+ * Calculates 24h/7d change and returns according to historical format
+ *
+ * @param currentTvl
+ * @param tvl24hOffset
+ * @param tvl7dOffset
+ * @returns
+ */
+function calculateTvlChanges(
+	currentTvl: number,
+	tvl24hOffset: number,
+	tvl7dOffset: number
+) {
+	const calculateChange = (current: number, previous: number) => ({
+		value: current - previous,
+		percent: previous === 0 ? 0 : (current - previous) / previous
+	})
+
+	return {
+		tvl: currentTvl,
+		change24h: calculateChange(currentTvl, tvl24hOffset),
+		change7d: calculateChange(currentTvl, tvl7dOffset)
+	}
 }
