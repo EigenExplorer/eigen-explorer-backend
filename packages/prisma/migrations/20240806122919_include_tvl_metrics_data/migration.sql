@@ -2,15 +2,25 @@
 CREATE TABLE "MetricAvsHourly" (
     "id" SERIAL NOT NULL,
     "avsAddress" TEXT NOT NULL,
-    "tvlEth" DECIMAL(20,8) NOT NULL,
     "totalOperators" INTEGER NOT NULL,
     "totalStakers" INTEGER NOT NULL,
-    "changeTvlEth" DECIMAL(20,8) NOT NULL,
     "changeOperators" INTEGER NOT NULL,
     "changeStakers" INTEGER NOT NULL,
     "timestamp" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "MetricAvsHourly_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "MetricAvsStrategyHourly" (
+    "id" SERIAL NOT NULL,
+    "avsAddress" TEXT NOT NULL,
+    "strategyAddress" TEXT NOT NULL,
+    "tvl" DECIMAL(20,8) NOT NULL,
+    "changeTvl" DECIMAL(20,8) NOT NULL,
+    "timestamp" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "MetricAvsStrategyHourly_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -69,6 +79,15 @@ CREATE INDEX "MetricAvsHourly_timestamp_idx" ON "MetricAvsHourly"("timestamp");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "MetricAvsHourly_avsAddress_timestamp_key" ON "MetricAvsHourly"("avsAddress", "timestamp");
+
+-- CreateIndex
+CREATE INDEX "MetricAvsStrategyHourly_avsAddress_strategyAddress_idx" ON "MetricAvsStrategyHourly"("avsAddress", "strategyAddress");
+
+-- CreateIndex
+CREATE INDEX "MetricAvsStrategyHourly_timestamp_idx" ON "MetricAvsStrategyHourly"("timestamp");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "MetricAvsStrategyHourly_avsAddress_strategyAddress_timestam_key" ON "MetricAvsStrategyHourly"("avsAddress", "strategyAddress", "timestamp");
 
 -- CreateIndex
 CREATE INDEX "MetricOperatorHourly_operatorAddress_idx" ON "MetricOperatorHourly"("operatorAddress");

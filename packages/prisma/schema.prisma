@@ -228,10 +228,8 @@ model MetricAvsHourly {
   id         Int    @id @default(autoincrement())
   avsAddress String
 
-  tvlEth          Decimal @db.Decimal(20, 8)
   totalOperators  Int
   totalStakers    Int
-  changeTvlEth    Decimal @db.Decimal(20, 8)
   changeOperators Int
   changeStakers   Int
 
@@ -239,6 +237,21 @@ model MetricAvsHourly {
 
   @@unique([avsAddress, timestamp])
   @@index([avsAddress])
+  @@index([timestamp])
+}
+
+model MetricAvsStrategyHourly {
+  id              Int    @id @default(autoincrement())
+  avsAddress      String
+  strategyAddress String
+
+  tvl       Decimal @db.Decimal(20, 8)
+  changeTvl Decimal @db.Decimal(20, 8)
+
+  timestamp DateTime
+
+  @@unique([avsAddress, strategyAddress, timestamp])
+  @@index([avsAddress, strategyAddress])
   @@index([timestamp])
 }
 
