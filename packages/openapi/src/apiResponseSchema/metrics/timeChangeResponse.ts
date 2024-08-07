@@ -11,7 +11,7 @@ const Change7DaysResponseSchema = z.object({
 });
 
 export const TotalAvsSchema = z.object({
-    totalAvs: z
+    total: z
         .number()
         .describe('The total number of AVS registered')
         .openapi({ example: 1000000 }),
@@ -20,7 +20,7 @@ export const TotalAvsSchema = z.object({
 });
 
 export const TotalOperatorsSchema = z.object({
-    totalOperators: z
+    total: z
         .number()
         .describe('The total number of AVS operators registered')
         .openapi({ example: 1000000 }),
@@ -29,12 +29,12 @@ export const TotalOperatorsSchema = z.object({
 });
 
 export const TotalStakersSchema = z.object({
-    totalStakers: z
+    total: z
         .number()
         .describe('The total number of AVS stakers registered')
         .openapi({ example: 1000000 }),
-        change24h:Change24HoursResponseSchema,
-        change7d:Change7DaysResponseSchema
+    change24h:Change24HoursResponseSchema,
+    change7d:Change7DaysResponseSchema
 });
 
 export const TotalDepositsSchema = z.object({

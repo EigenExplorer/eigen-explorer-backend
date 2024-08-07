@@ -140,7 +140,7 @@
                     "totalAVS": {
                       "type": "object",
                       "properties": {
-                        "totalAvs": {
+                        "total": {
                           "type": "number",
                           "description": "The total number of AVS registered",
                           "example": 1000000
@@ -181,7 +181,7 @@
                         }
                       },
                       "required": [
-                        "totalAvs",
+                        "total",
                         "change24h",
                         "change7d"
                       ]
@@ -189,7 +189,7 @@
                     "totalOperators": {
                       "type": "object",
                       "properties": {
-                        "totalOperators": {
+                        "total": {
                           "type": "number",
                           "description": "The total number of AVS operators registered",
                           "example": 1000000
@@ -230,7 +230,7 @@
                         }
                       },
                       "required": [
-                        "totalOperators",
+                        "total",
                         "change24h",
                         "change7d"
                       ]
@@ -238,7 +238,7 @@
                     "totalStakers": {
                       "type": "object",
                       "properties": {
-                        "totalStakers": {
+                        "total": {
                           "type": "number",
                           "description": "The total number of AVS stakers registered",
                           "example": 1000000
@@ -279,7 +279,7 @@
                         }
                       },
                       "required": [
-                        "totalStakers",
+                        "total",
                         "change24h",
                         "change7d"
                       ]
@@ -592,7 +592,7 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "totalAvs": {
+                    "total": {
                       "type": "number",
                       "description": "The total number of AVS registered",
                       "example": 1000000
@@ -633,7 +633,7 @@
                     }
                   },
                   "required": [
-                    "totalAvs",
+                    "total",
                     "change24h",
                     "change7d"
                   ]
@@ -681,7 +681,7 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "totalOperators": {
+                    "total": {
                       "type": "number",
                       "description": "The total number of AVS operators registered",
                       "example": 1000000
@@ -722,7 +722,7 @@
                     }
                   },
                   "required": [
-                    "totalOperators",
+                    "total",
                     "change24h",
                     "change7d"
                   ]
@@ -770,7 +770,7 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "totalStakers": {
+                    "total": {
                       "type": "number",
                       "description": "The total number of AVS stakers registered",
                       "example": 1000000
@@ -811,7 +811,7 @@
                     }
                   },
                   "required": [
-                    "totalStakers",
+                    "total",
                     "change24h",
                     "change7d"
                   ]
