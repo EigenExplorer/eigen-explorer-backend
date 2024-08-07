@@ -138,19 +138,151 @@
                       "example": 1000000
                     },
                     "totalAVS": {
-                      "type": "number",
-                      "description": "The total number of AVS",
-                      "example": 10
+                      "type": "object",
+                      "properties": {
+                        "totalAvs": {
+                          "type": "number",
+                          "description": "The total number of AVS registered",
+                          "example": 1000000
+                        },
+                        "change24h": {
+                          "type": "object",
+                          "properties": {
+                            "value": {
+                              "type": "number",
+                              "example": 10
+                            },
+                            "percent": {
+                              "type": "number",
+                              "example": 0.01
+                            }
+                          },
+                          "required": [
+                            "value",
+                            "percent"
+                          ]
+                        },
+                        "change7d": {
+                          "type": "object",
+                          "properties": {
+                            "value": {
+                              "type": "number",
+                              "example": 10
+                            },
+                            "percent": {
+                              "type": "number",
+                              "example": 0.01
+                            }
+                          },
+                          "required": [
+                            "value",
+                            "percent"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "totalAvs",
+                        "change24h",
+                        "change7d"
+                      ]
                     },
                     "totalOperators": {
-                      "type": "number",
-                      "description": "The total number of operators",
-                      "example": 10
+                      "type": "object",
+                      "properties": {
+                        "totalOperators": {
+                          "type": "number",
+                          "description": "The total number of AVS operators registered",
+                          "example": 1000000
+                        },
+                        "change24h": {
+                          "type": "object",
+                          "properties": {
+                            "value": {
+                              "type": "number",
+                              "example": 10
+                            },
+                            "percent": {
+                              "type": "number",
+                              "example": 0.01
+                            }
+                          },
+                          "required": [
+                            "value",
+                            "percent"
+                          ]
+                        },
+                        "change7d": {
+                          "type": "object",
+                          "properties": {
+                            "value": {
+                              "type": "number",
+                              "example": 10
+                            },
+                            "percent": {
+                              "type": "number",
+                              "example": 0.01
+                            }
+                          },
+                          "required": [
+                            "value",
+                            "percent"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "totalOperators",
+                        "change24h",
+                        "change7d"
+                      ]
                     },
                     "totalStakers": {
-                      "type": "number",
-                      "description": "The total number of stakers",
-                      "example": 10
+                      "type": "object",
+                      "properties": {
+                        "totalStakers": {
+                          "type": "number",
+                          "description": "The total number of AVS stakers registered",
+                          "example": 1000000
+                        },
+                        "change24h": {
+                          "type": "object",
+                          "properties": {
+                            "value": {
+                              "type": "number",
+                              "example": 10
+                            },
+                            "percent": {
+                              "type": "number",
+                              "example": 0.01
+                            }
+                          },
+                          "required": [
+                            "value",
+                            "percent"
+                          ]
+                        },
+                        "change7d": {
+                          "type": "object",
+                          "properties": {
+                            "value": {
+                              "type": "number",
+                              "example": 10
+                            },
+                            "percent": {
+                              "type": "number",
+                              "example": 0.01
+                            }
+                          },
+                          "required": [
+                            "value",
+                            "percent"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "totalStakers",
+                        "change24h",
+                        "change7d"
+                      ]
                     }
                   },
                   "required": [
