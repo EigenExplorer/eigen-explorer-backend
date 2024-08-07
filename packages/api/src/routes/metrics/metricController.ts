@@ -27,6 +27,7 @@ const beaconAddress = '0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0'
 // --- Holistic Routes ---
 
 /**
+ * Function for route /
  * Returns all TVL metrics & count metrics for AVS, Operator & Stakers
  *
  * @param req
@@ -75,6 +76,7 @@ export async function getMetrics(req: Request, res: Response) {
 // --- TVL Routes ---
 
 /**
+ * Function for route /tvl
  * Returns total EL TVL along with 24h/7d change
  *
  * @param req
@@ -103,6 +105,7 @@ export async function getTvl(req: Request, res: Response) {
 }
 
 /**
+ * Function for route /tvl/beacon-chain
  * Returns Beacon Chain TVL along with 24h/7d change
  *
  * @param req
@@ -121,6 +124,7 @@ export async function getTvlBeaconChain(req: Request, res: Response) {
 }
 
 /**
+ * Function for route /tvl/restaking
  * Returns Liquid Staking TVL along with 24h/7d change
  * Note: This TVL value includes Beacon ETH that's restaked (which is different from TVL Beacon Chain)
  *
@@ -142,6 +146,7 @@ export async function getTvlRestaking(req: Request, res: Response) {
 }
 
 /**
+ * Function for route /tvl/restaking/:strategy
  * Returns strategy TVL along with 24h/7d change for any given strategy address
  *
  * @param req
@@ -179,6 +184,7 @@ export async function getTvlRestakingByStrategy(req: Request, res: Response) {
 // --- Total Routes ---
 
 /**
+ * Function for route /total-avs
  * Returns number of whitelisted AVSs along with 24h/7d change
  *
  * @param req
@@ -195,6 +201,7 @@ export async function getTotalAvs(req: Request, res: Response) {
 }
 
 /**
+ * Function for route /total-operators
  * Returns number of Operators along with 24h/7d change
  *
  * @param req
@@ -211,6 +218,7 @@ export async function getTotalOperators(req: Request, res: Response) {
 }
 
 /**
+ * Function for route /total-stakers
  * Returns number of Stakers along with 24h/7d change
  *
  * @param req
@@ -227,6 +235,7 @@ export async function getTotalStakers(req: Request, res: Response) {
 }
 
 /**
+ * Function for route /total-withdrawals
  * Returns number total, pending and completed Withdrawals
  *
  * @param req
@@ -243,6 +252,7 @@ export async function getTotalWithdrawals(req: Request, res: Response) {
 }
 
 /**
+ * Function for route /total-deposits
  * Returns number total Deposits
  *
  * @param req
@@ -263,6 +273,7 @@ export async function getTotalDeposits(req: Request, res: Response) {
 // --- Historical Count Routes ---
 
 /**
+ * Function for route /historical/count-avs
  * Returns total number of whitelisted AVSs in historical format
  *
  * @param req
@@ -290,6 +301,7 @@ export async function getHistoricalAvsCount(req: Request, res: Response) {
 }
 
 /**
+ * Function for route /historical/count-operators
  * Returns total number of Operators in historical format
  *
  * @param req
@@ -317,6 +329,7 @@ export async function getHistoricalOperatorCount(req: Request, res: Response) {
 }
 
 /**
+ * Function for route /historical/count-stakers
  * Returns total number of Stakers in historical format
  *
  * @param req
@@ -344,6 +357,7 @@ export async function getHistoricalStakerCount(req: Request, res: Response) {
 }
 
 /**
+ * Function for route /historical/count-withdrawals
  * Returns total number of queued withdrawals in historical format
  *
  * @param req
@@ -374,6 +388,7 @@ export async function getHistoricalWithdrawalCount(
 }
 
 /**
+ * Function for route /historical/count-deposits
  * Returns total number of deposits in historical format
  *
  * @param req
@@ -403,6 +418,7 @@ export async function getHistoricalDepositCount(req: Request, res: Response) {
 // --- Historical Aggregate Routes ---
 
 /**
+ * Function for route /historical/avs/:address
  * Returns TVL in ETH, totalOperators and totalStakers for a given whiteliested AVS in historical format
  *
  * @param req
@@ -436,6 +452,7 @@ export async function getHistoricalAvsAggregate(req: Request, res: Response) {
 }
 
 /**
+ * Function for route /historical/operators/:address
  * Returns TVL in ETH, totalAvs and totalStakers for a given Operator in historical format
  *
  * @param req
@@ -474,6 +491,7 @@ export async function getHistoricalOperatorsAggregate(
 // --- Historical TVL Routes ---
 
 /**
+ * Function for route /historical/tvl
  * Returns total EL TVL in historical format
  *
  * @param req
@@ -495,6 +513,7 @@ export async function getHistoricalTvl(req: Request, res: Response) {
 }
 
 /**
+ * Function for route /historical/tvl/beacon-chain
  * Returns total Beacon Chain TVL in historical format
  *
  * @param req
@@ -522,6 +541,7 @@ export async function getHistoricalTvlBeaconChain(req: Request, res: Response) {
 }
 
 /**
+ * Function for route /historical/restaking/:address
  * Returns Liquid Staking TVL for a given strategy in historical format
  *
  * @param req
@@ -554,6 +574,7 @@ export async function getHistoricalTvlRestaking(req: Request, res: Response) {
 }
 
 /**
+ * Function for route /historical/withdrawals
  * Returns completed withdrawals TVL (net outflow from EL) in historical format
  *
  * @param req
@@ -584,6 +605,7 @@ export async function getHistoricalWithdrawalAggregate(
 }
 
 /**
+ * Function for route /historical/deposits
  * Returns deposits TVL in historical format
  *
  * @param req
@@ -759,6 +781,8 @@ async function doGetTvlBeaconChain() {
 	return calculateTvlChanges(currentTvl, tvl24hOffset, tvl7dOffset)
 }
 
+// --- Total Routes ---
+
 async function doGetTotalAvsCount() {
 	const timestampNow = new Date()
 	const timestamp24h = new Date(
@@ -917,6 +941,8 @@ async function doGetTotalDeposits() {
 	return deposits
 }
 
+// --- Historical Count Routes ---
+
 async function doGetHistoricalCount(
 	modelName: string,
 	startAt: string,
@@ -996,6 +1022,8 @@ async function doGetHistoricalCount(
 
 	return results
 }
+
+// --- Historical Aggregate Routes ---
 
 async function doGetHistoricalAvsAggregate(
 	address: string,
@@ -1213,6 +1241,8 @@ async function doGetHistoricalOperatorsAggregate(
 
 	return results
 }
+
+// --- Historical TVL Routes ---
 
 async function doGetHistoricalTvl(
 	startAt: string,
