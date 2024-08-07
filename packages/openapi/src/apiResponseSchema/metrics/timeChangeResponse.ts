@@ -44,17 +44,17 @@ export const TotalDepositsSchema = z.object({
         .openapi({ example: 1000000 })
 });
 
-export const TotalWithdrawlsSchema = z.object({
+export const TotalWithdrawalsSchema = z.object({
     total: z
         .number()
-        .describe('The total number of withdrawls')
+        .describe('The total number of withdrawals')
         .openapi({ example: 1000000 }),
     pending: z
         .number()
-        .describe('The  pending number of withdrawls')
+        .describe('The  pending number of withdrawals')
         .openapi({ example: 1000000 }),
     completed: z
         .number()
-        .describe('The completed number of withdrawls')
+        .describe('The completed number of withdrawals')
         .openapi({ example: 1000000 }),
 });
