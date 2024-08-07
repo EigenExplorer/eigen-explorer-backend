@@ -1906,12 +1906,6 @@
                             "items": {
                               "type": "object",
                               "properties": {
-                                "stakerAddress": {
-                                  "type": "string",
-                                  "pattern": "^0x[a-fA-F0-9]{40}$",
-                                  "description": "The contract address of the staker",
-                                  "example": "0x0000006c21964af0d420af8992851a30fa13c68a"
-                                },
                                 "strategyAddress": {
                                   "type": "string",
                                   "pattern": "^0x[a-fA-F0-9]{40}$",
@@ -1925,7 +1919,6 @@
                                 }
                               },
                               "required": [
-                                "stakerAddress",
                                 "strategyAddress",
                                 "shares"
                               ]
@@ -3453,12 +3446,6 @@
                             "items": {
                               "type": "object",
                               "properties": {
-                                "stakerAddress": {
-                                  "type": "string",
-                                  "pattern": "^0x[a-fA-F0-9]{40}$",
-                                  "description": "The contract address of the staker",
-                                  "example": "0x0000006c21964af0d420af8992851a30fa13c68a"
-                                },
                                 "strategyAddress": {
                                   "type": "string",
                                   "pattern": "^0x[a-fA-F0-9]{40}$",
@@ -3472,7 +3459,6 @@
                                 }
                               },
                               "required": [
-                                "stakerAddress",
                                 "strategyAddress",
                                 "shares"
                               ]
@@ -3704,12 +3690,6 @@
                       "items": {
                         "type": "object",
                         "properties": {
-                          "stakerAddress": {
-                            "type": "string",
-                            "pattern": "^0x[a-fA-F0-9]{40}$",
-                            "description": "The contract address of the staker",
-                            "example": "0x0000006c21964af0d420af8992851a30fa13c68a"
-                          },
                           "strategyAddress": {
                             "type": "string",
                             "pattern": "^0x[a-fA-F0-9]{40}$",
@@ -3723,7 +3703,6 @@
                           }
                         },
                         "required": [
-                          "stakerAddress",
                           "strategyAddress",
                           "shares"
                         ]
