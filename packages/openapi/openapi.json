@@ -3092,11 +3092,6 @@
                               }
                             ]
                           },
-                          "startBlock": {
-                            "type": "number",
-                            "description": "The block number when the withdrawal was queued",
-                            "example": 19912470
-                          },
                           "createdAtBlock": {
                             "type": "number",
                             "description": "The block number when the withdrawal was recorded by EigenExplorer",
@@ -3126,7 +3121,6 @@
                           "delegatedTo",
                           "withdrawerAddress",
                           "shares",
-                          "startBlock",
                           "createdAtBlock",
                           "updatedAtBlock",
                           "createdAt",
@@ -3281,11 +3275,6 @@
                         }
                       ]
                     },
-                    "startBlock": {
-                      "type": "number",
-                      "description": "The block number when the withdrawal was queued",
-                      "example": 19912470
-                    },
                     "createdAtBlock": {
                       "type": "number",
                       "description": "The block number when the withdrawal was recorded by EigenExplorer",
@@ -3315,7 +3304,6 @@
                     "delegatedTo",
                     "withdrawerAddress",
                     "shares",
-                    "startBlock",
                     "createdAtBlock",
                     "updatedAtBlock",
                     "createdAt",
@@ -3937,11 +3925,6 @@
                               }
                             ]
                           },
-                          "startBlock": {
-                            "type": "number",
-                            "description": "The block number when the withdrawal was queued",
-                            "example": 19912470
-                          },
                           "createdAtBlock": {
                             "type": "number",
                             "description": "The block number when the withdrawal was recorded by EigenExplorer",
@@ -3971,7 +3954,6 @@
                           "delegatedTo",
                           "withdrawerAddress",
                           "shares",
-                          "startBlock",
                           "createdAtBlock",
                           "updatedAtBlock",
                           "createdAt",
@@ -4154,11 +4136,6 @@
                               }
                             ]
                           },
-                          "startBlock": {
-                            "type": "number",
-                            "description": "The block number when the withdrawal was queued",
-                            "example": 19912470
-                          },
                           "createdAtBlock": {
                             "type": "number",
                             "description": "The block number when the withdrawal was recorded by EigenExplorer",
@@ -4188,7 +4165,6 @@
                           "delegatedTo",
                           "withdrawerAddress",
                           "shares",
-                          "startBlock",
                           "createdAtBlock",
                           "updatedAtBlock",
                           "createdAt",
@@ -4371,11 +4347,6 @@
                               }
                             ]
                           },
-                          "startBlock": {
-                            "type": "number",
-                            "description": "The block number when the withdrawal was queued",
-                            "example": 19912470
-                          },
                           "createdAtBlock": {
                             "type": "number",
                             "description": "The block number when the withdrawal was recorded by EigenExplorer",
@@ -4405,7 +4376,6 @@
                           "delegatedTo",
                           "withdrawerAddress",
                           "shares",
-                          "startBlock",
                           "createdAtBlock",
                           "updatedAtBlock",
                           "createdAt",
@@ -4588,11 +4558,6 @@
                               }
                             ]
                           },
-                          "startBlock": {
-                            "type": "number",
-                            "description": "The block number when the withdrawal was queued",
-                            "example": 19912470
-                          },
                           "createdAtBlock": {
                             "type": "number",
                             "description": "The block number when the withdrawal was recorded by EigenExplorer",
@@ -4622,7 +4587,6 @@
                           "delegatedTo",
                           "withdrawerAddress",
                           "shares",
-                          "startBlock",
                           "createdAtBlock",
                           "updatedAtBlock",
                           "createdAt",
