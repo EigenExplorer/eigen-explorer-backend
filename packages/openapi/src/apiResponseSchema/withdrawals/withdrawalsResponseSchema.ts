@@ -41,10 +41,6 @@ export const WithdrawalsResponseSchema = z.object({
                 },
             ],
         }),
-    startBlock: z
-        .number()
-        .describe('The block number when the withdrawal was queued')
-        .openapi({ example: 19912470 }),
     createdAtBlock: z
         .number()
         .describe(
