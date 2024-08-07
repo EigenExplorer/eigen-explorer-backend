@@ -5,6 +5,7 @@ import { getStakerWithdrawals } from './getStakerWithdrawals';
 import { getQueuedStakerWithdrawals } from './getQueuedStakerWithdrawals';
 import { getQueuedWithdrawableStakerWithdrawals } from './getQueuedWithdrawableStakerWithdrawals';
 import { getCompletedStakerWithdrawals } from './getCompletedStakerWithdrawals';
+import { getStakerDeposits } from './getStakerDeposits';
 
 export const stakersRoutes: ZodOpenApiPathsObject = {
     '/stakers': { get: getAllStakers },
@@ -20,5 +21,8 @@ export const stakersRoutes: ZodOpenApiPathsObject = {
     },
     '/stakers/{address}/withdrawals/completed': {
         get: getCompletedStakerWithdrawals,
+    },
+    '/stakers/{address}/deposits': {
+        get: getStakerDeposits,
     },
 };

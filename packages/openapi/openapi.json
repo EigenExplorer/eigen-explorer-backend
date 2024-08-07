@@ -4651,6 +4651,168 @@
           }
         }
       }
+    },
+    "/stakers/{address}/deposits": {
+      "get": {
+        "operationId": "getStakerDeposits",
+        "summary": "Retrieve all deposits by staker address",
+        "description": "Returns all deposit data of the requested staker, including the transaction hash, token address, strategy address, shares and other relevant information.",
+        "tags": [
+          "Stakers"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "address",
+            "description": "The address of the staker",
+            "schema": {
+              "type": "string",
+              "pattern": "^0x[a-fA-F0-9]{40}$",
+              "description": "The address of the staker",
+              "example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "skip",
+            "description": "The number of records to skip for pagination",
+            "schema": {
+              "type": "string",
+              "default": "0",
+              "description": "The number of records to skip for pagination",
+              "example": 0
+            }
+          },
+          {
+            "in": "query",
+            "name": "take",
+            "description": "The number of records to return for pagination",
+            "schema": {
+              "type": "string",
+              "default": "12",
+              "description": "The number of records to return for pagination",
+              "example": 12
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The list of deposits.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "transactionHash": {
+                            "type": "string",
+                            "description": "The hash of the transaction",
+                            "example": "0x9d0a355df5a937516dfaed6721b0b461a16b8fad005f66d7dbf56b8a39136297"
+                          },
+                          "stakerAddress": {
+                            "type": "string",
+                            "description": "The address of the staker",
+                            "example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
+                          },
+                          "tokenAddress": {
+                            "type": "string",
+                            "description": "The address of the token",
+                            "example": "0xe95a203b1a91a908f9b9ce46459d101078c2c3cb"
+                          },
+                          "strategyAddress": {
+                            "type": "string",
+                            "description": "The contract address of the restaking strategy",
+                            "example": "0x0fe4f44bee93503346a3ac9ee5a26b130a5796d6"
+                          },
+                          "shares": {
+                            "type": "string",
+                            "description": "The amount of shares held in the strategy",
+                            "example": "40888428658906049"
+                          },
+                          "createdAtBlock": {
+                            "type": "number",
+                            "description": "The block number when the withdrawal was recorded by EigenExplorer",
+                            "example": 19912470
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "description": "The time stamp when the withdrawal was recorded by EigenExplorer",
+                            "example": "2024-07-07T23:53:35.000Z"
+                          }
+                        },
+                        "required": [
+                          "transactionHash",
+                          "stakerAddress",
+                          "tokenAddress",
+                          "strategyAddress",
+                          "shares",
+                          "createdAtBlock",
+                          "createdAt"
+                        ]
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "total": {
+                          "type": "number",
+                          "description": "Total number of records in the database",
+                          "example": 30
+                        },
+                        "skip": {
+                          "type": "number",
+                          "description": "The number of skiped records for this query",
+                          "example": 0
+                        },
+                        "take": {
+                          "type": "number",
+                          "description": "The number of records returned for this query",
+                          "example": 12
+                        }
+                      },
+                      "required": [
+                        "total",
+                        "skip",
+                        "take"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
     }
   },
   "components": {
