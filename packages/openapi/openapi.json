@@ -859,50 +859,26 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "totalWithdrawls": {
+                    "total": {
                       "type": "number",
                       "description": "The total number of withdrawls",
                       "example": 1000000
                     },
-                    "change24h": {
-                      "type": "object",
-                      "properties": {
-                        "value": {
-                          "type": "number",
-                          "example": 10
-                        },
-                        "percent": {
-                          "type": "number",
-                          "example": 0.01
-                        }
-                      },
-                      "required": [
-                        "value",
-                        "percent"
-                      ]
+                    "pending": {
+                      "type": "number",
+                      "description": "The  pending number of withdrawls",
+                      "example": 1000000
                     },
-                    "change7d": {
-                      "type": "object",
-                      "properties": {
-                        "value": {
-                          "type": "number",
-                          "example": 10
-                        },
-                        "percent": {
-                          "type": "number",
-                          "example": 0.01
-                        }
-                      },
-                      "required": [
-                        "value",
-                        "percent"
-                      ]
+                    "completed": {
+                      "type": "number",
+                      "description": "The completed number of withdrawls",
+                      "example": 1000000
                     }
                   },
                   "required": [
-                    "totalWithdrawls",
-                    "change24h",
-                    "change7d"
+                    "total",
+                    "pending",
+                    "completed"
                   ]
                 }
               }
@@ -952,46 +928,10 @@
                       "type": "number",
                       "description": "The total number of deposits",
                       "example": 1000000
-                    },
-                    "change24h": {
-                      "type": "object",
-                      "properties": {
-                        "value": {
-                          "type": "number",
-                          "example": 10
-                        },
-                        "percent": {
-                          "type": "number",
-                          "example": 0.01
-                        }
-                      },
-                      "required": [
-                        "value",
-                        "percent"
-                      ]
-                    },
-                    "change7d": {
-                      "type": "object",
-                      "properties": {
-                        "value": {
-                          "type": "number",
-                          "example": 10
-                        },
-                        "percent": {
-                          "type": "number",
-                          "example": 0.01
-                        }
-                      },
-                      "required": [
-                        "value",
-                        "percent"
-                      ]
                     }
                   },
                   "required": [
-                    "totalDeposits",
-                    "change24h",
-                    "change7d"
+                    "totalDeposits"
                   ]
                 }
               }
