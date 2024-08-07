@@ -1,20 +1,26 @@
 import type { Request, Response } from 'express'
-import Prisma from '@prisma/client'
+import type Prisma from '@prisma/client'
 import prisma from '../../utils/prismaClient'
-import { getContract } from 'viem'
-import { getViemClient } from '../../viem/viemClient'
-import { strategyAbi } from '../../data/abi/strategy'
-import {
-	EigenStrategiesContractAddress,
-	getEigenContracts
-} from '../../data/address'
+import { getEigenContracts } from '../../data/address'
 import { handleAndReturnErrorResponse } from '../../schema/errors'
 import { getAvsFilterQuery } from '../avs/avsController'
-import { fetchStrategyTokenPrices } from '../../utils/tokenPrices'
-import { getStrategiesWithShareUnderlying } from '../strategies/strategiesController'
 import { HistoricalCountSchema } from '../../schema/zod/schemas/historicalCountQuery'
 import { EthereumAddressSchema } from '../../schema/zod/schemas/base/ethereumAddress'
 import { fetchCurrentEthPrices } from '../../utils/strategies'
+
+type HistoricalTvlRecord = {
+	timestamp: string
+	tvlEth: number
+}
+
+type MetricModelMap = {
+	metricEigenPodsHourly: Prisma.MetricEigenPodsHourly
+	metricStrategyHourly: Prisma.MetricStrategyHourly
+	metricDepositHourly: Prisma.MetricDepositHourly
+	metricWithdrawalHourly: Prisma.MetricWithdrawalHourly
+}
+
+type MetricModelName = keyof MetricModelMap
 
 const beaconAddress = '0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0'
 
@@ -43,7 +49,7 @@ export async function getMetrics(req: Request, res: Response) {
 			totalOperators,
 			totalStakers
 		] = await Promise.all([
-			doGetTvlRestaking(),
+			doGetTvlRestaking(false),
 			doGetTvlBeaconChain(),
 			doGetTotalAvsCount(),
 			doGetTotalOperatorCount(),
@@ -169,9 +175,10 @@ export async function getTvlRestakingByStrategy(req: Request, res: Response) {
 			throw new Error('Invalid strategy.')
 		}
 
-		const tvl = await doGetTvlRestaking(true, [
+		const tvl = await doGetTvlRestaking(
+			true,
 			getEigenContracts().Strategies[foundStrategy].strategyContract
-		])
+		)
 
 		res.send({
 			...tvl
@@ -265,6 +272,224 @@ export async function getTotalDeposits(req: Request, res: Response) {
 		res.send({
 			total
 		})
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+// --- Historical TVL Routes ---
+
+/**
+ * Function for route /historical/tvl
+ * Returns total EL TVL in historical format
+ *
+ * @param req
+ * @param res
+ */
+export async function getHistoricalTvl(req: Request, res: Response) {
+	const queryCheck = HistoricalCountSchema.safeParse(req.query)
+	if (!queryCheck.success) {
+		return handleAndReturnErrorResponse(req, res, queryCheck.error)
+	}
+
+	try {
+		const { frequency, variant, startAt, endAt } = queryCheck.data
+		const data = await doGetHistoricalTvlTotal(
+			startAt,
+			endAt,
+			frequency,
+			variant
+		)
+		res.status(200).send({ data })
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+/**
+ * Function for route /historical/tvl/beacon-chain
+ * Returns total Beacon Chain TVL in historical format
+ *
+ * @param req
+ * @param res
+ */
+export async function getHistoricalTvlBeaconChain(req: Request, res: Response) {
+	const queryCheck = HistoricalCountSchema.safeParse(req.query)
+	if (!queryCheck.success) {
+		return handleAndReturnErrorResponse(req, res, queryCheck.error)
+	}
+
+	try {
+		const { frequency, variant, startAt, endAt } = queryCheck.data
+		const data = await doGetHistoricalTvlBeacon(
+			startAt,
+			endAt,
+			frequency,
+			variant
+		)
+		res.status(200).send({ data })
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+/**
+ * Function for route /historical/restaking/:address
+ * Returns Liquid Staking TVL for a given strategy in historical format
+ *
+ * @param req
+ * @param res
+ */
+export async function getHistoricalTvlRestaking(req: Request, res: Response) {
+	const queryCheck = HistoricalCountSchema.safeParse(req.query)
+	if (!queryCheck.success) {
+		return handleAndReturnErrorResponse(req, res, queryCheck.error)
+	}
+	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	}
+
+	try {
+		const { address } = req.params
+		const { frequency, variant, startAt, endAt } = queryCheck.data
+		const data = await doGetHistoricalTvlRestaking(
+			startAt,
+			endAt,
+			frequency,
+			variant,
+			address
+		)
+		res.status(200).send({ data })
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+/**
+ * Function for route /historical/withdrawals
+ * Returns completed withdrawals TVL (net outflow from EL) in historical format
+ *
+ * @param req
+ * @param res
+ */
+export async function getHistoricalTvlWithdrawal(req: Request, res: Response) {
+	const queryCheck = HistoricalCountSchema.safeParse(req.query)
+	if (!queryCheck.success) {
+		return handleAndReturnErrorResponse(req, res, queryCheck.error)
+	}
+
+	try {
+		const { frequency, variant, startAt, endAt } = queryCheck.data
+		const data = await doGetHistoricalTvlWithdrawalDeposit(
+			'withdrawalMetricHourly' as MetricModelName,
+			startAt,
+			endAt,
+			frequency,
+			variant
+		)
+		res.status(200).send({ data })
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+/**
+ * Function for route /historical/deposits
+ * Returns deposits TVL in historical format
+ *
+ * @param req
+ * @param res
+ */
+export async function getHistoricalTvlDeposit(req: Request, res: Response) {
+	const queryCheck = HistoricalCountSchema.safeParse(req.query)
+	if (!queryCheck.success) {
+		return handleAndReturnErrorResponse(req, res, queryCheck.error)
+	}
+
+	try {
+		const { frequency, variant, startAt, endAt } = queryCheck.data
+		const data = await doGetHistoricalTvlWithdrawalDeposit(
+			'depositMetricHourly' as MetricModelName,
+			startAt,
+			endAt,
+			frequency,
+			variant
+		)
+		res.status(200).send({ data })
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+// --- Historical Aggregate Routes ---
+
+/**
+ * Function for route /historical/avs/:address
+ * Returns TVL in ETH, totalOperators and totalStakers for a given whitelisted AVS in historical format
+ *
+ * @param req
+ * @param res
+ */
+export async function getHistoricalAvsAggregate(req: Request, res: Response) {
+	const queryCheck = HistoricalCountSchema.safeParse(req.query)
+	if (!queryCheck.success) {
+		return handleAndReturnErrorResponse(req, res, queryCheck.error)
+	}
+
+	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	}
+
+	try {
+		const { address } = req.params
+		const { frequency, variant, startAt, endAt } = queryCheck.data
+		const data = await doGetHistoricalAvsAggregate(
+			address,
+			startAt,
+			endAt,
+			frequency,
+			variant
+		)
+		res.status(200).send({ data })
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+/**
+ * Function for route /historical/operators/:address
+ * Returns TVL in ETH, totalAvs and totalStakers for a given Operator in historical format
+ *
+ * @param req
+ * @param res
+ */
+export async function getHistoricalOperatorsAggregate(
+	req: Request,
+	res: Response
+) {
+	const queryCheck = HistoricalCountSchema.safeParse(req.query)
+	if (!queryCheck.success) {
+		return handleAndReturnErrorResponse(req, res, queryCheck.error)
+	}
+
+	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	}
+
+	try {
+		const { address } = req.params
+		const { frequency, variant, startAt, endAt } = queryCheck.data
+		const data = await doGetHistoricalOperatorsAggregate(
+			address,
+			startAt,
+			endAt,
+			frequency,
+			variant
+		)
+		res.status(200).send({ data })
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
 	}
@@ -415,251 +640,27 @@ export async function getHistoricalDepositCount(req: Request, res: Response) {
 	}
 }
 
-// --- Historical Aggregate Routes ---
-
-/**
- * Function for route /historical/avs/:address
- * Returns TVL in ETH, totalOperators and totalStakers for a given whiteliested AVS in historical format
- *
- * @param req
- * @param res
- */
-export async function getHistoricalAvsAggregate(req: Request, res: Response) {
-	const queryCheck = HistoricalCountSchema.safeParse(req.query)
-	if (!queryCheck.success) {
-		return handleAndReturnErrorResponse(req, res, queryCheck.error)
-	}
-
-	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
-	if (!paramCheck.success) {
-		return handleAndReturnErrorResponse(req, res, paramCheck.error)
-	}
-
-	try {
-		const { address } = req.params
-		const { frequency, variant, startAt, endAt } = queryCheck.data
-		const data = await doGetHistoricalAvsAggregate(
-			address,
-			startAt,
-			endAt,
-			frequency,
-			variant
-		)
-		res.status(200).send({ data })
-	} catch (error) {
-		handleAndReturnErrorResponse(req, res, error)
-	}
-}
-
-/**
- * Function for route /historical/operators/:address
- * Returns TVL in ETH, totalAvs and totalStakers for a given Operator in historical format
- *
- * @param req
- * @param res
- */
-export async function getHistoricalOperatorsAggregate(
-	req: Request,
-	res: Response
-) {
-	const queryCheck = HistoricalCountSchema.safeParse(req.query)
-	if (!queryCheck.success) {
-		return handleAndReturnErrorResponse(req, res, queryCheck.error)
-	}
-
-	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
-	if (!paramCheck.success) {
-		return handleAndReturnErrorResponse(req, res, paramCheck.error)
-	}
-
-	try {
-		const { address } = req.params
-		const { frequency, variant, startAt, endAt } = queryCheck.data
-		const data = await doGetHistoricalOperatorsAggregate(
-			address,
-			startAt,
-			endAt,
-			frequency,
-			variant
-		)
-		res.status(200).send({ data })
-	} catch (error) {
-		handleAndReturnErrorResponse(req, res, error)
-	}
-}
-
-// --- Historical TVL Routes ---
-
-/**
- * Function for route /historical/tvl
- * Returns total EL TVL in historical format
- *
- * @param req
- * @param res
- */
-export async function getHistoricalTvl(req: Request, res: Response) {
-	const queryCheck = HistoricalCountSchema.safeParse(req.query)
-	if (!queryCheck.success) {
-		return handleAndReturnErrorResponse(req, res, queryCheck.error)
-	}
-
-	try {
-		const { frequency, variant, startAt, endAt } = queryCheck.data
-		const data = await doGetHistoricalTvl(startAt, endAt, frequency, variant)
-		res.status(200).send({ data })
-	} catch (error) {
-		handleAndReturnErrorResponse(req, res, error)
-	}
-}
-
-/**
- * Function for route /historical/tvl/beacon-chain
- * Returns total Beacon Chain TVL in historical format
- *
- * @param req
- * @param res
- */
-export async function getHistoricalTvlBeaconChain(req: Request, res: Response) {
-	const queryCheck = HistoricalCountSchema.safeParse(req.query)
-	if (!queryCheck.success) {
-		return handleAndReturnErrorResponse(req, res, queryCheck.error)
-	}
-
-	try {
-		const { frequency, variant, startAt, endAt } = queryCheck.data
-		const data = await doGetHistoricalTvl(
-			startAt,
-			endAt,
-			frequency,
-			variant,
-			'0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0'
-		)
-		res.status(200).send({ data })
-	} catch (error) {
-		handleAndReturnErrorResponse(req, res, error)
-	}
-}
-
-/**
- * Function for route /historical/restaking/:address
- * Returns Liquid Staking TVL for a given strategy in historical format
- *
- * @param req
- * @param res
- */
-export async function getHistoricalTvlRestaking(req: Request, res: Response) {
-	const queryCheck = HistoricalCountSchema.safeParse(req.query)
-	if (!queryCheck.success) {
-		return handleAndReturnErrorResponse(req, res, queryCheck.error)
-	}
-	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
-	if (!paramCheck.success) {
-		return handleAndReturnErrorResponse(req, res, paramCheck.error)
-	}
-
-	try {
-		const { address } = req.params
-		const { frequency, variant, startAt, endAt } = queryCheck.data
-		const data = await doGetHistoricalTvl(
-			startAt,
-			endAt,
-			frequency,
-			variant,
-			address
-		)
-		res.status(200).send({ data })
-	} catch (error) {
-		handleAndReturnErrorResponse(req, res, error)
-	}
-}
-
-/**
- * Function for route /historical/withdrawals
- * Returns completed withdrawals TVL (net outflow from EL) in historical format
- *
- * @param req
- * @param res
- */
-export async function getHistoricalWithdrawalAggregate(
-	req: Request,
-	res: Response
-) {
-	const queryCheck = HistoricalCountSchema.safeParse(req.query)
-	if (!queryCheck.success) {
-		return handleAndReturnErrorResponse(req, res, queryCheck.error)
-	}
-
-	try {
-		const { frequency, variant, startAt, endAt } = queryCheck.data
-		const data = await doGetHistoricalAggregate(
-			'metricWithdrawalHourly',
-			startAt,
-			endAt,
-			frequency,
-			variant
-		)
-		res.status(200).send({ data })
-	} catch (error) {
-		handleAndReturnErrorResponse(req, res, error)
-	}
-}
-
-/**
- * Function for route /historical/deposits
- * Returns deposits TVL in historical format
- *
- * @param req
- * @param res
- */
-export async function getHistoricalDepositAggregate(
-	req: Request,
-	res: Response
-) {
-	const queryCheck = HistoricalCountSchema.safeParse(req.query)
-	if (!queryCheck.success) {
-		return handleAndReturnErrorResponse(req, res, queryCheck.error)
-	}
-
-	try {
-		const { frequency, variant, startAt, endAt } = queryCheck.data
-		const data = await doGetHistoricalAggregate(
-			'metricDepositHourly',
-			startAt,
-			endAt,
-			frequency,
-			variant
-		)
-		res.status(200).send({ data })
-	} catch (error) {
-		handleAndReturnErrorResponse(req, res, error)
-	}
-}
-
 /*
-========================
-=== Helper Functions ===
-========================
+============================
+=== Processing Functions ===
+============================
 */
 
 // --- TVL Routes ---
 
 /**
- * For a given list of strategies, processes total TVL, overall 24h/7d change and individual strategy tvl
- * If `strategies` is not passed, all liquid staking strategies are considered
- * `excludeBeaconFromTvl` excludes restaked Beacon ETH when calculating total TVL. Typically used when this function is called alongside getTvlBeaconChain() to avoid double-counting
+ * Processes total restaking TVL, 24h/7d change and individual strategy TVLs, with the option to restrict to 1 strategy
+ * Optionally, can choose to exclude restaked Beacon ETH in total TVL calc (done in getTvl() where total Beacon Chain ETH is considered instead)
  * Used by getMetrics(), getTvl() & getTvlRestaking()
  *
- * @param strategies
+ * @param strategy
  * @param excludeBeaconFromTvl
  * @returns
  */
-async function doGetTvlRestaking(
-	includeBeaconInTvl = true,
-	strategies?: string[]
-) {
+async function doGetTvlRestaking(includeBeaconInTvl = true, strategy?: string) {
 	const timeOffsets = ['', '24h', '7d']
 	const [strategyRecords, strategyPriceMap] = await Promise.all([
-		fetchLatestStrategyData(strategies),
+		fetchLatestStrategyData(strategy),
 		fetchCurrentEthPrices()
 	])
 
@@ -709,7 +710,7 @@ async function doGetTvlRestaking(
 	}
 
 	// Function to get restaking data for each timeOffset for all relevant strategies
-	async function fetchLatestStrategyData(strategies?: string[]) {
+	async function fetchLatestStrategyData(strategy?: string) {
 		const exactTimestamps = await prisma.metricStrategyHourly.groupBy({
 			by: ['strategyAddress'],
 			_max: {
@@ -717,7 +718,7 @@ async function doGetTvlRestaking(
 			},
 			where: {
 				AND: [
-					strategies ? { strategyAddress: { in: strategies } } : {},
+					strategy ? { strategyAddress: strategy } : {},
 					{
 						OR: timeOffsets.map((tf) => ({
 							timestamp: { lte: getTimestamp(tf) }
@@ -775,7 +776,7 @@ async function doGetTvlBeaconChain() {
 	})
 
 	const [currentTvl, tvl24hOffset, tvl7dOffset] = beaconRecords.map((record) =>
-		Number(record?.tvl ?? 0)
+		Number(record?.tvlEth ?? 0)
 	)
 
 	return calculateTvlChanges(currentTvl, tvl24hOffset, tvl7dOffset)
@@ -941,83 +942,273 @@ async function doGetTotalDeposits() {
 	return deposits
 }
 
-// --- Historical Count Routes ---
+// --- Historical TVL Routes ---
 
-async function doGetHistoricalCount(
-	modelName: string,
+/**
+ * Processes total TVL in historical format
+ * Calculates total TVL by combining historical total Beacon Chain ETH TVL with restaking TVL (without restaked Beacon Chain ETH)
+ *
+ * @param startAt
+ * @param endAt
+ * @param frequency
+ * @param variant
+ */
+async function doGetHistoricalTvlTotal(
 	startAt: string,
 	endAt: string,
 	frequency: string,
 	variant: string
 ) {
-	if (
-		!['avs', 'operator', 'staker', 'withdrawalQueued', 'deposit'].includes(
-			modelName
+	// Get historical tvl data for Beacon Chain ETH and LSTs (excluding restaked Beacon Chain ETH)
+	const [beaconTvl, restakingTvl] = await Promise.all([
+		doGetHistoricalTvlBeacon(startAt, endAt, frequency, variant),
+		doGetHistoricalTvlRestaking(
+			startAt,
+			endAt,
+			frequency,
+			variant,
+			undefined,
+			false
 		)
-	) {
-		throw new Error('Invalid model name')
-	}
+	])
 
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-	const model = prisma[modelName] as any
+	// Combine the results
+	const results = beaconTvl.map((beaconEntry, index) => {
+		const restakingEntry = restakingTvl[index]
+		if (!restakingEntry || beaconEntry.timestamp !== restakingEntry.timestamp) {
+			throw new Error(`Mismatch in historical data at index ${index}`)
+		}
 
-	const startDate = resetTime(new Date(startAt))
-	const endDate = resetTime(new Date(endAt))
-
-	const initialTally = await model.count({
-		where: {
-			createdAt: {
-				lt: startDate
-			}
+		return {
+			timestamp: beaconEntry.timestamp,
+			tvlEth: beaconEntry.tvlEth + restakingEntry.tvlEth
 		}
 	})
 
-	const modelData = await model.findMany({
-		select: {
-			createdAt: true
-		},
+	return results as HistoricalTvlRecord[]
+}
+
+/**
+ * Processes total Beacon Chain ETH TVL in historical format
+ *
+ * @param startAt
+ * @param endAt
+ * @param frequency
+ * @param variant
+ */
+async function doGetHistoricalTvlBeacon(
+	startAt: string,
+	endAt: string,
+	frequency: string,
+	variant: string
+) {
+	const startTimestamp = resetTime(new Date(startAt))
+	const endTimestamp = resetTime(new Date(endAt))
+
+	const hourlyData = await prisma.metricEigenPodsHourly.findMany({
 		where: {
-			createdAt: {
-				gte: startDate,
-				lte: endDate
+			timestamp: {
+				gte: startTimestamp,
+				lte: endTimestamp
 			}
 		},
 		orderBy: {
-			createdAt: 'asc'
+			timestamp: 'asc'
 		}
 	})
 
-	const results: { timestamp: string; value: number }[] = []
-	const timeInterval =
-		{
-			'1h': 3600000,
-			'1d': 86400000,
-			'7d': 604800000
-		}[frequency] || 3600000
-	let currentDate = startDate
-	let tally = initialTally
+	const results: HistoricalTvlRecord[] = []
+	const modelName = 'metricEigenPodsHourly' as MetricModelName
 
-	while (currentDate <= endDate) {
-		const nextDate = new Date(currentDate.getTime() + timeInterval)
+	// MetricHourly records are created only when there is activity detected. If cumulative, we may need to set initial tvl value
+	let tvlEth =
+		variant === 'cumulative'
+			? await getInitialTvlCumulative(
+					startTimestamp,
+					hourlyData,
+					true,
+					modelName,
+					undefined
+			  )
+			: 0
 
-		const intervalData = modelData.filter(
-			(data) => data.createdAt >= currentDate && data.createdAt < nextDate
+	const offset = getOffsetInMs(frequency)
+	let currentTimestamp = startTimestamp
+
+	while (currentTimestamp <= endTimestamp) {
+		const nextTimestamp = new Date(currentTimestamp.getTime() + offset)
+		const intervalData = hourlyData.filter(
+			(data) =>
+				data.timestamp >= currentTimestamp && data.timestamp < nextTimestamp
 		)
 
-		if (variant === 'discrete') {
-			results.push({
-				timestamp: new Date(Number(currentDate)).toISOString(),
-				value: intervalData.length
-			})
-		} else {
-			tally += intervalData.length
-			results.push({
-				timestamp: new Date(Number(currentDate)).toISOString(),
-				value: tally
-			})
-		}
+		tvlEth = calculateTvlForHistoricalRecord(
+			intervalData,
+			variant,
+			tvlEth,
+			true,
+			undefined
+		)
 
-		currentDate = nextDate
+		results.push({
+			timestamp: new Date(Number(currentTimestamp)).toISOString(),
+			tvlEth
+		})
+
+		currentTimestamp = nextTimestamp
+	}
+
+	return results
+}
+
+/**
+ * Processes restaking TVL in historical format with option
+ * Calculates total TVL using restaked Beacon Chain ETH, not total Beacon Chain ETH
+ *
+ * @param startAt
+ * @param endAt
+ * @param frequency
+ * @param variant
+ */
+async function doGetHistoricalTvlRestaking(
+	startAt: string,
+	endAt: string,
+	frequency: string,
+	variant: string,
+	address?: string,
+	includeBeaconInTvl = true
+) {
+	const startTimestamp = resetTime(new Date(startAt))
+	const endTimestamp = resetTime(new Date(endAt))
+
+	const hourlyData = await prisma.metricStrategyHourly.findMany({
+		where: {
+			timestamp: {
+				gte: startTimestamp,
+				lte: endTimestamp
+			},
+			...(address && { strategyAddress: address.toLowerCase() }),
+			...(!includeBeaconInTvl && { strategyAddress: { not: beaconAddress } })
+		},
+		orderBy: {
+			timestamp: 'asc'
+		}
+	})
+
+	const results: HistoricalTvlRecord[] = []
+	const modelName = 'metricStrategyHourly' as MetricModelName
+	const ethPrices = await fetchCurrentEthPrices()
+
+	// MetricHourly records are created only when there is activity detected. If cumulative, we may need to set the initial tvl value
+	let tvlEth =
+		variant === 'cumulative'
+			? await getInitialTvlCumulative(
+					startTimestamp,
+					hourlyData,
+					false,
+					modelName,
+					ethPrices
+			  )
+			: 0
+
+	const offset = getOffsetInMs(frequency)
+	let currentTimestamp = startTimestamp
+
+	while (currentTimestamp <= endTimestamp) {
+		const nextTimestamp = new Date(currentTimestamp.getTime() + offset)
+		const intervalData = hourlyData.filter(
+			(data) =>
+				data.timestamp >= currentTimestamp && data.timestamp < nextTimestamp
+		)
+
+		tvlEth = calculateTvlForHistoricalRecord(
+			intervalData,
+			variant,
+			tvlEth,
+			false,
+			ethPrices
+		)
+
+		results.push({
+			timestamp: new Date(Number(currentTimestamp)).toISOString(),
+			tvlEth
+		})
+
+		currentTimestamp = nextTimestamp
+	}
+
+	return results
+}
+
+/**
+ * Processes withdrawals/deposits TVL in historical format
+ *
+ * @param startAt
+ * @param endAt
+ * @param frequency
+ * @param variant
+ * @returns
+ */
+async function doGetHistoricalTvlWithdrawalDeposit(
+	modelName: MetricModelName,
+	startAt: string,
+	endAt: string,
+	frequency: string,
+	variant: string
+) {
+	const startTimestamp = resetTime(new Date(startAt))
+	const endTimestamp = resetTime(new Date(endAt))
+
+	const hourlyData = await prisma.metricDepositHourly.findMany({
+		where: {
+			timestamp: {
+				gte: startTimestamp,
+				lte: endTimestamp
+			}
+		},
+		orderBy: {
+			timestamp: 'asc'
+		}
+	})
+
+	const results: HistoricalTvlRecord[] = []
+
+	// MetricHourly records are created only when there is activity detected. If cumulative, we may need to set initial tvl value
+	let tvlEth =
+		variant === 'cumulative'
+			? await getInitialTvlCumulative(
+					startTimestamp,
+					hourlyData,
+					true,
+					modelName,
+					undefined
+			  )
+			: 0
+
+	const offset = getOffsetInMs(frequency)
+	let currentTimestamp = startTimestamp
+
+	while (currentTimestamp <= endTimestamp) {
+		const nextTimestamp = new Date(currentTimestamp.getTime() + offset)
+		const intervalData = hourlyData.filter(
+			(data) =>
+				data.timestamp >= currentTimestamp && data.timestamp < nextTimestamp
+		)
+
+		tvlEth = calculateTvlForHistoricalRecord(
+			intervalData,
+			variant,
+			tvlEth,
+			true,
+			undefined
+		)
+
+		results.push({
+			timestamp: new Date(Number(currentTimestamp)).toISOString(),
+			tvlEth
+		})
+
+		currentTimestamp = nextTimestamp
 	}
 
 	return results
@@ -1242,195 +1433,83 @@ async function doGetHistoricalOperatorsAggregate(
 	return results
 }
 
-// --- Historical TVL Routes ---
+// --- Historical Count Routes ---
 
-async function doGetHistoricalTvl(
-	startAt: string,
-	endAt: string,
-	frequency: string,
-	variant: string,
-	address?: string
-) {
-	const startTimestamp = resetTime(new Date(startAt))
-	const endTimestamp = resetTime(new Date(endAt))
-	let currentTimestamp = startTimestamp
-
-	const results: {
-		timestamp: string
-		tvlEth: number
-	}[] = []
-	const timeInterval =
-		{
-			'1h': 3600000,
-			'1d': 86400000,
-			'7d': 604800000
-		}[frequency] || 3600000
-
-	const hourlyData = await prisma.metricStrategyHourly.findMany({
-		where: {
-			timestamp: {
-				gte: startTimestamp,
-				lte: endTimestamp
-			},
-			...(address && { strategyAddress: address.toLowerCase() })
-		},
-		orderBy: {
-			timestamp: 'asc'
-		}
-	})
-
-	let tvlEth = 0
-
-	// Set the first tvlEth value to prevent the first n responses returning 0 in case no records exist for the first n timestamps
-	if (variant === 'cumulative') {
-		if (
-			hourlyData.length > 0 &&
-			hourlyData[0].timestamp.getTime() === startTimestamp.getTime()
-		) {
-			tvlEth = Number(hourlyData[0].tvlEth)
-		} else {
-			const result = await prisma.metricStrategyHourly.findFirst({
-				select: {
-					tvlEth: true
-				},
-				where: {
-					timestamp: {
-						lt: startTimestamp
-					},
-					...(address && { strategyAddress: address.toLowerCase() })
-				},
-				orderBy: {
-					timestamp: 'desc'
-				}
-			})
-
-			tvlEth = result ? Number(result.tvlEth) : 0
-		}
-	}
-
-	while (currentTimestamp <= endTimestamp) {
-		const nextTimestamp = new Date(currentTimestamp.getTime() + timeInterval)
-		const intervalData = hourlyData.filter(
-			(data) =>
-				data.timestamp >= currentTimestamp && data.timestamp < nextTimestamp
-		)
-
-		if (variant === 'cumulative') {
-			if (intervalData.length > 0) {
-				tvlEth = Number(intervalData[intervalData.length - 1].tvlEth)
-			} // If no records exist in the time period, previous tvlEth value is returned
-		} else {
-			tvlEth = intervalData.reduce((sum, record) => {
-				return sum + Number(record.changeTvlEth)
-			}, 0)
-		}
-
-		results.push({
-			timestamp: new Date(Number(currentTimestamp)).toISOString(),
-			tvlEth
-		})
-
-		currentTimestamp = nextTimestamp
-	}
-
-	return results
-}
-
-async function doGetHistoricalAggregate(
+async function doGetHistoricalCount(
 	modelName: string,
 	startAt: string,
 	endAt: string,
 	frequency: string,
 	variant: string
 ) {
-	if (!['metricWithdrawalHourly', 'metricDepositHourly'].includes(modelName)) {
+	if (
+		!['avs', 'operator', 'staker', 'withdrawalQueued', 'deposit'].includes(
+			modelName
+		)
+	) {
 		throw new Error('Invalid model name')
 	}
 
-	const startTimestamp = resetTime(new Date(startAt))
-	const endTimestamp = resetTime(new Date(endAt))
-	let currentTimestamp = startTimestamp
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+	const model = prisma[modelName] as any
 
-	const results: {
-		timestamp: string
-		tvlEth: number
-	}[] = []
+	const startDate = resetTime(new Date(startAt))
+	const endDate = resetTime(new Date(endAt))
+
+	const initialTally = await model.count({
+		where: {
+			createdAt: {
+				lt: startDate
+			}
+		}
+	})
+
+	const modelData = await model.findMany({
+		select: {
+			createdAt: true
+		},
+		where: {
+			createdAt: {
+				gte: startDate,
+				lte: endDate
+			}
+		},
+		orderBy: {
+			createdAt: 'asc'
+		}
+	})
+
+	const results: { timestamp: string; value: number }[] = []
 	const timeInterval =
 		{
 			'1h': 3600000,
 			'1d': 86400000,
 			'7d': 604800000
 		}[frequency] || 3600000
+	let currentDate = startDate
+	let tally = initialTally
 
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-	const model = prisma[modelName] as any
+	while (currentDate <= endDate) {
+		const nextDate = new Date(currentDate.getTime() + timeInterval)
 
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-	let hourlyData: any[] = []
-
-	hourlyData = await model.findMany({
-		where: {
-			timestamp: {
-				gte: startTimestamp,
-				lte: endTimestamp
-			}
-		},
-		orderBy: {
-			timestamp: 'asc'
-		}
-	})
-
-	let tvlEth = 0
-
-	// Set the first tvlEth value to prevent the first n responses returning 0 in case no records exist for the first n timestamps
-	if (variant === 'cumulative') {
-		if (
-			hourlyData.length > 0 &&
-			hourlyData[0].timestamp.getTime() === startTimestamp.getTime()
-		) {
-			tvlEth = Number(hourlyData[0].tvlEth)
-		} else {
-			const result = await model.findFirst({
-				select: {
-					tvlEth: true
-				},
-				where: {
-					timestamp: {
-						lt: startTimestamp
-					}
-				},
-				orderBy: {
-					timestamp: 'desc'
-				}
-			})
-
-			tvlEth = result ? Number(result.tvlEth) : 0
-		}
-	}
-
-	while (currentTimestamp <= endTimestamp) {
-		const nextTimestamp = new Date(currentTimestamp.getTime() + timeInterval)
-		const intervalData = hourlyData.filter(
-			(data) =>
-				data.timestamp >= currentTimestamp && data.timestamp < nextTimestamp
+		const intervalData = modelData.filter(
+			(data) => data.createdAt >= currentDate && data.createdAt < nextDate
 		)
 
-		if (variant === 'cumulative') {
-			if (intervalData.length > 0) {
-				tvlEth = Number(intervalData[intervalData.length - 1].tvlEth)
-			} // If no records exist in the time period, previous tvlEth value is returned
+		if (variant === 'discrete') {
+			results.push({
+				timestamp: new Date(Number(currentDate)).toISOString(),
+				value: intervalData.length
+			})
 		} else {
-			tvlEth = intervalData.reduce((sum, record) => {
-				return sum + Number(record.changeTvlEth)
-			}, 0)
+			tally += intervalData.length
+			results.push({
+				timestamp: new Date(Number(currentDate)).toISOString(),
+				value: tally
+			})
 		}
 
-		results.push({
-			timestamp: new Date(Number(currentTimestamp)).toISOString(),
-			tvlEth
-		})
-
-		currentTimestamp = nextTimestamp
+		currentDate = nextDate
 	}
 
 	return results
@@ -1506,14 +1585,124 @@ function calculateTvlChanges(
 	tvl24hOffset: number,
 	tvl7dOffset: number
 ) {
-	const calculateChange = (current: number, previous: number) => ({
-		value: current - previous,
-		percent: previous === 0 ? 0 : (current - previous) / previous
-	})
-
 	return {
 		tvl: currentTvl,
-		change24h: calculateChange(currentTvl, tvl24hOffset),
-		change7d: calculateChange(currentTvl, tvl7dOffset)
+		change24h: {
+			value: currentTvl - tvl24hOffset,
+			percent:
+				tvl24hOffset === 0 ? 0 : (currentTvl - tvl24hOffset) / tvl24hOffset
+		},
+		change7d: {
+			value: currentTvl - tvl7dOffset,
+			percent: tvl7dOffset === 0 ? 0 : (currentTvl - tvl7dOffset) / tvl7dOffset
+		}
 	}
+}
+
+/**
+ * Calculates initial tvlEth for a historical tvl query with variant set to cumulative
+ *
+ * @param startTimestamp
+ * @param hourlyData
+ * @param isEthDenominated
+ * @param modelName
+ * @param ethPrices
+ * @returns
+ */
+async function getInitialTvlCumulative<T extends MetricModelName>(
+	startTimestamp: Date,
+	hourlyData: MetricModelMap[T][],
+	isEthDenominated: boolean,
+	modelName: T,
+	ethPrices?: Map<string, number>
+) {
+	if (!isEthDenominated && !ethPrices) {
+		throw new Error('ETH prices are required for non-beacon calculations')
+	}
+
+	if (
+		hourlyData.length > 0 &&
+		hourlyData[0].timestamp.getTime() === startTimestamp.getTime()
+	) {
+		if (isEthDenominated) {
+			return Number(
+				(hourlyData[0] as MetricModelMap[Exclude<T, 'metricStrategyHourly'>])
+					.tvlEth
+			)
+		}
+
+		const strategyRecord = hourlyData[0] as Prisma.MetricStrategyHourly
+		return (
+			Number(strategyRecord.tvl) *
+			(ethPrices?.get(strategyRecord.strategyAddress) || 0)
+		)
+	}
+
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+	const model = prisma[modelName] as any
+	const result = await model.findFirst({
+		select: { [isEthDenominated ? 'tvlEth' : 'tvl']: true },
+		where: { timestamp: { lt: startTimestamp } },
+		orderBy: { timestamp: 'desc' }
+	})
+
+	if (!result) return 0
+
+	return isEthDenominated
+		? Number(result.tvlEth)
+		: Number(result.tvl) * (ethPrices?.get(beaconAddress) || 0)
+}
+
+/**
+ * Calculates tvlEth for one record of a historical tvl response
+ *
+ * @param intervalData
+ * @param variant
+ * @param previousTvl
+ * @param isEthDenominated
+ * @param ethPrices
+ * @returns
+ */
+function calculateTvlForHistoricalRecord<T extends MetricModelName>(
+	intervalData: MetricModelMap[T][],
+	variant: string,
+	previousTvl: number,
+	isEthDenominated: boolean,
+	ethPrices?: Map<string, number>
+): number {
+	if (!isEthDenominated && !ethPrices) {
+		throw new Error('ETH prices are required for non-beacon calculations')
+	}
+
+	if (variant === 'cumulative') {
+		if (intervalData.length > 0) {
+			const lastRecord = intervalData[intervalData.length - 1]
+			if (isEthDenominated) {
+				return Number(
+					(lastRecord as MetricModelMap[Exclude<T, 'metricStrategyHourly'>])
+						.tvlEth
+				)
+			}
+
+			const strategyRecord = lastRecord as Prisma.MetricStrategyHourly
+			return (
+				Number(strategyRecord.tvl) *
+				(ethPrices?.get(strategyRecord.strategyAddress) || 0)
+			)
+		}
+		return previousTvl // If no records exist in the time period, previous tvl value is returned
+	}
+
+	return intervalData.reduce((sum, record) => {
+		if (isEthDenominated) {
+			const intervalRecord = record as MetricModelMap[Exclude<
+				T,
+				'metricStrategyHourly'
+			>]
+			return sum + Number(intervalRecord.changeTvlEth)
+		}
+		const strategyRecord = record as Prisma.MetricStrategyHourly
+		const ethPrice = ethPrices?.get(strategyRecord.strategyAddress) || 0
+		return sum + Number(strategyRecord.changeTvl) * ethPrice
+	}, 0)
 }
