@@ -961,6 +961,284 @@
         }
       }
     },
+    "/metrics//historical/avs/{address}": {
+      "get": {
+        "operationId": "getHistoricalAvsAggregate",
+        "summary": "Retrieve Historical AVS Aggregate Data",
+        "description": "Returns historical aggregate data for an AVS including TVL, total number of stakers, and total number of operators at specified timestamp values",
+        "tags": [
+          "Metrics"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "address",
+            "schema": {
+              "type": "string",
+              "pattern": "^0x[a-fA-F0-9]{40}$"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "frequency",
+            "description": "Frequency of data points",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1h",
+                "1d",
+                "7d"
+              ],
+              "default": "1h",
+              "description": "Frequency of data points"
+            }
+          },
+          {
+            "in": "query",
+            "name": "variant",
+            "description": "Type of tally, discrete or cumulative",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "discrete",
+                "cumulative"
+              ],
+              "default": "cumulative",
+              "description": "Type of tally, discrete or cumulative"
+            }
+          },
+          {
+            "in": "query",
+            "name": "startAt",
+            "description": "Start date in ISO string format",
+            "schema": {
+              "type": "string",
+              "description": "Start date in ISO string format",
+              "default": ""
+            }
+          },
+          {
+            "in": "query",
+            "name": "endAt",
+            "description": "End date in ISO string format",
+            "schema": {
+              "type": "string",
+              "description": "End date in ISO string format",
+              "default": ""
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The historical aggregate data for an AVS including TVL, total number of stakers, and total number of operators at specified timestamp values",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "timestamp": {
+                            "type": "string",
+                            "description": "The timestamp for the recorded data point",
+                            "example": "2024-04-11T08:31:11.000Z"
+                          },
+                          "tvlEth": {
+                            "type": "number",
+                            "description": "The total value locked (TVL) in ETH at the timestamp",
+                            "example": 10
+                          },
+                          "totalStakers": {
+                            "type": "number",
+                            "description": "The total number of stakers at the timestamp",
+                            "example": 10
+                          },
+                          "totalOperators": {
+                            "type": "number",
+                            "description": "The total number of operators at the timestamp",
+                            "example": 10
+                          }
+                        },
+                        "required": [
+                          "timestamp",
+                          "tvlEth",
+                          "totalStakers",
+                          "totalOperators"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/metrics//historical/operators/{address}": {
+      "get": {
+        "operationId": "getHistoricalOperatorsAggregate",
+        "summary": "Retrieve Historical Operator Aggregate Data",
+        "description": "Returns historical aggregate data for an operator including TVL and total number of stakers at specified timestamp values",
+        "tags": [
+          "Metrics"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "address",
+            "schema": {
+              "type": "string",
+              "pattern": "^0x[a-fA-F0-9]{40}$"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "frequency",
+            "description": "Frequency of data points",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1h",
+                "1d",
+                "7d"
+              ],
+              "default": "1h",
+              "description": "Frequency of data points"
+            }
+          },
+          {
+            "in": "query",
+            "name": "variant",
+            "description": "Type of tally, discrete or cumulative",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "discrete",
+                "cumulative"
+              ],
+              "default": "cumulative",
+              "description": "Type of tally, discrete or cumulative"
+            }
+          },
+          {
+            "in": "query",
+            "name": "startAt",
+            "description": "Start date in ISO string format",
+            "schema": {
+              "type": "string",
+              "description": "Start date in ISO string format",
+              "default": ""
+            }
+          },
+          {
+            "in": "query",
+            "name": "endAt",
+            "description": "End date in ISO string format",
+            "schema": {
+              "type": "string",
+              "description": "End date in ISO string format",
+              "default": ""
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The historical aggregate data for an operator including TVL and total number of stakers at specified timestamp values",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "timestamp": {
+                            "type": "string",
+                            "description": "The timestamp for the recorded data point",
+                            "example": "2024-04-11T08:31:11.000Z"
+                          },
+                          "tvlEth": {
+                            "type": "number",
+                            "description": "The total value locked (TVL) in ETH at the timestamp",
+                            "example": 10
+                          },
+                          "totalStakers": {
+                            "type": "number",
+                            "description": "The total number of stakers at the timestamp",
+                            "example": 10
+                          }
+                        },
+                        "required": [
+                          "timestamp",
+                          "tvlEth",
+                          "totalStakers"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
     "/metrics/historical/count-avs": {
       "get": {
         "operationId": "getHistoricalAvsCount",
