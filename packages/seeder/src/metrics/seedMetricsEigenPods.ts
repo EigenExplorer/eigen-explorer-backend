@@ -137,7 +137,7 @@ async function hourlyLoopTick(
 	let changePods = 0
 
 	if (lastEigenPodsMetric) {
-		tvl = Number(lastEigenPodsMetric.tvl)
+		tvl = Number(lastEigenPodsMetric.tvlEth)
 		totalPods = lastEigenPodsMetric.totalPods
 	}
 
@@ -167,8 +167,8 @@ async function hourlyLoopTick(
 
 		const tvlRecord = {
 			timestamp: toHour,
-			tvl: (tvl + changeTvl) as unknown as prisma.Prisma.Decimal,
-			changeTvl: changeTvl as unknown as prisma.Prisma.Decimal,
+			tvlEth: (tvl + changeTvl) as unknown as prisma.Prisma.Decimal,
+			changeTvlEth: changeTvl as unknown as prisma.Prisma.Decimal,
 			totalPods: totalPods + changePods,
 			changePods
 		}
@@ -248,8 +248,8 @@ async function getLatestMetrics(): Promise<
 
 	return (
 		lastMetric || {
-			tvl: new prisma.Prisma.Decimal(0),
-			changeTvl: new prisma.Prisma.Decimal(0),
+			tvlEth: new prisma.Prisma.Decimal(0),
+			changeTvlEth: new prisma.Prisma.Decimal(0),
 			totalPods: 0,
 			changePods: 0,
 			timestamp: new Date()

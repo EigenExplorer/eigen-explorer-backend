@@ -62,8 +62,8 @@ CREATE TABLE "MetricStrategyHourly" (
 -- CreateTable
 CREATE TABLE "MetricEigenPodsHourly" (
     "id" SERIAL NOT NULL,
-    "tvl" DECIMAL(20,8) NOT NULL,
-    "changeTvl" DECIMAL(20,8) NOT NULL,
+    "tvlEth" DECIMAL(20,8) NOT NULL,
+    "changeTvlEth" DECIMAL(20,8) NOT NULL,
     "totalPods" INTEGER NOT NULL,
     "changePods" INTEGER NOT NULL,
     "timestamp" TIMESTAMP(3) NOT NULL,

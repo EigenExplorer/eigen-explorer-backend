@@ -303,10 +303,10 @@ model MetricStrategyHourly {
 model MetricEigenPodsHourly {
   id Int @id @default(autoincrement())
 
-  tvl        Decimal @db.Decimal(20, 8)
-  changeTvl  Decimal @db.Decimal(20, 8)
-  totalPods  Int
-  changePods Int
+  tvlEth       Decimal @db.Decimal(20, 8)
+  changeTvlEth Decimal @db.Decimal(20, 8)
+  totalPods    Int
+  changePods   Int
 
   timestamp DateTime
 
