@@ -2,10 +2,10 @@ import { ZodOpenApiOperationObject } from 'zod-openapi';
 import { openApiErrorResponses } from '../../apiResponseSchema/base/errorResponses';
 import z from '../../../../api/src/schema/zod';
 import { HistoricalCountSchema } from '../../../../api/src/schema/zod/schemas/historicalCountQuery';
-import { OperatorHistoricCountSchema } from '../../apiResponseSchema/operator/operatorHistoricCountSchema';
+import { OperatorHistoricalCountSchema } from '../../apiResponseSchema/metrics/historicalCountResponse';
 
 const HistoricalOperatorCountResponseSchema = z.object({
-    data: z.array(OperatorHistoricCountSchema)
+    data: z.array(OperatorHistoricalCountSchema)
 });
 
 export const getHistoricalOperatorCount: ZodOpenApiOperationObject = {

@@ -2,10 +2,10 @@ import { ZodOpenApiOperationObject } from 'zod-openapi';
 import { openApiErrorResponses } from '../../apiResponseSchema/base/errorResponses';
 import z from '../../../../api/src/schema/zod';
 import { HistoricalCountSchema } from '../../../../api/src/schema/zod/schemas/historicalCountQuery';
-import { WithdrawalHistoricCountSchema } from '../../apiResponseSchema/withdrawals/withdrawalHistoricCountSchema';
+import { WithdrawalHistoricalCountSchema } from '../../apiResponseSchema/metrics/historicalCountResponse';
 
 const HistoricalWithdrawalCountResponseSchema = z.object({
-    data: z.array(WithdrawalHistoricCountSchema)
+    data: z.array(WithdrawalHistoricalCountSchema)
 });
 
 export const getHistoricalWithdrawalCount: ZodOpenApiOperationObject = {

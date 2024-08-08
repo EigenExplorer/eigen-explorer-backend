@@ -1,6 +1,6 @@
 import z from '../../../../api/src/schema/zod';
 
-export const AvsHistoricAggregateSchema = z.object({
+export const HistoricalAggregateSchema = z.object({
     timestamp: z
         .string()
         .describe('The timestamp for the recorded data point')
@@ -9,6 +9,17 @@ export const AvsHistoricAggregateSchema = z.object({
         .number()
         .describe('The total value locked (TVL) in ETH at the timestamp')
         .openapi({ example: 10 }),
+});
+
+export const OperatorsHistoricalAggregateSchema = HistoricalAggregateSchema.extend ({
+    totalStakers: z
+        .number()
+        .describe('The total number of stakers at the timestamp')
+        .openapi({ example: 10 })
+});
+
+
+export const AvsHistoricalAggregateSchema =  HistoricalAggregateSchema.extend({
     totalStakers: z
         .number()
         .describe('The total number of stakers at the timestamp')
@@ -18,3 +29,7 @@ export const AvsHistoricAggregateSchema = z.object({
         .describe('The total number of operators at the timestamp')
         .openapi({ example: 10 }),
 });
+
+
+
+

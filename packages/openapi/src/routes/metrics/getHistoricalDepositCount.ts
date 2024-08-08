@@ -2,10 +2,10 @@ import { ZodOpenApiOperationObject } from 'zod-openapi';
 import { openApiErrorResponses } from '../../apiResponseSchema/base/errorResponses';
 import z from '../../../../api/src/schema/zod';
 import { HistoricalCountSchema } from '../../../../api/src/schema/zod/schemas/historicalCountQuery';
-import { DepositHistoricCountSchema } from '../../apiResponseSchema/deposits/depositHistoricCountSchema';
+import { DepositHistoricalCountSchema } from '../../apiResponseSchema/metrics/historicalCountResponse';
 
 const HistoricalDepositCountResponseSchema = z.object({
-    data: z.array(DepositHistoricCountSchema)
+    data: z.array(DepositHistoricalCountSchema)
 });
 
 export const getHistoricalDepositCount: ZodOpenApiOperationObject = {

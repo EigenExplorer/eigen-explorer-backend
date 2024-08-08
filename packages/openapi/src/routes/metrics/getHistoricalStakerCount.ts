@@ -2,10 +2,10 @@ import { ZodOpenApiOperationObject } from 'zod-openapi';
 import { openApiErrorResponses } from '../../apiResponseSchema/base/errorResponses';
 import z from '../../../../api/src/schema/zod';
 import { HistoricalCountSchema } from '../../../../api/src/schema/zod/schemas/historicalCountQuery';
-import { StakerHistoricCountSchema } from '../../apiResponseSchema/staker/stakerHistoricCountSchema';
+import { StakerHistoricalCountSchema } from '../../apiResponseSchema/metrics/historicalCountResponse';
 
 const HistoricalStakerCountResponseSchema = z.object({
-    data: z.array(StakerHistoricCountSchema)
+    data: z.array(StakerHistoricalCountSchema)
 });
 
 export const getHistoricalStakerCount: ZodOpenApiOperationObject = {
