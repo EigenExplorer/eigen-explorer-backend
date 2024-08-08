@@ -34,14 +34,14 @@ type NativeTvlModelMap = {
 }
 type NativeTvlModelName = keyof NativeTvlModelMap
 
+type MetricModelMap = EthTvlModelMap & NativeTvlModelMap
+type MetricModelName = keyof (EthTvlModelMap & NativeTvlModelMap)
+
 type AggregateModelMap = {
 	metricAvsHourly: Prisma.MetricAvsHourly
 	metricOperatorHourly: Prisma.MetricOperatorHourly
 }
 type AggregateModelName = keyof AggregateModelMap
-
-type MetricModelMap = EthTvlModelMap & NativeTvlModelMap
-type MetricModelName = keyof (EthTvlModelMap & NativeTvlModelMap)
 
 const beaconAddress = '0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0'
 
@@ -61,7 +61,6 @@ const beaconAddress = '0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0'
  * @param res
  */
 export async function getMetrics(req: Request, res: Response) {
-	//TODO: Cleanup
 	try {
 		const [
 			tvlRestaking,
@@ -679,7 +678,6 @@ export async function getHistoricalDepositCount(req: Request, res: Response) {
  * @returns
  */
 async function doGetTvlRestaking(includeBeaconInTvl = true, strategy?: string) {
-	const timeOffsets = ['', '24h', '7d']
 	const [strategyRecords, strategyPriceMap] = await Promise.all([
 		fetchLatestStrategyData(strategy),
 		fetchCurrentEthPrices()
@@ -738,6 +736,9 @@ async function doGetTvlRestaking(includeBeaconInTvl = true, strategy?: string) {
 
 	// Function to get restaking data for each timeOffset for all relevant strategies
 	async function fetchLatestStrategyData(strategy?: string) {
+		const timeOffsets = ['', '24h', '7d']
+
+		// Grab the earliest timestamp of all relevant strategies before 7d ago
 		const strategyTimestamps = await prisma.metricStrategyHourly.groupBy({
 			by: ['strategyAddress'],
 			where: {
@@ -751,6 +752,7 @@ async function doGetTvlRestaking(includeBeaconInTvl = true, strategy?: string) {
 			}
 		})
 
+		// Find the earliest timestamp from the group
 		const earliestTimestamp = strategyTimestamps.reduce(
 			(earliest, current) => {
 				if (earliest === null) return current._min.timestamp
@@ -762,6 +764,7 @@ async function doGetTvlRestaking(includeBeaconInTvl = true, strategy?: string) {
 			null as Date | null
 		)
 
+		// Retrieve all records from the earliest timestamp
 		const records = await prisma.metricStrategyHourly.findMany({
 			where: {
 				timestamp: {
@@ -786,7 +789,7 @@ async function doGetTvlRestaking(includeBeaconInTvl = true, strategy?: string) {
 			{} as Record<string, typeof records>
 		)
 
-		// Select specific records for each strategy
+		// Return earliest record before 7d, 24h and latest record for each strategy
 		const result = new Map<string, Record<string, (typeof records)[0]>>()
 
 		for (const [strategyAddress, strategyRecords] of Object.entries(
@@ -1091,13 +1094,7 @@ async function doGetHistoricalTvlBeacon(
 	// MetricHourly records are created only when activity is detected, not neceessarily for all timestamps. If cumulative, we may need to set initial tvl value
 	let tvlEth =
 		variant === 'cumulative'
-			? await getInitialTvlCumulative(
-					startTimestamp,
-					hourlyData,
-					true,
-					modelName,
-					undefined
-			  )
+			? await getInitialTvlCumulative(startTimestamp, hourlyData, modelName)
 			: 0
 
 	const offset = getOffsetInMs(frequency)
@@ -1114,8 +1111,7 @@ async function doGetHistoricalTvlBeacon(
 			intervalData,
 			variant,
 			tvlEth,
-			true,
-			undefined
+			modelName
 		)
 
 		results.push({
@@ -1148,11 +1144,13 @@ async function doGetHistoricalTvlRestaking(
 ) {
 	const startTimestamp = resetTime(new Date(startAt))
 	const endTimestamp = resetTime(new Date(endAt))
+	const bufferedTimestamp =
+		getTimestamp('1m') < startTimestamp ? getTimestamp('1m') : startTimestamp
 
 	const hourlyData = await prisma.metricStrategyHourly.findMany({
 		where: {
 			timestamp: {
-				gte: startTimestamp,
+				gte: bufferedTimestamp,
 				lte: endTimestamp
 			},
 			...(address && { strategyAddress: address.toLowerCase() }),
@@ -1162,6 +1160,10 @@ async function doGetHistoricalTvlRestaking(
 			timestamp: 'asc'
 		}
 	})
+
+	const strategyAddresses = [
+		...new Set(hourlyData.map((data) => data.strategyAddress))
+	]
 
 	const results: HistoricalTvlRecord[] = []
 	const modelName = 'metricStrategyHourly' as MetricModelName
@@ -1173,7 +1175,6 @@ async function doGetHistoricalTvlRestaking(
 			? await getInitialTvlCumulative(
 					startTimestamp,
 					hourlyData,
-					false,
 					modelName,
 					ethPrices
 			  )
@@ -1184,16 +1185,37 @@ async function doGetHistoricalTvlRestaking(
 
 	while (currentTimestamp <= endTimestamp) {
 		const nextTimestamp = new Date(currentTimestamp.getTime() + offset)
-		const intervalData = hourlyData.filter(
+		let intervalData = hourlyData.filter(
 			(data) =>
 				data.timestamp >= currentTimestamp && data.timestamp < nextTimestamp
 		)
+
+		const presentAddresses = new Set(
+			intervalData.map((data) => data.strategyAddress)
+		)
+
+		// For each unique address not present in this interval, add its latest record
+		const missingRecords = strategyAddresses.flatMap((address) => {
+			if (!presentAddresses.has(address)) {
+				const latestRecord = hourlyData
+					.filter(
+						(data) =>
+							data.strategyAddress === address && data.timestamp < nextTimestamp
+					)
+					.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0]
+
+				return latestRecord ? [latestRecord] : []
+			}
+			return []
+		})
+
+		intervalData = [...intervalData, ...missingRecords]
 
 		tvlEth = calculateTvlForHistoricalRecord(
 			intervalData,
 			variant,
 			tvlEth,
-			false,
+			modelName,
 			ethPrices
 		)
 
@@ -1244,13 +1266,7 @@ async function doGetHistoricalTvlWithdrawalDeposit(
 	// MetricHourly records are created only when activity is detected, not neceessarily for all timestamps. If cumulative, we may need to set initial tvl value
 	let tvlEth =
 		variant === 'cumulative'
-			? await getInitialTvlCumulative(
-					startTimestamp,
-					hourlyData,
-					true,
-					modelName,
-					undefined
-			  )
+			? await getInitialTvlCumulative(startTimestamp, hourlyData, modelName)
 			: 0
 
 	const offset = getOffsetInMs(frequency)
@@ -1267,8 +1283,7 @@ async function doGetHistoricalTvlWithdrawalDeposit(
 			intervalData,
 			variant,
 			tvlEth,
-			true,
-			undefined
+			modelName
 		)
 
 		results.push({
@@ -1337,16 +1352,17 @@ async function doGetHistoricalAvsAggregate(
 	])
 
 	const results: HistoricalAggregateRecord[] = []
+	const modelNameMetrics = 'metricAvsHourly' as AggregateModelName
+	const modelNameTvl = 'metricAvsStrategyHourly' as MetricModelName
 	const ethPrices = await fetchCurrentEthPrices()
 
 	// MetricHourly records are created only when activity is detected, not neceessarily for all timestamps. If cumulative, we may need to set initial values
 	let { totalStakers, totalOperators } =
 		variant === 'cumulative'
 			? await getInitialMetricsCumulative(
-					address,
 					startTimestamp,
 					hourlyData,
-					'metricAvsHourly'
+					modelNameMetrics
 			  )
 			: { totalStakers: 0, totalOperators: 0 }
 
@@ -1355,10 +1371,8 @@ async function doGetHistoricalAvsAggregate(
 			? await getInitialTvlCumulative(
 					startTimestamp,
 					strategyData,
-					false,
-					'metricAvsStrategyHourly',
-					ethPrices,
-					address
+					modelNameTvl,
+					ethPrices
 			  )
 			: 0
 
@@ -1394,7 +1408,7 @@ async function doGetHistoricalAvsAggregate(
 			intervalStrategyData,
 			variant,
 			tvlEth,
-			false,
+			modelNameTvl,
 			ethPrices
 		)
 
@@ -1464,16 +1478,17 @@ async function doGetHistoricalOperatorsAggregate(
 	])
 
 	const results: HistoricalAggregateRecord[] = []
+	const modelNameMetrics = 'metricOperatorHourly' as AggregateModelName
+	const modelNameTvl = 'metricOperatorStrategyHourly' as MetricModelName
 	const ethPrices = await fetchCurrentEthPrices()
 
 	// MetricHourly records are created only when activity is detected, not neceessarily for all timestamps. If cumulative, we may need to set initial values
 	let { totalStakers, totalAvs } =
 		variant === 'cumulative'
 			? await getInitialMetricsCumulative(
-					address,
 					startTimestamp,
 					hourlyData,
-					'metricOperatorHourly'
+					modelNameMetrics
 			  )
 			: { totalStakers: 0, totalAvs: 0 }
 
@@ -1482,10 +1497,8 @@ async function doGetHistoricalOperatorsAggregate(
 			? await getInitialTvlCumulative(
 					startTimestamp,
 					strategyData,
-					false,
-					'metricOperatorStrategyHourly',
-					ethPrices,
-					address
+					modelNameTvl,
+					ethPrices
 			  )
 			: 0
 
@@ -1522,7 +1535,7 @@ async function doGetHistoricalOperatorsAggregate(
 			intervalStrategyData,
 			variant,
 			tvlEth,
-			false,
+			modelNameTvl,
 			ethPrices
 		)
 
@@ -1647,6 +1660,10 @@ function getTimestamp(offset?: string) {
 			const now = new Date()
 			return new Date(new Date().setUTCDate(now.getUTCDate() - 7))
 		}
+		case '1m': {
+			const now = new Date()
+			return new Date(new Date().setUTCDate(now.getUTCDate() - 31))
+		}
 		default:
 			return new Date()
 	}
@@ -1683,6 +1700,21 @@ function resetTime(date: Date) {
 }
 
 /**
+ * Checks if a given model name is ETH denominated
+ *
+ * @param value
+ * @returns
+ */
+function checkEthDenomination(modelName: string): modelName is EthTvlModelName {
+	const ethTvlModelNames: EthTvlModelName[] = [
+		'metricDepositHourly',
+		'metricWithdrawalHourly',
+		'metricEigenPodsHourly'
+	]
+	return ethTvlModelNames.includes(modelName as EthTvlModelName)
+}
+
+/**
  * Calculates 24h/7d tvl change
  *
  * @param currentTvl
@@ -1714,7 +1746,6 @@ function calculateTvlChanges(
  *
  * @param startTimestamp
  * @param hourlyData
- * @param isEthDenominated
  * @param modelName
  * @param ethPrices
  * @returns
@@ -1722,54 +1753,47 @@ function calculateTvlChanges(
 async function getInitialTvlCumulative(
 	startTimestamp: Date,
 	hourlyData: MetricModelMap[MetricModelName][],
-	isEthDenominated: boolean,
 	modelName: MetricModelName,
-	ethPrices?: Map<string, number>,
-	address?: string
+	ethPrices?: Map<string, number>
 ) {
-	// If a record exists for the first timestamp, return its value
+	const isEthDenominated = checkEthDenomination(modelName)
+
 	if (!isEthDenominated && !ethPrices) {
 		throw new Error('ETH prices are required for non-beacon calculations')
 	}
 
+	// If a record exists for the first timestamp for an ETH denominated calc, return its tvlEth value
 	if (
+		isEthDenominated &&
 		hourlyData.length > 0 &&
 		hourlyData[0].timestamp.getTime() === startTimestamp.getTime()
 	) {
-		if (isEthDenominated) {
-			return Number((hourlyData[0] as EthTvlModelMap[EthTvlModelName]).tvlEth)
-		}
-
-		const record = hourlyData[0] as NativeTvlModelMap[NativeTvlModelName]
-		return Number(record.tvl) * (ethPrices?.get(record.strategyAddress) || 0)
+		return Number((hourlyData[0] as EthTvlModelMap[EthTvlModelName]).tvlEth)
 	}
 
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-	const model = prisma[modelName] as any
-	const whereFilter =
-		address && modelName === 'metricAvsStrategyHourly'
-			? { avsAddress: address.toLowerCase() }
-			: address && modelName === 'metricOperatorStrategyHourly'
-			  ? { operatorAddress: address.toLowerCase() }
-			  : {}
-
-	// Find the first record before the first timestamp & return its value
-	const result = await model.findFirst({
-		select: {
-			[isEthDenominated ? 'tvlEth' : 'tvl']: true,
-			...(isEthDenominated && { strategyAddress: true })
-		},
-		where: { timestamp: { lt: startTimestamp }, ...whereFilter },
-		orderBy: { timestamp: 'desc' }
-	})
-
-	if (!result) return 0
-
+	// Calculate tvlEth from the earliest record
 	if (isEthDenominated) {
-		return Number((result as EthTvlModelMap[EthTvlModelName]).tvlEth)
+		const earliestRecord = hourlyData[0] as EthTvlModelMap[EthTvlModelName]
+		return Number(earliestRecord.tvlEth) - Number(earliestRecord.changeTvlEth)
 	}
 
-	return Number(result.tvl) * (ethPrices?.get(result.strategyAddress) || 0)
+	// Find the earliest record for each strategy & calculate total initial tvlEth
+	const strategyMap = new Map<string, NativeTvlModelMap[NativeTvlModelName]>()
+	for (const record of hourlyData as NativeTvlModelMap[NativeTvlModelName][]) {
+		const existingRecord = strategyMap.get(record.strategyAddress)
+		if (!existingRecord || record.timestamp < existingRecord.timestamp) {
+			strategyMap.set(record.strategyAddress, record)
+		}
+	}
+
+	let tvlEth = 0
+	for (const [strategyAddress, record] of strategyMap) {
+		const initialTvl = Number(record.tvl) - Number(record.changeTvl)
+		const ethPrice = ethPrices?.get(strategyAddress) || 0
+		tvlEth += initialTvl * ethPrice
+	}
+
+	return tvlEth
 }
 
 /**
@@ -1780,7 +1804,6 @@ async function getInitialTvlCumulative(
  * @param modelName
  */
 async function getInitialMetricsCumulative(
-	address: string,
 	startTimestamp: Date,
 	hourlyData: AggregateModelMap[AggregateModelName][],
 	modelName: AggregateModelName
@@ -1804,34 +1827,24 @@ async function getInitialMetricsCumulative(
 			  }
 	}
 
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-	const model = prisma[modelName] as any
-
-	// Find the first record before the first timestamp & return the required values
-	const record = await model.findFirst({
-		select: {
-			totalStakers: true,
-			[modelName === 'metricAvsHourly' ? 'totalOperators' : 'totalAvs']: true
-		},
-		where: {
-			timestamp: { lt: startTimestamp },
-			[modelName === 'metricAvsHourly' ? 'avsAddress' : 'operatorAddress']:
-				address.toLowerCase()
-		},
-		orderBy: { timestamp: 'desc' }
-	})
-
-	if (!record) return { totalStakers: 0, totalOperators: 0, totalAvs: 0 }
-
+	// Find the earliest record & calculate initial metric values
 	return modelName === 'metricAvsHourly'
 		? {
-				totalStakers: Number(record.totalStakers) || 0,
+				totalStakers:
+					hourlyData[0].totalStakers - hourlyData[0].changeStakers || 0,
 				totalOperators:
-					(record as AggregateModelMap[typeof modelName]).totalOperators || 0
+					(hourlyData[0] as AggregateModelMap[typeof modelName])
+						.totalOperators -
+						(hourlyData[0] as AggregateModelMap[typeof modelName])
+							.changeOperators || 0
 		  }
 		: {
-				totalStakers: Number(record.totalStakers) || 0,
-				totalAvs: (record as AggregateModelMap[typeof modelName]).totalAvs || 0
+				totalStakers:
+					hourlyData[0].totalStakers - hourlyData[0].changeStakers || 0,
+				totalOperators:
+					(hourlyData[0] as AggregateModelMap[typeof modelName]).totalAvs -
+						(hourlyData[0] as AggregateModelMap[typeof modelName]).changeAvs ||
+					0
 		  }
 }
 
@@ -1841,7 +1854,7 @@ async function getInitialMetricsCumulative(
  * @param intervalData
  * @param variant
  * @param previousTvl
- * @param isEthDenominated
+ * @param modelName
  * @param ethPrices
  * @returns
  */
@@ -1849,29 +1862,55 @@ function calculateTvlForHistoricalRecord(
 	intervalData: MetricModelMap[MetricModelName][],
 	variant: string,
 	previousTvl: number,
-	isEthDenominated: boolean,
+	modelName: MetricModelName,
 	ethPrices?: Map<string, number>
 ): number {
+	const isEthDenominated = checkEthDenomination(modelName)
+
 	if (!isEthDenominated && !ethPrices) {
 		throw new Error('ETH prices are required for non-beacon calculations')
 	}
 
 	if (variant === 'cumulative') {
+		// Calculate tvlEth as the summation of tvlEth values for the latest record of each strategy
 		if (intervalData.length > 0) {
-			const lastRecord = intervalData[intervalData.length - 1]
 			if (isEthDenominated) {
-				return Number((lastRecord as EthTvlModelMap[EthTvlModelName]).tvlEth)
+				const lastRecord = intervalData[
+					intervalData.length - 1
+				] as EthTvlModelMap[EthTvlModelName]
+				return Number(lastRecord.tvlEth)
 			}
 
-			const strategyRecord = lastRecord as NativeTvlModelMap[NativeTvlModelName]
-			return (
-				Number(strategyRecord.tvl) *
-				(ethPrices?.get(strategyRecord.strategyAddress) || 0)
+			// Get the last records of each distinct strategy
+			const lastRecordsByStrategy = new Map<
+				string,
+				NativeTvlModelMap[NativeTvlModelName]
+			>()
+			for (const record of intervalData) {
+				const strategyRecord = record as NativeTvlModelMap[NativeTvlModelName]
+				lastRecordsByStrategy.set(
+					strategyRecord.strategyAddress,
+					strategyRecord
+				)
+			}
+
+			// Calculate tvlEth
+			return Array.from(lastRecordsByStrategy.values()).reduce(
+				(total, strategyRecord) => {
+					return (
+						total +
+						Number(strategyRecord.tvl) *
+							(ethPrices?.get(strategyRecord.strategyAddress) || 0)
+					)
+				},
+				0
 			)
 		}
+
 		return previousTvl // If no records exist in the time period, previous tvl value is returned
 	}
 
+	// Calculate tvlEth as the summation of all changeTvlEth
 	return intervalData.reduce((sum, record) => {
 		if (isEthDenominated) {
 			const intervalRecord = record as EthTvlModelMap[EthTvlModelName]
