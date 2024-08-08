@@ -5,7 +5,7 @@ import { HistoricalCountSchema } from '../../../../api/src/schema/zod/schemas/hi
 import { EthereumAddressSchema } from '../../../../api/src/schema/zod/schemas/base/ethereumAddress';
 import { OperatorsHistoricAggregateSchema } from '../../apiResponseSchema/operator/OperatorsHistoricAggregateSchema';
 
-const HistorialOperatorsAggregateResponseSchema = z.object({
+const HistoricalOperatorsAggregateResponseSchema = z.object({
     data: z.array(OperatorsHistoricAggregateSchema)
 });
 
@@ -27,7 +27,7 @@ export const getHistoricalOperatorsAggregate: ZodOpenApiOperationObject = {
             description: 'The historical aggregate data for an operator including TVL and total number of stakers at specified timestamp values',
             content: {
                 'application/json': {
-                    schema: HistorialOperatorsAggregateResponseSchema,
+                    schema: HistoricalOperatorsAggregateResponseSchema,
                 },
             },
         },

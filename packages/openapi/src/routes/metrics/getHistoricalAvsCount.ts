@@ -4,13 +4,13 @@ import z from '../../../../api/src/schema/zod';
 import { HistoricalCountSchema } from '../../../../api/src/schema/zod/schemas/historicalCountQuery';
 import { AvsHistoricCountSchema } from '../../apiResponseSchema/avs/avsHistoricCountSchema';
 
-const HistorialAvsCountResponseSchema = z.object({
+const HistoricalAvsCountResponseSchema = z.object({
     data: z.array(AvsHistoricCountSchema)
 });
 
 export const getHistoricalAvsCount: ZodOpenApiOperationObject = {
     operationId: 'getHistoricalAvsCount',
-    summary: 'Retrieve historic count of AVS',
+    summary: 'Retrieve historical count of AVS',
     description: 'Returns the total number of AVS registered at timestamp values',
     tags: ['Metrics'],
     requestParams: {
@@ -21,7 +21,7 @@ export const getHistoricalAvsCount: ZodOpenApiOperationObject = {
             description: 'The  total number of AVS registered at timestamp values',
             content: {
                 'application/json': {
-                    schema: HistorialAvsCountResponseSchema,
+                    schema: HistoricalAvsCountResponseSchema,
                 },
             },
         },
