@@ -13,10 +13,6 @@ export const WithdrawalsResponseSchema = z.object({
         .number()
         .describe('The nonce of the withdrawal')
         .openapi({ example: 0 }),
-    isCompleted: z
-        .boolean()
-        .describe('Indicates if the withdrawal is completed')
-        .openapi({ example: false }),
     stakerAddress: z
         .string()
         .describe('The address of the staker')
@@ -61,4 +57,11 @@ export const WithdrawalsResponseSchema = z.object({
         .string()
         .describe('The time stamp when the withdrawal was last updated')
         .openapi({ example: "2024-07-07T23:53:35.000Z" }),
+})
+
+export const WithdrawalsResponseWithIsCompleted = WithdrawalsResponseSchema.extend({
+    isCompleted: z
+        .boolean()
+        .describe('Indicates if the withdrawal is completed')
+        .openapi({ example: false }),
 });

@@ -4479,11 +4479,6 @@
                             "description": "The nonce of the withdrawal",
                             "example": 0
                           },
-                          "isCompleted": {
-                            "type": "boolean",
-                            "description": "Indicates if the withdrawal is completed",
-                            "example": false
-                          },
                           "stakerAddress": {
                             "type": "string",
                             "description": "The address of the staker",
@@ -4553,7 +4548,6 @@
                         "required": [
                           "withdrawalRoot",
                           "nonce",
-                          "isCompleted",
                           "stakerAddress",
                           "delegatedTo",
                           "withdrawerAddress",
@@ -4662,11 +4656,6 @@
                       "description": "The nonce of the withdrawal",
                       "example": 0
                     },
-                    "isCompleted": {
-                      "type": "boolean",
-                      "description": "Indicates if the withdrawal is completed",
-                      "example": false
-                    },
                     "stakerAddress": {
                       "type": "string",
                       "description": "The address of the staker",
@@ -4736,7 +4725,6 @@
                   "required": [
                     "withdrawalRoot",
                     "nonce",
-                    "isCompleted",
                     "stakerAddress",
                     "delegatedTo",
                     "withdrawerAddress",
@@ -5312,11 +5300,6 @@
                             "description": "The nonce of the withdrawal",
                             "example": 0
                           },
-                          "isCompleted": {
-                            "type": "boolean",
-                            "description": "Indicates if the withdrawal is completed",
-                            "example": false
-                          },
                           "stakerAddress": {
                             "type": "string",
                             "description": "The address of the staker",
@@ -5381,12 +5364,16 @@
                             "type": "string",
                             "description": "The time stamp when the withdrawal was last updated",
                             "example": "2024-07-07T23:53:35.000Z"
+                          },
+                          "isCompleted": {
+                            "type": "boolean",
+                            "description": "Indicates if the withdrawal is completed",
+                            "example": false
                           }
                         },
                         "required": [
                           "withdrawalRoot",
                           "nonce",
-                          "isCompleted",
                           "stakerAddress",
                           "delegatedTo",
                           "withdrawerAddress",
@@ -5394,7 +5381,8 @@
                           "createdAtBlock",
                           "updatedAtBlock",
                           "createdAt",
-                          "updatedAt"
+                          "updatedAt",
+                          "isCompleted"
                         ]
                       }
                     },
@@ -5523,11 +5511,6 @@
                             "description": "The nonce of the withdrawal",
                             "example": 0
                           },
-                          "isCompleted": {
-                            "type": "boolean",
-                            "description": "Indicates if the withdrawal is completed",
-                            "example": false
-                          },
                           "stakerAddress": {
                             "type": "string",
                             "description": "The address of the staker",
@@ -5597,7 +5580,6 @@
                         "required": [
                           "withdrawalRoot",
                           "nonce",
-                          "isCompleted",
                           "stakerAddress",
                           "delegatedTo",
                           "withdrawerAddress",
@@ -5734,11 +5716,6 @@
                             "description": "The nonce of the withdrawal",
                             "example": 0
                           },
-                          "isCompleted": {
-                            "type": "boolean",
-                            "description": "Indicates if the withdrawal is completed",
-                            "example": false
-                          },
                           "stakerAddress": {
                             "type": "string",
                             "description": "The address of the staker",
@@ -5808,7 +5785,6 @@
                         "required": [
                           "withdrawalRoot",
                           "nonce",
-                          "isCompleted",
                           "stakerAddress",
                           "delegatedTo",
                           "withdrawerAddress",
@@ -5945,11 +5921,6 @@
                             "description": "The nonce of the withdrawal",
                             "example": 0
                           },
-                          "isCompleted": {
-                            "type": "boolean",
-                            "description": "Indicates if the withdrawal is completed",
-                            "example": false
-                          },
                           "stakerAddress": {
                             "type": "string",
                             "description": "The address of the staker",
@@ -6019,7 +5990,6 @@
                         "required": [
                           "withdrawalRoot",
                           "nonce",
-                          "isCompleted",
                           "stakerAddress",
                           "delegatedTo",
                           "withdrawerAddress",
