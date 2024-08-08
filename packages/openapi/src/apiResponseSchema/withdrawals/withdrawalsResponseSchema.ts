@@ -43,25 +43,30 @@ export const WithdrawalsResponseSchema = z.object({
             'The block number when the withdrawal was recorded by EigenExplorer'
         )
         .openapi({ example: 19912470 }),
-    updatedAtBlock: z
-        .number()
-        .describe('The block number when the withdrawal was last updated')
-        .openapi({ example: 19912470 }),
     createdAt: z
         .string()
         .describe(
             'The time stamp when the withdrawal was recorded by EigenExplorer'
         )
-        .openapi({ example: "2024-07-07T23:53:35.000Z" }),
+        .openapi({ example: "2024-07-07T23:53:35.000Z" })
+})
+
+export const WithdrawalsResponseWithUpdateFields = WithdrawalsResponseSchema.extend({
+    updatedAtBlock: z
+        .number()
+        .describe('The block number when the withdrawal was last updated')
+        .openapi({ example: 19912470 }),
     updatedAt: z
         .string()
         .describe('The time stamp when the withdrawal was last updated')
         .openapi({ example: "2024-07-07T23:53:35.000Z" }),
-})
+});
 
-export const WithdrawalsResponseWithIsCompleted = WithdrawalsResponseSchema.extend({
+export const WithdrawalsResponseWithIsCompletedAndUpdateFields = WithdrawalsResponseWithUpdateFields.extend({
     isCompleted: z
         .boolean()
         .describe('Indicates if the withdrawal is completed')
         .openapi({ example: false }),
 });
+
+
