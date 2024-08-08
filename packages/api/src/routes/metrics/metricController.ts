@@ -12,15 +12,36 @@ type HistoricalTvlRecord = {
 	timestamp: string
 	tvlEth: number
 }
-
-type MetricModelMap = {
-	metricEigenPodsHourly: Prisma.MetricEigenPodsHourly
-	metricStrategyHourly: Prisma.MetricStrategyHourly
-	metricDepositHourly: Prisma.MetricDepositHourly
-	metricWithdrawalHourly: Prisma.MetricWithdrawalHourly
+type HistoricalAggregateRecord = {
+	timestamp: string
+	tvlEth: number
+	totalStakers: number
+	totalOperators?: number
+	totalAvs?: number
 }
 
-type MetricModelName = keyof MetricModelMap
+type EthTvlModelMap = {
+	metricDepositHourly: Prisma.MetricDepositHourly
+	metricWithdrawalHourly: Prisma.MetricWithdrawalHourly
+	metricEigenPodsHourly: Prisma.MetricEigenPodsHourly
+}
+type EthTvlModelName = keyof EthTvlModelMap
+
+type NativeTvlModelMap = {
+	metricStrategyHourly: Prisma.MetricStrategyHourly
+	metricAvsStrategyHourly: Prisma.MetricAvsStrategyHourly
+	metricOperatorStrategyHourly: Prisma.MetricOperatorStrategyHourly
+}
+type NativeTvlModelName = keyof NativeTvlModelMap
+
+type AggregateModelMap = {
+	metricAvsHourly: Prisma.MetricAvsHourly
+	metricOperatorHourly: Prisma.MetricOperatorHourly
+}
+type AggregateModelName = keyof AggregateModelMap
+
+type MetricModelMap = EthTvlModelMap & NativeTvlModelMap
+type MetricModelName = keyof (EthTvlModelMap & NativeTvlModelMap)
 
 const beaconAddress = '0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0'
 
@@ -1020,7 +1041,7 @@ async function doGetHistoricalTvlBeacon(
 	const results: HistoricalTvlRecord[] = []
 	const modelName = 'metricEigenPodsHourly' as MetricModelName
 
-	// MetricHourly records are created only when there is activity detected. If cumulative, we may need to set initial tvl value
+	// MetricHourly records are created only when activity is detected, not neceessarily for all timestamps. If cumulative, we may need to set initial tvl value
 	let tvlEth =
 		variant === 'cumulative'
 			? await getInitialTvlCumulative(
@@ -1099,7 +1120,7 @@ async function doGetHistoricalTvlRestaking(
 	const modelName = 'metricStrategyHourly' as MetricModelName
 	const ethPrices = await fetchCurrentEthPrices()
 
-	// MetricHourly records are created only when there is activity detected. If cumulative, we may need to set the initial tvl value
+	// MetricHourly records are created only when activity is detected, not neceessarily for all timestamps. If cumulative, we may need to set initial tvl value
 	let tvlEth =
 		variant === 'cumulative'
 			? await getInitialTvlCumulative(
@@ -1173,7 +1194,7 @@ async function doGetHistoricalTvlWithdrawalDeposit(
 
 	const results: HistoricalTvlRecord[] = []
 
-	// MetricHourly records are created only when there is activity detected. If cumulative, we may need to set initial tvl value
+	// MetricHourly records are created only when activity is detected, not neceessarily for all timestamps. If cumulative, we may need to set initial tvl value
 	let tvlEth =
 		variant === 'cumulative'
 			? await getInitialTvlCumulative(
@@ -1216,6 +1237,16 @@ async function doGetHistoricalTvlWithdrawalDeposit(
 
 // --- Historical Aggregate Routes ---
 
+/**
+ * Processes TVL in ETH, totalStakers & totalOperators in historical format
+ *
+ * @param address
+ * @param startAt
+ * @param endAt
+ * @param frequency
+ * @param variant
+ * @returns
+ */
 async function doGetHistoricalAvsAggregate(
 	address: string,
 	startAt: string,
@@ -1225,22 +1256,9 @@ async function doGetHistoricalAvsAggregate(
 ) {
 	const startTimestamp = resetTime(new Date(startAt))
 	const endTimestamp = resetTime(new Date(endAt))
-	let currentTimestamp = startTimestamp
 
-	const results: {
-		timestamp: string
-		tvlEth: number
-		totalStakers: number
-		totalOperators: number
-	}[] = []
-	const timeInterval =
-		{
-			'1h': 3600000,
-			'1d': 86400000,
-			'7d': 604800000
-		}[frequency] || 3600000
-
-	const hourlyData = await prisma.metricAvsHourly.findMany({
+	// Fetch initial data
+	const getHourlyData = prisma.metricAvsHourly.findMany({
 		where: {
 			timestamp: {
 				gte: startTimestamp,
@@ -1253,69 +1271,85 @@ async function doGetHistoricalAvsAggregate(
 		}
 	})
 
-	let tvlEth = 0
-	let totalStakers = 0
-	let totalOperators = 0
-
-	// Set the first tvlEth, totalStakers & totalOperators value to prevent the first n responses returning 0 in case no records exist for the first n timestamps
-	if (variant === 'cumulative') {
-		if (
-			hourlyData.length > 0 &&
-			hourlyData[0].timestamp.getTime() === startTimestamp.getTime()
-		) {
-			tvlEth = Number(hourlyData[0].tvlEth)
-			totalStakers = hourlyData[0].totalStakers
-			totalOperators = hourlyData[0].totalOperators
-		} else {
-			const result = await prisma.metricAvsHourly.findFirst({
-				select: {
-					tvlEth: true,
-					totalStakers: true,
-					totalOperators: true
-				},
-				where: {
-					timestamp: {
-						lt: startTimestamp
-					},
-					avsAddress: address.toLowerCase()
-				},
-				orderBy: {
-					timestamp: 'desc'
-				}
-			})
-
-			tvlEth = result ? Number(result.tvlEth) : 0
-			totalStakers = result ? Number(result.totalStakers) : 0
-			totalOperators = result ? Number(result.totalOperators) : 0
+	const getStrategyData = prisma.metricAvsStrategyHourly.findMany({
+		where: {
+			timestamp: {
+				gte: startTimestamp,
+				lte: endTimestamp
+			},
+			avsAddress: address.toLowerCase()
+		},
+		orderBy: {
+			timestamp: 'asc'
 		}
-	}
+	})
 
+	const [hourlyData, strategyData] = await Promise.all([
+		getHourlyData,
+		getStrategyData
+	])
+
+	const results: HistoricalAggregateRecord[] = []
+	const ethPrices = await fetchCurrentEthPrices()
+
+	// MetricHourly records are created only when activity is detected, not neceessarily for all timestamps. If cumulative, we may need to set initial values
+	let { totalStakers, totalOperators } =
+		variant === 'cumulative'
+			? await getInitialMetricsCumulative(
+					address,
+					startTimestamp,
+					hourlyData,
+					'metricAvsHourly'
+			  )
+			: { totalStakers: 0, totalOperators: 0 }
+
+	let tvlEth =
+		variant === 'cumulative'
+			? await getInitialTvlCumulative(
+					startTimestamp,
+					strategyData,
+					false,
+					'metricAvsStrategyHourly',
+					ethPrices,
+					address
+			  )
+			: 0
+
+	const offset = getOffsetInMs(frequency)
+	let currentTimestamp = startTimestamp
+
+	// Process results per timestamp
 	while (currentTimestamp <= endTimestamp) {
-		const nextTimestamp = new Date(currentTimestamp.getTime() + timeInterval)
-		const intervalData = hourlyData.filter(
+		const nextTimestamp = new Date(currentTimestamp.getTime() + offset)
+
+		const intervalHourlyData = hourlyData.filter(
 			(data) =>
 				data.timestamp >= currentTimestamp && data.timestamp < nextTimestamp
 		)
 
-		if (variant === 'cumulative') {
-			if (intervalData.length > 0) {
-				tvlEth = Number(intervalData[intervalData.length - 1].tvlEth)
-				totalStakers = intervalData[intervalData.length - 1].totalStakers
-				totalOperators = intervalData[intervalData.length - 1].totalOperators
-			} // If no records exist in the time period, previous tvlEth, totalStakers & totalOperators value is returned
-		} else {
-			tvlEth = intervalData.reduce((sum, record) => {
-				return sum + Number(record.changeTvlEth)
-			}, 0)
+		const { totalStakers: newStakers, totalOperators: newOperators } =
+			await calculateMetricsForHistoricalRecord(
+				intervalHourlyData,
+				variant,
+				totalStakers,
+				totalOperators
+			)
 
-			totalStakers = intervalData.reduce((sum, record) => {
-				return sum + record.changeStakers
-			}, 0)
+		totalStakers = newStakers
+		totalOperators = newOperators
 
-			totalOperators = intervalData.reduce((sum, record) => {
-				return sum + record.changeOperators
-			}, 0)
-		}
+		const intervalStrategyData = strategyData.filter(
+			(data) =>
+				data.timestamp >= currentTimestamp && data.timestamp < nextTimestamp
+		)
+
+		tvlEth = calculateTvlForHistoricalRecord(
+			intervalStrategyData,
+			variant,
+			tvlEth,
+			false,
+			ethPrices
+		)
 
 		results.push({
 			timestamp: new Date(Number(currentTimestamp)).toISOString(),
@@ -1330,6 +1364,16 @@ async function doGetHistoricalAvsAggregate(
 	return results
 }
 
+/**
+ * Processes TVL in ETH, totalStakers & totalOperators in historical format
+ *
+ * @param address
+ * @param startAt
+ * @param endAt
+ * @param frequency
+ * @param variant
+ * @returns
+ */
 async function doGetHistoricalOperatorsAggregate(
 	address: string,
 	startAt: string,
@@ -1339,21 +1383,9 @@ async function doGetHistoricalOperatorsAggregate(
 ) {
 	const startTimestamp = resetTime(new Date(startAt))
 	const endTimestamp = resetTime(new Date(endAt))
-	let currentTimestamp = startTimestamp
 
-	const results: {
-		timestamp: string
-		tvlEth: number
-		totalStakers: number
-	}[] = []
-	const timeInterval =
-		{
-			'1h': 3600000,
-			'1d': 86400000,
-			'7d': 604800000
-		}[frequency] || 3600000
-
-	const hourlyData = await prisma.metricOperatorHourly.findMany({
+	// Fetch initial data
+	const getHourlyData = prisma.metricOperatorHourly.findMany({
 		where: {
 			timestamp: {
 				gte: startTimestamp,
@@ -1366,65 +1398,92 @@ async function doGetHistoricalOperatorsAggregate(
 		}
 	})
 
-	let tvlEth = 0
-	let totalStakers = 0
-
-	// Set the first tvlEth & totalStakers value to prevent the first n responses returning 0 in case no records exist for the first n timestamps
-	if (variant === 'cumulative') {
-		if (
-			hourlyData.length > 0 &&
-			hourlyData[0].timestamp.getTime() === startTimestamp.getTime()
-		) {
-			tvlEth = Number(hourlyData[0].tvlEth)
-			totalStakers = hourlyData[0].totalStakers
-		} else {
-			const result = await prisma.metricOperatorHourly.findFirst({
-				select: {
-					tvlEth: true,
-					totalStakers: true
-				},
-				where: {
-					timestamp: {
-						lt: startTimestamp
-					},
-					operatorAddress: address.toLowerCase()
-				},
-				orderBy: {
-					timestamp: 'desc'
-				}
-			})
-
-			tvlEth = result ? Number(result.tvlEth) : 0
-			totalStakers = result ? Number(result.totalStakers) : 0
+	const getStrategyData = prisma.metricOperatorStrategyHourly.findMany({
+		where: {
+			timestamp: {
+				gte: startTimestamp,
+				lte: endTimestamp
+			},
+			operatorAddress: address.toLowerCase()
+		},
+		orderBy: {
+			timestamp: 'asc'
 		}
-	}
+	})
 
+	const [hourlyData, strategyData] = await Promise.all([
+		getHourlyData,
+		getStrategyData
+	])
+
+	const results: HistoricalAggregateRecord[] = []
+	const ethPrices = await fetchCurrentEthPrices()
+
+	// MetricHourly records are created only when activity is detected, not neceessarily for all timestamps. If cumulative, we may need to set initial values
+	let { totalStakers, totalAvs } =
+		variant === 'cumulative'
+			? await getInitialMetricsCumulative(
+					address,
+					startTimestamp,
+					hourlyData,
+					'metricAvsHourly'
+			  )
+			: { totalStakers: 0, totalAvs: 0 }
+
+	let tvlEth =
+		variant === 'cumulative'
+			? await getInitialTvlCumulative(
+					startTimestamp,
+					strategyData,
+					false,
+					'metricAvsStrategyHourly',
+					ethPrices,
+					address
+			  )
+			: 0
+
+	const offset = getOffsetInMs(frequency)
+	let currentTimestamp = startTimestamp
+
+	// Process results per timestamp
 	while (currentTimestamp <= endTimestamp) {
-		const nextTimestamp = new Date(currentTimestamp.getTime() + timeInterval)
-		const intervalData = hourlyData.filter(
+		const nextTimestamp = new Date(currentTimestamp.getTime() + offset)
+
+		const intervalHourlyData = hourlyData.filter(
 			(data) =>
 				data.timestamp >= currentTimestamp && data.timestamp < nextTimestamp
 		)
 
-		if (variant === 'cumulative') {
-			if (intervalData.length > 0) {
-				tvlEth = Number(intervalData[intervalData.length - 1].tvlEth)
-				totalStakers = intervalData[intervalData.length - 1].totalStakers
-			} // If no records exist in the time period, previous tvlEth & totalStakers value is returned
-		} else {
-			tvlEth = intervalData.reduce((sum, record) => {
-				return sum + Number(record.changeTvlEth)
-			}, 0)
+		const { totalStakers: newStakers, totalAvs: newAvs } =
+			await calculateMetricsForHistoricalRecord(
+				intervalHourlyData,
+				variant,
+				totalStakers,
+				undefined,
+				totalAvs
+			)
 
-			totalStakers = intervalData.reduce((sum, record) => {
-				return sum + record.changeStakers
-			}, 0)
-		}
+		totalStakers = newStakers
+		totalAvs = newAvs
+
+		const intervalStrategyData = strategyData.filter(
+			(data) =>
+				data.timestamp >= currentTimestamp && data.timestamp < nextTimestamp
+		)
+
+		tvlEth = calculateTvlForHistoricalRecord(
+			intervalStrategyData,
+			variant,
+			tvlEth,
+			false,
+			ethPrices
+		)
 
 		results.push({
 			timestamp: new Date(Number(currentTimestamp)).toISOString(),
 			tvlEth,
-			totalStakers
+			totalStakers,
+			totalAvs
 		})
 
 		currentTimestamp = nextTimestamp
@@ -1435,28 +1494,30 @@ async function doGetHistoricalOperatorsAggregate(
 
 // --- Historical Count Routes ---
 
+/**
+ * Processes total count in historical format
+ * 
+ * @param modelName 
+ * @param startAt 
+ * @param endAt 
+ * @param frequency 
+ * @param variant 
+ * @returns 
+ */
 async function doGetHistoricalCount(
-	modelName: string,
+	modelName: 'avs' | 'operator' | 'staker' | 'withdrawalQueued' | 'deposit',
 	startAt: string,
 	endAt: string,
 	frequency: string,
 	variant: string
 ) {
-	if (
-		!['avs', 'operator', 'staker', 'withdrawalQueued', 'deposit'].includes(
-			modelName
-		)
-	) {
-		throw new Error('Invalid model name')
-	}
-
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	const model = prisma[modelName] as any
 
 	const startDate = resetTime(new Date(startAt))
 	const endDate = resetTime(new Date(endAt))
 
-	const initialTally = await model.count({
+	const getInitialTally = model.count({
 		where: {
 			createdAt: {
 				lt: startDate
@@ -1464,7 +1525,7 @@ async function doGetHistoricalCount(
 		}
 	})
 
-	const modelData = await model.findMany({
+	const getModelData = model.findMany({
 		select: {
 			createdAt: true
 		},
@@ -1479,18 +1540,19 @@ async function doGetHistoricalCount(
 		}
 	})
 
+	const [initialTally, modelData] = await Promise.all([
+		getInitialTally,
+		getModelData
+	])
+
 	const results: { timestamp: string; value: number }[] = []
-	const timeInterval =
-		{
-			'1h': 3600000,
-			'1d': 86400000,
-			'7d': 604800000
-		}[frequency] || 3600000
+	const offset = getOffsetInMs(frequency)
+
 	let currentDate = startDate
 	let tally = initialTally
 
 	while (currentDate <= endDate) {
-		const nextDate = new Date(currentDate.getTime() + timeInterval)
+		const nextDate = new Date(currentDate.getTime() + offset)
 
 		const intervalData = modelData.filter(
 			(data) => data.createdAt >= currentDate && data.createdAt < nextDate
@@ -1573,7 +1635,7 @@ function resetTime(date: Date) {
 }
 
 /**
- * Calculates 24h/7d change and returns according to historical format
+ * Calculates 24h/7d tvl change
  *
  * @param currentTvl
  * @param tvl24hOffset
@@ -1609,13 +1671,15 @@ function calculateTvlChanges(
  * @param ethPrices
  * @returns
  */
-async function getInitialTvlCumulative<T extends MetricModelName>(
+async function getInitialTvlCumulative(
 	startTimestamp: Date,
-	hourlyData: MetricModelMap[T][],
+	hourlyData: MetricModelMap[MetricModelName][],
 	isEthDenominated: boolean,
-	modelName: T,
-	ethPrices?: Map<string, number>
+	modelName: MetricModelName,
+	ethPrices?: Map<string, number>,
+	address?: string
 ) {
+	// If a record exists for the first timestamp, return its value
 	if (!isEthDenominated && !ethPrices) {
 		throw new Error('ETH prices are required for non-beacon calculations')
 	}
@@ -1625,32 +1689,100 @@ async function getInitialTvlCumulative<T extends MetricModelName>(
 		hourlyData[0].timestamp.getTime() === startTimestamp.getTime()
 	) {
 		if (isEthDenominated) {
-			return Number(
-				(hourlyData[0] as MetricModelMap[Exclude<T, 'metricStrategyHourly'>])
-					.tvlEth
-			)
+			return Number((hourlyData[0] as EthTvlModelMap[EthTvlModelName]).tvlEth)
 		}
 
-		const strategyRecord = hourlyData[0] as Prisma.MetricStrategyHourly
-		return (
-			Number(strategyRecord.tvl) *
-			(ethPrices?.get(strategyRecord.strategyAddress) || 0)
-		)
+		const record = hourlyData[0] as NativeTvlModelMap[NativeTvlModelName]
+		return Number(record.tvl) * (ethPrices?.get(record.strategyAddress) || 0)
 	}
 
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	const model = prisma[modelName] as any
+	const whereFilter =
+		address && modelName === 'metricAvsStrategyHourly'
+			? { avsAddress: address.toLowerCase() }
+			: address && modelName === 'metricOperatorStrategyHourly'
+			  ? { operatorAddress: address.toLowerCase() }
+			  : {}
+
+	// Find the first record before the first timestamp & return its value
 	const result = await model.findFirst({
-		select: { [isEthDenominated ? 'tvlEth' : 'tvl']: true },
-		where: { timestamp: { lt: startTimestamp } },
+		select: {
+			[isEthDenominated ? 'tvlEth' : 'tvl']: true,
+			...(isEthDenominated && { strategyAddress: true })
+		},
+		where: { timestamp: { lt: startTimestamp }, ...whereFilter },
 		orderBy: { timestamp: 'desc' }
 	})
 
 	if (!result) return 0
 
-	return isEthDenominated
-		? Number(result.tvlEth)
-		: Number(result.tvl) * (ethPrices?.get(beaconAddress) || 0)
+	if (isEthDenominated) {
+		return Number((result as EthTvlModelMap[EthTvlModelName]).tvlEth)
+	}
+
+	return Number(result.tvl) * (ethPrices?.get(result.strategyAddress) || 0)
+}
+
+/**
+ * Calculates initial totalStakers, totalOperators/totalAvs for a historical aggregate query with variant set to cumulative
+ *
+ * @param startTimestamp
+ * @param hourlyData
+ * @param modelName
+ */
+async function getInitialMetricsCumulative(
+	address: string,
+	startTimestamp: Date,
+	hourlyData: AggregateModelMap[AggregateModelName][],
+	modelName: AggregateModelName
+) {
+	// If a record exists for the first timestamp, return its value
+	if (
+		hourlyData.length > 0 &&
+		hourlyData[0].timestamp.getTime() === startTimestamp.getTime()
+	) {
+		return modelName === 'metricAvsHourly'
+			? {
+					totalStakers: hourlyData[0].totalStakers || 0,
+					totalOperators:
+						(hourlyData[0] as AggregateModelMap[typeof modelName])
+							.totalOperators || 0
+			  }
+			: {
+					totalStakers: hourlyData[0].totalStakers || 0,
+					totalAvs:
+						(hourlyData[0] as AggregateModelMap[typeof modelName]).totalAvs || 0
+			  }
+	}
+
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+	const model = prisma[modelName] as any
+
+	// Find the first record before the first timestamp & return the required values
+	const record = await model.findFirst({
+		select: {
+			totalStakers: true,
+			[modelName === 'metricAvsHourly' ? 'totalOperators' : 'totalAvs']: true
+		},
+		where: {
+			timestamp: { lt: startTimestamp },
+			[modelName === 'metricAvsHourly' ? 'avsAddress' : 'operatorAddress']:
+				address.toLowerCase()
+		},
+		orderBy: { timestamp: 'desc' }
+	})
+
+	return modelName === 'metricAvsHourly'
+		? {
+				totalStakers: Number(record.totalStakers) || 0,
+				totalOperators:
+					(record as AggregateModelMap[typeof modelName]).totalOperators || 0
+		  }
+		: {
+				totalStakers: Number(record.totalStakers) || 0,
+				totalAvs: (record as AggregateModelMap[typeof modelName]).totalAvs || 0
+		  }
 }
 
 /**
@@ -1663,8 +1795,8 @@ async function getInitialTvlCumulative<T extends MetricModelName>(
  * @param ethPrices
  * @returns
  */
-function calculateTvlForHistoricalRecord<T extends MetricModelName>(
-	intervalData: MetricModelMap[T][],
+function calculateTvlForHistoricalRecord(
+	intervalData: MetricModelMap[MetricModelName][],
 	variant: string,
 	previousTvl: number,
 	isEthDenominated: boolean,
@@ -1678,13 +1810,10 @@ function calculateTvlForHistoricalRecord<T extends MetricModelName>(
 		if (intervalData.length > 0) {
 			const lastRecord = intervalData[intervalData.length - 1]
 			if (isEthDenominated) {
-				return Number(
-					(lastRecord as MetricModelMap[Exclude<T, 'metricStrategyHourly'>])
-						.tvlEth
-				)
+				return Number((lastRecord as EthTvlModelMap[EthTvlModelName]).tvlEth)
 			}
 
-			const strategyRecord = lastRecord as Prisma.MetricStrategyHourly
+			const strategyRecord = lastRecord as NativeTvlModelMap[NativeTvlModelName]
 			return (
 				Number(strategyRecord.tvl) *
 				(ethPrices?.get(strategyRecord.strategyAddress) || 0)
@@ -1695,14 +1824,76 @@ function calculateTvlForHistoricalRecord<T extends MetricModelName>(
 
 	return intervalData.reduce((sum, record) => {
 		if (isEthDenominated) {
-			const intervalRecord = record as MetricModelMap[Exclude<
-				T,
-				'metricStrategyHourly'
-			>]
+			const intervalRecord = record as EthTvlModelMap[EthTvlModelName]
 			return sum + Number(intervalRecord.changeTvlEth)
 		}
-		const strategyRecord = record as Prisma.MetricStrategyHourly
-		const ethPrice = ethPrices?.get(strategyRecord.strategyAddress) || 0
-		return sum + Number(strategyRecord.changeTvl) * ethPrice
+		const intervalRecord = record as NativeTvlModelMap[NativeTvlModelName]
+		const ethPrice = ethPrices?.get(intervalRecord.strategyAddress) || 0
+		return sum + Number(intervalRecord.changeTvl) * ethPrice
 	}, 0)
+}
+
+/**
+ * Calculates totalStakers, totalOperators/totalAvs for one record of a historical aggregate response
+ *
+ * @param intervalHourlyData
+ * @param variant
+ * @param totalStakers
+ * @param totalOperators
+ * @param totalAvs
+ * @returns
+ */
+async function calculateMetricsForHistoricalRecord(
+	intervalHourlyData: AggregateModelMap[AggregateModelName][],
+	variant: string,
+	totalStakers: number,
+	totalOperators?: number,
+	totalAvs?: number
+) {
+	let newStakers = totalStakers
+	let newOperators = totalOperators
+	let newAvs = totalAvs
+
+	if (variant === 'cumulative') {
+		if (intervalHourlyData.length > 0) {
+			newStakers =
+				intervalHourlyData[intervalHourlyData.length - 1].totalStakers
+			newOperators = totalOperators
+				? (
+						intervalHourlyData[
+							intervalHourlyData.length - 1
+						] as AggregateModelMap['metricAvsHourly']
+				  ).totalOperators
+				: undefined
+			newAvs = totalAvs
+				? (
+						intervalHourlyData[
+							intervalHourlyData.length - 1
+						] as AggregateModelMap['metricOperatorHourly']
+				  ).totalAvs
+				: undefined
+		}
+	} else {
+		newStakers = intervalHourlyData.reduce(
+			(sum, record) => sum + record.changeStakers,
+			0
+		)
+		newOperators = totalOperators
+			? (intervalHourlyData as AggregateModelMap['metricAvsHourly'][]).reduce(
+					(sum, record) => sum + record.changeOperators,
+					0
+			  )
+			: undefined
+		newAvs = totalAvs
+			? (
+					intervalHourlyData as AggregateModelMap['metricOperatorHourly'][]
+			  ).reduce((sum, record) => sum + record.changeAvs, 0)
+			: undefined
+	}
+
+	return {
+		totalStakers: newStakers,
+		totalOperators: newOperators,
+		totalAvs: newAvs
+	}
 }
