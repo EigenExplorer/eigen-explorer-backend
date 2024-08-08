@@ -34,7 +34,7 @@ export async function fetchCurrentEthPrices() {
 
 		if (strategy) {
 			const [_, { strategyContract }] = strategy
-			strategyPriceMap.set(strategyContract, Number(price.ethPrice))
+			strategyPriceMap.set(strategyContract.toLowerCase(), Number(price.ethPrice))
 		}
 	}
 

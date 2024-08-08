@@ -691,23 +691,29 @@ async function doGetTvlRestaking(includeBeaconInTvl = true, strategy?: string) {
 		totalTvl7dOffset,
 		tvlStrategies,
 		tvlStrategiesEth
-	} = Object.entries(strategyRecords).reduce(
+	} = Array.from(strategyRecords.entries()).reduce(
 		(acc, [strategyAddress, records]) => {
 			const ethPrice = strategyPriceMap.get(strategyAddress) || 0
 			const addToTvl = includeBeaconInTvl || strategyAddress !== beaconAddress // Only use Beacon TVL in total TVL & change calc if required
 
-			records.forEach((record, index) => {
-				const tvlEth = Number(record.tvl) * ethPrice
-				if (index === 0) {
-					if (addToTvl) acc.totalTvl += tvlEth
-					acc.tvlStrategies[strategyAddress] = Number(record.tvl)
-					acc.tvlStrategiesEth[strategyAddress] = tvlEth
-				} else if (index === 1 && addToTvl) {
-					acc.totalTvl24hOffset += tvlEth
-				} else if (index === 2 && addToTvl) {
-					acc.totalTvl7dOffset += tvlEth
-				}
-			})
+			const latestRecord = records['']
+			const record24h = records['24h']
+			const record7d = records['7d']
+
+			if (latestRecord) {
+				const tvlEth = Number(latestRecord.tvl) * ethPrice
+				if (addToTvl) acc.totalTvl += tvlEth
+				acc.tvlStrategies[strategyAddress] = Number(latestRecord.tvl)
+				acc.tvlStrategiesEth[strategyAddress] = tvlEth
+			}
+
+			if (record24h && addToTvl) {
+				acc.totalTvl24hOffset += Number(record24h.tvl) * ethPrice
+			}
+
+			if (record7d && addToTvl) {
+				acc.totalTvl7dOffset += Number(record7d.tvl) * ethPrice
+			}
 
 			return acc
 		},
@@ -715,8 +721,8 @@ async function doGetTvlRestaking(includeBeaconInTvl = true, strategy?: string) {
 			totalTvl: 0,
 			totalTvl24hOffset: 0,
 			totalTvl7dOffset: 0,
-			tvlStrategies: {},
-			tvlStrategiesEth: {}
+			tvlStrategies: {} as { [key: string]: number },
+			tvlStrategiesEth: {} as { [key: string]: number }
 		}
 	)
 
@@ -732,39 +738,44 @@ async function doGetTvlRestaking(includeBeaconInTvl = true, strategy?: string) {
 
 	// Function to get restaking data for each timeOffset for all relevant strategies
 	async function fetchLatestStrategyData(strategy?: string) {
-		const exactTimestamps = await prisma.metricStrategyHourly.groupBy({
+		const strategyTimestamps = await prisma.metricStrategyHourly.groupBy({
 			by: ['strategyAddress'],
-			_max: {
-				timestamp: true
-			},
 			where: {
-				AND: [
-					strategy ? { strategyAddress: strategy } : {},
-					{
-						OR: timeOffsets.map((tf) => ({
-							timestamp: { lte: getTimestamp(tf) }
-						}))
-					}
-				]
+				timestamp: {
+					lte: getTimestamp('7d')
+				},
+				...(strategy ? { strategyAddress: strategy } : {})
+			},
+			_min: {
+				timestamp: true
 			}
 		})
 
-		const strategyRecords = await prisma.metricStrategyHourly.findMany({
-			where: {
-				OR: exactTimestamps.flatMap((lt) =>
-					timeOffsets.map((tf) => ({
-						strategyAddress: lt.strategyAddress,
-						timestamp: {
-							lte: getTimestamp(tf),
-							...(lt._max.timestamp ? { gte: lt._max.timestamp } : {})
-						}
-					}))
-				)
+		const earliestTimestamp = strategyTimestamps.reduce(
+			(earliest, current) => {
+				if (earliest === null) return current._min.timestamp
+				if (current._min.timestamp === null) return earliest
+				return current._min.timestamp < earliest
+					? current._min.timestamp
+					: earliest
 			},
-			orderBy: [{ strategyAddress: 'asc' }, { timestamp: 'desc' }]
+			null as Date | null
+		)
+
+		const records = await prisma.metricStrategyHourly.findMany({
+			where: {
+				timestamp: {
+					gte: earliestTimestamp || getTimestamp('7d')
+				},
+				...(strategy ? { strategyAddress: strategy } : {})
+			},
+			orderBy: {
+				timestamp: 'asc'
+			}
 		})
 
-		return strategyRecords.reduce(
+		// Group records by strategy address
+		const recordsByStrategy = records.reduce(
 			(acc, record) => {
 				if (!acc[record.strategyAddress]) {
 					acc[record.strategyAddress] = []
@@ -772,8 +783,43 @@ async function doGetTvlRestaking(includeBeaconInTvl = true, strategy?: string) {
 				acc[record.strategyAddress].push(record)
 				return acc
 			},
-			{} as Record<string, typeof strategyRecords>
+			{} as Record<string, typeof records>
 		)
+
+		// Select specific records for each strategy
+		const result = new Map<string, Record<string, (typeof records)[0]>>()
+
+		for (const [strategyAddress, strategyRecords] of Object.entries(
+			recordsByStrategy
+		)) {
+			const selectedRecords: Record<string, (typeof records)[0]> = {}
+
+			for (const offset of timeOffsets) {
+				const targetTime = getTimestamp(offset)
+				const record = strategyRecords.reduce(
+					(closest, current) => {
+						if (offset === '') {
+							return current.timestamp > (closest?.timestamp || new Date(0))
+								? current
+								: closest
+						}
+						return current.timestamp <= targetTime &&
+							current.timestamp > (closest?.timestamp || new Date(0))
+							? current
+							: closest
+					},
+					null as (typeof records)[0] | null
+				)
+
+				if (record) {
+					selectedRecords[offset] = record
+				}
+			}
+
+			result.set(strategyAddress, selectedRecords)
+		}
+
+		return result
 	}
 }
 
@@ -786,15 +832,16 @@ async function doGetTvlRestaking(includeBeaconInTvl = true, strategy?: string) {
 async function doGetTvlBeaconChain() {
 	const timeOffsets = ['', '24h', '7d']
 
-	const beaconRecords = await prisma.metricEigenPodsHourly.findMany({
-		where: {
-			OR: timeOffsets.map((tf) => ({
+	const beaconRecordsPromises = timeOffsets.map((tf) => {
+		return prisma.metricEigenPodsHourly.findFirst({
+			where: {
 				timestamp: { lte: getTimestamp(tf) }
-			}))
-		},
-		orderBy: { timestamp: 'desc' },
-		take: 3
+			},
+			orderBy: { timestamp: 'desc' }
+		})
 	})
+
+	const beaconRecords = await Promise.all(beaconRecordsPromises)
 
 	const [currentTvl, tvl24hOffset, tvl7dOffset] = beaconRecords.map((record) =>
 		Number(record?.tvlEth ?? 0)
@@ -1426,7 +1473,7 @@ async function doGetHistoricalOperatorsAggregate(
 					address,
 					startTimestamp,
 					hourlyData,
-					'metricAvsHourly'
+					'metricOperatorHourly'
 			  )
 			: { totalStakers: 0, totalAvs: 0 }
 
@@ -1436,7 +1483,7 @@ async function doGetHistoricalOperatorsAggregate(
 					startTimestamp,
 					strategyData,
 					false,
-					'metricAvsStrategyHourly',
+					'metricOperatorStrategyHourly',
 					ethPrices,
 					address
 			  )
@@ -1496,13 +1543,13 @@ async function doGetHistoricalOperatorsAggregate(
 
 /**
  * Processes total count in historical format
- * 
- * @param modelName 
- * @param startAt 
- * @param endAt 
- * @param frequency 
- * @param variant 
- * @returns 
+ *
+ * @param modelName
+ * @param startAt
+ * @param endAt
+ * @param frequency
+ * @param variant
+ * @returns
  */
 async function doGetHistoricalCount(
 	modelName: 'avs' | 'operator' | 'staker' | 'withdrawalQueued' | 'deposit',
@@ -1555,7 +1602,8 @@ async function doGetHistoricalCount(
 		const nextDate = new Date(currentDate.getTime() + offset)
 
 		const intervalData = modelData.filter(
-			(data) => data.createdAt >= currentDate && data.createdAt < nextDate
+			(data: { createdAt: number }) =>
+				data.createdAt >= currentDate && data.createdAt < nextDate
 		)
 
 		if (variant === 'discrete') {
@@ -1773,6 +1821,8 @@ async function getInitialMetricsCumulative(
 		orderBy: { timestamp: 'desc' }
 	})
 
+	if (!record) return { totalStakers: 0, totalOperators: 0, totalAvs: 0 }
+
 	return modelName === 'metricAvsHourly'
 		? {
 				totalStakers: Number(record.totalStakers) || 0,
@@ -1864,14 +1914,14 @@ async function calculateMetricsForHistoricalRecord(
 							intervalHourlyData.length - 1
 						] as AggregateModelMap['metricAvsHourly']
 				  ).totalOperators
-				: undefined
+				: 0
 			newAvs = totalAvs
 				? (
 						intervalHourlyData[
 							intervalHourlyData.length - 1
 						] as AggregateModelMap['metricOperatorHourly']
 				  ).totalAvs
-				: undefined
+				: 0
 		}
 	} else {
 		newStakers = intervalHourlyData.reduce(
@@ -1883,12 +1933,12 @@ async function calculateMetricsForHistoricalRecord(
 					(sum, record) => sum + record.changeOperators,
 					0
 			  )
-			: undefined
+			: 0
 		newAvs = totalAvs
 			? (
 					intervalHourlyData as AggregateModelMap['metricOperatorHourly'][]
 			  ).reduce((sum, record) => sum + record.changeAvs, 0)
-			: undefined
+			: 0
 	}
 
 	return {
