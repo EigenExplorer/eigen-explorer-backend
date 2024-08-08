@@ -3,11 +3,11 @@ import { ZodOpenApiOperationObject } from 'zod-openapi';
 import { openApiErrorResponses } from '../../apiResponseSchema/base/errorResponses';
 import { PaginationMetaResponsesSchema } from '../../apiResponseSchema/base/paginationMetaResponses';
 import { PaginationQuerySchema } from '../../../../api/src/schema/zod/schemas/paginationQuery';
-import { WithdrawalsResponseSchema } from '../../apiResponseSchema/withdrawals/withdrawalsResponseSchema';
 import { EthereumAddressSchema } from '../../../../api/src/schema/zod/schemas/base/ethereumAddress';
+import { WithdrawalsResponseWithUpdateFields } from '../../apiResponseSchema/withdrawals/withdrawalsResponseSchema';
 
 const WithdrawalsResponseSchemaWithMeta = z.object({
-    data: z.array(WithdrawalsResponseSchema),
+    data: z.array(WithdrawalsResponseWithUpdateFields),
     meta: PaginationMetaResponsesSchema,
 });
 
