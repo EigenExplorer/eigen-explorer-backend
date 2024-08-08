@@ -1239,6 +1239,378 @@
         }
       }
     },
+    "/metrics/historical/tvl": {
+      "get": {
+        "operationId": "getHistoricalTvl",
+        "summary": "Retrieve Historical total TVL Data.",
+        "description": "Returns the historical total value locked (TVL) data over specified timestamp values in all restaking strategies and Beacon Chain restaking.",
+        "tags": [
+          "Metrics"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "frequency",
+            "description": "Frequency of data points",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1h",
+                "1d",
+                "7d"
+              ],
+              "default": "1h",
+              "description": "Frequency of data points"
+            }
+          },
+          {
+            "in": "query",
+            "name": "variant",
+            "description": "Type of tally, discrete or cumulative",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "discrete",
+                "cumulative"
+              ],
+              "default": "cumulative",
+              "description": "Type of tally, discrete or cumulative"
+            }
+          },
+          {
+            "in": "query",
+            "name": "startAt",
+            "description": "Start date in ISO string format",
+            "schema": {
+              "type": "string",
+              "description": "Start date in ISO string format",
+              "default": ""
+            }
+          },
+          {
+            "in": "query",
+            "name": "endAt",
+            "description": "End date in ISO string format",
+            "schema": {
+              "type": "string",
+              "description": "End date in ISO string format",
+              "default": ""
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The historical data of combined TVL over specified timestamp values.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "tvlEth": {
+                            "type": "number",
+                            "description": "The value of the combined TVL in ETH",
+                            "example": 1000000
+                          },
+                          "timestamp": {
+                            "type": "string",
+                            "description": "The time stamp for the corresponding TVL value ",
+                            "example": "2024-04-11T08:31:11.000Z"
+                          }
+                        },
+                        "required": [
+                          "tvlEth",
+                          "timestamp"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/metrics/historical/tvl/beacon-chain": {
+      "get": {
+        "operationId": "getHistoricalTvlBeaconChain",
+        "summary": "Retrieve Historical Beacon Chain restaking TVL",
+        "description": "Returns the historical total value locked (TVL) in the Beacon Chain restaking EigenPods.",
+        "tags": [
+          "Metrics"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "frequency",
+            "description": "Frequency of data points",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1h",
+                "1d",
+                "7d"
+              ],
+              "default": "1h",
+              "description": "Frequency of data points"
+            }
+          },
+          {
+            "in": "query",
+            "name": "variant",
+            "description": "Type of tally, discrete or cumulative",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "discrete",
+                "cumulative"
+              ],
+              "default": "cumulative",
+              "description": "Type of tally, discrete or cumulative"
+            }
+          },
+          {
+            "in": "query",
+            "name": "startAt",
+            "description": "Start date in ISO string format",
+            "schema": {
+              "type": "string",
+              "description": "Start date in ISO string format",
+              "default": ""
+            }
+          },
+          {
+            "in": "query",
+            "name": "endAt",
+            "description": "End date in ISO string format",
+            "schema": {
+              "type": "string",
+              "description": "End date in ISO string format",
+              "default": ""
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The historical data of Beacon Chain restaking TVL in ETH over specified timestamp values.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "tvlEth": {
+                            "type": "number",
+                            "description": "The value of the Beacon Chain restaking TVL in ETH",
+                            "example": 1000000
+                          },
+                          "timestamp": {
+                            "type": "string",
+                            "description": "The time stamp for the corresponding Beacon Chain TVL value ",
+                            "example": "2024-04-11T08:31:11.000Z"
+                          }
+                        },
+                        "required": [
+                          "tvlEth",
+                          "timestamp"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/metrics/historical/tvl/restaking/{address}": {
+      "get": {
+        "operationId": "getHistoricalTvlRestaking",
+        "summary": "Retrieve Historical TVL Data by Strategy Address.",
+        "description": "Returns the historical total value locked (TVL) data over specified timestamp values in specified restaking strategy.",
+        "tags": [
+          "Metrics"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "address",
+            "schema": {
+              "type": "string",
+              "pattern": "^0x[a-fA-F0-9]{40}$"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "frequency",
+            "description": "Frequency of data points",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1h",
+                "1d",
+                "7d"
+              ],
+              "default": "1h",
+              "description": "Frequency of data points"
+            }
+          },
+          {
+            "in": "query",
+            "name": "variant",
+            "description": "Type of tally, discrete or cumulative",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "discrete",
+                "cumulative"
+              ],
+              "default": "cumulative",
+              "description": "Type of tally, discrete or cumulative"
+            }
+          },
+          {
+            "in": "query",
+            "name": "startAt",
+            "description": "Start date in ISO string format",
+            "schema": {
+              "type": "string",
+              "description": "Start date in ISO string format",
+              "default": ""
+            }
+          },
+          {
+            "in": "query",
+            "name": "endAt",
+            "description": "End date in ISO string format",
+            "schema": {
+              "type": "string",
+              "description": "End date in ISO string format",
+              "default": ""
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The historical data of TVL for the specified strategy over specified timestamp values.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "tvlEth": {
+                            "type": "number",
+                            "description": "The value of the restaking strategy TVL, denominated in ETH",
+                            "example": 1000000
+                          },
+                          "timestamp": {
+                            "type": "string",
+                            "description": "The time stamp for the corresponding Beacon Chain TVL value ",
+                            "example": "2024-04-11T08:31:11.000Z"
+                          }
+                        },
+                        "required": [
+                          "tvlEth",
+                          "timestamp"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
     "/metrics/historical/count-avs": {
       "get": {
         "operationId": "getHistoricalAvsCount",
