@@ -3,10 +3,10 @@ import { openApiErrorResponses } from '../../apiResponseSchema/base/errorRespons
 import z from '../../../../api/src/schema/zod';
 import { HistoricalCountSchema } from '../../../../api/src/schema/zod/schemas/historicalCountQuery';
 import { EthereumAddressSchema } from '../../../../api/src/schema/zod/schemas/base/ethereumAddress';
-import { AvsHistoricAggregateSchema } from '../../apiResponseSchema/avs/avsHistoricAggregateSchema';
+import { AvsHistoricalAggregateSchema } from '../../apiResponseSchema/metrics/historicalAggregateResponse';
 
 const HistoricalAvsAggregateResponseSchema = z.object({
-    data: z.array(AvsHistoricAggregateSchema)
+    data: z.array(AvsHistoricalAggregateSchema)
 });
 
 const EthereumAddressParam = z.object({

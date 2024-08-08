@@ -2,10 +2,10 @@ import { ZodOpenApiOperationObject } from 'zod-openapi';
 import { openApiErrorResponses } from '../../apiResponseSchema/base/errorResponses';
 import z from '../../../../api/src/schema/zod';
 import { HistoricalCountSchema } from '../../../../api/src/schema/zod/schemas/historicalCountQuery';
-import { AvsHistoricCountSchema } from '../../apiResponseSchema/avs/avsHistoricCountSchema';
+import { AvsHistoricalCountSchema } from '../../apiResponseSchema/metrics/historicalCountResponse';
 
 const HistoricalAvsCountResponseSchema = z.object({
-    data: z.array(AvsHistoricCountSchema)
+    data: z.array(AvsHistoricalCountSchema)
 });
 
 export const getHistoricalAvsCount: ZodOpenApiOperationObject = {

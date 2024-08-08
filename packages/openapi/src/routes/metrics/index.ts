@@ -19,6 +19,9 @@ import { getHistoricalOperatorsAggregate } from './getHistoricalOperatorsAggrega
 import { getHistoricalTvl } from './getHistoricalTvl';
 import { getHistoricalTvlRestaking } from './getHistoricalTvlRestaking';
 import { getHistoricalTvlBeaconChain } from './getHistoricalTvlBeaconChain';
+import { getHistoricalDepositAggregate } from './getHistoricalDepositAggregate';
+import { getHistoricalWithdrawalAggregate } from './getHistoricalWithdrawalAggregate';
+
 
 export const metricsRoutes: ZodOpenApiPathsObject = {
     '/metrics': {
@@ -40,6 +43,8 @@ export const metricsRoutes: ZodOpenApiPathsObject = {
     '/metrics/historical/tvl': { get: getHistoricalTvl },
     '/metrics/historical/tvl/beacon-chain': { get: getHistoricalTvlBeaconChain },
     '/metrics/historical/tvl/restaking/{address}': { get: getHistoricalTvlRestaking },
+    '/metrics/historical/withdrawals': { get: getHistoricalWithdrawalAggregate },
+    '/metrics/historical/deposits': { get: getHistoricalDepositAggregate },
     '/metrics/historical/count-avs': { get: getHistoricalAvsCount },
     '/metrics/historical/count-operators': { get: getHistoricalOperatorCount },
     '/metrics/historical/count-stakers': { get: getHistoricalStakerCount },
