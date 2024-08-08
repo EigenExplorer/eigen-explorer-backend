@@ -961,7 +961,7 @@
         }
       }
     },
-    "/metrics//historical/avs/{address}": {
+    "/metrics/historical/avs/{address}": {
       "get": {
         "operationId": "getHistoricalAvsAggregate",
         "summary": "Retrieve Historical AVS Aggregate Data",
@@ -1103,7 +1103,7 @@
         }
       }
     },
-    "/metrics//historical/operators/{address}": {
+    "/metrics/historical/operators/{address}": {
       "get": {
         "operationId": "getHistoricalOperatorsAggregate",
         "summary": "Retrieve Historical Operator Aggregate Data",
@@ -1614,7 +1614,7 @@
     "/metrics/historical/count-avs": {
       "get": {
         "operationId": "getHistoricalAvsCount",
-        "summary": "Retrieve historic count of AVS",
+        "summary": "Retrieve historical count of AVS",
         "description": "Returns the total number of AVS registered at timestamp values",
         "tags": [
           "Metrics"
@@ -1735,7 +1735,7 @@
     "/metrics/historical/count-operators": {
       "get": {
         "operationId": "getHistoricalOperatorCount",
-        "summary": "Retrieve historic count of AVS operators",
+        "summary": "Retrieve historical count of AVS operators",
         "description": "Returns the total number of AVS operators registered at timestamp values",
         "tags": [
           "Metrics"
@@ -1856,7 +1856,7 @@
     "/metrics/historical/count-stakers": {
       "get": {
         "operationId": "getHistoricalStakerCount",
-        "summary": "Retrieve historic count of AVS stakers",
+        "summary": "Retrieve historical count of AVS stakers",
         "description": "Returns the total number of AVS stakers registered at timestamp values",
         "tags": [
           "Metrics"
@@ -1977,7 +1977,7 @@
     "/metrics/historical/count-withdrawals": {
       "get": {
         "operationId": "getHistoricalWithdrawalCount",
-        "summary": "Retrieve historic count of AVS withdrawals",
+        "summary": "Retrieve historical count of AVS withdrawals",
         "description": "Returns the total number of AVS withdrawals made at timestamp values",
         "tags": [
           "Metrics"
@@ -2098,7 +2098,7 @@
     "/metrics/historical/count-deposits": {
       "get": {
         "operationId": "getHistoricalDepositCount",
-        "summary": "Retrieve historic count of AVS deposits",
+        "summary": "Retrieve historical count of AVS deposits",
         "description": "Returns the total number of AVS deposits made at timestamp values",
         "tags": [
           "Metrics"
