@@ -6,7 +6,7 @@ import { handleAndReturnErrorResponse } from '../../schema/errors'
 import { getAvsFilterQuery } from '../avs/avsController'
 import { HistoricalCountSchema } from '../../schema/zod/schemas/historicalCountQuery'
 import { EthereumAddressSchema } from '../../schema/zod/schemas/base/ethereumAddress'
-import { fetchCurrentEthPrices } from '../../utils/strategies'
+import { fetchStrategyTokenPrices } from '../../utils/tokenPrices'
 
 type HistoricalTvlRecord = {
 	timestamp: string
@@ -1616,7 +1616,7 @@ async function doGetHistoricalCount(
 
 		const intervalData = modelData.filter(
 			(data: { createdAt: number }) =>
-				data.createdAt >= currentDate && data.createdAt < nextDate
+				data.createdAt >= currentDate.getTime() && data.createdAt < nextDate.getTime()
 		)
 
 		if (variant === 'discrete') {
@@ -1697,6 +1697,24 @@ function getOffsetInMs(frequency: string) {
 function resetTime(date: Date) {
 	date.setUTCMinutes(0, 0, 0)
 	return date
+}
+
+async function fetchCurrentEthPrices(): Promise<Map<string, number>> {
+	const ethPrices = await fetchStrategyTokenPrices()
+	const strategyPriceMap = new Map<string, number>()
+
+	for (const [_, tokenPrice] of Object.entries(ethPrices)) {
+		if (tokenPrice) {
+			strategyPriceMap.set(
+				tokenPrice.strategyAddress.toLowerCase(),
+				tokenPrice.eth
+			)
+		}
+	}
+
+	strategyPriceMap.set('0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0', 1)
+
+	return strategyPriceMap
 }
 
 /**
