@@ -9,8 +9,10 @@ const HistoricalAvsAggregateResponseSchema = z.object({
     data: z.array(AvsHistoricalAggregateSchema)
 });
 
-const EthereumAddressParam = z.object({
-    address: EthereumAddressSchema,
+const AvsAddressParam = z.object({
+    address: EthereumAddressSchema.describe(
+        'The address of the AVS '
+    ).openapi({ example: '0x870679e138bcdf293b7ff14dd44b70fc97e12fc0' }),
 });
 
 export const getHistoricalAvsAggregate: ZodOpenApiOperationObject = {
@@ -20,7 +22,7 @@ export const getHistoricalAvsAggregate: ZodOpenApiOperationObject = {
     tags: ['Metrics'],
     requestParams: {
         query: HistoricalCountSchema,
-        path: EthereumAddressParam,
+        path: AvsAddressParam,
     },
     responses: {
         '200': {

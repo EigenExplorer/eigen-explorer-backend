@@ -14,7 +14,7 @@ const DepositsResponseSchemaWithMeta = z.object({
 const StakerAddressParam = z.object({
     address: EthereumAddressSchema.describe(
         'The address of the staker'
-    ).openapi({ example: '0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd' }),
+    ).openapi({ example: '0x00000002d88f9b3f4eb303564817fff4adcde46f' }),
 });
 
 export const getStakerDeposits: ZodOpenApiOperationObject = {

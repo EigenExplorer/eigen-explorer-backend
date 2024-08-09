@@ -11,8 +11,10 @@ const CombinedQuerySchema = z
     .merge(WithTvlQuerySchema)
     .merge(WithCuratedMetadata);
 
-const EthereumAddressParam = z.object({
-    address: EthereumAddressSchema,
+const AvsAddressParam = z.object({
+    address: EthereumAddressSchema.describe(
+        'The address of the AVS '
+    ).openapi({ example: '0x870679e138bcdf293b7ff14dd44b70fc97e12fc0' }),
 });
 
 export const getAvsByAddress: ZodOpenApiOperationObject = {
@@ -22,7 +24,7 @@ export const getAvsByAddress: ZodOpenApiOperationObject = {
     tags: ['AVS'],
     requestParams: {
         query: CombinedQuerySchema,
-        path: EthereumAddressParam,
+        path: AvsAddressParam,
     },
     responses: {
         '200': {

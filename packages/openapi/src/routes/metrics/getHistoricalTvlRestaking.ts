@@ -9,18 +9,20 @@ const HistoricalIndividualStrategyTvlCombinedResponseSchema = z.object({
     data: z.array(HistoricalIndividualStrategyTvlResponseSchema)
 });
 
-const EthereumAddressParam = z.object({
-    address: EthereumAddressSchema,
+const RestakingStrategyAddressParam = z.object({
+    address: EthereumAddressSchema.describe(
+        'The address of the Strategy'
+    ).openapi({ example: '0xacb55c530acdb2849e6d4f36992cd8c9d50ed8f7' }),
 });
 
 export const getHistoricalTvlRestaking: ZodOpenApiOperationObject = {
     operationId: 'getHistoricalTvlRestaking',
     summary: 'Retrieve Historical TVL Data by Strategy Address.',
-    description: 'Returns the historical total value locked (TVL) data over specified timestamp values in specified restaking strategy.',
+    description: 'Returns the historical total value locked (TVL) data over specified timestamp values in a specific LST strategy.',
     tags: ['Metrics'],
     requestParams: {
         query: HistoricalCountSchema,
-        path: EthereumAddressParam,
+        path: RestakingStrategyAddressParam,
     },
     responses: {
         '200': {
