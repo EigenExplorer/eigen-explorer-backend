@@ -11,14 +11,14 @@ const HistoricalAvsCountResponseSchema = z.object({
 export const getHistoricalAvsCount: ZodOpenApiOperationObject = {
     operationId: 'getHistoricalAvsCount',
     summary: 'Retrieve historical count of AVS',
-    description: 'Returns the total number of AVS registered at timestamp values',
+    description: 'Returns the total number of AVS registered at timestamp values.',
     tags: ['Metrics'],
     requestParams: {
         query: HistoricalCountSchema,
     },
     responses: {
         '200': {
-            description: 'The  total number of AVS registered at timestamp values',
+            description: 'The  total number of AVS registered at timestamp values.',
             content: {
                 'application/json': {
                     schema: HistoricalAvsCountResponseSchema,
