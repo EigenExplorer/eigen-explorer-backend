@@ -7,8 +7,6 @@ import { getAvsFilterQuery } from '../avs/avsController'
 import { HistoricalCountSchema } from '../../schema/zod/schemas/historicalCountQuery'
 import { EthereumAddressSchema } from '../../schema/zod/schemas/base/ethereumAddress'
 import { fetchStrategyTokenPrices } from '../../utils/tokenPrices'
-import { meterTestnet } from 'viem/chains'
-import { timeStamp } from 'console'
 
 type HistoricalTvlRecord = {
 	timestamp: string
@@ -1382,7 +1380,7 @@ async function doGetHistoricalAvsAggregate(
 			where: {
 				avsAddress: address.toLowerCase(),
 				timestamp: {
-					gte: initialDataTimestamp[0]._max.timestamp || startTimestamp, // Guarantees correct initial data for cumulative queries
+					gte: initialDataTimestamp[0]?._max.timestamp || startTimestamp, // Guarantees correct initial data for cumulative queries
 					lte: endTimestamp
 				}
 			},
@@ -1394,7 +1392,7 @@ async function doGetHistoricalAvsAggregate(
 		let totalStakers = 0
 		let totalOperators = 0
 
-		if (variant === 'cumulative' && initialDataTimestamp[0]._max.timestamp) {
+		if (variant === 'cumulative' && initialDataTimestamp[0]?._max.timestamp) {
 			totalStakers = hourlyData[0].totalStakers
 			totalOperators = hourlyData[0].totalOperators
 		}
@@ -1573,7 +1571,7 @@ async function doGetHistoricalOperatorsAggregate(
 			where: {
 				operatorAddress: address.toLowerCase(),
 				timestamp: {
-					gte: initialDataTimestamp[0]._max.timestamp || startTimestamp, // Guarantees correct initial data for cumulative queries
+					gte: initialDataTimestamp[0]?._max.timestamp || startTimestamp, // Guarantees correct initial data for cumulative queries
 					lte: endTimestamp
 				}
 			},
@@ -1585,7 +1583,7 @@ async function doGetHistoricalOperatorsAggregate(
 		let totalStakers = 0
 		let totalAvs = 0
 
-		if (variant === 'cumulative' && initialDataTimestamp[0]._max.timestamp) {
+		if (variant === 'cumulative' && initialDataTimestamp[0]?._max.timestamp) {
 			totalStakers = hourlyData[0].totalStakers
 			totalAvs = hourlyData[0].totalAvs
 		}
