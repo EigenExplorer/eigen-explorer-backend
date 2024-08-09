@@ -92,6 +92,12 @@ export async function getOperator(req: Request, res: Response) {
 	if (!result.success) {
 		return handleAndReturnErrorResponse(req, res, result.error)
 	}
+
+	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	}
+	
 	const { withTvl } = result.data
 
 	try {
