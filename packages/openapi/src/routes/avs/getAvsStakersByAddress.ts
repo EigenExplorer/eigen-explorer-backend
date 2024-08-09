@@ -7,8 +7,10 @@ import { PaginationMetaResponsesSchema } from '../../apiResponseSchema/base/pagi
 import { StakerResponseSchema } from '../../apiResponseSchema/stakerResponse';
 import { WithTvlQuerySchema } from '../../../../api/src/schema/zod/schemas/withTvlQuery';
 
-const EthereumAddressParam = z.object({
-    address: EthereumAddressSchema,
+const AvsAddressParam = z.object({
+    address: EthereumAddressSchema.describe(
+        'The address of the AVS '
+    ).openapi({ example: '0x870679e138bcdf293b7ff14dd44b70fc97e12fc0' }),
 });
 
 const CombinedQuerySchema = z
@@ -28,7 +30,7 @@ export const getAvsStakersByAddress: ZodOpenApiOperationObject = {
         'Returns all stakers for a given AVS address. This endpoint supports pagination.',
     tags: ['AVS'],
     requestParams: {
-        path: EthereumAddressParam,
+        path: AvsAddressParam,
         query: CombinedQuerySchema,
     },
     responses: {

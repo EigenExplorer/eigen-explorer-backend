@@ -973,9 +973,12 @@
           {
             "in": "path",
             "name": "address",
+            "description": "The address of the AVS ",
             "schema": {
               "type": "string",
-              "pattern": "^0x[a-fA-F0-9]{40}$"
+              "pattern": "^0x[a-fA-F0-9]{40}$",
+              "description": "The address of the AVS ",
+              "example": "0x870679e138bcdf293b7ff14dd44b70fc97e12fc0"
             },
             "required": true
           },
@@ -1115,9 +1118,12 @@
           {
             "in": "path",
             "name": "address",
+            "description": "The address of the operator",
             "schema": {
               "type": "string",
-              "pattern": "^0x[a-fA-F0-9]{40}$"
+              "pattern": "^0x[a-fA-F0-9]{40}$",
+              "description": "The address of the operator",
+              "example": "0x00107cfdeaddc0a3160ed2f6fedd627f313e7b1a"
             },
             "required": true
           },
@@ -1485,7 +1491,7 @@
       "get": {
         "operationId": "getHistoricalTvlRestaking",
         "summary": "Retrieve Historical TVL Data by Strategy Address.",
-        "description": "Returns the historical total value locked (TVL) data over specified timestamp values in specified restaking strategy.",
+        "description": "Returns the historical total value locked (TVL) data over specified timestamp values in a specific LST strategy.",
         "tags": [
           "Metrics"
         ],
@@ -1493,9 +1499,12 @@
           {
             "in": "path",
             "name": "address",
+            "description": "The address of the Strategy",
             "schema": {
               "type": "string",
-              "pattern": "^0x[a-fA-F0-9]{40}$"
+              "pattern": "^0x[a-fA-F0-9]{40}$",
+              "description": "The address of the Strategy",
+              "example": "0xacb55c530acdb2849e6d4f36992cd8c9d50ed8f7"
             },
             "required": true
           },
@@ -2945,9 +2954,12 @@
           {
             "in": "path",
             "name": "address",
+            "description": "The address of the AVS ",
             "schema": {
               "type": "string",
-              "pattern": "^0x[a-fA-F0-9]{40}$"
+              "pattern": "^0x[a-fA-F0-9]{40}$",
+              "description": "The address of the AVS ",
+              "example": "0x870679e138bcdf293b7ff14dd44b70fc97e12fc0"
             },
             "required": true
           },
@@ -3249,9 +3261,12 @@
           {
             "in": "path",
             "name": "address",
+            "description": "The address of the AVS ",
             "schema": {
               "type": "string",
-              "pattern": "^0x[a-fA-F0-9]{40}$"
+              "pattern": "^0x[a-fA-F0-9]{40}$",
+              "description": "The address of the AVS ",
+              "example": "0x870679e138bcdf293b7ff14dd44b70fc97e12fc0"
             },
             "required": true
           },
@@ -3517,9 +3532,12 @@
           {
             "in": "path",
             "name": "address",
+            "description": "The address of the AVS ",
             "schema": {
               "type": "string",
-              "pattern": "^0x[a-fA-F0-9]{40}$"
+              "pattern": "^0x[a-fA-F0-9]{40}$",
+              "description": "The address of the AVS ",
+              "example": "0x870679e138bcdf293b7ff14dd44b70fc97e12fc0"
             },
             "required": true
           },
@@ -4137,7 +4155,7 @@
               "type": "string",
               "pattern": "^0x[a-fA-F0-9]{40}$",
               "description": "The address of the operator",
-              "example": "0x00107cfdeaddc0a3160ed2f6fedd627f313e7b1b"
+              "example": "0x00107cfdeaddc0a3160ed2f6fedd627f313e7b1a"
             },
             "required": true
           },
@@ -5014,7 +5032,7 @@
               "type": "string",
               "pattern": "^0x[a-fA-F0-9]{40}$",
               "description": "The address of the staker",
-              "example": "0x00107cfdeaddc0a3160ed2f6fedd627f313e7b1b"
+              "example": "0x00000002d88f9b3f4eb303564817fff4adcde46f"
             },
             "required": true
           },
@@ -5226,7 +5244,7 @@
               "type": "string",
               "pattern": "^0x[a-fA-F0-9]{40}$",
               "description": "The address of the staker",
-              "example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
+              "example": "0x00000002d88f9b3f4eb303564817fff4adcde46f"
             },
             "required": true
           },
@@ -5437,7 +5455,7 @@
               "type": "string",
               "pattern": "^0x[a-fA-F0-9]{40}$",
               "description": "The address of the staker",
-              "example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
+              "example": "0x00000002d88f9b3f4eb303564817fff4adcde46f"
             },
             "required": true
           },
@@ -5630,7 +5648,7 @@
               "type": "string",
               "pattern": "^0x[a-fA-F0-9]{40}$",
               "description": "The address of the staker",
-              "example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
+              "example": "0x00000002d88f9b3f4eb303564817fff4adcde46f"
             },
             "required": true
           },
@@ -5823,7 +5841,7 @@
               "type": "string",
               "pattern": "^0x[a-fA-F0-9]{40}$",
               "description": "The address of the staker",
-              "example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
+              "example": "0x00000002d88f9b3f4eb303564817fff4adcde46f"
             },
             "required": true
           },
@@ -6028,7 +6046,7 @@
               "type": "string",
               "pattern": "^0x[a-fA-F0-9]{40}$",
               "description": "The address of the staker",
-              "example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
+              "example": "0x00000002d88f9b3f4eb303564817fff4adcde46f"
             },
             "required": true
           },
