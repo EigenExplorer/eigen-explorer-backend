@@ -1085,7 +1085,7 @@ async function doGetHistoricalTvlBeacon(
 		where: {
 			timestamp: {
 				lte: startTimestamp
-			},
+			}
 		},
 		orderBy: {
 			timestamp: 'desc'
@@ -1108,10 +1108,7 @@ async function doGetHistoricalTvlBeacon(
 	const results: HistoricalTvlRecord[] = []
 	const modelName = 'metricEigenPodsHourly' as MetricModelName
 
-	let tvlEth =
-		variant === 'cumulative'
-			? Number(hourlyData[0].tvlEth)
-			: 0
+	let tvlEth = variant === 'cumulative' ? Number(hourlyData[0].tvlEth) : 0
 
 	const offset = getOffsetInMs(frequency)
 	let currentTimestamp = startTimestamp
@@ -1160,41 +1157,57 @@ async function doGetHistoricalTvlRestaking(
 ) {
 	const startTimestamp = resetTime(new Date(startAt))
 	const endTimestamp = resetTime(new Date(endAt))
-	const bufferedTimestamp =
-		getTimestamp('7d') < startTimestamp ? getTimestamp('7d') : startTimestamp
+	const modelName = 'metricStrategyHourly' as MetricModelName
 
-	const hourlyData = await prisma.metricStrategyHourly.findMany({
+	const ethPrices = await fetchCurrentEthPrices()
+
+	// Fetch the timestamp of the first record on or before startTimestamp
+	const initialDataTimestamps = await prisma.metricStrategyHourly.groupBy({
+		by: ['strategyAddress'],
+		_max: {
+			timestamp: true
+		},
 		where: {
 			timestamp: {
-				gte: bufferedTimestamp,
-				lte: endTimestamp
+				lte: startTimestamp
 			},
 			...(address && { strategyAddress: address.toLowerCase() }),
 			...(!includeBeaconInTvl && { strategyAddress: { not: beaconAddress } })
+		}
+	})
+
+	// For every strategyAddress, fetch all records from the initialDataTimestamp
+	const hourlyData = await prisma.metricStrategyHourly.findMany({
+		where: {
+			OR: initialDataTimestamps.map((metric) => ({
+				AND: [
+					{
+						strategyAddress: metric.strategyAddress
+					},
+					{
+						timestamp: {
+							gte: metric._max.timestamp || startTimestamp, // Guarantees correct initial data for cumulative queries
+							lte: endTimestamp
+						}
+					}
+				]
+			})) as Prisma.Prisma.MetricStrategyHourlyWhereInput[]
 		},
 		orderBy: {
 			timestamp: 'asc'
 		}
 	})
 
+	let tvlEth =
+		variant === 'cumulative'
+			? await getInitialTvlCumulativeFromNative(hourlyData, ethPrices)
+			: 0
+
 	const strategyAddresses = [
 		...new Set(hourlyData.map((data) => data.strategyAddress))
 	]
 
 	const results: HistoricalTvlRecord[] = []
-	const modelName = 'metricStrategyHourly' as MetricModelName
-	const ethPrices = await fetchCurrentEthPrices()
-
-	// MetricHourly records are created only when activity is detected, not necessarily for all timestamps. If cumulative, we may need to set initial tvl value
-	let tvlEth =
-		variant === 'cumulative'
-			? await getInitialTvlCumulative(
-					startTimestamp,
-					hourlyData,
-					modelName,
-					ethPrices
-			  )
-			: 0
 
 	const offset = getOffsetInMs(frequency)
 	let currentTimestamp = startTimestamp
@@ -1420,10 +1433,7 @@ async function doGetHistoricalAvsAggregate(
 
 		const tvlEth =
 			variant === 'cumulative'
-				? await getInitialTvlCumulativeFromNative(
-						strategyData,
-						ethPrices
-				  )
+				? await getInitialTvlCumulativeFromNative(strategyData, ethPrices)
 				: 0
 
 		return { strategyData, tvlEth }
@@ -1615,10 +1625,7 @@ async function doGetHistoricalOperatorsAggregate(
 
 		const tvlEth =
 			variant === 'cumulative'
-				? await getInitialTvlCumulativeFromNative(
-						strategyData,
-						ethPrices
-				  )
+				? await getInitialTvlCumulativeFromNative(strategyData, ethPrices)
 				: 0
 
 		return { strategyData, tvlEth }
