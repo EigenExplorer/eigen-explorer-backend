@@ -1080,10 +1080,23 @@ async function doGetHistoricalTvlBeacon(
 	const startTimestamp = resetTime(new Date(startAt))
 	const endTimestamp = resetTime(new Date(endAt))
 
+	// Fetch the timestamp of the first record on or before startTimestamp
+	const initialDataTimestamp = await prisma.metricEigenPodsHourly.findFirst({
+		where: {
+			timestamp: {
+				lte: startTimestamp
+			},
+		},
+		orderBy: {
+			timestamp: 'desc'
+		}
+	})
+
+	// Fetch all records from the initialDataTimestamp
 	const hourlyData = await prisma.metricEigenPodsHourly.findMany({
 		where: {
 			timestamp: {
-				gte: startTimestamp,
+				gte: initialDataTimestamp?.timestamp || startTimestamp, // Guarantees correct initial data for cumulative queries
 				lte: endTimestamp
 			}
 		},
@@ -1095,10 +1108,9 @@ async function doGetHistoricalTvlBeacon(
 	const results: HistoricalTvlRecord[] = []
 	const modelName = 'metricEigenPodsHourly' as MetricModelName
 
-	// MetricHourly records are created only when activity is detected, not necessarily for all timestamps. If cumulative, we may need to set initial tvl value
 	let tvlEth =
 		variant === 'cumulative'
-			? await getInitialTvlCumulative(startTimestamp, hourlyData, modelName)
+			? Number(hourlyData[0].tvlEth)
 			: 0
 
 	const offset = getOffsetInMs(frequency)
@@ -1408,10 +1420,8 @@ async function doGetHistoricalAvsAggregate(
 
 		const tvlEth =
 			variant === 'cumulative'
-				? await getInitialTvlCumulative(
-						startTimestamp,
+				? await getInitialTvlCumulativeFromNative(
 						strategyData,
-						modelNameTvl,
 						ethPrices
 				  )
 				: 0
@@ -1605,10 +1615,8 @@ async function doGetHistoricalOperatorsAggregate(
 
 		const tvlEth =
 			variant === 'cumulative'
-				? await getInitialTvlCumulative(
-						startTimestamp,
+				? await getInitialTvlCumulativeFromNative(
 						strategyData,
-						modelNameTvl,
 						ethPrices
 				  )
 				: 0
@@ -1909,40 +1917,19 @@ function calculateTvlChanges(
 /**
  * Calculates initial tvlEth for a historical tvl query with variant set to cumulative
  *
- * @param startTimestamp
  * @param hourlyData
- * @param modelName
  * @param ethPrices
  * @returns
  */
-async function getInitialTvlCumulative(
-	startTimestamp: Date,
+async function getInitialTvlCumulativeFromNative(
 	hourlyData: MetricModelMap[MetricModelName][],
-	modelName: MetricModelName,
-	ethPrices?: Map<string, number>
+	ethPrices: Map<string, number>
 ) {
-	const isEthDenominated = checkEthDenomination(modelName)
-
-	if (!isEthDenominated && !ethPrices) {
+	if (!ethPrices) {
 		throw new Error('ETH prices are required for for processing this data')
 	}
 
-	// If a record exists for the first timestamp for an ETH denominated calc, return its tvlEth value
-	if (
-		isEthDenominated &&
-		hourlyData.length > 0 &&
-		hourlyData[0].timestamp.getTime() === startTimestamp.getTime()
-	) {
-		return Number((hourlyData[0] as EthTvlModelMap[EthTvlModelName]).tvlEth)
-	}
-
-	// Calculate tvlEth from the earliest record
-	if (isEthDenominated) {
-		const earliestRecord = hourlyData[0] as EthTvlModelMap[EthTvlModelName]
-		return Number(earliestRecord.tvlEth) - Number(earliestRecord.changeTvlEth)
-	}
-
-	// For native denominated calc, find the earliest record for each strategy & calculate total initial tvl in ETH
+	// Find the earliest record for each strategy
 	const strategyMap = new Map<string, NativeTvlModelMap[NativeTvlModelName]>()
 	for (const record of hourlyData as NativeTvlModelMap[NativeTvlModelName][]) {
 		const existingRecord = strategyMap.get(record.strategyAddress)
@@ -1954,66 +1941,12 @@ async function getInitialTvlCumulative(
 	let tvlEth = 0
 
 	for (const [strategyAddress, record] of strategyMap) {
-		const initialTvl = Number(record.tvl) // - Number(record.changeTvl)
+		const initialTvl = Number(record.tvl)
 		const ethPrice = ethPrices?.get(strategyAddress) || 0
 		tvlEth += initialTvl * ethPrice
 	}
 
 	return tvlEth
-}
-
-/**
- * Calculates initial totalStakers, totalOperators/totalAvs for a historical aggregate query with variant set to cumulative
- *
- * @param startTimestamp
- * @param hourlyData
- * @param modelName
- */
-async function getInitialMetricsCumulative(
-	startTimestamp: Date,
-	hourlyData: AggregateModelMap[AggregateModelName][],
-	modelName: AggregateModelName
-) {
-	// If a record exists for the first timestamp, return its value
-	if (
-		hourlyData.length > 0 &&
-		hourlyData[0].timestamp.getTime() === startTimestamp.getTime()
-	) {
-		return modelName === 'metricAvsHourly'
-			? {
-					totalStakers: hourlyData[0].totalStakers || 0,
-					totalOperators:
-						(hourlyData[0] as AggregateModelMap['metricAvsHourly'])
-							.totalOperators || 0
-			  }
-			: {
-					totalStakers: hourlyData[0].totalStakers || 0,
-					totalAvs:
-						(hourlyData[0] as AggregateModelMap['metricOperatorHourly'])
-							.totalAvs || 0
-			  }
-	}
-
-	// Find the earliest record & calculate initial metric values
-	return modelName === 'metricAvsHourly'
-		? {
-				totalStakers:
-					hourlyData[0].totalStakers - hourlyData[0].changeStakers || 0,
-				totalOperators:
-					(hourlyData[0] as AggregateModelMap['metricAvsHourly'])
-						.totalOperators -
-						(hourlyData[0] as AggregateModelMap['metricAvsHourly'])
-							.changeOperators || 0
-		  }
-		: {
-				totalStakers:
-					hourlyData[0].totalStakers - hourlyData[0].changeStakers || 0,
-				totalAvs:
-					(hourlyData[0] as AggregateModelMap['metricOperatorHourly'])
-						.totalAvs -
-						(hourlyData[0] as AggregateModelMap['metricOperatorHourly'])
-							.changeAvs || 0
-		  }
 }
 
 /**
