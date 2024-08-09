@@ -20,6 +20,7 @@ type HistoricalAggregateRecord = {
 	totalAvs?: number
 }
 
+// Models with tvl denominated in ETH
 type EthTvlModelMap = {
 	metricDepositHourly: Prisma.MetricDepositHourly
 	metricWithdrawalHourly: Prisma.MetricWithdrawalHourly
@@ -27,6 +28,7 @@ type EthTvlModelMap = {
 }
 type EthTvlModelName = keyof EthTvlModelMap
 
+// Models with tvl denominated in their own native token
 type NativeTvlModelMap = {
 	metricStrategyHourly: Prisma.MetricStrategyHourly
 	metricAvsStrategyHourly: Prisma.MetricAvsStrategyHourly
@@ -1145,7 +1147,7 @@ async function doGetHistoricalTvlRestaking(
 	const startTimestamp = resetTime(new Date(startAt))
 	const endTimestamp = resetTime(new Date(endAt))
 	const bufferedTimestamp =
-		getTimestamp('1m') < startTimestamp ? getTimestamp('1m') : startTimestamp
+		getTimestamp('7d') < startTimestamp ? getTimestamp('7d') : startTimestamp
 
 	const hourlyData = await prisma.metricStrategyHourly.findMany({
 		where: {
@@ -1319,7 +1321,7 @@ async function doGetHistoricalAvsAggregate(
 	const startTimestamp = resetTime(new Date(startAt))
 	const endTimestamp = resetTime(new Date(endAt))
 	const bufferedTimestamp =
-		getTimestamp('1m') < startTimestamp ? getTimestamp('1m') : startTimestamp
+		getTimestamp('7d') < startTimestamp ? getTimestamp('7d') : startTimestamp
 
 	// Fetch initial data
 	const getHourlyData = prisma.metricAvsHourly.findMany({
@@ -1472,7 +1474,7 @@ async function doGetHistoricalOperatorsAggregate(
 	const startTimestamp = resetTime(new Date(startAt))
 	const endTimestamp = resetTime(new Date(endAt))
 	const bufferedTimestamp =
-		getTimestamp('1m') < startTimestamp ? getTimestamp('1m') : startTimestamp
+		getTimestamp('7d') < startTimestamp ? getTimestamp('7d') : startTimestamp
 
 	// Fetch initial data
 	const getHourlyData = prisma.metricOperatorHourly.findMany({
@@ -1715,10 +1717,6 @@ function getTimestamp(offset?: string) {
 			const now = new Date()
 			return new Date(new Date().setUTCDate(now.getUTCDate() - 7))
 		}
-		case '1m': {
-			const now = new Date()
-			return new Date(new Date().setUTCDate(now.getUTCDate() - 31))
-		}
 		default:
 			return new Date()
 	}
@@ -1855,7 +1853,7 @@ async function getInitialTvlCumulative(
 		return Number(earliestRecord.tvlEth) - Number(earliestRecord.changeTvlEth)
 	}
 
-	// Find the earliest record for each strategy & calculate total initial tvlEth
+	// Find the earliest record for each strategy & calculate total initial tvl in ETH
 	const strategyMap = new Map<string, NativeTvlModelMap[NativeTvlModelName]>()
 	for (const record of hourlyData as NativeTvlModelMap[NativeTvlModelName][]) {
 		const existingRecord = strategyMap.get(record.strategyAddress)
@@ -1974,7 +1972,7 @@ function calculateTvlForHistoricalRecord(
 				)
 			}
 
-			// Calculate tvlEth
+			// Calculate tvl in ETH
 			return Array.from(lastRecordsByStrategy.values()).reduce(
 				(total, strategyRecord) => {
 					return (
@@ -2025,15 +2023,17 @@ async function calculateMetricsForHistoricalRecord(
 	let newAvs = totalAvs
 
 	if (variant === 'cumulative') {
+		// Grab metrics from the latest record
 		if (intervalHourlyData.length > 0) {
-			newStakers =
-				intervalHourlyData[intervalHourlyData.length - 1].totalStakers
+			const lastRecordIndex = intervalHourlyData.length - 1
+
+			newStakers = intervalHourlyData[lastRecordIndex].totalStakers
 
 			newOperators =
 				totalOperators !== undefined && totalOperators !== null
 					? (
 							intervalHourlyData[
-								intervalHourlyData.length - 1
+								lastRecordIndex
 							] as AggregateModelMap['metricAvsHourly']
 					  ).totalOperators
 					: 0
@@ -2042,12 +2042,13 @@ async function calculateMetricsForHistoricalRecord(
 				totalAvs !== undefined && totalAvs !== null
 					? (
 							intervalHourlyData[
-								intervalHourlyData.length - 1
+								lastRecordIndex
 							] as AggregateModelMap['metricOperatorHourly']
 					  ).totalAvs
 					: 0
 		}
 	} else {
+		// Calcualte metrics as summation of all change values
 		newStakers = intervalHourlyData.reduce(
 			(sum, record) => sum + record.changeStakers,
 			0
