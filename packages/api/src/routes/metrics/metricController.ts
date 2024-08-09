@@ -86,12 +86,11 @@ export async function getTvlRestakingByStrategy(req: Request, res: Response) {
 		)
 
 		if (!foundStrategy) {
-			const error = new EigenExplorerApiError({
-				code: 'unprocessable_entity',
-				message: 'invalid_string: Invalid Strategy',
-			});
-			return handleAndReturnErrorResponse(req, res, error);
-		}
+			throw new EigenExplorerApiError({
+			  code: 'unprocessable_entity',
+			  message: 'invalid_string: Invalid Strategy',
+			})
+		  }
 
 		const tvl = await doGetTvlStrategy(
 			getEigenContracts().Strategies[foundStrategy].strategyContract
