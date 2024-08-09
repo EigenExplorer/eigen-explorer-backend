@@ -11,14 +11,14 @@ const HistoricalStakerCountResponseSchema = z.object({
 export const getHistoricalStakerCount: ZodOpenApiOperationObject = {
     operationId: 'getHistoricalStakerCount',
     summary: 'Retrieve historical count of AVS stakers',
-    description: 'Returns the total number of AVS stakers registered at timestamp values',
+    description: 'Returns the total number of AVS stakers registered at timestamp values.',
     tags: ['Metrics'],
     requestParams: {
         query: HistoricalCountSchema,
     },
     responses: {
         '200': {
-            description: 'The total number of AVS stakers registered at timestamp values',
+            description: 'The total number of AVS stakers registered at timestamp values.',
             content: {
                 'application/json': {
                     schema: HistoricalStakerCountResponseSchema,

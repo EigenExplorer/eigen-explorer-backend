@@ -5,8 +5,8 @@ import { TotalDepositsSchema } from '../../apiResponseSchema/metrics/timeChangeR
 
 export const getTotalDeposits: ZodOpenApiOperationObject = {
     operationId: 'getTotalDeposits',
-    summary: 'Retrieve total number of deposits ',
-    description: 'Returns the total number of deposits',
+    summary: 'Retrieve total number of deposits',
+    description: 'Returns the total number of deposits.',
     tags: ['Metrics'],
     requestParams: {},
     responses: {

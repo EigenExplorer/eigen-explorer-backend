@@ -5,7 +5,7 @@ import { TotalWithdrawalsSchema } from '../../apiResponseSchema/metrics/timeChan
 export const getTotalWithdrawals: ZodOpenApiOperationObject = {
     operationId: 'getTotalWithdrawals',
     summary: 'Retrieve total number of withdrawals ',
-    description: 'Returns the total number of withdrawals',
+    description: 'Returns the total number of withdrawals.',
     tags: ['Metrics'],
     requestParams: {},
     responses: {

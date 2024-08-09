@@ -11,14 +11,14 @@ const HistoricalDepositCountResponseSchema = z.object({
 export const getHistoricalDepositCount: ZodOpenApiOperationObject = {
     operationId: 'getHistoricalDepositCount',
     summary: 'Retrieve historical count of AVS deposits',
-    description: 'Returns the total number of AVS deposits made at timestamp values',
+    description: 'Returns the total number of AVS deposits made at timestamp values.',
     tags: ['Metrics'],
     requestParams: {
         query: HistoricalCountSchema,
     },
     responses: {
         '200': {
-            description: 'The total number of AVS deposits made at timestamp values',
+            description: 'The total number of AVS deposits made at timestamp values.',
             content: {
                 'application/json': {
                     schema: HistoricalDepositCountResponseSchema,
