@@ -19,7 +19,6 @@ type ILastOperatorStrategyMetric = Omit<
 	'id'
 >
 type ILastAvsStrategyMetric = Omit<prisma.MetricAvsStrategyHourly, 'id'>
-type ILastStrategyMetric = Omit<prisma.MetricStrategyHourly, 'id'>
 type ILastOperatorMetrics = IMap<string, ILastOperatorMetric>
 type ILastAvsMetrics = IMap<string, ILastAvsMetric>
 type ILastOperatorStrategyMetrics = IMap<
@@ -30,7 +29,6 @@ type ILastAvsStrategyMetrics = IMap<
 	string,
 	IMap<string, ILastAvsStrategyMetric>
 >
-type ILastStrategyMetrics = IMap<string, ILastStrategyMetric>
 type LogEntry = {
 	blockTime: Date
 	blockNumber: bigint
@@ -69,8 +67,7 @@ export async function seedMetricsRestakingHourly() {
 		lastOperatorMetrics,
 		lastOperatorStrategyMetrics,
 		lastAvsMetrics,
-		lastAvsStrategyMetrics,
-		lastStrategyMetrics
+		lastAvsStrategyMetrics
 	] = await Promise.all([
 		await prismaClient.strategies.findMany({
 			select: { sharesToUnderlying: true, address: true }
@@ -78,8 +75,7 @@ export async function seedMetricsRestakingHourly() {
 		getLatestMetricsPerOperator(),
 		getLatestMetricsPerOperatorStrategy(),
 		getLatestMetricsPerAvs(),
-		getLatestMetricsPerAvsStrategy(),
-		getLatestMetricsPerStrategy()
+		getLatestMetricsPerAvsStrategy()
 	])
 
 	const avsOperatorsState = await getAvsOperatorsState(startDate)
@@ -89,8 +85,7 @@ export async function seedMetricsRestakingHourly() {
 		hourlyOperatorMetrics,
 		hourlyOperatorStrategyMetrics,
 		hourlyAvsMetrics,
-		hourlyAvsStrategyMetrics,
-		hourlyStrategyMetrics
+		hourlyAvsStrategyMetrics
 	] = await processLogsInBatches(
 		startDate,
 		endDate,
@@ -98,7 +93,6 @@ export async function seedMetricsRestakingHourly() {
 		lastOperatorStrategyMetrics,
 		lastAvsMetrics,
 		lastAvsStrategyMetrics,
-		lastStrategyMetrics,
 		sharesToUnderlyingList,
 		avsOperatorsState
 	)
@@ -133,13 +127,6 @@ export async function seedMetricsRestakingHourly() {
 			})
 		),
 
-		...chunkArray(hourlyStrategyMetrics, 10000).map((data) =>
-			prismaClient.metricStrategyHourly.createMany({
-				data,
-				skipDuplicates: true
-			})
-		),
-
 		prismaClient.settings.upsert({
 			where: { key: blockSyncKey },
 			update: { value: Number(endDate.getTime()) },
@@ -151,7 +138,7 @@ export async function seedMetricsRestakingHourly() {
 		dbTransactions,
 		`[Metrics] Metric Restaking from: ${startDate.toISOString()} to: ${endDate.toISOString()} size: ${
 			hourlyOperatorMetrics.length
-		} ${hourlyStrategyMetrics.length}`
+		}`
 	)
 }
 
@@ -173,7 +160,6 @@ async function processLogsInBatches(
 	lastOperatorStrategyMetrics: ILastOperatorStrategyMetrics,
 	lastAvsMetrics: ILastAvsMetrics,
 	lastAvsStrategyMetrics: ILastAvsStrategyMetrics,
-	lastStrategyMetrics: ILastStrategyMetrics,
 	sharesToUnderlyingList: { sharesToUnderlying: string; address: string }[],
 	avsOperatorsState: IMap<string, Set<string>>
 ): Promise<
@@ -181,15 +167,13 @@ async function processLogsInBatches(
 		ILastOperatorMetric[],
 		ILastOperatorStrategyMetric[],
 		ILastAvsMetric[],
-		ILastAvsStrategyMetric[],
-		ILastStrategyMetric[]
+		ILastAvsStrategyMetric[]
 	]
 > {
 	const hourlyOperatorMetrics: ILastOperatorMetric[] = []
 	const hourlyOperatorStrategyMetrics: ILastOperatorStrategyMetric[] = []
 	const hourlyAvsMetrics: ILastAvsMetric[] = []
 	const hourlyAvsStrategyMetrics: ILastAvsStrategyMetric[] = []
-	const hourlyStrategyMetrics: ILastStrategyMetric[] = []
 	const sharesToUnderlyingMap = new Map(
 		sharesToUnderlyingList.map((s) => [s.address, BigInt(s.sharesToUnderlying)])
 	)
@@ -218,8 +202,7 @@ async function processLogsInBatches(
 					hourlyOperatorTvlRecords,
 					hourlyOperatorStrategyRecords,
 					hourlyAvsTvlRecords,
-					hourlyAvsStrategyRecords,
-					hourlyStrategyTvlRecords
+					hourlyAvsStrategyRecords
 				] = await hourlyLoopTick(
 					fromHour,
 					toHour,
@@ -228,7 +211,6 @@ async function processLogsInBatches(
 					lastOperatorStrategyMetrics,
 					lastAvsMetrics,
 					lastAvsStrategyMetrics,
-					lastStrategyMetrics,
 					sharesToUnderlyingMap,
 					avsOperatorsState
 				)
@@ -237,14 +219,13 @@ async function processLogsInBatches(
 				hourlyOperatorStrategyMetrics.push(...hourlyOperatorStrategyRecords)
 				hourlyAvsMetrics.push(...hourlyAvsTvlRecords)
 				hourlyAvsStrategyMetrics.push(...hourlyAvsStrategyRecords)
-				hourlyStrategyMetrics.push(...hourlyStrategyTvlRecords)
 			},
 			'hourly'
 		)
 
 		console.log(
 			`[Batch] Metric Restaking from: ${currentDate.toISOString()} to: ${batchEndDate.toISOString()} count: ${
-				hourlyOperatorMetrics.length + hourlyStrategyMetrics.length
+				hourlyOperatorMetrics.length
 			}`
 		)
 	}
@@ -253,8 +234,7 @@ async function processLogsInBatches(
 		hourlyOperatorMetrics,
 		hourlyOperatorStrategyMetrics,
 		hourlyAvsMetrics,
-		hourlyAvsStrategyMetrics,
-		hourlyStrategyMetrics
+		hourlyAvsStrategyMetrics
 	]
 }
 
@@ -278,7 +258,6 @@ async function hourlyLoopTick(
 	lastOperatorStrategyMetrics: ILastOperatorStrategyMetrics,
 	lastAvsMetrics: ILastAvsMetrics,
 	lastAvsStrategyMetrics: ILastAvsStrategyMetrics,
-	lastStrategyMetrics: ILastStrategyMetrics,
 	sharesToUnderlyingMap: Map<string, bigint>,
 	avsOperatorsState: IMap<string, Set<string>>
 ): Promise<
@@ -286,8 +265,7 @@ async function hourlyLoopTick(
 		ILastOperatorMetric[],
 		ILastOperatorStrategyMetric[],
 		ILastAvsMetric[],
-		ILastAvsStrategyMetric[],
-		ILastStrategyMetric[]
+		ILastAvsStrategyMetric[]
 	]
 > {
 	const operatorAddresses = new Set<string>()
@@ -295,7 +273,6 @@ async function hourlyLoopTick(
 	const operatorStakers = new Map<string, number>()
 	const operatorStrategyShares = new Map<string, Map<string, bigint>>()
 	const strategyShares = new Map<string, bigint>()
-	const strategyTvlRecords: ILastStrategyMetric[] = []
 	const operatorTvlRecords: ILastOperatorMetric[] = []
 	const avsTvlRecords: ILastAvsMetric[] = []
 	const operatorStrategyTvlRecords: ILastOperatorStrategyMetric[] = []
@@ -361,31 +338,6 @@ async function hourlyLoopTick(
 		}
 	}
 
-	for (const strategyAddress of strategyAddresses) {
-		// Fetch last known metric
-		const lastMetric = lastStrategyMetrics.get(strategyAddress) || {
-			strategyAddress,
-			tvl: new prisma.Prisma.Decimal(0),
-			changeTvl: new prisma.Prisma.Decimal(0),
-			timestamp: toHour
-		}
-
-		const shares = strategyShares.get(strategyAddress) || 0n
-		const sharesToUnderlying = sharesToUnderlyingMap.get(strategyAddress)
-		if (!sharesToUnderlying) continue
-
-		const changeTvl = Number(shares * sharesToUnderlying) / 1e36
-		const newStrategyMetric = {
-			...lastMetric,
-			tvl: new prisma.Prisma.Decimal(Number(lastMetric.tvl) + changeTvl),
-			changeTvl: new prisma.Prisma.Decimal(changeTvl),
-			timestamp: toHour
-		}
-
-		lastStrategyMetrics.set(strategyAddress, newStrategyMetric)
-		strategyTvlRecords.push(newStrategyMetric)
-	}
-
 	for (const operatorAddress of operatorAddresses) {
 		// Fetch last known metric
 		const lastOperatorMetric = lastOperatorMetrics.get(operatorAddress) || {
@@ -401,19 +353,25 @@ async function hourlyLoopTick(
 		const changeStakers = operatorStakers.get(operatorAddress) || 0
 		const totalAvs = getOperatorAvsCount(avsOperatorsState, operatorAddress)
 		const changeAvs = totalAvs - lastOperatorMetric.totalAvs
+		const totalStakers = lastOperatorMetric.totalStakers + changeStakers
 
-		// Update Operator Metrics
-		const newOperatorMetric = {
-			...lastOperatorMetric,
-			totalStakers: lastOperatorMetric.totalStakers + changeStakers,
-			changeStakers,
-			totalAvs,
-			changeAvs,
-			timestamp: toHour
+		if (
+			lastOperatorMetric.totalStakers !== totalStakers ||
+			lastOperatorMetric.totalAvs !== totalAvs
+		) {
+			// Update Operator Metrics
+			const newOperatorMetric = {
+				...lastOperatorMetric,
+				totalStakers: lastOperatorMetric.totalStakers + changeStakers,
+				changeStakers,
+				totalAvs,
+				changeAvs,
+				timestamp: toHour
+			}
+
+			lastOperatorMetrics.set(operatorAddress, newOperatorMetric)
+			operatorTvlRecords.push(newOperatorMetric)
 		}
-
-		lastOperatorMetrics.set(operatorAddress, newOperatorMetric)
-		operatorTvlRecords.push(newOperatorMetric)
 
 		// Update TVL Change
 		const strategyMap = operatorStrategyShares.get(operatorAddress)
@@ -557,8 +515,7 @@ async function hourlyLoopTick(
 		operatorTvlRecords,
 		operatorStrategyTvlRecords,
 		avsTvlRecords,
-		avsStrategyTvlRecords,
-		strategyTvlRecords
+		avsStrategyTvlRecords
 	]
 }
 
@@ -841,43 +798,6 @@ async function getLatestMetricsPerOperatorStrategy(): Promise<ILastOperatorStrat
 	} catch {}
 
 	return groupedMetrics
-}
-
-/**
- * Get latest metrics per strategy
- *
- * @returns
- */
-async function getLatestMetricsPerStrategy(): Promise<ILastStrategyMetrics> {
-	const prismaClient = getPrismaClient()
-
-	try {
-		const lastMetricsPerStrategy =
-			await prismaClient.metricStrategyHourly.groupBy({
-				by: ['strategyAddress'],
-				_max: {
-					timestamp: true
-				}
-			})
-
-		const metrics = await prismaClient.metricStrategyHourly.findMany({
-			where: {
-				OR: lastMetricsPerStrategy.map((metric) => ({
-					strategyAddress: metric.strategyAddress,
-					timestamp: metric._max.timestamp
-				})) as prisma.Prisma.MetricStrategyHourlyWhereInput[]
-			},
-			orderBy: {
-				strategyAddress: 'asc'
-			}
-		})
-
-		return metrics
-			? new Map(metrics.map((metric) => [metric.strategyAddress, metric]))
-			: new Map()
-	} catch {}
-
-	return new Map()
 }
 
 /**
