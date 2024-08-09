@@ -1278,10 +1278,23 @@ async function doGetHistoricalTvlWithdrawalDeposit(
 	const startTimestamp = resetTime(new Date(startAt))
 	const endTimestamp = resetTime(new Date(endAt))
 
+	// Fetch the timestamp of the first record on or before startTimestamp
+	const initialDataTimestamp = await prisma.metricWithdrawalHourly.findFirst({
+		where: {
+			timestamp: {
+				lte: startTimestamp
+			}
+		},
+		orderBy: {
+			timestamp: 'desc'
+		}
+	})
+
+	// Fetch all records from the initialDataTimestamp
 	const hourlyData = await prisma.metricWithdrawalHourly.findMany({
 		where: {
 			timestamp: {
-				gte: startTimestamp,
+				gte: initialDataTimestamp?.timestamp || startTimestamp, // Guarantees correct initial data for cumulative queries
 				lte: endTimestamp
 			}
 		},
@@ -1293,10 +1306,7 @@ async function doGetHistoricalTvlWithdrawalDeposit(
 	const results: HistoricalTvlRecord[] = []
 
 	// MetricHourly records are created only when activity is detected, not necessarily for all timestamps. If cumulative, we may need to set initial tvl value
-	let tvlEth =
-		variant === 'cumulative'
-			? await getInitialTvlCumulative(startTimestamp, hourlyData, modelName)
-			: 0
+	let tvlEth = variant === 'cumulative' ? hourlyData[0].tvlEth : 0
 
 	const offset = getOffsetInMs(frequency)
 	let currentTimestamp = startTimestamp
