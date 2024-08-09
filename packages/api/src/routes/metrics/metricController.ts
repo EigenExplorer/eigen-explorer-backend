@@ -1175,7 +1175,7 @@ async function doGetHistoricalTvlRestaking(
 	})
 
 	// For every strategyAddress, fetch all records from the initialDataTimestamp
-	const hourlyData = await prisma.metricStrategyHourly.findMany({
+	let hourlyData = await prisma.metricStrategyHourly.findMany({
 		where: {
 			OR: initialDataTimestamps.map((metric) => ({
 				AND: [
@@ -1184,7 +1184,7 @@ async function doGetHistoricalTvlRestaking(
 					},
 					{
 						timestamp: {
-							gte: metric._max.timestamp || startTimestamp, // Guarantees correct initial data for cumulative queries
+							gte: metric._max.timestamp, // Guarantees correct initial data for cumulative queries
 							lte: endTimestamp
 						}
 					}
@@ -1204,6 +1204,34 @@ async function doGetHistoricalTvlRestaking(
 	const strategyAddresses = [
 		...new Set(hourlyData.map((data) => data.strategyAddress))
 	]
+
+	// Gather the remaining strategies that might not currently be in the strategyData
+	const remaininghourlyData = await prisma.metricStrategyHourly.findMany({
+		where: {
+			AND: [
+				{
+					strategyAddress: {
+						notIn: strategyAddresses
+					},
+					...(address && { strategyAddress: address.toLowerCase() }),
+					...(!includeBeaconInTvl && {
+						strategyAddress: { not: beaconAddress }
+					})
+				},
+				{
+					timestamp: {
+						gt: startTimestamp,
+						lte: endTimestamp
+					}
+				}
+			]
+		},
+		orderBy: {
+			timestamp: 'asc'
+		}
+	})
+
+	hourlyData = [...hourlyData, ...remaininghourlyData]
 
 	const results: HistoricalTvlRecord[] = []
 
@@ -1304,7 +1332,7 @@ async function doGetHistoricalTvlWithdrawalDeposit(
 	const results: HistoricalTvlRecord[] = []
 
 	// MetricHourly records are created only when activity is detected, not necessarily for all timestamps. If cumulative, we may need to set initial tvl value
-	let tvlEth = variant === 'cumulative' ? hourlyData[0].tvlEth : 0
+	let tvlEth = variant === 'cumulative' ? Number(hourlyData[0].tvlEth) : 0
 
 	const offset = getOffsetInMs(frequency)
 	let currentTimestamp = startTimestamp
@@ -1427,7 +1455,7 @@ async function doGetHistoricalAvsAggregate(
 						},
 						{
 							timestamp: {
-								gte: metric._max.timestamp || startTimestamp, // Guarantees correct initial data for cumulative queries
+								gte: metric._max.timestamp, // Guarantees correct initial data for cumulative queries
 								lte: endTimestamp
 							}
 						}
@@ -1456,6 +1484,31 @@ async function doGetHistoricalAvsAggregate(
 	const strategyAddresses = [
 		...new Set(strategyData.map((data) => data.strategyAddress))
 	]
+
+	// Gather the remaining strategies that might not currently be in the strategyData
+	const remainingStrategyData = await prisma.metricAvsStrategyHourly.findMany({
+		where: {
+			AND: [
+				{
+					avsAddress: address.toLowerCase(),
+					strategyAddress: {
+						notIn: strategyAddresses
+					}
+				},
+				{
+					timestamp: {
+						gt: startTimestamp,
+						lte: endTimestamp
+					}
+				}
+			]
+		},
+		orderBy: {
+			timestamp: 'asc'
+		}
+	})
+
+	strategyData = [...strategyData, ...remainingStrategyData]
 
 	const results: HistoricalAggregateRecord[] = []
 	let currentTimestamp = startTimestamp
@@ -1619,7 +1672,7 @@ async function doGetHistoricalOperatorsAggregate(
 						},
 						{
 							timestamp: {
-								gte: metric._max.timestamp || startTimestamp, // Guarantees correct initial data for cumulative queries
+								gte: metric._max.timestamp, // Guarantees correct initial data for cumulative queries
 								lte: endTimestamp
 							}
 						}
@@ -1648,6 +1701,32 @@ async function doGetHistoricalOperatorsAggregate(
 	const strategyAddresses = [
 		...new Set(strategyData.map((data) => data.strategyAddress))
 	]
+
+	// Gather the remaining strategies that might not currently be in the strategyData
+	const remainingStrategyData =
+		await prisma.metricOperatorStrategyHourly.findMany({
+			where: {
+				AND: [
+					{
+						operatorAddress: address.toLowerCase(),
+						strategyAddress: {
+							notIn: strategyAddresses
+						}
+					},
+					{
+						timestamp: {
+							gt: startTimestamp,
+							lte: endTimestamp
+						}
+					}
+				]
+			},
+			orderBy: {
+				timestamp: 'asc'
+			}
+		})
+
+	strategyData = [...strategyData, ...remainingStrategyData]
 
 	const results: HistoricalAggregateRecord[] = []
 	let currentTimestamp = startTimestamp
