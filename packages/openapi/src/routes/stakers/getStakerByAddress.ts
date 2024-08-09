@@ -8,7 +8,7 @@ import { StakerResponseSchema } from '../../apiResponseSchema/stakerResponse';
 const StakerAddressParam = z.object({
     address: EthereumAddressSchema.describe(
         'The address of the staker'
-    ).openapi({ example: '0x00107cfdeaddc0a3160ed2f6fedd627f313e7b1b' }),
+    ).openapi({ example: '0x00000002d88f9b3f4eb303564817fff4adcde46f' }),
 });
 
 export const getStakerByAddress: ZodOpenApiOperationObject = {

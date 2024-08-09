@@ -138,19 +138,151 @@
                       "example": 1000000
                     },
                     "totalAVS": {
-                      "type": "number",
-                      "description": "The total number of AVS",
-                      "example": 10
+                      "type": "object",
+                      "properties": {
+                        "total": {
+                          "type": "number",
+                          "description": "The total number of AVS registered",
+                          "example": 1000000
+                        },
+                        "change24h": {
+                          "type": "object",
+                          "properties": {
+                            "value": {
+                              "type": "number",
+                              "example": 10
+                            },
+                            "percent": {
+                              "type": "number",
+                              "example": 0.01
+                            }
+                          },
+                          "required": [
+                            "value",
+                            "percent"
+                          ]
+                        },
+                        "change7d": {
+                          "type": "object",
+                          "properties": {
+                            "value": {
+                              "type": "number",
+                              "example": 10
+                            },
+                            "percent": {
+                              "type": "number",
+                              "example": 0.01
+                            }
+                          },
+                          "required": [
+                            "value",
+                            "percent"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "total",
+                        "change24h",
+                        "change7d"
+                      ]
                     },
                     "totalOperators": {
-                      "type": "number",
-                      "description": "The total number of operators",
-                      "example": 10
+                      "type": "object",
+                      "properties": {
+                        "total": {
+                          "type": "number",
+                          "description": "The total number of AVS operators registered",
+                          "example": 1000000
+                        },
+                        "change24h": {
+                          "type": "object",
+                          "properties": {
+                            "value": {
+                              "type": "number",
+                              "example": 10
+                            },
+                            "percent": {
+                              "type": "number",
+                              "example": 0.01
+                            }
+                          },
+                          "required": [
+                            "value",
+                            "percent"
+                          ]
+                        },
+                        "change7d": {
+                          "type": "object",
+                          "properties": {
+                            "value": {
+                              "type": "number",
+                              "example": 10
+                            },
+                            "percent": {
+                              "type": "number",
+                              "example": 0.01
+                            }
+                          },
+                          "required": [
+                            "value",
+                            "percent"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "total",
+                        "change24h",
+                        "change7d"
+                      ]
                     },
                     "totalStakers": {
-                      "type": "number",
-                      "description": "The total number of stakers",
-                      "example": 10
+                      "type": "object",
+                      "properties": {
+                        "total": {
+                          "type": "number",
+                          "description": "The total number of AVS stakers registered",
+                          "example": 1000000
+                        },
+                        "change24h": {
+                          "type": "object",
+                          "properties": {
+                            "value": {
+                              "type": "number",
+                              "example": 10
+                            },
+                            "percent": {
+                              "type": "number",
+                              "example": 0.01
+                            }
+                          },
+                          "required": [
+                            "value",
+                            "percent"
+                          ]
+                        },
+                        "change7d": {
+                          "type": "object",
+                          "properties": {
+                            "value": {
+                              "type": "number",
+                              "example": 10
+                            },
+                            "percent": {
+                              "type": "number",
+                              "example": 0.01
+                            }
+                          },
+                          "required": [
+                            "value",
+                            "percent"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "total",
+                        "change24h",
+                        "change7d"
+                      ]
                     }
                   },
                   "required": [
@@ -460,14 +592,50 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "totalAvs": {
+                    "total": {
                       "type": "number",
                       "description": "The total number of AVS registered",
                       "example": 1000000
+                    },
+                    "change24h": {
+                      "type": "object",
+                      "properties": {
+                        "value": {
+                          "type": "number",
+                          "example": 10
+                        },
+                        "percent": {
+                          "type": "number",
+                          "example": 0.01
+                        }
+                      },
+                      "required": [
+                        "value",
+                        "percent"
+                      ]
+                    },
+                    "change7d": {
+                      "type": "object",
+                      "properties": {
+                        "value": {
+                          "type": "number",
+                          "example": 10
+                        },
+                        "percent": {
+                          "type": "number",
+                          "example": 0.01
+                        }
+                      },
+                      "required": [
+                        "value",
+                        "percent"
+                      ]
                     }
                   },
                   "required": [
-                    "totalAvs"
+                    "total",
+                    "change24h",
+                    "change7d"
                   ]
                 }
               }
@@ -513,14 +681,50 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "totalOperators": {
+                    "total": {
                       "type": "number",
                       "description": "The total number of AVS operators registered",
                       "example": 1000000
+                    },
+                    "change24h": {
+                      "type": "object",
+                      "properties": {
+                        "value": {
+                          "type": "number",
+                          "example": 10
+                        },
+                        "percent": {
+                          "type": "number",
+                          "example": 0.01
+                        }
+                      },
+                      "required": [
+                        "value",
+                        "percent"
+                      ]
+                    },
+                    "change7d": {
+                      "type": "object",
+                      "properties": {
+                        "value": {
+                          "type": "number",
+                          "example": 10
+                        },
+                        "percent": {
+                          "type": "number",
+                          "example": 0.01
+                        }
+                      },
+                      "required": [
+                        "value",
+                        "percent"
+                      ]
                     }
                   },
                   "required": [
-                    "totalOperators"
+                    "total",
+                    "change24h",
+                    "change7d"
                   ]
                 }
               }
@@ -566,14 +770,1674 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "totalStakers": {
+                    "total": {
                       "type": "number",
                       "description": "The total number of AVS stakers registered",
+                      "example": 1000000
+                    },
+                    "change24h": {
+                      "type": "object",
+                      "properties": {
+                        "value": {
+                          "type": "number",
+                          "example": 10
+                        },
+                        "percent": {
+                          "type": "number",
+                          "example": 0.01
+                        }
+                      },
+                      "required": [
+                        "value",
+                        "percent"
+                      ]
+                    },
+                    "change7d": {
+                      "type": "object",
+                      "properties": {
+                        "value": {
+                          "type": "number",
+                          "example": 10
+                        },
+                        "percent": {
+                          "type": "number",
+                          "example": 0.01
+                        }
+                      },
+                      "required": [
+                        "value",
+                        "percent"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "total",
+                    "change24h",
+                    "change7d"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/metrics/total-withdrawals": {
+      "get": {
+        "operationId": "getTotalWithdrawals",
+        "summary": "Retrieve total number of withdrawals ",
+        "description": "Returns the total number of withdrawals",
+        "tags": [
+          "Metrics"
+        ],
+        "responses": {
+          "200": {
+            "description": "The total number of withdrawals.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "total": {
+                      "type": "number",
+                      "description": "The total number of withdrawals",
+                      "example": 1000000
+                    },
+                    "pending": {
+                      "type": "number",
+                      "description": "The  pending number of withdrawals",
+                      "example": 1000000
+                    },
+                    "completed": {
+                      "type": "number",
+                      "description": "The completed number of withdrawals",
                       "example": 1000000
                     }
                   },
                   "required": [
-                    "totalStakers"
+                    "total",
+                    "pending",
+                    "completed"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/metrics/total-deposits": {
+      "get": {
+        "operationId": "getTotalDeposits",
+        "summary": "Retrieve total number of deposits ",
+        "description": "Returns the total number of deposits",
+        "tags": [
+          "Metrics"
+        ],
+        "responses": {
+          "200": {
+            "description": "The total number of deposits.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "totalDeposits": {
+                      "type": "number",
+                      "description": "The total number of deposits",
+                      "example": 1000000
+                    }
+                  },
+                  "required": [
+                    "totalDeposits"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/metrics/historical/avs/{address}": {
+      "get": {
+        "operationId": "getHistoricalAvsAggregate",
+        "summary": "Retrieve Historical AVS Aggregate Data",
+        "description": "Returns historical aggregate data for an AVS including TVL, total number of stakers, and total number of operators at specified timestamp values",
+        "tags": [
+          "Metrics"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "address",
+            "description": "The address of the AVS ",
+            "schema": {
+              "type": "string",
+              "pattern": "^0x[a-fA-F0-9]{40}$",
+              "description": "The address of the AVS ",
+              "example": "0x870679e138bcdf293b7ff14dd44b70fc97e12fc0"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "frequency",
+            "description": "Frequency of data points",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1h",
+                "1d",
+                "7d"
+              ],
+              "default": "1h",
+              "description": "Frequency of data points"
+            }
+          },
+          {
+            "in": "query",
+            "name": "variant",
+            "description": "Type of tally, discrete or cumulative",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "discrete",
+                "cumulative"
+              ],
+              "default": "cumulative",
+              "description": "Type of tally, discrete or cumulative"
+            }
+          },
+          {
+            "in": "query",
+            "name": "startAt",
+            "description": "Start date in ISO string format",
+            "schema": {
+              "type": "string",
+              "description": "Start date in ISO string format",
+              "default": ""
+            }
+          },
+          {
+            "in": "query",
+            "name": "endAt",
+            "description": "End date in ISO string format",
+            "schema": {
+              "type": "string",
+              "description": "End date in ISO string format",
+              "default": ""
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The historical aggregate data for an AVS including TVL, total number of stakers, and total number of operators at specified timestamp values",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "timestamp": {
+                            "type": "string",
+                            "description": "The timestamp for the recorded data point",
+                            "example": "2024-04-11T08:31:11.000Z"
+                          },
+                          "tvlEth": {
+                            "type": "number",
+                            "description": "The total value locked (TVL) in ETH at the timestamp",
+                            "example": 10
+                          },
+                          "totalStakers": {
+                            "type": "number",
+                            "description": "The total number of stakers at the timestamp",
+                            "example": 10
+                          },
+                          "totalOperators": {
+                            "type": "number",
+                            "description": "The total number of operators at the timestamp",
+                            "example": 10
+                          }
+                        },
+                        "required": [
+                          "timestamp",
+                          "tvlEth",
+                          "totalStakers",
+                          "totalOperators"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/metrics/historical/operators/{address}": {
+      "get": {
+        "operationId": "getHistoricalOperatorsAggregate",
+        "summary": "Retrieve Historical Operator Aggregate Data",
+        "description": "Returns historical aggregate data for an operator including TVL and total number of stakers at specified timestamp values",
+        "tags": [
+          "Metrics"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "address",
+            "description": "The address of the operator",
+            "schema": {
+              "type": "string",
+              "pattern": "^0x[a-fA-F0-9]{40}$",
+              "description": "The address of the operator",
+              "example": "0x00107cfdeaddc0a3160ed2f6fedd627f313e7b1a"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "frequency",
+            "description": "Frequency of data points",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1h",
+                "1d",
+                "7d"
+              ],
+              "default": "1h",
+              "description": "Frequency of data points"
+            }
+          },
+          {
+            "in": "query",
+            "name": "variant",
+            "description": "Type of tally, discrete or cumulative",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "discrete",
+                "cumulative"
+              ],
+              "default": "cumulative",
+              "description": "Type of tally, discrete or cumulative"
+            }
+          },
+          {
+            "in": "query",
+            "name": "startAt",
+            "description": "Start date in ISO string format",
+            "schema": {
+              "type": "string",
+              "description": "Start date in ISO string format",
+              "default": ""
+            }
+          },
+          {
+            "in": "query",
+            "name": "endAt",
+            "description": "End date in ISO string format",
+            "schema": {
+              "type": "string",
+              "description": "End date in ISO string format",
+              "default": ""
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The historical aggregate data for an operator including TVL and total number of stakers at specified timestamp values",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "timestamp": {
+                            "type": "string",
+                            "description": "The timestamp for the recorded data point",
+                            "example": "2024-04-11T08:31:11.000Z"
+                          },
+                          "tvlEth": {
+                            "type": "number",
+                            "description": "The total value locked (TVL) in ETH at the timestamp",
+                            "example": 10
+                          },
+                          "totalStakers": {
+                            "type": "number",
+                            "description": "The total number of stakers at the timestamp",
+                            "example": 10
+                          }
+                        },
+                        "required": [
+                          "timestamp",
+                          "tvlEth",
+                          "totalStakers"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/metrics/historical/tvl": {
+      "get": {
+        "operationId": "getHistoricalTvl",
+        "summary": "Retrieve Historical total TVL Data.",
+        "description": "Returns the historical total value locked (TVL) data over specified timestamp values in all restaking strategies and Beacon Chain restaking.",
+        "tags": [
+          "Metrics"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "frequency",
+            "description": "Frequency of data points",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1h",
+                "1d",
+                "7d"
+              ],
+              "default": "1h",
+              "description": "Frequency of data points"
+            }
+          },
+          {
+            "in": "query",
+            "name": "variant",
+            "description": "Type of tally, discrete or cumulative",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "discrete",
+                "cumulative"
+              ],
+              "default": "cumulative",
+              "description": "Type of tally, discrete or cumulative"
+            }
+          },
+          {
+            "in": "query",
+            "name": "startAt",
+            "description": "Start date in ISO string format",
+            "schema": {
+              "type": "string",
+              "description": "Start date in ISO string format",
+              "default": ""
+            }
+          },
+          {
+            "in": "query",
+            "name": "endAt",
+            "description": "End date in ISO string format",
+            "schema": {
+              "type": "string",
+              "description": "End date in ISO string format",
+              "default": ""
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The historical data of combined TVL over specified timestamp values.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "tvlEth": {
+                            "type": "number",
+                            "description": "The value of the combined TVL in ETH",
+                            "example": 1000000
+                          },
+                          "timestamp": {
+                            "type": "string",
+                            "description": "The time stamp for the corresponding TVL value ",
+                            "example": "2024-04-11T08:31:11.000Z"
+                          }
+                        },
+                        "required": [
+                          "tvlEth",
+                          "timestamp"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/metrics/historical/tvl/beacon-chain": {
+      "get": {
+        "operationId": "getHistoricalTvlBeaconChain",
+        "summary": "Retrieve Historical Beacon Chain restaking TVL",
+        "description": "Returns the historical total value locked (TVL) in the Beacon Chain restaking EigenPods.",
+        "tags": [
+          "Metrics"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "frequency",
+            "description": "Frequency of data points",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1h",
+                "1d",
+                "7d"
+              ],
+              "default": "1h",
+              "description": "Frequency of data points"
+            }
+          },
+          {
+            "in": "query",
+            "name": "variant",
+            "description": "Type of tally, discrete or cumulative",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "discrete",
+                "cumulative"
+              ],
+              "default": "cumulative",
+              "description": "Type of tally, discrete or cumulative"
+            }
+          },
+          {
+            "in": "query",
+            "name": "startAt",
+            "description": "Start date in ISO string format",
+            "schema": {
+              "type": "string",
+              "description": "Start date in ISO string format",
+              "default": ""
+            }
+          },
+          {
+            "in": "query",
+            "name": "endAt",
+            "description": "End date in ISO string format",
+            "schema": {
+              "type": "string",
+              "description": "End date in ISO string format",
+              "default": ""
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The historical data of Beacon Chain restaking TVL in ETH over specified timestamp values.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "tvlEth": {
+                            "type": "number",
+                            "description": "The value of the Beacon Chain restaking TVL in ETH",
+                            "example": 1000000
+                          },
+                          "timestamp": {
+                            "type": "string",
+                            "description": "The time stamp for the corresponding Beacon Chain TVL value ",
+                            "example": "2024-04-11T08:31:11.000Z"
+                          }
+                        },
+                        "required": [
+                          "tvlEth",
+                          "timestamp"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/metrics/historical/tvl/restaking/{address}": {
+      "get": {
+        "operationId": "getHistoricalTvlRestaking",
+        "summary": "Retrieve Historical TVL Data by Strategy Address.",
+        "description": "Returns the historical total value locked (TVL) data over specified timestamp values in a specific LST strategy.",
+        "tags": [
+          "Metrics"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "address",
+            "description": "The address of the Strategy",
+            "schema": {
+              "type": "string",
+              "pattern": "^0x[a-fA-F0-9]{40}$",
+              "description": "The address of the Strategy",
+              "example": "0xacb55c530acdb2849e6d4f36992cd8c9d50ed8f7"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "frequency",
+            "description": "Frequency of data points",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1h",
+                "1d",
+                "7d"
+              ],
+              "default": "1h",
+              "description": "Frequency of data points"
+            }
+          },
+          {
+            "in": "query",
+            "name": "variant",
+            "description": "Type of tally, discrete or cumulative",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "discrete",
+                "cumulative"
+              ],
+              "default": "cumulative",
+              "description": "Type of tally, discrete or cumulative"
+            }
+          },
+          {
+            "in": "query",
+            "name": "startAt",
+            "description": "Start date in ISO string format",
+            "schema": {
+              "type": "string",
+              "description": "Start date in ISO string format",
+              "default": ""
+            }
+          },
+          {
+            "in": "query",
+            "name": "endAt",
+            "description": "End date in ISO string format",
+            "schema": {
+              "type": "string",
+              "description": "End date in ISO string format",
+              "default": ""
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The historical data of TVL for the specified strategy over specified timestamp values.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "tvlEth": {
+                            "type": "number",
+                            "description": "The value of the restaking strategy TVL, denominated in ETH",
+                            "example": 1000000
+                          },
+                          "timestamp": {
+                            "type": "string",
+                            "description": "The time stamp for the corresponding Beacon Chain TVL value ",
+                            "example": "2024-04-11T08:31:11.000Z"
+                          }
+                        },
+                        "required": [
+                          "tvlEth",
+                          "timestamp"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/metrics/historical/withdrawals": {
+      "get": {
+        "operationId": "getHistoricalWithdrawalsAggregate",
+        "summary": "Retrieve Historical Withdrawal Aggregate Data",
+        "description": "Returns historical aggregate data for withdrawals, including total value locked (TVL) in ETH at specified timestamp values.",
+        "tags": [
+          "Metrics"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "frequency",
+            "description": "Frequency of data points",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1h",
+                "1d",
+                "7d"
+              ],
+              "default": "1h",
+              "description": "Frequency of data points"
+            }
+          },
+          {
+            "in": "query",
+            "name": "variant",
+            "description": "Type of tally, discrete or cumulative",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "discrete",
+                "cumulative"
+              ],
+              "default": "cumulative",
+              "description": "Type of tally, discrete or cumulative"
+            }
+          },
+          {
+            "in": "query",
+            "name": "startAt",
+            "description": "Start date in ISO string format",
+            "schema": {
+              "type": "string",
+              "description": "Start date in ISO string format",
+              "default": ""
+            }
+          },
+          {
+            "in": "query",
+            "name": "endAt",
+            "description": "End date in ISO string format",
+            "schema": {
+              "type": "string",
+              "description": "End date in ISO string format",
+              "default": ""
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The historical aggregate data for withdrawals, including total value locked (TVL) in ETH at specified timestamp values.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "timestamp": {
+                            "type": "string",
+                            "description": "The timestamp for the recorded data point",
+                            "example": "2024-04-11T08:31:11.000Z"
+                          },
+                          "tvlEth": {
+                            "type": "number",
+                            "description": "The total value locked (TVL) in ETH at the timestamp",
+                            "example": 10
+                          }
+                        },
+                        "required": [
+                          "timestamp",
+                          "tvlEth"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/metrics/historical/deposits": {
+      "get": {
+        "operationId": "getHistoricalDepositsAggregate",
+        "summary": "Retrieve Historical Deposit Aggregate Data",
+        "description": "Returns historical aggregate data for deposits, including total value locked (TVL) in ETH at specified timestamp values.",
+        "tags": [
+          "Metrics"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "frequency",
+            "description": "Frequency of data points",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1h",
+                "1d",
+                "7d"
+              ],
+              "default": "1h",
+              "description": "Frequency of data points"
+            }
+          },
+          {
+            "in": "query",
+            "name": "variant",
+            "description": "Type of tally, discrete or cumulative",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "discrete",
+                "cumulative"
+              ],
+              "default": "cumulative",
+              "description": "Type of tally, discrete or cumulative"
+            }
+          },
+          {
+            "in": "query",
+            "name": "startAt",
+            "description": "Start date in ISO string format",
+            "schema": {
+              "type": "string",
+              "description": "Start date in ISO string format",
+              "default": ""
+            }
+          },
+          {
+            "in": "query",
+            "name": "endAt",
+            "description": "End date in ISO string format",
+            "schema": {
+              "type": "string",
+              "description": "End date in ISO string format",
+              "default": ""
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The historical aggregate data for deposits, including total value locked (TVL) in ETH at specified timestamp values.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "timestamp": {
+                            "type": "string",
+                            "description": "The timestamp for the recorded data point",
+                            "example": "2024-04-11T08:31:11.000Z"
+                          },
+                          "tvlEth": {
+                            "type": "number",
+                            "description": "The total value locked (TVL) in ETH at the timestamp",
+                            "example": 10
+                          }
+                        },
+                        "required": [
+                          "timestamp",
+                          "tvlEth"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/metrics/historical/count-avs": {
+      "get": {
+        "operationId": "getHistoricalAvsCount",
+        "summary": "Retrieve historical count of AVS",
+        "description": "Returns the total number of AVS registered at timestamp values",
+        "tags": [
+          "Metrics"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "frequency",
+            "description": "Frequency of data points",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1h",
+                "1d",
+                "7d"
+              ],
+              "default": "1h",
+              "description": "Frequency of data points"
+            }
+          },
+          {
+            "in": "query",
+            "name": "variant",
+            "description": "Type of tally, discrete or cumulative",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "discrete",
+                "cumulative"
+              ],
+              "default": "cumulative",
+              "description": "Type of tally, discrete or cumulative"
+            }
+          },
+          {
+            "in": "query",
+            "name": "startAt",
+            "description": "Start date in ISO string format",
+            "schema": {
+              "type": "string",
+              "description": "Start date in ISO string format",
+              "default": ""
+            }
+          },
+          {
+            "in": "query",
+            "name": "endAt",
+            "description": "End date in ISO string format",
+            "schema": {
+              "type": "string",
+              "description": "End date in ISO string format",
+              "default": ""
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The  total number of AVS registered at timestamp values",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "timestamp": {
+                            "type": "string",
+                            "description": "The time stamp for the corresponding AVS count ",
+                            "example": "2024-04-11T08:31:11.000Z"
+                          },
+                          "value": {
+                            "type": "number",
+                            "description": "The total number of AVS registered ",
+                            "example": 10
+                          }
+                        },
+                        "required": [
+                          "timestamp",
+                          "value"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/metrics/historical/count-operators": {
+      "get": {
+        "operationId": "getHistoricalOperatorCount",
+        "summary": "Retrieve historical count of AVS operators",
+        "description": "Returns the total number of AVS operators registered at timestamp values",
+        "tags": [
+          "Metrics"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "frequency",
+            "description": "Frequency of data points",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1h",
+                "1d",
+                "7d"
+              ],
+              "default": "1h",
+              "description": "Frequency of data points"
+            }
+          },
+          {
+            "in": "query",
+            "name": "variant",
+            "description": "Type of tally, discrete or cumulative",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "discrete",
+                "cumulative"
+              ],
+              "default": "cumulative",
+              "description": "Type of tally, discrete or cumulative"
+            }
+          },
+          {
+            "in": "query",
+            "name": "startAt",
+            "description": "Start date in ISO string format",
+            "schema": {
+              "type": "string",
+              "description": "Start date in ISO string format",
+              "default": ""
+            }
+          },
+          {
+            "in": "query",
+            "name": "endAt",
+            "description": "End date in ISO string format",
+            "schema": {
+              "type": "string",
+              "description": "End date in ISO string format",
+              "default": ""
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The total number of AVS operators registered at timestamp values",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "timestamp": {
+                            "type": "string",
+                            "description": "The time stamp for the corresponding AVS operators count ",
+                            "example": "2024-04-11T08:31:11.000Z"
+                          },
+                          "value": {
+                            "type": "number",
+                            "description": "The total number of AVS operators registered ",
+                            "example": 10
+                          }
+                        },
+                        "required": [
+                          "timestamp",
+                          "value"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/metrics/historical/count-stakers": {
+      "get": {
+        "operationId": "getHistoricalStakerCount",
+        "summary": "Retrieve historical count of AVS stakers",
+        "description": "Returns the total number of AVS stakers registered at timestamp values",
+        "tags": [
+          "Metrics"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "frequency",
+            "description": "Frequency of data points",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1h",
+                "1d",
+                "7d"
+              ],
+              "default": "1h",
+              "description": "Frequency of data points"
+            }
+          },
+          {
+            "in": "query",
+            "name": "variant",
+            "description": "Type of tally, discrete or cumulative",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "discrete",
+                "cumulative"
+              ],
+              "default": "cumulative",
+              "description": "Type of tally, discrete or cumulative"
+            }
+          },
+          {
+            "in": "query",
+            "name": "startAt",
+            "description": "Start date in ISO string format",
+            "schema": {
+              "type": "string",
+              "description": "Start date in ISO string format",
+              "default": ""
+            }
+          },
+          {
+            "in": "query",
+            "name": "endAt",
+            "description": "End date in ISO string format",
+            "schema": {
+              "type": "string",
+              "description": "End date in ISO string format",
+              "default": ""
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The total number of AVS stakers registered at timestamp values",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "timestamp": {
+                            "type": "string",
+                            "description": "The time stamp for the corresponding AVS stakers count ",
+                            "example": "2024-04-11T08:31:11.000Z"
+                          },
+                          "value": {
+                            "type": "number",
+                            "description": "The total number of AVS stakers registered ",
+                            "example": 10
+                          }
+                        },
+                        "required": [
+                          "timestamp",
+                          "value"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/metrics/historical/count-withdrawals": {
+      "get": {
+        "operationId": "getHistoricalWithdrawalCount",
+        "summary": "Retrieve historical count of AVS withdrawals",
+        "description": "Returns the total number of AVS withdrawals made at timestamp values",
+        "tags": [
+          "Metrics"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "frequency",
+            "description": "Frequency of data points",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1h",
+                "1d",
+                "7d"
+              ],
+              "default": "1h",
+              "description": "Frequency of data points"
+            }
+          },
+          {
+            "in": "query",
+            "name": "variant",
+            "description": "Type of tally, discrete or cumulative",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "discrete",
+                "cumulative"
+              ],
+              "default": "cumulative",
+              "description": "Type of tally, discrete or cumulative"
+            }
+          },
+          {
+            "in": "query",
+            "name": "startAt",
+            "description": "Start date in ISO string format",
+            "schema": {
+              "type": "string",
+              "description": "Start date in ISO string format",
+              "default": ""
+            }
+          },
+          {
+            "in": "query",
+            "name": "endAt",
+            "description": "End date in ISO string format",
+            "schema": {
+              "type": "string",
+              "description": "End date in ISO string format",
+              "default": ""
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The total number of AVS withdrawals made at timestamp values",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "timestamp": {
+                            "type": "string",
+                            "description": "The time stamp for the corresponding AVS withdrawals count ",
+                            "example": "2024-04-11T08:31:11.000Z"
+                          },
+                          "value": {
+                            "type": "number",
+                            "description": "The total number of AVS withdrawals made",
+                            "example": 10
+                          }
+                        },
+                        "required": [
+                          "timestamp",
+                          "value"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/metrics/historical/count-deposits": {
+      "get": {
+        "operationId": "getHistoricalDepositCount",
+        "summary": "Retrieve historical count of AVS deposits",
+        "description": "Returns the total number of AVS deposits made at timestamp values",
+        "tags": [
+          "Metrics"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "frequency",
+            "description": "Frequency of data points",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1h",
+                "1d",
+                "7d"
+              ],
+              "default": "1h",
+              "description": "Frequency of data points"
+            }
+          },
+          {
+            "in": "query",
+            "name": "variant",
+            "description": "Type of tally, discrete or cumulative",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "discrete",
+                "cumulative"
+              ],
+              "default": "cumulative",
+              "description": "Type of tally, discrete or cumulative"
+            }
+          },
+          {
+            "in": "query",
+            "name": "startAt",
+            "description": "Start date in ISO string format",
+            "schema": {
+              "type": "string",
+              "description": "Start date in ISO string format",
+              "default": ""
+            }
+          },
+          {
+            "in": "query",
+            "name": "endAt",
+            "description": "End date in ISO string format",
+            "schema": {
+              "type": "string",
+              "description": "End date in ISO string format",
+              "default": ""
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The total number of AVS deposits made at timestamp values",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "timestamp": {
+                            "type": "string",
+                            "description": "The time stamp for the corresponding AVS deposits count ",
+                            "example": "2024-04-11T08:31:11.000Z"
+                          },
+                          "value": {
+                            "type": "number",
+                            "description": "The total number of AVS deposits made ",
+                            "example": 10
+                          }
+                        },
+                        "required": [
+                          "timestamp",
+                          "value"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
                   ]
                 }
               }
@@ -647,6 +2511,21 @@
               "default": "12",
               "description": "The number of records to return for pagination",
               "example": 12
+            }
+          },
+          {
+            "in": "query",
+            "name": "withCuratedMetadata",
+            "description": "Toggle whether the route should send curated metadata",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ],
+              "default": "false",
+              "description": "Toggle whether the route should send curated metadata",
+              "example": "false"
             }
           }
         ],
@@ -1075,9 +2954,12 @@
           {
             "in": "path",
             "name": "address",
+            "description": "The address of the AVS ",
             "schema": {
               "type": "string",
-              "pattern": "^0x[a-fA-F0-9]{40}$"
+              "pattern": "^0x[a-fA-F0-9]{40}$",
+              "description": "The address of the AVS ",
+              "example": "0x870679e138bcdf293b7ff14dd44b70fc97e12fc0"
             },
             "required": true
           },
@@ -1093,6 +2975,21 @@
               ],
               "default": "false",
               "description": "Toggle whether the route should calculate the TVL from shares",
+              "example": "false"
+            }
+          },
+          {
+            "in": "query",
+            "name": "withCuratedMetadata",
+            "description": "Toggle whether the route should send curated metadata",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ],
+              "default": "false",
+              "description": "Toggle whether the route should send curated metadata",
               "example": "false"
             }
           }
@@ -1364,9 +3261,12 @@
           {
             "in": "path",
             "name": "address",
+            "description": "The address of the AVS ",
             "schema": {
               "type": "string",
-              "pattern": "^0x[a-fA-F0-9]{40}$"
+              "pattern": "^0x[a-fA-F0-9]{40}$",
+              "description": "The address of the AVS ",
+              "example": "0x870679e138bcdf293b7ff14dd44b70fc97e12fc0"
             },
             "required": true
           },
@@ -1433,17 +3333,31 @@
                             "description": "The address of the operator",
                             "example": "0x71c6f7ed8c2d4925d0baf16f6a85bb1736d412eb"
                           },
+                          "createdAtBlock": {
+                            "type": "string",
+                            "description": "The block number at which the Staker made first delegation",
+                            "example": "19631203"
+                          },
+                          "updatedAtBlock": {
+                            "type": "string",
+                            "description": "The block number at which the Staker made last delegation",
+                            "example": "19631203"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "description": "The time stamp at which the Staker made first delegation",
+                            "example": "2024-04-11T08:31:11.000Z"
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "description": "The time stamp at which the Staker made last delegation",
+                            "example": "2024-04-11T08:31:11.000Z"
+                          },
                           "shares": {
                             "type": "array",
                             "items": {
                               "type": "object",
                               "properties": {
-                                "stakerAddress": {
-                                  "type": "string",
-                                  "pattern": "^0x[a-fA-F0-9]{40}$",
-                                  "description": "The contract address of the staker",
-                                  "example": "0x0000006c21964af0d420af8992851a30fa13c68a"
-                                },
                                 "strategyAddress": {
                                   "type": "string",
                                   "pattern": "^0x[a-fA-F0-9]{40}$",
@@ -1457,7 +3371,6 @@
                                 }
                               },
                               "required": [
-                                "stakerAddress",
                                 "strategyAddress",
                                 "shares"
                               ]
@@ -1541,6 +3454,10 @@
                         "required": [
                           "address",
                           "operatorAddress",
+                          "createdAtBlock",
+                          "updatedAtBlock",
+                          "createdAt",
+                          "updatedAt",
                           "shares"
                         ]
                       }
@@ -1615,9 +3532,12 @@
           {
             "in": "path",
             "name": "address",
+            "description": "The address of the AVS ",
             "schema": {
               "type": "string",
-              "pattern": "^0x[a-fA-F0-9]{40}$"
+              "pattern": "^0x[a-fA-F0-9]{40}$",
+              "description": "The address of the AVS ",
+              "example": "0x870679e138bcdf293b7ff14dd44b70fc97e12fc0"
             },
             "required": true
           },
@@ -1762,6 +3682,11 @@
                             "description": "The total number of stakers opted into the AVS operator",
                             "example": 10
                           },
+                          "totalAvs": {
+                            "type": "number",
+                            "description": "The total number of AVS opted by the AVS operator",
+                            "example": 10
+                          },
                           "tvl": {
                             "type": "object",
                             "properties": {
@@ -1847,7 +3772,8 @@
                           "metadataWebsite",
                           "metadataX",
                           "shares",
-                          "totalStakers"
+                          "totalStakers",
+                          "totalAvs"
                         ]
                       }
                     },
@@ -2059,6 +3985,11 @@
                             "description": "The total number of stakers opted into the AVS operator",
                             "example": 10
                           },
+                          "totalAvs": {
+                            "type": "number",
+                            "description": "The total number of AVS opted by the AVS operator",
+                            "example": 10
+                          },
                           "tvl": {
                             "type": "object",
                             "properties": {
@@ -2144,7 +4075,8 @@
                           "metadataWebsite",
                           "metadataX",
                           "shares",
-                          "totalStakers"
+                          "totalStakers",
+                          "totalAvs"
                         ]
                       }
                     },
@@ -2223,7 +4155,7 @@
               "type": "string",
               "pattern": "^0x[a-fA-F0-9]{40}$",
               "description": "The address of the operator",
-              "example": "0x00107cfdeaddc0a3160ed2f6fedd627f313e7b1b"
+              "example": "0x00107cfdeaddc0a3160ed2f6fedd627f313e7b1a"
             },
             "required": true
           },
@@ -2341,6 +4273,11 @@
                       "description": "The total number of stakers opted into the AVS operator",
                       "example": 10
                     },
+                    "totalAvs": {
+                      "type": "number",
+                      "description": "The total number of AVS opted by the AVS operator",
+                      "example": 10
+                    },
                     "tvl": {
                       "type": "object",
                       "properties": {
@@ -2426,7 +4363,8 @@
                     "metadataWebsite",
                     "metadataX",
                     "shares",
-                    "totalStakers"
+                    "totalStakers",
+                    "totalAvs"
                   ]
                 }
               }
@@ -2559,11 +4497,6 @@
                             "description": "The nonce of the withdrawal",
                             "example": 0
                           },
-                          "isCompleted": {
-                            "type": "boolean",
-                            "description": "Indicates if the withdrawal is completed",
-                            "example": false
-                          },
                           "stakerAddress": {
                             "type": "string",
                             "description": "The address of the staker",
@@ -2609,45 +4542,26 @@
                               }
                             ]
                           },
-                          "startBlock": {
-                            "type": "number",
-                            "description": "The block number when the withdrawal was queued",
-                            "example": 19912470
-                          },
                           "createdAtBlock": {
                             "type": "number",
                             "description": "The block number when the withdrawal was recorded by EigenExplorer",
-                            "example": 19912470
-                          },
-                          "updatedAtBlock": {
-                            "type": "number",
-                            "description": "The block number when the withdrawal was last updated",
                             "example": 19912470
                           },
                           "createdAt": {
                             "type": "string",
                             "description": "The time stamp when the withdrawal was recorded by EigenExplorer",
                             "example": "2024-07-07T23:53:35.000Z"
-                          },
-                          "updatedAt": {
-                            "type": "string",
-                            "description": "The time stamp when the withdrawal was last updated",
-                            "example": "2024-07-07T23:53:35.000Z"
                           }
                         },
                         "required": [
                           "withdrawalRoot",
                           "nonce",
-                          "isCompleted",
                           "stakerAddress",
                           "delegatedTo",
                           "withdrawerAddress",
                           "shares",
-                          "startBlock",
                           "createdAtBlock",
-                          "updatedAtBlock",
-                          "createdAt",
-                          "updatedAt"
+                          "createdAt"
                         ]
                       }
                     },
@@ -2748,11 +4662,6 @@
                       "description": "The nonce of the withdrawal",
                       "example": 0
                     },
-                    "isCompleted": {
-                      "type": "boolean",
-                      "description": "Indicates if the withdrawal is completed",
-                      "example": false
-                    },
                     "stakerAddress": {
                       "type": "string",
                       "description": "The address of the staker",
@@ -2798,45 +4707,26 @@
                         }
                       ]
                     },
-                    "startBlock": {
-                      "type": "number",
-                      "description": "The block number when the withdrawal was queued",
-                      "example": 19912470
-                    },
                     "createdAtBlock": {
                       "type": "number",
                       "description": "The block number when the withdrawal was recorded by EigenExplorer",
-                      "example": 19912470
-                    },
-                    "updatedAtBlock": {
-                      "type": "number",
-                      "description": "The block number when the withdrawal was last updated",
                       "example": 19912470
                     },
                     "createdAt": {
                       "type": "string",
                       "description": "The time stamp when the withdrawal was recorded by EigenExplorer",
                       "example": "2024-07-07T23:53:35.000Z"
-                    },
-                    "updatedAt": {
-                      "type": "string",
-                      "description": "The time stamp when the withdrawal was last updated",
-                      "example": "2024-07-07T23:53:35.000Z"
                     }
                   },
                   "required": [
                     "withdrawalRoot",
                     "nonce",
-                    "isCompleted",
                     "stakerAddress",
                     "delegatedTo",
                     "withdrawerAddress",
                     "shares",
-                    "startBlock",
                     "createdAtBlock",
-                    "updatedAtBlock",
-                    "createdAt",
-                    "updatedAt"
+                    "createdAt"
                   ]
                 }
               }
@@ -2938,17 +4828,31 @@
                             "description": "The address of the operator",
                             "example": "0x71c6f7ed8c2d4925d0baf16f6a85bb1736d412eb"
                           },
+                          "createdAtBlock": {
+                            "type": "string",
+                            "description": "The block number at which the Staker made first delegation",
+                            "example": "19631203"
+                          },
+                          "updatedAtBlock": {
+                            "type": "string",
+                            "description": "The block number at which the Staker made last delegation",
+                            "example": "19631203"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "description": "The time stamp at which the Staker made first delegation",
+                            "example": "2024-04-11T08:31:11.000Z"
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "description": "The time stamp at which the Staker made last delegation",
+                            "example": "2024-04-11T08:31:11.000Z"
+                          },
                           "shares": {
                             "type": "array",
                             "items": {
                               "type": "object",
                               "properties": {
-                                "stakerAddress": {
-                                  "type": "string",
-                                  "pattern": "^0x[a-fA-F0-9]{40}$",
-                                  "description": "The contract address of the staker",
-                                  "example": "0x0000006c21964af0d420af8992851a30fa13c68a"
-                                },
                                 "strategyAddress": {
                                   "type": "string",
                                   "pattern": "^0x[a-fA-F0-9]{40}$",
@@ -2962,7 +4866,6 @@
                                 }
                               },
                               "required": [
-                                "stakerAddress",
                                 "strategyAddress",
                                 "shares"
                               ]
@@ -3046,6 +4949,10 @@
                         "required": [
                           "address",
                           "operatorAddress",
+                          "createdAtBlock",
+                          "updatedAtBlock",
+                          "createdAt",
+                          "updatedAt",
                           "shares"
                         ]
                       }
@@ -3125,7 +5032,7 @@
               "type": "string",
               "pattern": "^0x[a-fA-F0-9]{40}$",
               "description": "The address of the staker",
-              "example": "0x00107cfdeaddc0a3160ed2f6fedd627f313e7b1b"
+              "example": "0x00000002d88f9b3f4eb303564817fff4adcde46f"
             },
             "required": true
           },
@@ -3165,17 +5072,31 @@
                       "description": "The address of the operator",
                       "example": "0x71c6f7ed8c2d4925d0baf16f6a85bb1736d412eb"
                     },
+                    "createdAtBlock": {
+                      "type": "string",
+                      "description": "The block number at which the Staker made first delegation",
+                      "example": "19631203"
+                    },
+                    "updatedAtBlock": {
+                      "type": "string",
+                      "description": "The block number at which the Staker made last delegation",
+                      "example": "19631203"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "description": "The time stamp at which the Staker made first delegation",
+                      "example": "2024-04-11T08:31:11.000Z"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "description": "The time stamp at which the Staker made last delegation",
+                      "example": "2024-04-11T08:31:11.000Z"
+                    },
                     "shares": {
                       "type": "array",
                       "items": {
                         "type": "object",
                         "properties": {
-                          "stakerAddress": {
-                            "type": "string",
-                            "pattern": "^0x[a-fA-F0-9]{40}$",
-                            "description": "The contract address of the staker",
-                            "example": "0x0000006c21964af0d420af8992851a30fa13c68a"
-                          },
                           "strategyAddress": {
                             "type": "string",
                             "pattern": "^0x[a-fA-F0-9]{40}$",
@@ -3189,7 +5110,6 @@
                           }
                         },
                         "required": [
-                          "stakerAddress",
                           "strategyAddress",
                           "shares"
                         ]
@@ -3273,6 +5193,10 @@
                   "required": [
                     "address",
                     "operatorAddress",
+                    "createdAtBlock",
+                    "updatedAtBlock",
+                    "createdAt",
+                    "updatedAt",
                     "shares"
                   ]
                 }
@@ -3320,7 +5244,7 @@
               "type": "string",
               "pattern": "^0x[a-fA-F0-9]{40}$",
               "description": "The address of the staker",
-              "example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
+              "example": "0x00000002d88f9b3f4eb303564817fff4adcde46f"
             },
             "required": true
           },
@@ -3370,11 +5294,6 @@
                             "description": "The nonce of the withdrawal",
                             "example": 0
                           },
-                          "isCompleted": {
-                            "type": "boolean",
-                            "description": "Indicates if the withdrawal is completed",
-                            "example": false
-                          },
                           "stakerAddress": {
                             "type": "string",
                             "description": "The address of the staker",
@@ -3420,19 +5339,9 @@
                               }
                             ]
                           },
-                          "startBlock": {
-                            "type": "number",
-                            "description": "The block number when the withdrawal was queued",
-                            "example": 19912470
-                          },
                           "createdAtBlock": {
                             "type": "number",
                             "description": "The block number when the withdrawal was recorded by EigenExplorer",
-                            "example": 19912470
-                          },
-                          "updatedAtBlock": {
-                            "type": "number",
-                            "description": "The block number when the withdrawal was last updated",
                             "example": 19912470
                           },
                           "createdAt": {
@@ -3440,25 +5349,34 @@
                             "description": "The time stamp when the withdrawal was recorded by EigenExplorer",
                             "example": "2024-07-07T23:53:35.000Z"
                           },
+                          "updatedAtBlock": {
+                            "type": "number",
+                            "description": "The block number when the withdrawal was last updated",
+                            "example": 19912470
+                          },
                           "updatedAt": {
                             "type": "string",
                             "description": "The time stamp when the withdrawal was last updated",
                             "example": "2024-07-07T23:53:35.000Z"
+                          },
+                          "isCompleted": {
+                            "type": "boolean",
+                            "description": "Indicates if the withdrawal is completed",
+                            "example": false
                           }
                         },
                         "required": [
                           "withdrawalRoot",
                           "nonce",
-                          "isCompleted",
                           "stakerAddress",
                           "delegatedTo",
                           "withdrawerAddress",
                           "shares",
-                          "startBlock",
                           "createdAtBlock",
-                          "updatedAtBlock",
                           "createdAt",
-                          "updatedAt"
+                          "updatedAtBlock",
+                          "updatedAt",
+                          "isCompleted"
                         ]
                       }
                     },
@@ -3537,7 +5455,7 @@
               "type": "string",
               "pattern": "^0x[a-fA-F0-9]{40}$",
               "description": "The address of the staker",
-              "example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
+              "example": "0x00000002d88f9b3f4eb303564817fff4adcde46f"
             },
             "required": true
           },
@@ -3587,11 +5505,6 @@
                             "description": "The nonce of the withdrawal",
                             "example": 0
                           },
-                          "isCompleted": {
-                            "type": "boolean",
-                            "description": "Indicates if the withdrawal is completed",
-                            "example": false
-                          },
                           "stakerAddress": {
                             "type": "string",
                             "description": "The address of the staker",
@@ -3637,45 +5550,26 @@
                               }
                             ]
                           },
-                          "startBlock": {
-                            "type": "number",
-                            "description": "The block number when the withdrawal was queued",
-                            "example": 19912470
-                          },
                           "createdAtBlock": {
                             "type": "number",
                             "description": "The block number when the withdrawal was recorded by EigenExplorer",
-                            "example": 19912470
-                          },
-                          "updatedAtBlock": {
-                            "type": "number",
-                            "description": "The block number when the withdrawal was last updated",
                             "example": 19912470
                           },
                           "createdAt": {
                             "type": "string",
                             "description": "The time stamp when the withdrawal was recorded by EigenExplorer",
                             "example": "2024-07-07T23:53:35.000Z"
-                          },
-                          "updatedAt": {
-                            "type": "string",
-                            "description": "The time stamp when the withdrawal was last updated",
-                            "example": "2024-07-07T23:53:35.000Z"
                           }
                         },
                         "required": [
                           "withdrawalRoot",
                           "nonce",
-                          "isCompleted",
                           "stakerAddress",
                           "delegatedTo",
                           "withdrawerAddress",
                           "shares",
-                          "startBlock",
                           "createdAtBlock",
-                          "updatedAtBlock",
-                          "createdAt",
-                          "updatedAt"
+                          "createdAt"
                         ]
                       }
                     },
@@ -3754,7 +5648,7 @@
               "type": "string",
               "pattern": "^0x[a-fA-F0-9]{40}$",
               "description": "The address of the staker",
-              "example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
+              "example": "0x00000002d88f9b3f4eb303564817fff4adcde46f"
             },
             "required": true
           },
@@ -3804,11 +5698,6 @@
                             "description": "The nonce of the withdrawal",
                             "example": 0
                           },
-                          "isCompleted": {
-                            "type": "boolean",
-                            "description": "Indicates if the withdrawal is completed",
-                            "example": false
-                          },
                           "stakerAddress": {
                             "type": "string",
                             "description": "The address of the staker",
@@ -3854,45 +5743,26 @@
                               }
                             ]
                           },
-                          "startBlock": {
-                            "type": "number",
-                            "description": "The block number when the withdrawal was queued",
-                            "example": 19912470
-                          },
                           "createdAtBlock": {
                             "type": "number",
                             "description": "The block number when the withdrawal was recorded by EigenExplorer",
-                            "example": 19912470
-                          },
-                          "updatedAtBlock": {
-                            "type": "number",
-                            "description": "The block number when the withdrawal was last updated",
                             "example": 19912470
                           },
                           "createdAt": {
                             "type": "string",
                             "description": "The time stamp when the withdrawal was recorded by EigenExplorer",
                             "example": "2024-07-07T23:53:35.000Z"
-                          },
-                          "updatedAt": {
-                            "type": "string",
-                            "description": "The time stamp when the withdrawal was last updated",
-                            "example": "2024-07-07T23:53:35.000Z"
                           }
                         },
                         "required": [
                           "withdrawalRoot",
                           "nonce",
-                          "isCompleted",
                           "stakerAddress",
                           "delegatedTo",
                           "withdrawerAddress",
                           "shares",
-                          "startBlock",
                           "createdAtBlock",
-                          "updatedAtBlock",
-                          "createdAt",
-                          "updatedAt"
+                          "createdAt"
                         ]
                       }
                     },
@@ -3971,7 +5841,7 @@
               "type": "string",
               "pattern": "^0x[a-fA-F0-9]{40}$",
               "description": "The address of the staker",
-              "example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
+              "example": "0x00000002d88f9b3f4eb303564817fff4adcde46f"
             },
             "required": true
           },
@@ -4021,11 +5891,6 @@
                             "description": "The nonce of the withdrawal",
                             "example": 0
                           },
-                          "isCompleted": {
-                            "type": "boolean",
-                            "description": "Indicates if the withdrawal is completed",
-                            "example": false
-                          },
                           "stakerAddress": {
                             "type": "string",
                             "description": "The address of the staker",
@@ -4071,25 +5936,20 @@
                               }
                             ]
                           },
-                          "startBlock": {
-                            "type": "number",
-                            "description": "The block number when the withdrawal was queued",
-                            "example": 19912470
-                          },
                           "createdAtBlock": {
                             "type": "number",
                             "description": "The block number when the withdrawal was recorded by EigenExplorer",
-                            "example": 19912470
-                          },
-                          "updatedAtBlock": {
-                            "type": "number",
-                            "description": "The block number when the withdrawal was last updated",
                             "example": 19912470
                           },
                           "createdAt": {
                             "type": "string",
                             "description": "The time stamp when the withdrawal was recorded by EigenExplorer",
                             "example": "2024-07-07T23:53:35.000Z"
+                          },
+                          "updatedAtBlock": {
+                            "type": "number",
+                            "description": "The block number when the withdrawal was last updated",
+                            "example": 19912470
                           },
                           "updatedAt": {
                             "type": "string",
@@ -4100,16 +5960,176 @@
                         "required": [
                           "withdrawalRoot",
                           "nonce",
-                          "isCompleted",
                           "stakerAddress",
                           "delegatedTo",
                           "withdrawerAddress",
                           "shares",
-                          "startBlock",
                           "createdAtBlock",
-                          "updatedAtBlock",
                           "createdAt",
+                          "updatedAtBlock",
                           "updatedAt"
+                        ]
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "total": {
+                          "type": "number",
+                          "description": "Total number of records in the database",
+                          "example": 30
+                        },
+                        "skip": {
+                          "type": "number",
+                          "description": "The number of skiped records for this query",
+                          "example": 0
+                        },
+                        "take": {
+                          "type": "number",
+                          "description": "The number of records returned for this query",
+                          "example": 12
+                        }
+                      },
+                      "required": [
+                        "total",
+                        "skip",
+                        "take"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/stakers/{address}/deposits": {
+      "get": {
+        "operationId": "getStakerDeposits",
+        "summary": "Retrieve all deposits by staker address",
+        "description": "Returns all deposit data of the requested staker, including the transaction hash, token address, strategy address, shares and other relevant information.",
+        "tags": [
+          "Stakers"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "address",
+            "description": "The address of the staker",
+            "schema": {
+              "type": "string",
+              "pattern": "^0x[a-fA-F0-9]{40}$",
+              "description": "The address of the staker",
+              "example": "0x00000002d88f9b3f4eb303564817fff4adcde46f"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "skip",
+            "description": "The number of records to skip for pagination",
+            "schema": {
+              "type": "string",
+              "default": "0",
+              "description": "The number of records to skip for pagination",
+              "example": 0
+            }
+          },
+          {
+            "in": "query",
+            "name": "take",
+            "description": "The number of records to return for pagination",
+            "schema": {
+              "type": "string",
+              "default": "12",
+              "description": "The number of records to return for pagination",
+              "example": 12
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The list of deposits.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "transactionHash": {
+                            "type": "string",
+                            "description": "The hash of the transaction",
+                            "example": "0x9d0a355df5a937516dfaed6721b0b461a16b8fad005f66d7dbf56b8a39136297"
+                          },
+                          "stakerAddress": {
+                            "type": "string",
+                            "description": "The address of the staker",
+                            "example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
+                          },
+                          "tokenAddress": {
+                            "type": "string",
+                            "description": "The address of the token",
+                            "example": "0xe95a203b1a91a908f9b9ce46459d101078c2c3cb"
+                          },
+                          "strategyAddress": {
+                            "type": "string",
+                            "description": "The contract address of the restaking strategy",
+                            "example": "0x0fe4f44bee93503346a3ac9ee5a26b130a5796d6"
+                          },
+                          "shares": {
+                            "type": "string",
+                            "description": "The amount of shares held in the strategy",
+                            "example": "40888428658906049"
+                          },
+                          "createdAtBlock": {
+                            "type": "number",
+                            "description": "The block number when the withdrawal was recorded by EigenExplorer",
+                            "example": 19912470
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "description": "The time stamp when the withdrawal was recorded by EigenExplorer",
+                            "example": "2024-07-07T23:53:35.000Z"
+                          }
+                        },
+                        "required": [
+                          "transactionHash",
+                          "stakerAddress",
+                          "tokenAddress",
+                          "strategyAddress",
+                          "shares",
+                          "createdAtBlock",
+                          "createdAt"
                         ]
                       }
                     },

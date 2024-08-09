@@ -7,6 +7,21 @@ import { getTvlRestakingMetricByStrategy } from './getTvlByStrategy';
 import { getTotalAvsMetric } from './getTotalAvs';
 import { getTotalOperatorsMetric } from './getTotalOperators';
 import { getTotalStakerssMetric } from './getTotalStakers';
+import { getTotalWithdrawals } from './getTotalWithdrawals';
+import { getTotalDeposits } from './getTotalDeposits';
+import { getHistoricalAvsCount } from './getHistoricalAvsCount';
+import { getHistoricalOperatorCount } from './getHistoricalOperatorCount';
+import { getHistoricalDepositCount } from './getHistoricalDepositCount';
+import { getHistoricalStakerCount } from './getHistoricalStakerCount';
+import { getHistoricalWithdrawalCount } from './getHistoricalWithdrawalCount';
+import { getHistoricalAvsAggregate } from './getHistoricalAvsAggregate';
+import { getHistoricalOperatorsAggregate } from './getHistoricalOperatorsAggregate';
+import { getHistoricalTvl } from './getHistoricalTvl';
+import { getHistoricalTvlRestaking } from './getHistoricalTvlRestaking';
+import { getHistoricalTvlBeaconChain } from './getHistoricalTvlBeaconChain';
+import { getHistoricalDepositAggregate } from './getHistoricalDepositAggregate';
+import { getHistoricalWithdrawalAggregate } from './getHistoricalWithdrawalAggregate';
+
 
 export const metricsRoutes: ZodOpenApiPathsObject = {
     '/metrics': {
@@ -21,4 +36,18 @@ export const metricsRoutes: ZodOpenApiPathsObject = {
     '/metrics/total-avs': { get: getTotalAvsMetric },
     '/metrics/total-operators': { get: getTotalOperatorsMetric },
     '/metrics/total-stakers': { get: getTotalStakerssMetric },
+    '/metrics/total-withdrawals': { get: getTotalWithdrawals },
+    '/metrics/total-deposits': { get: getTotalDeposits },
+    '/metrics/historical/avs/{address}': { get: getHistoricalAvsAggregate },
+    '/metrics/historical/operators/{address}': { get: getHistoricalOperatorsAggregate },
+    '/metrics/historical/tvl': { get: getHistoricalTvl },
+    '/metrics/historical/tvl/beacon-chain': { get: getHistoricalTvlBeaconChain },
+    '/metrics/historical/tvl/restaking/{address}': { get: getHistoricalTvlRestaking },
+    '/metrics/historical/withdrawals': { get: getHistoricalWithdrawalAggregate },
+    '/metrics/historical/deposits': { get: getHistoricalDepositAggregate },
+    '/metrics/historical/count-avs': { get: getHistoricalAvsCount },
+    '/metrics/historical/count-operators': { get: getHistoricalOperatorCount },
+    '/metrics/historical/count-stakers': { get: getHistoricalStakerCount },
+    '/metrics/historical/count-withdrawals': { get: getHistoricalWithdrawalCount },
+    '/metrics/historical/count-deposits': { get: getHistoricalDepositCount },
 };

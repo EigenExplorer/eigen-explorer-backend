@@ -36,6 +36,10 @@ export const OperatorResponseSchema = z.object({
         .number()
         .describe('The total number of stakers opted into the AVS operator')
         .openapi({ example: 10 }),
+    totalAvs: z
+        .number()
+        .describe('The total number of AVS opted by the AVS operator')
+        .openapi({ example: 10 }),
     tvl: TvlSchema.optional()
         .describe('The total value locked (TVL) in the AVS operator')
         .openapi({

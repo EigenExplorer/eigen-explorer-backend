@@ -1,13 +1,6 @@
 import { ZodOpenApiOperationObject } from 'zod-openapi';
 import { openApiErrorResponses } from '../../apiResponseSchema/base/errorResponses';
-import z from '../../../../api/src/schema/zod';
-
-const TotalStakersSchema = z.object({
-    totalStakers: z
-        .number()
-        .describe('The total number of AVS stakers registered')
-        .openapi({ example: 1000000 }),
-});
+import { TotalStakersSchema } from '../../apiResponseSchema/metrics/timeChangeResponse';
 
 export const getTotalStakerssMetric: ZodOpenApiOperationObject = {
     operationId: 'getTotalStakerssMetric',

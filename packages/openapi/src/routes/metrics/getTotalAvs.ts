@@ -1,13 +1,6 @@
 import { ZodOpenApiOperationObject } from 'zod-openapi';
 import { openApiErrorResponses } from '../../apiResponseSchema/base/errorResponses';
-import z from '../../../../api/src/schema/zod';
-
-const TotalAvsSchema = z.object({
-    totalAvs: z
-        .number()
-        .describe('The total number of AVS registered')
-        .openapi({ example: 1000000 }),
-});
+import { TotalAvsSchema } from '../../apiResponseSchema/metrics/timeChangeResponse';
 
 export const getTotalAvsMetric: ZodOpenApiOperationObject = {
     operationId: 'getTotalAvsMetric',
