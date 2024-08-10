@@ -1200,7 +1200,7 @@ async function doGetHistoricalTvlRestaking(
 			? await getInitialTvlCumulativeFromNative(hourlyData, ethPrices)
 			: 0
 
-	const strategyAddresses = [
+	let strategyAddresses = [
 		...new Set(hourlyData.map((data) => data.strategyAddress))
 	]
 
@@ -1231,6 +1231,7 @@ async function doGetHistoricalTvlRestaking(
 	})
 
 	hourlyData = [...hourlyData, ...remaininghourlyData]
+	strategyAddresses = [...new Set(hourlyData.map((data) => data.strategyAddress))]
 
 	const results: HistoricalTvlRecord[] = []
 
@@ -1480,7 +1481,7 @@ async function doGetHistoricalAvsAggregate(
 			processMetricStrategyHourlyData()
 		])
 
-	const strategyAddresses = [
+	let strategyAddresses = [
 		...new Set(strategyData.map((data) => data.strategyAddress))
 	]
 
@@ -1508,6 +1509,7 @@ async function doGetHistoricalAvsAggregate(
 	})
 
 	strategyData = [...strategyData, ...remainingStrategyData]
+	strategyAddresses = [...new Set(strategyData.map((data) => data.strategyAddress))]
 
 	const results: HistoricalAggregateRecord[] = []
 	let currentTimestamp = startTimestamp
@@ -1697,7 +1699,7 @@ async function doGetHistoricalOperatorsAggregate(
 			processMetricStrategyHourlyData()
 		])
 
-	const strategyAddresses = [
+	let strategyAddresses = [
 		...new Set(strategyData.map((data) => data.strategyAddress))
 	]
 
@@ -1726,6 +1728,7 @@ async function doGetHistoricalOperatorsAggregate(
 		})
 
 	strategyData = [...strategyData, ...remainingStrategyData]
+	strategyAddresses = [...new Set(strategyData.map((data) => data.strategyAddress))]
 
 	const results: HistoricalAggregateRecord[] = []
 	let currentTimestamp = startTimestamp
