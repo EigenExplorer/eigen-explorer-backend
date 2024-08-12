@@ -137,7 +137,7 @@ async function getLatestMetricsPerOperator(
 }
 
 /**
- * Get latest metrics per operator strategy
+ * Get latest metrics per Operator strategy
  *
  * @returns
  */
