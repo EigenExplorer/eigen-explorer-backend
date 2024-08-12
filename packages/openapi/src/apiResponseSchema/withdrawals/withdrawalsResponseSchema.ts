@@ -55,4 +55,14 @@ export const WithdrawalsResponseSchema = z.object({
         .number()
         .describe('The block number when the withdrawal was last updated')
         .openapi({ example: 19912470 }),
+    createdAt: z
+        .string()
+        .describe(
+            'The time stamp when the withdrawal was recorded by EigenExplorer'
+        )
+        .openapi({ example: "2024-07-07T23:53:35.000Z" }),
+    updatedAt: z
+        .string()
+        .describe('The time stamp when the withdrawal was last updated')
+        .openapi({ example: "2024-07-07T23:53:35.000Z" }),
 });

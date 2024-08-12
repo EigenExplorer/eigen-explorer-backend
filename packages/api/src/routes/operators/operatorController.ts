@@ -27,7 +27,7 @@ export async function getAllOperators(req: Request, res: Response) {
 	const { skip, take, withTvl } = result.data
 
 	try {
-		// Fetch count and record
+		// Fetch count and records
 		const operatorCount = await prisma.operator.count()
 		const operatorRecords = await prisma.operator.findMany({
 			skip,
@@ -36,7 +36,12 @@ export async function getAllOperators(req: Request, res: Response) {
 				shares: {
 					select: { strategyAddress: true, shares: true }
 				},
-				stakers: true
+				_count: {
+					select: {
+						avs: true,
+						stakers: true
+					}
+				}
 			}
 		})
 
@@ -47,7 +52,8 @@ export async function getAllOperators(req: Request, res: Response) {
 
 		const operators = operatorRecords.map((operator) => ({
 			...operator,
-			totalStakers: operator.stakers.length,
+			totalStakers: operator._count.stakers,
+			totalAvs: operator._count.avs,
 			tvl: withTvl
 				? sharesToTVL(
 						operator.shares,
@@ -57,7 +63,8 @@ export async function getAllOperators(req: Request, res: Response) {
 				: undefined,
 			stakers: undefined,
 			metadataUrl: undefined,
-			isMetadataSynced: undefined
+			isMetadataSynced: undefined,
+			_count: undefined
 		}))
 
 		res.send({
@@ -85,18 +92,29 @@ export async function getOperator(req: Request, res: Response) {
 	if (!result.success) {
 		return handleAndReturnErrorResponse(req, res, result.error)
 	}
+
+	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	}
+	
 	const { withTvl } = result.data
 
 	try {
 		const { address } = req.params
 
-		const operator  = await prisma.operator.findUniqueOrThrow({
+		const operator = await prisma.operator.findUniqueOrThrow({
 			where: { address: address.toLowerCase() },
 			include: {
 				shares: {
 					select: { strategyAddress: true, shares: true }
 				},
-				stakers: true
+				_count: {
+					select: {
+						stakers: true,
+						avs: true
+					}
+				}
 			}
 		})
 
@@ -105,10 +123,10 @@ export async function getOperator(req: Request, res: Response) {
 			? await getStrategiesWithShareUnderlying()
 			: []
 
-
 		res.send({
 			...operator,
-			totalStakers: operator.stakers.length,
+			totalStakers: operator._count.stakers,
+			totalAvs: operator._count.avs,
 			tvl: withTvl
 				? sharesToTVL(
 						operator.shares,
@@ -118,7 +136,8 @@ export async function getOperator(req: Request, res: Response) {
 				: undefined,
 			stakers: undefined,
 			metadataUrl: undefined,
-			isMetadataSynced: undefined
+			isMetadataSynced: undefined,
+			_count: undefined
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
@@ -126,11 +145,11 @@ export async function getOperator(req: Request, res: Response) {
 }
 
 /**
-  * Protected route to invalidate the metadata of a given address
-  *
-  * @param req
-  * @param res
-  */
+ * Protected route to invalidate the metadata of a given address
+ *
+ * @param req
+ * @param res
+ */
 export async function invalidateMetadata(req: Request, res: Response) {
 	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
 	if (!paramCheck.success) {

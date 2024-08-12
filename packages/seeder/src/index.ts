@@ -21,10 +21,17 @@ import { seedLogsWithdrawalQueued } from './events/seedLogsWithdrawalQueued'
 import { seedLogsWithdrawalCompleted } from './events/seedLogsWithdrawalCompleted'
 import { seedLogsDeposit } from './events/seedLogsDeposit'
 import { seedDeposits } from './seedDeposits'
+import { seedLogsPodSharesUpdated } from './events/seedLogsPodSharesUpdated'
 import { monitorAvsMetadata } from './monitors/avsMetadata'
 import { monitorOperatorMetadata } from './monitors/operatorMetadata'
+import { seedMetricsDepositHourly } from './metrics/seedMetricsDeposit'
+import { seedMetricsWithdrawalHourly } from './metrics/seedMetricsWithdrawal'
+import { seedMetricsRestakingHourly } from './metrics/seedMetricsRestaking'
 import { seedStrategies } from './seedStrategies'
 import { seedRestakedStrategies } from './seedAvsRestakedStrategies'
+import { seedEthPricesDaily } from './seedEthPricesDaily'
+import { seedMetricsEigenPodsHourly } from './metrics/seedMetricsEigenPods'
+import { seedMetricsTvlHourly } from './metrics/seedMetricsTvl'
 
 console.log('Initializing Seeder ...')
 
@@ -49,6 +56,7 @@ async function seedEigenData() {
 			await seedLogsWithdrawalQueued(targetBlock)
 			await seedLogsWithdrawalCompleted(targetBlock)
 			await seedLogsDeposit(targetBlock)
+			await seedLogsPodSharesUpdated(targetBlock)
 
 			await seedAvs()
 			await seedOperators()
@@ -94,6 +102,7 @@ async function seedEigenStrategiesData() {
 			console.log('\nSeeding strategies data ...')
 
 			await seedStrategies()
+			await seedEthPricesDaily()
 		} catch (error) {
 			console.log(error)
 			console.log('Failed to seed strategies at:', Date.now())
@@ -120,7 +129,29 @@ async function seedRestakedData() {
 	}
 }
 
+async function seedMetricsData() {
+	await delay(240)
+
+	while (true) {
+		try {
+			console.log('\nSeeding metrics data ...')
+
+			await seedMetricsDepositHourly()
+			await seedMetricsWithdrawalHourly()
+			await seedMetricsRestakingHourly()
+			await seedMetricsEigenPodsHourly()
+			await seedMetricsTvlHourly()
+		} catch (error) {
+			console.log(error)
+			console.log('Failed to seed metrics data at:', Date.now())
+		}
+
+		await delay(3600)
+	}
+}
+
 seedEigenData()
 seedMetadata()
 seedEigenStrategiesData()
 seedRestakedData()
+seedMetricsData()

@@ -9,6 +9,7 @@ import {
 	getStrategiesWithShareUnderlying,
 	sharesToTVL
 } from '../strategies/strategiesController'
+import { EthereumAddressSchema } from '../../schema/zod/schemas/base/ethereumAddress'
 
 /**
  * Route to get a list of all stakers
@@ -80,6 +81,12 @@ export async function getStaker(req: Request, res: Response) {
 	if (!result.success) {
 		return handleAndReturnErrorResponse(req, res, result.error)
 	}
+
+	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	}
+	
 	const { withTvl } = result.data
 
 	try {
@@ -121,20 +128,28 @@ export async function getStakerWithdrawals(req: Request, res: Response) {
 		return handleAndReturnErrorResponse(req, res, result.error)
 	}
 
+	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	}
+
 	const { skip, take } = result.data
 
 	try {
 		const { address } = req.params
 		const filterQuery = { stakerAddress: address }
 
-		const withdrawalCount = await prisma.withdrawal.count({
+		const withdrawalCount = await prisma.withdrawalQueued.count({
 			where: filterQuery
 		})
-		const withdrawalRecords = await prisma.withdrawal.findMany({
+		const withdrawalRecords = await prisma.withdrawalQueued.findMany({
 			where: filterQuery,
+			include: {
+				completedWithdrawal: true
+			},
 			skip,
 			take,
-			orderBy: { startBlock: 'desc' }
+			orderBy: { createdAtBlock: 'desc' }
 		})
 
 		const data = withdrawalRecords.map((withdrawal) => {
@@ -146,7 +161,14 @@ export async function getStakerWithdrawals(req: Request, res: Response) {
 			return {
 				...withdrawal,
 				shares,
-				strategies: undefined
+				strategies: undefined,
+				completedWithdrawal: undefined,
+				isCompleted: !!withdrawal.completedWithdrawal,
+				updatedAt:
+					withdrawal.completedWithdrawal?.createdAt || withdrawal.createdAt,
+				updatedAtBlock:
+					withdrawal.completedWithdrawal?.createdAtBlock ||
+					withdrawal.createdAtBlock
 			}
 		})
 
@@ -170,20 +192,25 @@ export async function getStakerWithdrawalsQueued(req: Request, res: Response) {
 		return handleAndReturnErrorResponse(req, res, result.error)
 	}
 
+	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	}
+
 	const { skip, take } = result.data
 
 	try {
 		const { address } = req.params
-		const filterQuery = { stakerAddress: address, isCompleted: false }
+		const filterQuery = { stakerAddress: address, completedWithdrawal: null }
 
-		const withdrawalCount = await prisma.withdrawal.count({
+		const withdrawalCount = await prisma.withdrawalQueued.count({
 			where: filterQuery
 		})
-		const withdrawalRecords = await prisma.withdrawal.findMany({
+		const withdrawalRecords = await prisma.withdrawalQueued.findMany({
 			where: filterQuery,
 			skip,
 			take,
-			orderBy: { startBlock: 'desc' }
+			orderBy: { createdAtBlock: 'desc' }
 		})
 
 		const data = withdrawalRecords.map((withdrawal) => {
@@ -195,7 +222,7 @@ export async function getStakerWithdrawalsQueued(req: Request, res: Response) {
 			return {
 				...withdrawal,
 				shares,
-				strategies: undefined
+				strategies: undefined,
 			}
 		})
 
@@ -222,6 +249,11 @@ export async function getStakerWithdrawalsWithdrawable(
 		return handleAndReturnErrorResponse(req, res, result.error)
 	}
 
+	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	}
+
 	const { skip, take } = result.data
 
 	try {
@@ -237,18 +269,18 @@ export async function getStakerWithdrawalsWithdrawable(
 
 		const filterQuery = {
 			stakerAddress: address,
-			isCompleted: false,
-			startBlock: { lte: minDelayBlock }
+			completedWithdrawal: null,
+			createdAtBlock: { lte: minDelayBlock }
 		}
 
-		const withdrawalCount = await prisma.withdrawal.count({
+		const withdrawalCount = await prisma.withdrawalQueued.count({
 			where: filterQuery
 		})
-		const withdrawalRecords = await prisma.withdrawal.findMany({
+		const withdrawalRecords = await prisma.withdrawalQueued.findMany({
 			where: filterQuery,
 			skip,
 			take,
-			orderBy: { startBlock: 'desc' }
+			orderBy: { createdAtBlock: 'desc' }
 		})
 
 		const data = withdrawalRecords.map((withdrawal) => {
@@ -260,7 +292,7 @@ export async function getStakerWithdrawalsWithdrawable(
 			return {
 				...withdrawal,
 				shares,
-				strategies: undefined
+				strategies: undefined,
 			}
 		})
 
@@ -287,20 +319,33 @@ export async function getStakerWithdrawalsCompleted(
 		return handleAndReturnErrorResponse(req, res, result.error)
 	}
 
+	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	}
+
 	const { skip, take } = result.data
 
 	try {
 		const { address } = req.params
-		const filterQuery = { stakerAddress: address, isCompleted: true }
+		const filterQuery = {
+			stakerAddress: address,
+			NOT: {
+				completedWithdrawal: null
+			}
+		}
 
-		const withdrawalCount = await prisma.withdrawal.count({
+		const withdrawalCount = await prisma.withdrawalQueued.count({
 			where: filterQuery
 		})
-		const withdrawalRecords = await prisma.withdrawal.findMany({
+		const withdrawalRecords = await prisma.withdrawalQueued.findMany({
 			where: filterQuery,
+			include: {
+				completedWithdrawal: true
+			},
 			skip,
 			take,
-			orderBy: { startBlock: 'desc' }
+			orderBy: { createdAtBlock: 'desc' }
 		})
 
 		const data = withdrawalRecords.map((withdrawal) => {
@@ -312,7 +357,13 @@ export async function getStakerWithdrawalsCompleted(
 			return {
 				...withdrawal,
 				shares,
-				strategies: undefined
+				strategies: undefined,
+				completedWithdrawal: undefined,
+				updatedAt:
+					withdrawal.completedWithdrawal?.createdAt || withdrawal.createdAt,
+				updatedAtBlock:
+					withdrawal.completedWithdrawal?.createdAtBlock ||
+					withdrawal.createdAtBlock
 			}
 		})
 
@@ -336,6 +387,11 @@ export async function getStakerDeposits(req: Request, res: Response) {
 		return handleAndReturnErrorResponse(req, res, result.error)
 	}
 
+	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	}
+
 	const { skip, take } = result.data
 
 	try {
@@ -354,7 +410,7 @@ export async function getStakerDeposits(req: Request, res: Response) {
 
 		const data = depositRecords.map((deposit) => {
 			return {
-				...deposit
+				...deposit,
 			}
 		})
 
