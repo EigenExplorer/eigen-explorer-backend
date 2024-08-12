@@ -2,7 +2,10 @@ import type { Request, Response } from 'express'
 import type Prisma from '@prisma/client'
 import prisma from '../../utils/prismaClient'
 import { getEigenContracts } from '../../data/address'
-import { EigenExplorerApiError, handleAndReturnErrorResponse } from '../../schema/errors'
+import {
+	EigenExplorerApiError,
+	handleAndReturnErrorResponse
+} from '../../schema/errors'
 import { getAvsFilterQuery } from '../avs/avsController'
 import { HistoricalCountSchema } from '../../schema/zod/schemas/historicalCountQuery'
 import { EthereumAddressSchema } from '../../schema/zod/schemas/base/ethereumAddress'
@@ -73,9 +76,9 @@ export async function getMetrics(req: Request, res: Response) {
 		] = await Promise.all([
 			doGetTvlRestaking(false),
 			doGetTvlBeaconChain(),
-			doGetTotalAvsCount(),
-			doGetTotalOperatorCount(),
-			doGetTotalStakerCount()
+			doGetTotalAvsCount(false),
+			doGetTotalOperatorCount(false),
+			doGetTotalStakerCount(false)
 		])
 
 		const metrics = {
@@ -191,10 +194,10 @@ export async function getTvlRestakingByStrategy(req: Request, res: Response) {
 
 		if (!foundStrategy) {
 			throw new EigenExplorerApiError({
-			  code: 'unprocessable_entity',
-			  message: 'invalid_string: Invalid Strategy',
+				code: 'unprocessable_entity',
+				message: 'invalid_string: Invalid Strategy'
 			})
-		  }
+		}
 
 		const tvl = await doGetTvlRestaking(
 			true,
@@ -220,7 +223,7 @@ export async function getTvlRestakingByStrategy(req: Request, res: Response) {
  */
 export async function getTotalAvs(req: Request, res: Response) {
 	try {
-		const total = await doGetTotalAvsCount()
+		const total = await doGetTotalAvsCount(true)
 
 		res.send(total)
 	} catch (error) {
@@ -237,7 +240,7 @@ export async function getTotalAvs(req: Request, res: Response) {
  */
 export async function getTotalOperators(req: Request, res: Response) {
 	try {
-		const total = await doGetTotalOperatorCount()
+		const total = await doGetTotalOperatorCount(true)
 
 		res.send(total)
 	} catch (error) {
@@ -254,7 +257,7 @@ export async function getTotalOperators(req: Request, res: Response) {
  */
 export async function getTotalStakers(req: Request, res: Response) {
 	try {
-		const total = await doGetTotalStakerCount()
+		const total = await doGetTotalStakerCount(true)
 
 		res.send(total)
 	} catch (error) {
@@ -854,7 +857,15 @@ async function doGetTvlBeaconChain() {
 
 // --- Total Routes ---
 
-async function doGetTotalAvsCount() {
+async function doGetTotalAvsCount(withChange: boolean) {
+	const totalNow = await prisma.avs.count({
+		where: getAvsFilterQuery(true)
+	})
+
+	if (!withChange) {
+		return totalNow
+	}
+
 	const timestampNow = new Date()
 	const timestamp24h = new Date(
 		new Date().setUTCHours(timestampNow.getUTCHours() - 24)
@@ -862,10 +873,6 @@ async function doGetTotalAvsCount() {
 	const timestamp7d = new Date(
 		new Date().setUTCDate(timestampNow.getUTCDate() - 7)
 	)
-
-	const totalNow = await prisma.avs.count({
-		where: getAvsFilterQuery(true)
-	})
 	const change24hValue = await prisma.avs.count({
 		where: {
 			createdAt: { gte: timestamp24h },
@@ -902,7 +909,13 @@ async function doGetTotalAvsCount() {
 	}
 }
 
-async function doGetTotalOperatorCount() {
+async function doGetTotalOperatorCount(withChange: boolean) {
+	const totalNow = await prisma.operator.count()
+
+	if (!withChange) {
+		return totalNow
+	}
+
 	const timestampNow = new Date()
 	const timestamp24h = new Date(
 		new Date().setUTCHours(timestampNow.getUTCHours() - 24)
@@ -911,7 +924,6 @@ async function doGetTotalOperatorCount() {
 		new Date().setUTCDate(timestampNow.getUTCDate() - 7)
 	)
 
-	const totalNow = await prisma.operator.count()
 	const change24hValue = await prisma.operator.count({
 		where: {
 			createdAt: { gte: timestamp24h }
@@ -946,7 +958,15 @@ async function doGetTotalOperatorCount() {
 	}
 }
 
-async function doGetTotalStakerCount() {
+async function doGetTotalStakerCount(withChange: boolean) {
+	const totalNow = await prisma.staker.count({
+		where: { operatorAddress: { not: null } }
+	})
+
+	if (!withChange) {
+		return totalNow
+	}
+
 	const timestampNow = new Date()
 	const timestamp24h = new Date(
 		new Date().setUTCHours(timestampNow.getUTCHours() - 24)
@@ -955,9 +975,6 @@ async function doGetTotalStakerCount() {
 		new Date().setUTCDate(timestampNow.getUTCDate() - 7)
 	)
 
-	const totalNow = await prisma.staker.count({
-		where: { operatorAddress: { not: null } }
-	})
 	const change24hValue = await prisma.staker.count({
 		where: {
 			createdAt: { gte: timestamp24h },
@@ -1229,7 +1246,9 @@ async function doGetHistoricalTvlRestaking(
 	})
 
 	hourlyData = [...hourlyData, ...remaininghourlyData]
-	strategyAddresses = [...new Set(hourlyData.map((data) => data.strategyAddress))]
+	strategyAddresses = [
+		...new Set(hourlyData.map((data) => data.strategyAddress))
+	]
 
 	const results: HistoricalTvlRecord[] = []
 
@@ -1582,7 +1601,9 @@ async function doGetHistoricalAvsAggregate(
 	})
 
 	strategyData = [...strategyData, ...remainingStrategyData]
-	strategyAddresses = [...new Set(strategyData.map((data) => data.strategyAddress))]
+	strategyAddresses = [
+		...new Set(strategyData.map((data) => data.strategyAddress))
+	]
 
 	const results: HistoricalAggregateRecord[] = []
 	let currentTimestamp = startTimestamp
@@ -1801,7 +1822,9 @@ async function doGetHistoricalOperatorsAggregate(
 		})
 
 	strategyData = [...strategyData, ...remainingStrategyData]
-	strategyAddresses = [...new Set(strategyData.map((data) => data.strategyAddress))]
+	strategyAddresses = [
+		...new Set(strategyData.map((data) => data.strategyAddress))
+	]
 
 	const results: HistoricalAggregateRecord[] = []
 	let currentTimestamp = startTimestamp
