@@ -15,6 +15,22 @@ export const OperatorResponseSchema = z.object({
     metadataTelegram: OperatorMetaDataSchema.shape.metadataTelegram,
     metadataWebsite: OperatorMetaDataSchema.shape.metadataWebsite,
     metadataX: OperatorMetaDataSchema.shape.metadataX,
+    createdAtBlock: z
+        .string()
+        .describe('The block number at which the AVS Operator was registered')
+        .openapi({ example: '19631203' }),
+    updatedAtBlock: z
+        .string()
+        .describe('The block number at which the AVS Operator registration was last updated')
+        .openapi({ example: '19631203' }),
+    createdAt: z
+        .string()
+        .describe('The time stamp at which the AVS Operator was registered')
+        .openapi({ example: '2024-04-11T08:31:11.000Z' }),
+    updatedAt: z
+        .string()
+        .describe('The time stamp at which the AVS Operator registration was last updated')
+        .openapi({ example: '2024-04-11T08:31:11.000Z' }),
     shares: z
         .array(StrategySharesSchema)
         .describe('The strategy shares held in the AVS operator')
