@@ -1,7 +1,7 @@
 import z from '../../../../api/src/schema/zod';
 import { ZodOpenApiOperationObject } from 'zod-openapi';
 import { openApiErrorResponses } from '../../apiResponseSchema/base/errorResponses';
-import { WithdrawalsResponseSchema } from '../../apiResponseSchema/withdrawals/withdrawalsResponseSchema';
+import { WithdrawalsResponseWithIsCompletedAndUpdateFields } from '../../apiResponseSchema/withdrawals/withdrawalsResponseSchema';
 
 const WithdrawalRootParam = z.object({
     withdrawalRoot: z
@@ -26,7 +26,7 @@ export const getWithdrawalByWithdrawalRoot: ZodOpenApiOperationObject = {
             description: 'The requested withdrawal record.',
             content: {
                 'application/json': {
-                    schema: WithdrawalsResponseSchema,
+                    schema: WithdrawalsResponseWithIsCompletedAndUpdateFields,
                 },
             },
         },
