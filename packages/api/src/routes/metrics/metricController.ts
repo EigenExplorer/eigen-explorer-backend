@@ -1,7 +1,10 @@
 import type { Request, Response } from 'express'
 import type Prisma from '@prisma/client'
 import prisma from '../../utils/prismaClient'
-import { getEigenContracts } from '../../data/address'
+import {
+	EigenStrategiesContractAddress,
+	getEigenContracts
+} from '../../data/address'
 import {
 	EigenExplorerApiError,
 	handleAndReturnErrorResponse
@@ -10,6 +13,18 @@ import { getAvsFilterQuery } from '../avs/avsController'
 import { HistoricalCountSchema } from '../../schema/zod/schemas/historicalCountQuery'
 import { EthereumAddressSchema } from '../../schema/zod/schemas/base/ethereumAddress'
 import { fetchStrategyTokenPrices } from '../../utils/tokenPrices'
+import { getContract } from 'viem'
+import { strategyAbi } from '../../data/abi/strategy'
+import { getViemClient } from '../../viem/viemClient'
+import { getStrategiesWithShareUnderlying } from '../strategies/strategiesController'
+
+type TvlWithoutChange = number
+
+interface TvlWithChange {
+	tvl: number
+	change24h: { value: number; percent: number }
+	change7d: { value: number; percent: number }
+}
 
 type HistoricalTvlRecord = {
 	timestamp: string
@@ -74,7 +89,7 @@ export async function getMetrics(req: Request, res: Response) {
 			totalOperators,
 			totalStakers
 		] = await Promise.all([
-			doGetTvlRestaking(false),
+			doGetTvl(),
 			doGetTvlBeaconChain(),
 			doGetTotalAvsCount(false),
 			doGetTotalOperatorCount(false),
@@ -90,11 +105,9 @@ export async function getMetrics(req: Request, res: Response) {
 		}
 
 		res.send({
-			tvl:
-				(metrics.tvlRestaking ? metrics.tvlRestaking.tvlRestaking.tvl : 0) +
-				(metrics.tvlBeaconChain ? metrics.tvlBeaconChain.tvl : 0),
-			tvlBeaconChain: metrics.tvlBeaconChain,
-			...metrics.tvlRestaking,
+			tvl: tvlRestaking.tvlRestaking + (tvlBeaconChain as TvlWithoutChange),
+			tvlBeaconChain,
+			...tvlRestaking,
 			totalAvs: metrics.totalAvs,
 			totalOperators: metrics.totalOperators,
 			totalStakers: metrics.totalStakers
@@ -108,27 +121,18 @@ export async function getMetrics(req: Request, res: Response) {
 
 /**
  * Function for route /tvl
- * Returns total EL TVL along with 24h/7d change
+ * Returns total EL TVL
  *
  * @param req
  * @param res
  */
 export async function getTvl(req: Request, res: Response) {
 	try {
-		const tvlRestaking = (await doGetTvlRestaking(false)).tvlRestaking
+		const tvlRestaking = (await doGetTvl()).tvlRestaking
 		const tvlBeaconChain = await doGetTvlBeaconChain()
 
 		res.send({
-			tvl: tvlRestaking.tvl + tvlBeaconChain.tvl,
-			change24h: {
-				value: tvlRestaking.change24h.value + tvlBeaconChain.change24h.value,
-				percent:
-					tvlRestaking.change24h.percent + tvlBeaconChain.change24h.percent
-			},
-			change7d: {
-				value: tvlRestaking.change7d.value + tvlBeaconChain.change7d.value,
-				percent: tvlRestaking.change7d.percent + tvlBeaconChain.change7d.percent
-			}
+			tvl: tvlRestaking + tvlBeaconChain
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
@@ -137,7 +141,7 @@ export async function getTvl(req: Request, res: Response) {
 
 /**
  * Function for route /tvl/beacon-chain
- * Returns Beacon Chain TVL along with 24h/7d change
+ * Returns Beacon Chain TVL
  *
  * @param req
  * @param res
@@ -156,7 +160,7 @@ export async function getTvlBeaconChain(req: Request, res: Response) {
 
 /**
  * Function for route /tvl/restaking
- * Returns Liquid Staking TVL along with 24h/7d change
+ * Returns Liquid Staking TVL
  * Note: This TVL value includes Beacon ETH that's restaked (which is different from TVL Beacon Chain)
  *
  * @param req
@@ -164,7 +168,7 @@ export async function getTvlBeaconChain(req: Request, res: Response) {
  */
 export async function getTvlRestaking(req: Request, res: Response) {
 	try {
-		const tvlRestaking = await doGetTvlRestaking(true)
+		const tvlRestaking = await doGetTvl()
 
 		res.send({
 			tvl: tvlRestaking.tvlRestaking,
@@ -178,7 +182,7 @@ export async function getTvlRestaking(req: Request, res: Response) {
 
 /**
  * Function for route /tvl/restaking/:strategy
- * Returns strategy TVL along with 24h/7d change for any given strategy address
+ * Returns strategy TVL for any given strategy address
  *
  * @param req
  * @param res
@@ -199,8 +203,7 @@ export async function getTvlRestakingByStrategy(req: Request, res: Response) {
 			})
 		}
 
-		const tvl = await doGetTvlRestaking(
-			true,
+		const tvl = await doGetTvlStrategy(
 			getEigenContracts().Strategies[foundStrategy].strategyContract
 		)
 
@@ -670,161 +673,108 @@ export async function getHistoricalDepositCount(req: Request, res: Response) {
 
 // --- TVL Routes ---
 
-/**
- * Processes total restaking TVL, 24h/7d change and individual strategy TVLs, with the option to restrict to 1 strategy
- * Optionally, can choose to exclude restaked Beacon ETH in total TVL calc (done in getTvl() where total Beacon Chain ETH is considered instead)
- * Used by getMetrics(), getTvl() & getTvlRestaking()
- *
- * @param strategy
- * @param excludeBeaconFromTvl
- * @returns
- */
-async function doGetTvlRestaking(includeBeaconInTvl = true, strategy?: string) {
-	const [strategyRecords, strategyPriceMap] = await Promise.all([
-		fetchLatestStrategyData(strategy),
-		fetchCurrentEthPrices()
-	])
+async function doGetTvl() {
+	let tvlRestaking = 0
 
-	const {
-		totalTvl,
-		totalTvl24hOffset,
-		totalTvl7dOffset,
-		tvlStrategies,
-		tvlStrategiesEth
-	} = Array.from(strategyRecords.entries()).reduce(
-		(acc, [strategyAddress, records]) => {
-			const ethPrice = strategyPriceMap.get(strategyAddress) || 0
-			const addToTvl = includeBeaconInTvl || strategyAddress !== beaconAddress // Only use Beacon TVL in total TVL & change calc if required
-
-			const latestRecord = records['']
-			const record24h = records['24h']
-			const record7d = records['7d']
-
-			if (latestRecord) {
-				const tvlEth = Number(latestRecord.tvl) * ethPrice
-				if (addToTvl) acc.totalTvl += tvlEth
-				acc.tvlStrategies[strategyAddress] = Number(latestRecord.tvl)
-				acc.tvlStrategiesEth[strategyAddress] = tvlEth
-			}
-
-			if (record24h && addToTvl) {
-				acc.totalTvl24hOffset += Number(record24h.tvl) * ethPrice
-			}
-
-			if (record7d && addToTvl) {
-				acc.totalTvl7dOffset += Number(record7d.tvl) * ethPrice
-			}
-
-			return acc
-		},
-		{
-			totalTvl: 0,
-			totalTvl24hOffset: 0,
-			totalTvl7dOffset: 0,
-			tvlStrategies: {} as { [key: string]: number },
-			tvlStrategiesEth: {} as { [key: string]: number }
-		}
+	const strategyKeys = Object.keys(getEigenContracts().Strategies)
+	const strategiesContracts = strategyKeys.map((s) =>
+		getContract({
+			address: getEigenContracts().Strategies[s].strategyContract,
+			abi: strategyAbi,
+			client: getViemClient()
+		})
 	)
 
+	const tvlStrategies = {}
+	const tvlStrategiesEth: Map<keyof EigenStrategiesContractAddress, number> =
+		new Map(
+			strategyKeys.map((sk) => [sk as keyof EigenStrategiesContractAddress, 0])
+		)
+
+	try {
+		const totalShares = await Promise.all(
+			strategiesContracts.map(async (sc, i) => ({
+				strategyKey: strategyKeys[i],
+				strategyAddress: sc.address.toLowerCase(),
+				shares: (await sc.read.totalShares()) as string
+			}))
+		)
+
+		const strategiesWithSharesUnderlying =
+			await getStrategiesWithShareUnderlying()
+		const strategyTokenPrices = await fetchStrategyTokenPrices()
+
+		totalShares.map((s) => {
+			const strategyTokenPrice = Object.values(strategyTokenPrices).find(
+				(stp) =>
+					stp.strategyAddress.toLowerCase() === s.strategyAddress.toLowerCase()
+			)
+			const sharesUnderlying = strategiesWithSharesUnderlying.find(
+				(su) =>
+					su.strategyAddress.toLowerCase() === s.strategyAddress.toLowerCase()
+			)
+
+			if (sharesUnderlying) {
+				const strategyShares =
+					Number(
+						(BigInt(s.shares) * BigInt(sharesUnderlying.sharesToUnderlying)) /
+							BigInt(1e18)
+					) / 1e18
+
+				tvlStrategies[s.strategyKey] = strategyShares
+
+				if (strategyTokenPrice) {
+					const strategyTvl = strategyShares * strategyTokenPrice.eth
+
+					tvlStrategiesEth.set(
+						s.strategyKey as keyof EigenStrategiesContractAddress,
+						strategyTvl
+					)
+
+					tvlRestaking += strategyTvl
+				}
+			}
+		})
+	} catch (error) {}
+
 	return {
-		tvlRestaking: calculateTvlChanges(
-			totalTvl,
-			totalTvl24hOffset,
-			totalTvl7dOffset
-		),
+		tvlRestaking,
 		tvlStrategies,
-		tvlStrategiesEth
+		tvlStrategiesEth: Object.fromEntries(tvlStrategiesEth.entries())
 	}
+}
 
-	// Function to get restaking data for each timeOffset for all relevant strategies
-	async function fetchLatestStrategyData(strategy?: string) {
-		const timeOffsets = ['', '24h', '7d']
+async function doGetTvlStrategy(strategy: `0x${string}`) {
+	let tvl = 0
+	let tvlEth = 0
 
-		// Grab the earliest timestamp of all relevant strategies before 7d ago
-		const strategyTimestamps = await prisma.metricStrategyHourly.groupBy({
-			by: ['strategyAddress'],
-			where: {
-				timestamp: {
-					lte: getTimestamp('7d')
-				},
-				...(strategy ? { strategyAddress: strategy } : {})
-			},
-			_min: {
-				timestamp: true
-			}
-		})
-
-		// Find the earliest timestamp from the group
-		const earliestTimestamp = strategyTimestamps.reduce(
-			(earliest, current) => {
-				if (earliest === null) return current._min.timestamp
-				if (current._min.timestamp === null) return earliest
-				return current._min.timestamp < earliest
-					? current._min.timestamp
-					: earliest
-			},
-			null as Date | null
+	try {
+		const strategyTokenPrices = await fetchStrategyTokenPrices()
+		const strategyTokenPrice = Object.values(strategyTokenPrices).find(
+			(stp) => stp.strategyAddress.toLowerCase() === strategy.toLowerCase()
 		)
 
-		// Retrieve all records from the earliest timestamp
-		const records = await prisma.metricStrategyHourly.findMany({
-			where: {
-				timestamp: {
-					gte: earliestTimestamp || getTimestamp('7d')
-				},
-				...(strategy ? { strategyAddress: strategy } : {})
-			},
-			orderBy: {
-				timestamp: 'asc'
-			}
+		const contract = getContract({
+			address: strategy,
+			abi: strategyAbi,
+			client: getViemClient()
 		})
 
-		// Group records by strategy address
-		const recordsByStrategy = records.reduce(
-			(acc, record) => {
-				if (!acc[record.strategyAddress]) {
-					acc[record.strategyAddress] = []
-				}
-				acc[record.strategyAddress].push(record)
-				return acc
-			},
-			{} as Record<string, typeof records>
-		)
+		tvl =
+			Number(
+				await contract.read.sharesToUnderlyingView([
+					await contract.read.totalShares()
+				])
+			) / 1e18
 
-		// Return earliest record before 7d, 24h and latest record for each strategy
-		const result = new Map<string, Record<string, (typeof records)[0]>>()
-
-		for (const [strategyAddress, strategyRecords] of Object.entries(
-			recordsByStrategy
-		)) {
-			const selectedRecords: Record<string, (typeof records)[0]> = {}
-
-			for (const offset of timeOffsets) {
-				const targetTime = getTimestamp(offset)
-				const record = strategyRecords.reduce(
-					(closest, current) => {
-						if (offset === '') {
-							return current.timestamp > (closest?.timestamp || new Date(0))
-								? current
-								: closest
-						}
-						return current.timestamp <= targetTime &&
-							current.timestamp > (closest?.timestamp || new Date(0))
-							? current
-							: closest
-					},
-					null as (typeof records)[0] | null
-				)
-
-				if (record) {
-					selectedRecords[offset] = record
-				}
-			}
-
-			result.set(strategyAddress, selectedRecords)
+		if (strategyTokenPrice) {
+			tvlEth = tvl * strategyTokenPrice.eth
 		}
+	} catch (error) {}
 
-		return result
+	return {
+		tvl,
+		tvlEth
 	}
 }
 
@@ -835,24 +785,15 @@ async function doGetTvlRestaking(includeBeaconInTvl = true, strategy?: string) {
  * @returns
  */
 async function doGetTvlBeaconChain() {
-	const timeOffsets = ['', '24h', '7d']
-
-	const beaconRecordsPromises = timeOffsets.map((tf) => {
-		return prisma.metricEigenPodsHourly.findFirst({
-			where: {
-				timestamp: { lte: getTimestamp(tf) }
-			},
-			orderBy: { timestamp: 'desc' }
-		})
+	const totalValidators = await prisma.validator.aggregate({
+		_sum: {
+			balance: true
+		}
 	})
 
-	const beaconRecords = await Promise.all(beaconRecordsPromises)
+	const currentTvl = Number(totalValidators._sum.balance) / 1e9
 
-	const [currentTvl, tvl24hOffset, tvl7dOffset] = beaconRecords.map((record) =>
-		Number(record?.tvlEth ?? 0)
-	)
-
-	return calculateTvlChanges(currentTvl, tvl24hOffset, tvl7dOffset)
+	return currentTvl
 }
 
 // --- Total Routes ---
