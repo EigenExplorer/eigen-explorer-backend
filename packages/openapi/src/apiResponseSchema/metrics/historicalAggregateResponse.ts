@@ -15,6 +15,10 @@ export const OperatorsHistoricalAggregateSchema = HistoricalAggregateSchema.exte
     totalStakers: z
         .number()
         .describe('The total number of stakers at the timestamp')
+        .openapi({ example: 10 }),
+    totalAvs: z
+        .number()
+        .describe('The total number of AVS at the timestamp')
         .openapi({ example: 10 })
 });
 
