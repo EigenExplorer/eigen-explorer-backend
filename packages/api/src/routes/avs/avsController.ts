@@ -55,48 +55,9 @@ export async function getAllAVS(req: Request, res: Response) {
 				  ? { field: 'totalOperators', order: sortByTotalOperators }
 				  : null
 
-		// If sorting, apply skip/take and fetch relevant addresses
-		const latestTimestamps = sortConfig
-			? await prisma.metricAvsHourly.groupBy({
-					by: ['avsAddress'],
-					_max: {
-						timestamp: true
-					}
-			  })
-			: null
-
-		const avsAddresses = sortConfig
-			? (
-					await prisma.metricAvsHourly.findMany({
-						where: {
-							OR: latestTimestamps?.map((lt) => ({
-								operatorAddress: lt.avsAddress,
-								timestamp: lt._max.timestamp
-							})) as Prisma.Prisma.MetricAvsHourlyWhereInput[]
-						},
-						orderBy: {
-							[sortConfig.field]: sortConfig.order
-						},
-						skip,
-						take
-					})
-			  )?.map((avs) => avs.avsAddress)
-			: null
-
-		// If sorting, fetch records from relevant addresses, else apply skip/take
+		// Fetch records and apply sort if applicable
 		const avsRecords = await prisma.avs.findMany({
-			where: {
-				AND: [
-					avsAddresses
-						? {
-								address: {
-									in: avsAddresses
-								}
-						  }
-						: {},
-					getAvsFilterQuery(true)
-				]
-			},
+			where: getAvsFilterQuery(true),
 			include: {
 				curatedMetadata: withCuratedMetadata,
 				operators: {
@@ -110,16 +71,16 @@ export async function getAllAVS(req: Request, res: Response) {
 					}
 				}
 			},
-			...(avsAddresses ? {} : { skip, take })
+			skip,
+			take,
+			...(sortConfig
+				? {
+						orderBy: {
+							[sortConfig.field]: sortConfig.order
+						}
+				  }
+				: {})
 		})
-
-		// If sorting, re-order the records
-		if (avsAddresses) {
-			avsRecords.sort(
-				(a, b) =>
-					avsAddresses.indexOf(a.address) - avsAddresses.indexOf(b.address)
-			)
-		}
 
 		const strategyTokenPrices = withTvl ? await fetchStrategyTokenPrices() : {}
 		const strategiesWithSharesUnderlying = withTvl
@@ -128,15 +89,6 @@ export async function getAllAVS(req: Request, res: Response) {
 
 		const data = await Promise.all(
 			avsRecords.map(async (avs) => {
-				const totalOperators = avs.operators.length
-				const totalStakers = await prisma.staker.count({
-					where: {
-						operatorAddress: {
-							in: avs.operators.map((o) => o.operatorAddress)
-						}
-					}
-				})
-
 				const shares = withOperatorShares(avs.operators).filter(
 					(s) =>
 						avs.restakeableStrategies.indexOf(
@@ -149,9 +101,9 @@ export async function getAllAVS(req: Request, res: Response) {
 					curatedMetadata: withCuratedMetadata
 						? avs.curatedMetadata
 						: undefined,
+					totalOperators: avs.totalOperators,
+					totalStakers: avs.totalStakers,
 					shares,
-					totalOperators,
-					totalStakers,
 					tvl: withTvl
 						? sharesToTVL(
 								shares,

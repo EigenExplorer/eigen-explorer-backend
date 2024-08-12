@@ -76,8 +76,7 @@ export async function getAllOperators(req: Request, res: Response) {
 				  )
 				: undefined,
 			metadataUrl: undefined,
-			isMetadataSynced: undefined,
-			shares: undefined
+			isMetadataSynced: undefined
 		}))
 
 		res.send({
