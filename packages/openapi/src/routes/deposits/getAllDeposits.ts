@@ -2,7 +2,6 @@ import { ZodOpenApiOperationObject } from 'zod-openapi';
 import z from '../../../../api/src/schema/zod';
 import { PaginationQuerySchema } from '../../../../api/src/schema/zod/schemas/paginationQuery';
 import { openApiErrorResponses } from '../../apiResponseSchema/base/errorResponses';
-import { AvsSchema } from '../../apiResponseSchema/avs/avsResponse';
 import { DepositsResponseSchema } from '../../apiResponseSchema/deposits/depositsResponseSchema';
 import { PaginationMetaResponsesSchema } from '../../apiResponseSchema/base/paginationMetaResponses';
 import { DepositListQuerySchema } from '../../../../api/src/schema/zod/schemas/deposit';
