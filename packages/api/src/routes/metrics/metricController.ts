@@ -402,8 +402,7 @@ export async function getHistoricalTvlWithdrawal(req: Request, res: Response) {
 
 	try {
 		const { frequency, variant, startAt, endAt } = queryCheck.data
-		const data = await doGetHistoricalTvlWithdrawalDeposit(
-			'metricWithdrawalHourly' as MetricModelName,
+		const data = await doGetHistoricalTvlWithdrawal(
 			startAt,
 			endAt,
 			frequency,
@@ -430,8 +429,7 @@ export async function getHistoricalTvlDeposit(req: Request, res: Response) {
 
 	try {
 		const { frequency, variant, startAt, endAt } = queryCheck.data
-		const data = await doGetHistoricalTvlWithdrawalDeposit(
-			'metricDepositHourly' as MetricModelName,
+		const data = await doGetHistoricalTvlDeposit(
 			startAt,
 			endAt,
 			frequency,
@@ -1286,7 +1284,7 @@ async function doGetHistoricalTvlRestaking(
 }
 
 /**
- * Processes withdrawals/deposits TVL in historical format
+ * Processes withdrawals TVL in historical format
  *
  * @param startAt
  * @param endAt
@@ -1294,8 +1292,7 @@ async function doGetHistoricalTvlRestaking(
  * @param variant
  * @returns
  */
-async function doGetHistoricalTvlWithdrawalDeposit(
-	modelName: MetricModelName,
+async function doGetHistoricalTvlWithdrawal(
 	startAt: string,
 	endAt: string,
 	frequency: string,
@@ -1348,7 +1345,83 @@ async function doGetHistoricalTvlWithdrawalDeposit(
 			intervalData,
 			variant,
 			tvlEth,
-			modelName
+			'metricWithdrawalHourly' as MetricModelName
+		)
+
+		results.push({
+			timestamp: new Date(Number(currentTimestamp)).toISOString(),
+			tvlEth
+		})
+
+		currentTimestamp = nextTimestamp
+	}
+
+	return results
+}
+
+/**
+ * Processes deposits TVL in historical format
+ *
+ * @param startAt
+ * @param endAt
+ * @param frequency
+ * @param variant
+ * @returns
+ */
+async function doGetHistoricalTvlDeposit(
+	startAt: string,
+	endAt: string,
+	frequency: string,
+	variant: string
+) {
+	const startTimestamp = resetTime(new Date(startAt))
+	const endTimestamp = resetTime(new Date(endAt))
+
+	// Fetch the timestamp of the first record on or before startTimestamp
+	const initialDataTimestamp = await prisma.metricDepositHourly.findFirst({
+		where: {
+			timestamp: {
+				lte: startTimestamp
+			}
+		},
+		orderBy: {
+			timestamp: 'desc'
+		}
+	})
+
+	// Fetch all records from the initialDataTimestamp
+	const hourlyData = await prisma.metricDepositHourly.findMany({
+		where: {
+			timestamp: {
+				gte: initialDataTimestamp?.timestamp || startTimestamp, // Guarantees correct initial data for cumulative queries
+				lte: endTimestamp
+			}
+		},
+		orderBy: {
+			timestamp: 'asc'
+		}
+	})
+
+	const results: HistoricalTvlRecord[] = []
+
+	// MetricHourly records are created only when activity is detected, not necessarily for all timestamps. If cumulative, we may need to set initial tvl value
+	let tvlEth = variant === 'cumulative' ? Number(hourlyData[0].tvlEth) : 0
+
+	const offset = getOffsetInMs(frequency)
+	let currentTimestamp = startTimestamp
+
+	while (currentTimestamp <= endTimestamp) {
+		const nextTimestamp = new Date(currentTimestamp.getTime() + offset)
+		const intervalData = hourlyData.filter(
+			(data) =>
+				data.timestamp >= currentTimestamp && data.timestamp < nextTimestamp
+		)
+
+		tvlEth = calculateTvlForHistoricalRecord(
+			intervalData,
+			variant,
+			tvlEth,
+			'metricDepositHourly' as MetricModelName
 		)
 
 		results.push({
