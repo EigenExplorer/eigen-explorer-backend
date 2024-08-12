@@ -41,65 +41,23 @@ export async function getAllOperators(req: Request, res: Response) {
 				  ? { field: 'totalAvs', order: sortByTotalAvs }
 				  : null
 
-		// If sorting, apply skip/take and fetch relevant addresses
-		const latestTimestamps = sortConfig
-			? await prisma.metricOperatorHourly.groupBy({
-					by: ['operatorAddress'],
-					_max: {
-						timestamp: true
-					}
-			  })
-			: null
-
-		const operatorAddresses = sortConfig
-			? (
-					await prisma.metricOperatorHourly.findMany({
-						where: {
-							OR: latestTimestamps?.map((lt) => ({
-								operatorAddress: lt.operatorAddress,
-								timestamp: lt._max.timestamp
-							})) as Prisma.Prisma.MetricOperatorHourlyWhereInput[]
-						},
-						orderBy: {
-							[sortConfig.field]: sortConfig.order
-						},
-						skip,
-						take
-					})
-			  )?.map((op) => op.operatorAddress)
-			: null
-
-		// If sorting, fetch records from relevant addresses, else apply skip/take
+		// Fetch records and apply sort if applicable
 		const operatorRecords = await prisma.operator.findMany({
 			include: {
 				shares: {
 					select: { strategyAddress: true, shares: true }
-				},
-				_count: {
-					select: {
-						avs: true,
-						stakers: true
-					}
 				}
 			},
-			where: operatorAddresses
+			skip,
+			take,
+			...(sortConfig
 				? {
-						address: {
-							in: operatorAddresses
+						orderBy: {
+							[sortConfig.field]: sortConfig.order
 						}
 				  }
-				: {},
-			...(operatorAddresses ? {} : { skip, take })
+				: {})
 		})
-
-		// If sorting, re-order the records
-		if (operatorAddresses) {
-			operatorRecords.sort(
-				(a, b) =>
-					operatorAddresses.indexOf(a.address) -
-					operatorAddresses.indexOf(b.address)
-			)
-		}
 
 		const strategyTokenPrices = withTvl ? await fetchStrategyTokenPrices() : {}
 		const strategiesWithSharesUnderlying = withTvl
@@ -108,8 +66,8 @@ export async function getAllOperators(req: Request, res: Response) {
 
 		const operators = operatorRecords.map((operator) => ({
 			...operator,
-			totalStakers: operator._count.stakers,
-			totalAvs: operator._count.avs,
+			totalStakers: operator.totalStakers,
+			totalAvs: operator.totalAvs,
 			tvl: withTvl
 				? sharesToTVL(
 						operator.shares,
@@ -117,10 +75,9 @@ export async function getAllOperators(req: Request, res: Response) {
 						strategyTokenPrices
 				  )
 				: undefined,
-			stakers: undefined,
 			metadataUrl: undefined,
 			isMetadataSynced: undefined,
-			_count: undefined
+			shares: undefined
 		}))
 
 		res.send({
@@ -153,7 +110,7 @@ export async function getOperator(req: Request, res: Response) {
 	if (!paramCheck.success) {
 		return handleAndReturnErrorResponse(req, res, paramCheck.error)
 	}
-	
+
 	const { withTvl } = result.data
 
 	try {

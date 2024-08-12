@@ -19,7 +19,7 @@ export async function monitorOperatorMetrics() {
 	const ethPrices = await getLatestEthPrices()
 
 	let skip = 0
-	const take = 500
+	const take = 100
 
 	while (true) {
 		// Fetch operator addresses for this iteration
@@ -37,7 +37,7 @@ export async function monitorOperatorMetrics() {
 
 		const operatorAddresses = operatorEntries.map((record) => record.address)
 
-		// For all operators in this iteration, fetch latest hourly data and latest strategy data
+		// For each operator in this iteration, fetch latest metrics and strategy metrics
 		const [operatorMetrics, operatorStrategyMetrics] = await Promise.all([
 			getLatestMetricsPerOperator(operatorAddresses),
 			getLatestMetricsPerOperatorStrategy(operatorAddresses)
@@ -58,9 +58,10 @@ export async function monitorOperatorMetrics() {
 					operator.totalAvs ||
 					0
 
-				// Calculate tvlEth
+				// Calculate tvlEth from strategy metrics
 				let tvlEth = operator.tvlEth || new prisma.Prisma.Decimal(0)
 				const strategyMetrics = operatorStrategyMetrics.get(operator.address)
+
 				if (strategyMetrics) {
 					for (const [address, metrics] of strategyMetrics) {
 						const ethPrice = new prisma.Prisma.Decimal(
