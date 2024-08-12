@@ -11,7 +11,7 @@ const HistoricalWithdrawalsAggregateResponseSchema = z.object({
 
 export const getHistoricalWithdrawalAggregate: ZodOpenApiOperationObject = {
     operationId: 'getHistoricalWithdrawalsAggregate',
-    summary: 'Retrieve Historical Withdrawal Aggregate Data',
+    summary: 'Retrieve historical withdrawal aggregate data',
     description: 'Returns historical aggregate data for withdrawals, including total value locked (TVL) in ETH at specified timestamp values.',
     tags: ['Metrics'],
     requestParams: {

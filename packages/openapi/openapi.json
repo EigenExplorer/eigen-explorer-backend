@@ -838,7 +838,7 @@
     "/metrics/historical/avs/{address}": {
       "get": {
         "operationId": "getHistoricalAvsAggregate",
-        "summary": "Retrieve Historical AVS Aggregate Data",
+        "summary": "Retrieve historical AVS aggregate data",
         "description": "Returns historical aggregate data for an AVS including TVL, total number of stakers, and total number of operators at specified timestamp values.",
         "tags": [
           "Metrics"
@@ -983,7 +983,7 @@
     "/metrics/historical/operators/{address}": {
       "get": {
         "operationId": "getHistoricalOperatorsAggregate",
-        "summary": "Retrieve Historical Operator Aggregate Data",
+        "summary": "Retrieve historical operator aggregate data",
         "description": "Returns historical aggregate data for an operator including TVL and total number of stakers at specified timestamp values.",
         "tags": [
           "Metrics"
@@ -1128,7 +1128,7 @@
     "/metrics/historical/tvl": {
       "get": {
         "operationId": "getHistoricalTvl",
-        "summary": "Retrieve Historical total TVL Data.",
+        "summary": "Retrieve historical total TVL data.",
         "description": "Returns the historical total value locked (TVL) data over specified timestamp values in all restaking strategies and Beacon Chain restaking.",
         "tags": [
           "Metrics"
@@ -1249,7 +1249,7 @@
     "/metrics/historical/tvl/beacon-chain": {
       "get": {
         "operationId": "getHistoricalTvlBeaconChain",
-        "summary": "Retrieve Historical Beacon Chain restaking TVL",
+        "summary": "Retrieve historical Beacon Chain restaking TVL",
         "description": "Returns the historical total value locked (TVL) in the Beacon Chain restaking EigenPods.",
         "tags": [
           "Metrics"
@@ -1370,7 +1370,7 @@
     "/metrics/historical/tvl/restaking/{address}": {
       "get": {
         "operationId": "getHistoricalTvlRestaking",
-        "summary": "Retrieve Historical TVL Data by Strategy Address.",
+        "summary": "Retrieve historical TVL data by strategy address.",
         "description": "Returns the historical total value locked (TVL) data over specified timestamp values in a specific LST strategy.",
         "tags": [
           "Metrics"
@@ -1503,7 +1503,7 @@
     "/metrics/historical/withdrawals": {
       "get": {
         "operationId": "getHistoricalWithdrawalsAggregate",
-        "summary": "Retrieve Historical Withdrawal Aggregate Data",
+        "summary": "Retrieve historical withdrawal aggregate data",
         "description": "Returns historical aggregate data for withdrawals, including total value locked (TVL) in ETH at specified timestamp values.",
         "tags": [
           "Metrics"
@@ -1624,7 +1624,7 @@
     "/metrics/historical/deposits": {
       "get": {
         "operationId": "getHistoricalDepositsAggregate",
-        "summary": "Retrieve Historical Deposit Aggregate Data",
+        "summary": "Retrieve historical deposit aggregate data",
         "description": "Returns historical aggregate data for deposits, including total value locked (TVL) in ETH at specified timestamp values.",
         "tags": [
           "Metrics"

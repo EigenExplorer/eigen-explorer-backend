@@ -17,7 +17,7 @@ const AvsAddressParam = z.object({
 
 export const getHistoricalAvsAggregate: ZodOpenApiOperationObject = {
     operationId: 'getHistoricalAvsAggregate',
-    summary: 'Retrieve Historical AVS Aggregate Data',
+    summary: 'Retrieve historical AVS aggregate data',
     description: 'Returns historical aggregate data for an AVS including TVL, total number of stakers, and total number of operators at specified timestamp values.',
     tags: ['Metrics'],
     requestParams: {

@@ -17,7 +17,7 @@ const RestakingStrategyAddressParam = z.object({
 
 export const getHistoricalTvlRestaking: ZodOpenApiOperationObject = {
     operationId: 'getHistoricalTvlRestaking',
-    summary: 'Retrieve Historical TVL Data by Strategy Address.',
+    summary: 'Retrieve historical TVL data by strategy address.',
     description: 'Returns the historical total value locked (TVL) data over specified timestamp values in a specific LST strategy.',
     tags: ['Metrics'],
     requestParams: {

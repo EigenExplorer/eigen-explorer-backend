@@ -10,7 +10,7 @@ const HistoricalTotalTvlCombinedResponseSchema = z.object({
 
 export const getHistoricalTvl: ZodOpenApiOperationObject = {
     operationId: 'getHistoricalTvl',
-    summary: 'Retrieve Historical total TVL Data.',
+    summary: 'Retrieve historical total TVL data.',
     description: 'Returns the historical total value locked (TVL) data over specified timestamp values in all restaking strategies and Beacon Chain restaking.',
     tags: ['Metrics'],
     requestParams: {

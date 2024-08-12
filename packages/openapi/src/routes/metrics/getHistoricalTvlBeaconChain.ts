@@ -10,7 +10,7 @@ const HistoricalBeaconChainTvlCombinedResponseSchema = z.object({
 
 export const getHistoricalTvlBeaconChain: ZodOpenApiOperationObject = {
     operationId: 'getHistoricalTvlBeaconChain',
-    summary: 'Retrieve Historical Beacon Chain restaking TVL',
+    summary: 'Retrieve historical Beacon Chain restaking TVL',
     description: 'Returns the historical total value locked (TVL) in the Beacon Chain restaking EigenPods.',
     tags: ['Metrics'],
     requestParams: {

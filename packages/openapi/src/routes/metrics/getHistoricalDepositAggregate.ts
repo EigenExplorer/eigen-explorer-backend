@@ -11,7 +11,7 @@ const HistoricalDepositsAggregateResponseSchema = z.object({
 
 export const getHistoricalDepositAggregate: ZodOpenApiOperationObject = {
     operationId: 'getHistoricalDepositsAggregate',
-    summary: 'Retrieve Historical Deposit Aggregate Data',
+    summary: 'Retrieve historical deposit aggregate data',
     description: 'Returns historical aggregate data for deposits, including total value locked (TVL) in ETH at specified timestamp values.',
     tags: ['Metrics'],
     requestParams: {
