@@ -38,7 +38,7 @@ export const TotalStakersSchema = z.object({
 });
 
 export const TotalDepositsSchema = z.object({
-    totalDeposits: z
+    total: z
         .number()
         .describe('The total number of deposits')
         .openapi({ example: 1000000 })

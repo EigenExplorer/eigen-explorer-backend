@@ -138,151 +138,19 @@
                       "example": 1000000
                     },
                     "totalAVS": {
-                      "type": "object",
-                      "properties": {
-                        "total": {
-                          "type": "number",
-                          "description": "The total number of AVS registered",
-                          "example": 1000000
-                        },
-                        "change24h": {
-                          "type": "object",
-                          "properties": {
-                            "value": {
-                              "type": "number",
-                              "example": 10
-                            },
-                            "percent": {
-                              "type": "number",
-                              "example": 0.01
-                            }
-                          },
-                          "required": [
-                            "value",
-                            "percent"
-                          ]
-                        },
-                        "change7d": {
-                          "type": "object",
-                          "properties": {
-                            "value": {
-                              "type": "number",
-                              "example": 10
-                            },
-                            "percent": {
-                              "type": "number",
-                              "example": 0.01
-                            }
-                          },
-                          "required": [
-                            "value",
-                            "percent"
-                          ]
-                        }
-                      },
-                      "required": [
-                        "total",
-                        "change24h",
-                        "change7d"
-                      ]
+                      "type": "number",
+                      "description": "The total number of AVS",
+                      "example": 10
                     },
                     "totalOperators": {
-                      "type": "object",
-                      "properties": {
-                        "total": {
-                          "type": "number",
-                          "description": "The total number of AVS operators registered",
-                          "example": 1000000
-                        },
-                        "change24h": {
-                          "type": "object",
-                          "properties": {
-                            "value": {
-                              "type": "number",
-                              "example": 10
-                            },
-                            "percent": {
-                              "type": "number",
-                              "example": 0.01
-                            }
-                          },
-                          "required": [
-                            "value",
-                            "percent"
-                          ]
-                        },
-                        "change7d": {
-                          "type": "object",
-                          "properties": {
-                            "value": {
-                              "type": "number",
-                              "example": 10
-                            },
-                            "percent": {
-                              "type": "number",
-                              "example": 0.01
-                            }
-                          },
-                          "required": [
-                            "value",
-                            "percent"
-                          ]
-                        }
-                      },
-                      "required": [
-                        "total",
-                        "change24h",
-                        "change7d"
-                      ]
+                      "type": "number",
+                      "description": "The total number of operators",
+                      "example": 10
                     },
                     "totalStakers": {
-                      "type": "object",
-                      "properties": {
-                        "total": {
-                          "type": "number",
-                          "description": "The total number of AVS stakers registered",
-                          "example": 1000000
-                        },
-                        "change24h": {
-                          "type": "object",
-                          "properties": {
-                            "value": {
-                              "type": "number",
-                              "example": 10
-                            },
-                            "percent": {
-                              "type": "number",
-                              "example": 0.01
-                            }
-                          },
-                          "required": [
-                            "value",
-                            "percent"
-                          ]
-                        },
-                        "change7d": {
-                          "type": "object",
-                          "properties": {
-                            "value": {
-                              "type": "number",
-                              "example": 10
-                            },
-                            "percent": {
-                              "type": "number",
-                              "example": 0.01
-                            }
-                          },
-                          "required": [
-                            "value",
-                            "percent"
-                          ]
-                        }
-                      },
-                      "required": [
-                        "total",
-                        "change24h",
-                        "change7d"
-                      ]
+                      "type": "number",
+                      "description": "The total number of stakers",
+                      "example": 10
                     }
                   },
                   "required": [
@@ -543,10 +411,16 @@
                       "type": "number",
                       "description": "The value of the restaking strategy TVL, denominated in the strategy's native token",
                       "example": 1000000
+                    },
+                    "tvlEth": {
+                      "type": "number",
+                      "description": "The value of the restaking strategy TVL, denominated in Eth",
+                      "example": 1000000
                     }
                   },
                   "required": [
-                    "tvl"
+                    "tvl",
+                    "tvlEth"
                   ]
                 }
               }
@@ -924,14 +798,14 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "totalDeposits": {
+                    "total": {
                       "type": "number",
                       "description": "The total number of deposits",
                       "example": 1000000
                     }
                   },
                   "required": [
-                    "totalDeposits"
+                    "total"
                   ]
                 }
               }
@@ -1204,12 +1078,18 @@
                             "type": "number",
                             "description": "The total number of stakers at the timestamp",
                             "example": 10
+                          },
+                          "totalAvs": {
+                            "type": "number",
+                            "description": "The total number of AVS at the timestamp",
+                            "example": 10
                           }
                         },
                         "required": [
                           "timestamp",
                           "tvlEth",
-                          "totalStakers"
+                          "totalStakers",
+                          "totalAvs"
                         ]
                       }
                     }
@@ -1317,20 +1197,20 @@
                       "items": {
                         "type": "object",
                         "properties": {
-                          "tvlEth": {
-                            "type": "number",
-                            "description": "The value of the combined TVL in ETH",
-                            "example": 1000000
-                          },
                           "timestamp": {
                             "type": "string",
                             "description": "The time stamp for the corresponding TVL value ",
                             "example": "2024-04-11T08:31:11.000Z"
+                          },
+                          "tvlEth": {
+                            "type": "number",
+                            "description": "The value of the combined TVL in ETH",
+                            "example": 1000000
                           }
                         },
                         "required": [
-                          "tvlEth",
-                          "timestamp"
+                          "timestamp",
+                          "tvlEth"
                         ]
                       }
                     }
@@ -1438,20 +1318,20 @@
                       "items": {
                         "type": "object",
                         "properties": {
-                          "tvlEth": {
-                            "type": "number",
-                            "description": "The value of the Beacon Chain restaking TVL in ETH",
-                            "example": 1000000
-                          },
                           "timestamp": {
                             "type": "string",
                             "description": "The time stamp for the corresponding Beacon Chain TVL value ",
                             "example": "2024-04-11T08:31:11.000Z"
+                          },
+                          "tvlEth": {
+                            "type": "number",
+                            "description": "The value of the Beacon Chain restaking TVL in ETH",
+                            "example": 1000000
                           }
                         },
                         "required": [
-                          "tvlEth",
-                          "timestamp"
+                          "timestamp",
+                          "tvlEth"
                         ]
                       }
                     }
@@ -1571,20 +1451,20 @@
                       "items": {
                         "type": "object",
                         "properties": {
-                          "tvlEth": {
-                            "type": "number",
-                            "description": "The value of the restaking strategy TVL, denominated in ETH",
-                            "example": 1000000
-                          },
                           "timestamp": {
                             "type": "string",
                             "description": "The time stamp for the corresponding Beacon Chain TVL value ",
                             "example": "2024-04-11T08:31:11.000Z"
+                          },
+                          "tvlEth": {
+                            "type": "number",
+                            "description": "The value of the restaking strategy TVL, denominated in ETH",
+                            "example": 1000000
                           }
                         },
                         "required": [
-                          "tvlEth",
-                          "timestamp"
+                          "timestamp",
+                          "tvlEth"
                         ]
                       }
                     }

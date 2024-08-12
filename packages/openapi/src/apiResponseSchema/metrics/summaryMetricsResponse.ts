@@ -3,7 +3,6 @@ import {
     StrategyEthTvlSchema,
     StrategyTvlSchema,
 } from '../base/strategyTvlResponse';
-import { TotalAvsSchema, TotalOperatorsSchema, TotalStakersSchema } from './timeChangeResponse';
 
 export const SummaryMetricsResponseSchema = z.object({
     tvl: z
@@ -26,7 +25,16 @@ export const SummaryMetricsResponseSchema = z.object({
             'The total value locked (TVL) in ETH in the beacon chain ETH strategy'
         )
         .openapi({ example: 1000000 }),
-    totalAVS: TotalAvsSchema,
-    totalOperators: TotalOperatorsSchema,
-    totalStakers: TotalStakersSchema
+    totalAVS: z
+        .number()
+        .describe('The total number of AVS')
+        .openapi({ example: 10 }),
+    totalOperators: z
+        .number()
+        .describe('The total number of operators')
+        .openapi({ example: 10 }),
+    totalStakers: z
+        .number()
+        .describe('The total number of stakers')
+        .openapi({ example: 10 })
 });

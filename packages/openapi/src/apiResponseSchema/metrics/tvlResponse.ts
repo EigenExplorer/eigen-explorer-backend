@@ -25,9 +25,16 @@ export const IndividualStrategyTvlResponseSchema = TvlResponseSchema.extend({
             "The value of the restaking strategy TVL, denominated in the strategy's native token"
         )
         .openapi({ example: 1000000 }),
+    tvlEth: z
+        .number()
+        .describe(
+            "The value of the restaking strategy TVL, denominated in Eth"
+        )
+        .openapi({ example: 1000000 }),
 });
 
 export const HistoricalTvlResponseSchema = z.object({
+    timestamp: z.string().openapi({ example: '2024-04-11T08:31:11.000Z' }),
     tvlEth: z.number().openapi({ example: 1000000 }),
 });
 
