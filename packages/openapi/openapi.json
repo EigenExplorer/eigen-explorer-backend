@@ -2621,6 +2621,113 @@
                                 "cbETH": 2000000
                               }
                             }
+                          },
+                          "curatedMetadata": {
+                            "type": "object",
+                            "properties": {
+                              "metadataName": {
+                                "type": "string",
+                                "description": "The name of the AVS",
+                                "example": "Example AVS"
+                              },
+                              "metadataDescription": {
+                                "type": "string",
+                                "nullable": true,
+                                "description": "The description of the AVS",
+                                "example": "This is an example AVS"
+                              },
+                              "metadataDiscord": {
+                                "type": "string",
+                                "nullable": true,
+                                "format": "uri",
+                                "description": "The URL of the AVS's Discord server",
+                                "example": "https://discord.com/invite/abcdefghij"
+                              },
+                              "metadataLogo": {
+                                "type": "string",
+                                "nullable": true,
+                                "format": "uri",
+                                "description": "The URL of the AVS's logo"
+                              },
+                              "metadataTelegram": {
+                                "type": "string",
+                                "nullable": true,
+                                "format": "uri",
+                                "description": "The URL of the AVS's Telegram channel",
+                                "example": "https://t.me/acme"
+                              },
+                              "metadataWebsite": {
+                                "type": "string",
+                                "nullable": true,
+                                "format": "uri",
+                                "description": "The URL of the AVS's website",
+                                "example": "https://acme.com"
+                              },
+                              "metadataX": {
+                                "type": "string",
+                                "nullable": true,
+                                "format": "uri",
+                                "description": "The URL of the AVS's X",
+                                "example": "https://twitter.com/acme"
+                              },
+                              "avsAddress": {
+                                "type": "string",
+                                "pattern": "^0x[a-fA-F0-9]{40}$",
+                                "description": "AVS service manager contract address",
+                                "example": "0x35f4f28a8d3ff20eed10e087e8f96ea2641e6aa1"
+                              },
+                              "tags": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                },
+                                "description": "Tags to describe the AVS",
+                                "example": [
+                                  "Example tag 1",
+                                  "Example tag 2"
+                                ]
+                              },
+                              "isVisible": {
+                                "type": "boolean",
+                                "description": "Indicates if AVS visibility is allowed",
+                                "example": false
+                              },
+                              "isVerified": {
+                                "type": "boolean",
+                                "description": "Indicates if the AVS has been verified by the EigenExplorer team",
+                                "example": false
+                              }
+                            },
+                            "required": [
+                              "metadataName",
+                              "metadataDescription",
+                              "metadataDiscord",
+                              "metadataLogo",
+                              "metadataTelegram",
+                              "metadataWebsite",
+                              "metadataX",
+                              "avsAddress",
+                              "tags",
+                              "isVisible",
+                              "isVerified"
+                            ],
+                            "description": "To curate visibility and additional information of the AVS ",
+                            "example": {
+                              "avsAddress": "0x2344c0fe02ccd2b32155ca0ffcb1978a6d96a552",
+                              "metadataName": "Example AVS",
+                              "metadataDescription": "This is an example AVS",
+                              "metadataDiscord": "https://discord.com/invite/abcdefghij",
+                              "metadataLogo": "The URL of the AVS's logo",
+                              "metadataTelegram": "The URL of the AVS's Telegram channel",
+                              "metadataWebsite": "https://acme.com",
+                              "metadataX": "https://twitter.com/acme",
+                              "tags": [
+                                "Example tag 1",
+                                "Example tag 2"
+                              ],
+                              "isVisible": true,
+                              "isVerified": true
+                            }
                           }
                         },
                         "required": [
@@ -3080,6 +3187,113 @@
                           "stETH": 1000000,
                           "cbETH": 2000000
                         }
+                      }
+                    },
+                    "curatedMetadata": {
+                      "type": "object",
+                      "properties": {
+                        "metadataName": {
+                          "type": "string",
+                          "description": "The name of the AVS",
+                          "example": "Example AVS"
+                        },
+                        "metadataDescription": {
+                          "type": "string",
+                          "nullable": true,
+                          "description": "The description of the AVS",
+                          "example": "This is an example AVS"
+                        },
+                        "metadataDiscord": {
+                          "type": "string",
+                          "nullable": true,
+                          "format": "uri",
+                          "description": "The URL of the AVS's Discord server",
+                          "example": "https://discord.com/invite/abcdefghij"
+                        },
+                        "metadataLogo": {
+                          "type": "string",
+                          "nullable": true,
+                          "format": "uri",
+                          "description": "The URL of the AVS's logo"
+                        },
+                        "metadataTelegram": {
+                          "type": "string",
+                          "nullable": true,
+                          "format": "uri",
+                          "description": "The URL of the AVS's Telegram channel",
+                          "example": "https://t.me/acme"
+                        },
+                        "metadataWebsite": {
+                          "type": "string",
+                          "nullable": true,
+                          "format": "uri",
+                          "description": "The URL of the AVS's website",
+                          "example": "https://acme.com"
+                        },
+                        "metadataX": {
+                          "type": "string",
+                          "nullable": true,
+                          "format": "uri",
+                          "description": "The URL of the AVS's X",
+                          "example": "https://twitter.com/acme"
+                        },
+                        "avsAddress": {
+                          "type": "string",
+                          "pattern": "^0x[a-fA-F0-9]{40}$",
+                          "description": "AVS service manager contract address",
+                          "example": "0x35f4f28a8d3ff20eed10e087e8f96ea2641e6aa1"
+                        },
+                        "tags": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "description": "Tags to describe the AVS",
+                          "example": [
+                            "Example tag 1",
+                            "Example tag 2"
+                          ]
+                        },
+                        "isVisible": {
+                          "type": "boolean",
+                          "description": "Indicates if AVS visibility is allowed",
+                          "example": false
+                        },
+                        "isVerified": {
+                          "type": "boolean",
+                          "description": "Indicates if the AVS has been verified by the EigenExplorer team",
+                          "example": false
+                        }
+                      },
+                      "required": [
+                        "metadataName",
+                        "metadataDescription",
+                        "metadataDiscord",
+                        "metadataLogo",
+                        "metadataTelegram",
+                        "metadataWebsite",
+                        "metadataX",
+                        "avsAddress",
+                        "tags",
+                        "isVisible",
+                        "isVerified"
+                      ],
+                      "description": "To curate visibility and additional information of the AVS ",
+                      "example": {
+                        "avsAddress": "0x2344c0fe02ccd2b32155ca0ffcb1978a6d96a552",
+                        "metadataName": "Example AVS",
+                        "metadataDescription": "This is an example AVS",
+                        "metadataDiscord": "https://discord.com/invite/abcdefghij",
+                        "metadataLogo": "The URL of the AVS's logo",
+                        "metadataTelegram": "The URL of the AVS's Telegram channel",
+                        "metadataWebsite": "https://acme.com",
+                        "metadataX": "https://twitter.com/acme",
+                        "tags": [
+                          "Example tag 1",
+                          "Example tag 2"
+                        ],
+                        "isVisible": true,
+                        "isVerified": true
                       }
                     }
                   },

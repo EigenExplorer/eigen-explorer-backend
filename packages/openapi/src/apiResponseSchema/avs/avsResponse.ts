@@ -2,6 +2,7 @@ import z from '../../../../api/src/schema/zod';
 import { AvsMetaDataSchema } from '../../../../api/src/schema/zod/schemas/base/avsMetaData';
 import { EthereumAddressSchema } from '../../../../api/src/schema/zod/schemas/base/ethereumAddress';
 import { StrategySharesSchema } from '../../../../api/src/schema/zod/schemas/base/strategyShares';
+import { CuratedMetadataSchema } from '../base/curatedMetadataResponses';
 import { TvlSchema } from '../base/tvlResponses';
 
 export const AvsSchema = z.object({
@@ -83,4 +84,22 @@ export const AvsSchema = z.object({
                 },
             },
         }),
+    curatedMetadata: CuratedMetadataSchema.optional()
+        .describe('To curate visibility and additional information of the AVS ')
+        .openapi({
+            example: {
+                avsAddress: "0x2344c0fe02ccd2b32155ca0ffcb1978a6d96a552",
+                metadataName: "Example AVS",
+                metadataDescription: "This is an example AVS",
+                metadataDiscord: "https://discord.com/invite/abcdefghij",
+                metadataLogo: "The URL of the AVS's logo",
+                metadataTelegram: "The URL of the AVS's Telegram channel",
+                metadataWebsite: "https://acme.com",
+                metadataX: "https://twitter.com/acme",
+                tags: ['Example tag 1','Example tag 2'],
+                isVisible: true,
+                isVerified: true
+            },
+        }),
 });
+
