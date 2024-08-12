@@ -3523,6 +3523,26 @@
                             "description": "The URL of the AVS operator's X",
                             "example": "https://twitter.com/acme"
                           },
+                          "createdAtBlock": {
+                            "type": "string",
+                            "description": "The block number at which the AVS Operator was registered",
+                            "example": "19631203"
+                          },
+                          "updatedAtBlock": {
+                            "type": "string",
+                            "description": "The block number at which the AVS Operator registration was last updated",
+                            "example": "19631203"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "description": "The time stamp at which the AVS Operator was registered",
+                            "example": "2024-04-11T08:31:11.000Z"
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "description": "The time stamp at which the AVS Operator registration was last updated",
+                            "example": "2024-04-11T08:31:11.000Z"
+                          },
                           "shares": {
                             "type": "array",
                             "items": {
@@ -3651,6 +3671,10 @@
                           "metadataTelegram",
                           "metadataWebsite",
                           "metadataX",
+                          "createdAtBlock",
+                          "updatedAtBlock",
+                          "createdAt",
+                          "updatedAt",
                           "shares",
                           "totalStakers",
                           "totalAvs"
@@ -3826,6 +3850,26 @@
                             "description": "The URL of the AVS operator's X",
                             "example": "https://twitter.com/acme"
                           },
+                          "createdAtBlock": {
+                            "type": "string",
+                            "description": "The block number at which the AVS Operator was registered",
+                            "example": "19631203"
+                          },
+                          "updatedAtBlock": {
+                            "type": "string",
+                            "description": "The block number at which the AVS Operator registration was last updated",
+                            "example": "19631203"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "description": "The time stamp at which the AVS Operator was registered",
+                            "example": "2024-04-11T08:31:11.000Z"
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "description": "The time stamp at which the AVS Operator registration was last updated",
+                            "example": "2024-04-11T08:31:11.000Z"
+                          },
                           "shares": {
                             "type": "array",
                             "items": {
@@ -3954,6 +3998,10 @@
                           "metadataTelegram",
                           "metadataWebsite",
                           "metadataX",
+                          "createdAtBlock",
+                          "updatedAtBlock",
+                          "createdAt",
+                          "updatedAt",
                           "shares",
                           "totalStakers",
                           "totalAvs"
@@ -4114,6 +4162,26 @@
                       "description": "The URL of the AVS operator's X",
                       "example": "https://twitter.com/acme"
                     },
+                    "createdAtBlock": {
+                      "type": "string",
+                      "description": "The block number at which the AVS Operator was registered",
+                      "example": "19631203"
+                    },
+                    "updatedAtBlock": {
+                      "type": "string",
+                      "description": "The block number at which the AVS Operator registration was last updated",
+                      "example": "19631203"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "description": "The time stamp at which the AVS Operator was registered",
+                      "example": "2024-04-11T08:31:11.000Z"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "description": "The time stamp at which the AVS Operator registration was last updated",
+                      "example": "2024-04-11T08:31:11.000Z"
+                    },
                     "shares": {
                       "type": "array",
                       "items": {
@@ -4242,6 +4310,10 @@
                     "metadataTelegram",
                     "metadataWebsite",
                     "metadataX",
+                    "createdAtBlock",
+                    "updatedAtBlock",
+                    "createdAt",
+                    "updatedAt",
                     "shares",
                     "totalStakers",
                     "totalAvs"
