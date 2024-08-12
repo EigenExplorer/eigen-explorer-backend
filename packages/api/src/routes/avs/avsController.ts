@@ -464,7 +464,9 @@ export async function getAVSOperators(req: Request, res: Response) {
 							strategyTokenPrices
 					  )
 					: undefined,
-				stakers: undefined
+				stakers: undefined,
+				metadataUrl: undefined,
+				isMetadataSynced: undefined
 			}
 		})
 
