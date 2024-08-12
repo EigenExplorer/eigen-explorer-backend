@@ -2,7 +2,7 @@ import prisma from '@prisma/client'
 import { getPrismaClient } from '../utils/prismaClient'
 import { type IMap, bulkUpdateDbTransactions } from '../utils/seeder'
 
-type IEthPrice = Map<string, number>
+type IEthPrice = IMap<string, number>
 type ILastOperatorMetric = Omit<prisma.MetricOperatorHourly, 'id'>
 type ILastOperatorMetrics = IMap<string, ILastOperatorMetric>
 type ILastOperatorStrategyMetric = Omit<
@@ -219,7 +219,7 @@ async function getLatestEthPrices(): Promise<IEthPrice> {
 		}
 	})
 
-	const ethPrices = new Map<string, number>()
+	const ethPrices: IEthPrice = new Map()
 
 	for (const strategy of strategiesData) {
 		const ethPrice = ethPriceData.find(
