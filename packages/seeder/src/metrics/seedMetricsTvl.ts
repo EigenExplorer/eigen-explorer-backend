@@ -4,7 +4,8 @@ import {
 	bulkUpdateDbTransactions,
 	fetchLastSyncTime,
 	IMap,
-	loopThroughDates
+	loopThroughDates,
+	setToStartOfHour
 } from '../utils/seeder'
 import { getViemClient } from '../utils/viemClient'
 import { strategyAbi } from '../data/abi/strategy'
@@ -75,8 +76,8 @@ async function processLogsInBatches(
 	let hourlyMetrics: ILastStrategyMetric[] = []
 
 	for (
-		let currentDate = new Date(startDate);
-		currentDate < endDate;
+		let currentDate = setToStartOfHour(startDate);
+		currentDate < setToStartOfHour(endDate);
 		currentDate = new Date(
 			currentDate.getTime() + 24 * 60 * 60 * 1000 * BATCH_DAYS
 		)
