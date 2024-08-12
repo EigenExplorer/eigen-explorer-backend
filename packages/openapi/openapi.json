@@ -4503,6 +4503,21 @@
                             "type": "string",
                             "description": "The time stamp when the withdrawal was recorded by EigenExplorer",
                             "example": "2024-07-07T23:53:35.000Z"
+                          },
+                          "updatedAtBlock": {
+                            "type": "number",
+                            "description": "The block number when the withdrawal was last updated",
+                            "example": 19912470
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "description": "The time stamp when the withdrawal was last updated",
+                            "example": "2024-07-07T23:53:35.000Z"
+                          },
+                          "isCompleted": {
+                            "type": "boolean",
+                            "description": "Indicates if the withdrawal is completed",
+                            "example": false
                           }
                         },
                         "required": [
@@ -4513,7 +4528,10 @@
                           "withdrawerAddress",
                           "shares",
                           "createdAtBlock",
-                          "createdAt"
+                          "createdAt",
+                          "updatedAtBlock",
+                          "updatedAt",
+                          "isCompleted"
                         ]
                       }
                     },
@@ -4668,6 +4686,21 @@
                       "type": "string",
                       "description": "The time stamp when the withdrawal was recorded by EigenExplorer",
                       "example": "2024-07-07T23:53:35.000Z"
+                    },
+                    "updatedAtBlock": {
+                      "type": "number",
+                      "description": "The block number when the withdrawal was last updated",
+                      "example": 19912470
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "description": "The time stamp when the withdrawal was last updated",
+                      "example": "2024-07-07T23:53:35.000Z"
+                    },
+                    "isCompleted": {
+                      "type": "boolean",
+                      "description": "Indicates if the withdrawal is completed",
+                      "example": false
                     }
                   },
                   "required": [
@@ -4678,7 +4711,10 @@
                     "withdrawerAddress",
                     "shares",
                     "createdAtBlock",
-                    "createdAt"
+                    "createdAt",
+                    "updatedAtBlock",
+                    "updatedAt",
+                    "isCompleted"
                   ]
                 }
               }

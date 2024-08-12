@@ -4,10 +4,10 @@ import { openApiErrorResponses } from '../../apiResponseSchema/base/errorRespons
 import { PaginationQuerySchema } from '../../../../api/src/schema/zod/schemas/paginationQuery';
 import { WithdrawalListQuerySchema } from '../../../../api/src/schema/zod/schemas/withdrawal';
 import { PaginationMetaResponsesSchema } from '../../apiResponseSchema/base/paginationMetaResponses';
-import { WithdrawalsResponseSchema } from '../../apiResponseSchema/withdrawals/withdrawalsResponseSchema';
+import { WithdrawalsResponseWithIsCompletedAndUpdateFields } from '../../apiResponseSchema/withdrawals/withdrawalsResponseSchema';
 
 const WithdrawalsResponseSchemaWithMeta = z.object({
-    data: z.array(WithdrawalsResponseSchema),
+    data: z.array(WithdrawalsResponseWithIsCompletedAndUpdateFields),
     meta: PaginationMetaResponsesSchema,
 });
 
