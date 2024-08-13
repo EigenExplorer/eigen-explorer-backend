@@ -5288,7 +5288,7 @@
               "type": "string",
               "pattern": "^0x[a-fA-F0-9]{40}$",
               "description": "The address of the staker",
-              "example": "0x00000002d88f9b3f4eb303564817fff4adcde46f"
+              "example": "0x9791fdb4e9c0495efc5a1f3f9271ef226251eb34"
             },
             "required": true
           },
@@ -5500,7 +5500,7 @@
               "type": "string",
               "pattern": "^0x[a-fA-F0-9]{40}$",
               "description": "The address of the staker",
-              "example": "0x00000002d88f9b3f4eb303564817fff4adcde46f"
+              "example": "0x9791fdb4e9c0495efc5a1f3f9271ef226251eb34"
             },
             "required": true
           },
@@ -5711,7 +5711,7 @@
               "type": "string",
               "pattern": "^0x[a-fA-F0-9]{40}$",
               "description": "The address of the staker",
-              "example": "0x00000002d88f9b3f4eb303564817fff4adcde46f"
+              "example": "0x9791fdb4e9c0495efc5a1f3f9271ef226251eb34"
             },
             "required": true
           },
@@ -5904,7 +5904,7 @@
               "type": "string",
               "pattern": "^0x[a-fA-F0-9]{40}$",
               "description": "The address of the staker",
-              "example": "0x00000002d88f9b3f4eb303564817fff4adcde46f"
+              "example": "0x9791fdb4e9c0495efc5a1f3f9271ef226251eb34"
             },
             "required": true
           },
@@ -6097,7 +6097,7 @@
               "type": "string",
               "pattern": "^0x[a-fA-F0-9]{40}$",
               "description": "The address of the staker",
-              "example": "0x00000002d88f9b3f4eb303564817fff4adcde46f"
+              "example": "0x9791fdb4e9c0495efc5a1f3f9271ef226251eb34"
             },
             "required": true
           },
@@ -6302,7 +6302,7 @@
               "type": "string",
               "pattern": "^0x[a-fA-F0-9]{40}$",
               "description": "The address of the staker",
-              "example": "0x00000002d88f9b3f4eb303564817fff4adcde46f"
+              "example": "0x9791fdb4e9c0495efc5a1f3f9271ef226251eb34"
             },
             "required": true
           },
