@@ -217,15 +217,11 @@ export async function getAVS(req: Request, res: Response) {
 			}
 		})
 
-		const operatorAddresses = avs.operators
-			.filter((o) => o.isActive)
-			.map((o) => o.operatorAddress)
-
 		const totalOperators = avs.operators.length
 		const totalStakers = await prisma.staker.count({
 			where: {
 				operatorAddress: {
-					in: operatorAddresses
+					in: avs.operators.map((o) => o.operatorAddress)
 				},
 				shares: {
 					some: {
