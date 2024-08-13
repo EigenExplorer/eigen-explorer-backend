@@ -18,15 +18,15 @@ const CombinedQuerySchema = z
 
 export const getAllDeposits: ZodOpenApiOperationObject = {
     operationId: 'getAllDeposits',
-    summary: 'Retrieve all AVS Deposits',
-    description: 'Returns all AVS deposit records. This endpoint supports pagination.',
+    summary: 'Retrieve all deposits',
+    description: 'Returns all deposit data, including the transaction hash, token address, and other relevant information.',
     tags: ['Deposits'],
     requestParams: {
         query: CombinedQuerySchema,
     },
     responses: {
         '200': {
-            description: 'The list of AVS deposits.',
+            description: 'The list of deposits.',
             content: {
                 'application/json': {
                     schema: CombinedDepositsResponseSchema,
