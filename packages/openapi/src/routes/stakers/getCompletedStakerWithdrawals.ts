@@ -14,7 +14,7 @@ const WithdrawalsResponseSchemaWithMeta = z.object({
 const StakerAddressParam = z.object({
     address: EthereumAddressSchema.describe(
         'The address of the staker'
-    ).openapi({ example: '0x00000002d88f9b3f4eb303564817fff4adcde46f' }),
+    ).openapi({ example: '0x9791fdb4e9c0495efc5a1f3f9271ef226251eb34' }),
 });
 
 export const getCompletedStakerWithdrawals: ZodOpenApiOperationObject = {
