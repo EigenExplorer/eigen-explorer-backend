@@ -1,4 +1,4 @@
-import type prisma from '@prisma/client'
+import prisma from '@prisma/client'
 import { type EntityMetadata, defaultMetadata } from './utils/metadata'
 import { getPrismaClient } from './utils/prismaClient'
 import {
@@ -125,6 +125,9 @@ export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 				metadataWebsite: metadata.website,
 				metadataX: metadata.x,
 				isMetadataSynced,
+				tvlEth: new prisma.Prisma.Decimal(0),
+				totalStakers: 0,
+				totalAvs: 0,
 				createdAtBlock,
 				updatedAtBlock,
 				createdAt,
@@ -178,6 +181,9 @@ export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 						metadataWebsite: metadata.website,
 						metadataX: metadata.x,
 						isMetadataSynced,
+						tvlEth: new prisma.Prisma.Decimal(0),
+						totalStakers: 0,
+						totalAvs: 0,
 						createdAtBlock,
 						updatedAtBlock,
 						createdAt,

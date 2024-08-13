@@ -1,5 +1,4 @@
 import type { Request, Response } from 'express'
-import type Prisma from '@prisma/client'
 import type { IMap } from '../../schema/generic'
 import prisma from '../../utils/prismaClient'
 import { PaginationQuerySchema } from '../../schema/zod/schemas/paginationQuery'

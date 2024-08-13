@@ -1,5 +1,4 @@
 import type { Request, Response } from 'express'
-import type Prisma from '@prisma/client'
 import prisma from '../../utils/prismaClient'
 import { PaginationQuerySchema } from '../../schema/zod/schemas/paginationQuery'
 import { EthereumAddressSchema } from '../../schema/zod/schemas/base/ethereumAddress'
