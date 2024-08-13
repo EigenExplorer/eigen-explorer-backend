@@ -10,15 +10,15 @@ const HistoricalWithdrawalCountResponseSchema = z.object({
 
 export const getHistoricalWithdrawalCount: ZodOpenApiOperationObject = {
     operationId: 'getHistoricalWithdrawalCount',
-    summary: 'Retrieve historical count of AVS withdrawals',
-    description: 'Returns the total number of AVS withdrawals made at timestamp values.',
+    summary: 'Retrieve historical count of withdrawals',
+    description: 'Returns the total number of withdrawals made at timestamp values.',
     tags: ['Metrics'],
     requestParams: {
         query: HistoricalCountSchema,
     },
     responses: {
         '200': {
-            description: 'The total number of AVS withdrawals made at timestamp values.',
+            description: 'The total number of withdrawals made at timestamp values.',
             content: {
                 'application/json': {
                     schema: HistoricalWithdrawalCountResponseSchema,

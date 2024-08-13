@@ -23,11 +23,11 @@ export const AvsHistoricalCountSchema = HistoricalCountSchema.extend({
 export const DepositHistoricalCountSchema = HistoricalCountSchema.extend({
     timestamp: z
         .string()
-        .describe('The time stamp for the corresponding AVS deposits count ')
+        .describe('The time stamp for the corresponding deposits count ')
         .openapi({ example: '2024-04-11T08:31:11.000Z' }),
     value: z
         .number()
-        .describe('The total number of AVS deposits made ')
+        .describe('The total number of deposits made ')
         .openapi({ example: 10 }),
 })
 
@@ -56,10 +56,10 @@ export const StakerHistoricalCountSchema = z.object({
 export const WithdrawalHistoricalCountSchema = HistoricalCountSchema.extend({
     timestamp: z
         .string()
-        .describe('The time stamp for the corresponding AVS withdrawals count ')
+        .describe('The time stamp for the corresponding withdrawals count ')
         .openapi({ example: '2024-04-11T08:31:11.000Z' }),
     value: z
         .number()
-        .describe('The total number of AVS withdrawals made')
+        .describe('The total number of withdrawals made')
         .openapi({ example: 10 }),
 })

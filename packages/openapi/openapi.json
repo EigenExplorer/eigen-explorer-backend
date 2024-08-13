@@ -2148,8 +2148,8 @@
     "/metrics/historical/count-withdrawals": {
       "get": {
         "operationId": "getHistoricalWithdrawalCount",
-        "summary": "Retrieve historical count of AVS withdrawals",
-        "description": "Returns the total number of AVS withdrawals made at timestamp values.",
+        "summary": "Retrieve historical count of withdrawals",
+        "description": "Returns the total number of withdrawals made at timestamp values.",
         "tags": [
           "Metrics"
         ],
@@ -2210,7 +2210,7 @@
         ],
         "responses": {
           "200": {
-            "description": "The total number of AVS withdrawals made at timestamp values.",
+            "description": "The total number of withdrawals made at timestamp values.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2223,12 +2223,12 @@
                         "properties": {
                           "timestamp": {
                             "type": "string",
-                            "description": "The time stamp for the corresponding AVS withdrawals count ",
+                            "description": "The time stamp for the corresponding withdrawals count ",
                             "example": "2024-04-11T08:31:11.000Z"
                           },
                           "value": {
                             "type": "number",
-                            "description": "The total number of AVS withdrawals made",
+                            "description": "The total number of withdrawals made",
                             "example": 10
                           }
                         },
@@ -2273,8 +2273,8 @@
     "/metrics/historical/count-deposits": {
       "get": {
         "operationId": "getHistoricalDepositCount",
-        "summary": "Retrieve historical count of AVS deposits",
-        "description": "Returns the total number of AVS deposits made at timestamp values.",
+        "summary": "Retrieve historical count of deposits",
+        "description": "Returns the total number of deposits made at timestamp values.",
         "tags": [
           "Metrics"
         ],
@@ -2335,7 +2335,7 @@
         ],
         "responses": {
           "200": {
-            "description": "The total number of AVS deposits made at timestamp values.",
+            "description": "The total number of deposits made at timestamp values.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2348,12 +2348,12 @@
                         "properties": {
                           "timestamp": {
                             "type": "string",
-                            "description": "The time stamp for the corresponding AVS deposits count ",
+                            "description": "The time stamp for the corresponding deposits count ",
                             "example": "2024-04-11T08:31:11.000Z"
                           },
                           "value": {
                             "type": "number",
-                            "description": "The total number of AVS deposits made ",
+                            "description": "The total number of deposits made ",
                             "example": 10
                           }
                         },
