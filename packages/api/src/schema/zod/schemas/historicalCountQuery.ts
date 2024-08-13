@@ -88,11 +88,13 @@ export const HistoricalCountSchema = z
 		frequency: z
 			.enum(['1h', '1d', '7d'])
 			.default('1h')
-			.describe('Frequency of data points'),
+			.describe('Frequency of data points')
+			.openapi({ example: '1h' }),
 		variant: z
 			.enum(['discrete', 'cumulative'])
 			.default('cumulative')
-			.describe('Type of tally, discrete or cumulative'),
+			.describe('Type of tally, discrete or cumulative')
+			.openapi({ example: 'cumulative' }),
 		startAt: z
 			.string()
 			.optional()
@@ -101,7 +103,8 @@ export const HistoricalCountSchema = z
 				message: 'Invalid date format'
 			})
 			.default('')
-			.describe('Start date in ISO string format'),
+			.describe('Start date in ISO string format')
+			.openapi({ example: '2024-04-11T08:31:11.000' }),
 		endAt: z
 			.string()
 			.optional()
@@ -111,6 +114,7 @@ export const HistoricalCountSchema = z
 			})
 			.default('')
 			.describe('End date in ISO string format')
+			.openapi({ example: '2024-04-12T08:31:11.000' })
 	})
 	.refine(
 		(data) => {

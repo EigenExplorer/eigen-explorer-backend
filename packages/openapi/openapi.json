@@ -868,7 +868,8 @@
                 "7d"
               ],
               "default": "1h",
-              "description": "Frequency of data points"
+              "description": "Frequency of data points",
+              "example": "1h"
             }
           },
           {
@@ -882,7 +883,8 @@
                 "cumulative"
               ],
               "default": "cumulative",
-              "description": "Type of tally, discrete or cumulative"
+              "description": "Type of tally, discrete or cumulative",
+              "example": "cumulative"
             }
           },
           {
@@ -892,7 +894,8 @@
             "schema": {
               "type": "string",
               "description": "Start date in ISO string format",
-              "default": ""
+              "default": "",
+              "example": "2024-04-11T08:31:11.000"
             }
           },
           {
@@ -902,7 +905,8 @@
             "schema": {
               "type": "string",
               "description": "End date in ISO string format",
-              "default": ""
+              "default": "",
+              "example": "2024-04-12T08:31:11.000"
             }
           }
         ],
@@ -1013,7 +1017,8 @@
                 "7d"
               ],
               "default": "1h",
-              "description": "Frequency of data points"
+              "description": "Frequency of data points",
+              "example": "1h"
             }
           },
           {
@@ -1027,7 +1032,8 @@
                 "cumulative"
               ],
               "default": "cumulative",
-              "description": "Type of tally, discrete or cumulative"
+              "description": "Type of tally, discrete or cumulative",
+              "example": "cumulative"
             }
           },
           {
@@ -1037,7 +1043,8 @@
             "schema": {
               "type": "string",
               "description": "Start date in ISO string format",
-              "default": ""
+              "default": "",
+              "example": "2024-04-11T08:31:11.000"
             }
           },
           {
@@ -1047,7 +1054,8 @@
             "schema": {
               "type": "string",
               "description": "End date in ISO string format",
-              "default": ""
+              "default": "",
+              "example": "2024-04-12T08:31:11.000"
             }
           }
         ],
@@ -1146,7 +1154,8 @@
                 "7d"
               ],
               "default": "1h",
-              "description": "Frequency of data points"
+              "description": "Frequency of data points",
+              "example": "1h"
             }
           },
           {
@@ -1160,7 +1169,8 @@
                 "cumulative"
               ],
               "default": "cumulative",
-              "description": "Type of tally, discrete or cumulative"
+              "description": "Type of tally, discrete or cumulative",
+              "example": "cumulative"
             }
           },
           {
@@ -1170,7 +1180,8 @@
             "schema": {
               "type": "string",
               "description": "Start date in ISO string format",
-              "default": ""
+              "default": "",
+              "example": "2024-04-11T08:31:11.000"
             }
           },
           {
@@ -1180,7 +1191,8 @@
             "schema": {
               "type": "string",
               "description": "End date in ISO string format",
-              "default": ""
+              "default": "",
+              "example": "2024-04-12T08:31:11.000"
             }
           }
         ],
@@ -1267,7 +1279,8 @@
                 "7d"
               ],
               "default": "1h",
-              "description": "Frequency of data points"
+              "description": "Frequency of data points",
+              "example": "1h"
             }
           },
           {
@@ -1281,7 +1294,8 @@
                 "cumulative"
               ],
               "default": "cumulative",
-              "description": "Type of tally, discrete or cumulative"
+              "description": "Type of tally, discrete or cumulative",
+              "example": "cumulative"
             }
           },
           {
@@ -1291,7 +1305,8 @@
             "schema": {
               "type": "string",
               "description": "Start date in ISO string format",
-              "default": ""
+              "default": "",
+              "example": "2024-04-11T08:31:11.000"
             }
           },
           {
@@ -1301,7 +1316,8 @@
             "schema": {
               "type": "string",
               "description": "End date in ISO string format",
-              "default": ""
+              "default": "",
+              "example": "2024-04-12T08:31:11.000"
             }
           }
         ],
@@ -1400,7 +1416,8 @@
                 "7d"
               ],
               "default": "1h",
-              "description": "Frequency of data points"
+              "description": "Frequency of data points",
+              "example": "1h"
             }
           },
           {
@@ -1414,7 +1431,8 @@
                 "cumulative"
               ],
               "default": "cumulative",
-              "description": "Type of tally, discrete or cumulative"
+              "description": "Type of tally, discrete or cumulative",
+              "example": "cumulative"
             }
           },
           {
@@ -1424,7 +1442,8 @@
             "schema": {
               "type": "string",
               "description": "Start date in ISO string format",
-              "default": ""
+              "default": "",
+              "example": "2024-04-11T08:31:11.000"
             }
           },
           {
@@ -1434,7 +1453,8 @@
             "schema": {
               "type": "string",
               "description": "End date in ISO string format",
-              "default": ""
+              "default": "",
+              "example": "2024-04-12T08:31:11.000"
             }
           }
         ],
@@ -1521,7 +1541,8 @@
                 "7d"
               ],
               "default": "1h",
-              "description": "Frequency of data points"
+              "description": "Frequency of data points",
+              "example": "1h"
             }
           },
           {
@@ -1535,7 +1556,8 @@
                 "cumulative"
               ],
               "default": "cumulative",
-              "description": "Type of tally, discrete or cumulative"
+              "description": "Type of tally, discrete or cumulative",
+              "example": "cumulative"
             }
           },
           {
@@ -1545,7 +1567,8 @@
             "schema": {
               "type": "string",
               "description": "Start date in ISO string format",
-              "default": ""
+              "default": "",
+              "example": "2024-04-11T08:31:11.000"
             }
           },
           {
@@ -1555,7 +1578,8 @@
             "schema": {
               "type": "string",
               "description": "End date in ISO string format",
-              "default": ""
+              "default": "",
+              "example": "2024-04-12T08:31:11.000"
             }
           }
         ],
@@ -1642,7 +1666,8 @@
                 "7d"
               ],
               "default": "1h",
-              "description": "Frequency of data points"
+              "description": "Frequency of data points",
+              "example": "1h"
             }
           },
           {
@@ -1656,7 +1681,8 @@
                 "cumulative"
               ],
               "default": "cumulative",
-              "description": "Type of tally, discrete or cumulative"
+              "description": "Type of tally, discrete or cumulative",
+              "example": "cumulative"
             }
           },
           {
@@ -1666,7 +1692,8 @@
             "schema": {
               "type": "string",
               "description": "Start date in ISO string format",
-              "default": ""
+              "default": "",
+              "example": "2024-04-11T08:31:11.000"
             }
           },
           {
@@ -1676,7 +1703,8 @@
             "schema": {
               "type": "string",
               "description": "End date in ISO string format",
-              "default": ""
+              "default": "",
+              "example": "2024-04-12T08:31:11.000"
             }
           }
         ],
@@ -1763,7 +1791,8 @@
                 "7d"
               ],
               "default": "1h",
-              "description": "Frequency of data points"
+              "description": "Frequency of data points",
+              "example": "1h"
             }
           },
           {
@@ -1777,7 +1806,8 @@
                 "cumulative"
               ],
               "default": "cumulative",
-              "description": "Type of tally, discrete or cumulative"
+              "description": "Type of tally, discrete or cumulative",
+              "example": "cumulative"
             }
           },
           {
@@ -1787,7 +1817,8 @@
             "schema": {
               "type": "string",
               "description": "Start date in ISO string format",
-              "default": ""
+              "default": "",
+              "example": "2024-04-11T08:31:11.000"
             }
           },
           {
@@ -1797,7 +1828,8 @@
             "schema": {
               "type": "string",
               "description": "End date in ISO string format",
-              "default": ""
+              "default": "",
+              "example": "2024-04-12T08:31:11.000"
             }
           }
         ],
@@ -1884,7 +1916,8 @@
                 "7d"
               ],
               "default": "1h",
-              "description": "Frequency of data points"
+              "description": "Frequency of data points",
+              "example": "1h"
             }
           },
           {
@@ -1898,7 +1931,8 @@
                 "cumulative"
               ],
               "default": "cumulative",
-              "description": "Type of tally, discrete or cumulative"
+              "description": "Type of tally, discrete or cumulative",
+              "example": "cumulative"
             }
           },
           {
@@ -1908,7 +1942,8 @@
             "schema": {
               "type": "string",
               "description": "Start date in ISO string format",
-              "default": ""
+              "default": "",
+              "example": "2024-04-11T08:31:11.000"
             }
           },
           {
@@ -1918,7 +1953,8 @@
             "schema": {
               "type": "string",
               "description": "End date in ISO string format",
-              "default": ""
+              "default": "",
+              "example": "2024-04-12T08:31:11.000"
             }
           }
         ],
@@ -2005,7 +2041,8 @@
                 "7d"
               ],
               "default": "1h",
-              "description": "Frequency of data points"
+              "description": "Frequency of data points",
+              "example": "1h"
             }
           },
           {
@@ -2019,7 +2056,8 @@
                 "cumulative"
               ],
               "default": "cumulative",
-              "description": "Type of tally, discrete or cumulative"
+              "description": "Type of tally, discrete or cumulative",
+              "example": "cumulative"
             }
           },
           {
@@ -2029,7 +2067,8 @@
             "schema": {
               "type": "string",
               "description": "Start date in ISO string format",
-              "default": ""
+              "default": "",
+              "example": "2024-04-11T08:31:11.000"
             }
           },
           {
@@ -2039,7 +2078,8 @@
             "schema": {
               "type": "string",
               "description": "End date in ISO string format",
-              "default": ""
+              "default": "",
+              "example": "2024-04-12T08:31:11.000"
             }
           }
         ],
@@ -2126,7 +2166,8 @@
                 "7d"
               ],
               "default": "1h",
-              "description": "Frequency of data points"
+              "description": "Frequency of data points",
+              "example": "1h"
             }
           },
           {
@@ -2140,7 +2181,8 @@
                 "cumulative"
               ],
               "default": "cumulative",
-              "description": "Type of tally, discrete or cumulative"
+              "description": "Type of tally, discrete or cumulative",
+              "example": "cumulative"
             }
           },
           {
@@ -2150,7 +2192,8 @@
             "schema": {
               "type": "string",
               "description": "Start date in ISO string format",
-              "default": ""
+              "default": "",
+              "example": "2024-04-11T08:31:11.000"
             }
           },
           {
@@ -2160,7 +2203,8 @@
             "schema": {
               "type": "string",
               "description": "End date in ISO string format",
-              "default": ""
+              "default": "",
+              "example": "2024-04-12T08:31:11.000"
             }
           }
         ],
@@ -2247,7 +2291,8 @@
                 "7d"
               ],
               "default": "1h",
-              "description": "Frequency of data points"
+              "description": "Frequency of data points",
+              "example": "1h"
             }
           },
           {
@@ -2261,7 +2306,8 @@
                 "cumulative"
               ],
               "default": "cumulative",
-              "description": "Type of tally, discrete or cumulative"
+              "description": "Type of tally, discrete or cumulative",
+              "example": "cumulative"
             }
           },
           {
@@ -2271,7 +2317,8 @@
             "schema": {
               "type": "string",
               "description": "Start date in ISO string format",
-              "default": ""
+              "default": "",
+              "example": "2024-04-11T08:31:11.000"
             }
           },
           {
@@ -2281,7 +2328,8 @@
             "schema": {
               "type": "string",
               "description": "End date in ISO string format",
-              "default": ""
+              "default": "",
+              "example": "2024-04-12T08:31:11.000"
             }
           }
         ],
