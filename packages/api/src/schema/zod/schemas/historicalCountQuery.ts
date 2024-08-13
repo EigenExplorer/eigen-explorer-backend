@@ -114,23 +114,6 @@ export const HistoricalCountSchema = z
 	})
 	.refine(
 		(data) => {
-			const { startAt, endAt } = data
-			if (!startAt && !endAt) return true
-			if (startAt && new Date(startAt)) {
-				if (endAt && new Date(endAt)) {
-					return true
-				}
-				return true
-			}
-			return false
-		},
-		{
-			message: 'Provide valid date string in ISO format',
-			path: ['endAt', 'startAt']
-		}
-	)
-	.refine(
-		(data) => {
 			if (data.startAt && data.endAt) {
 				return (
 					new Date(data.endAt).getTime() >= new Date(data.startAt).getTime()
