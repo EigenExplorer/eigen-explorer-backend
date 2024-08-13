@@ -101,6 +101,11 @@
                       "description": "The total value locked (TVL) in ETH in the EigenLayer ecosystem",
                       "example": 1000000
                     },
+                    "tvlBeaconChain": {
+                      "type": "number",
+                      "description": "The total value locked (TVL) in ETH in the beacon chain ETH strategy",
+                      "example": 1000000
+                    },
                     "tvlRestaking": {
                       "type": "number",
                       "description": "The total value locked (TVL) in ETH in all restaking strategies",
@@ -132,11 +137,6 @@
                         "stETH": 2000000
                       }
                     },
-                    "tvlBeaconChain": {
-                      "type": "number",
-                      "description": "The total value locked (TVL) in ETH in the beacon chain ETH strategy",
-                      "example": 1000000
-                    },
                     "totalAVS": {
                       "type": "number",
                       "description": "The total number of AVS",
@@ -144,21 +144,21 @@
                     },
                     "totalOperators": {
                       "type": "number",
-                      "description": "The total number of operators",
+                      "description": "The total number of AVS operators",
                       "example": 10
                     },
                     "totalStakers": {
                       "type": "number",
-                      "description": "The total number of stakers",
+                      "description": "The total number of AVS stakers",
                       "example": 10
                     }
                   },
                   "required": [
                     "tvl",
+                    "tvlBeaconChain",
                     "tvlRestaking",
                     "tvlStrategies",
                     "tvlStrategiesEth",
-                    "tvlBeaconChain",
                     "totalAVS",
                     "totalOperators",
                     "totalStakers"
@@ -2548,80 +2548,6 @@
                             "description": "The total number of stakers staking in the AVS",
                             "example": 10
                           },
-                          "tvl": {
-                            "type": "object",
-                            "properties": {
-                              "tvl": {
-                                "type": "number",
-                                "description": "The combined TVL of all restaking strategies in ETH",
-                                "example": 1000000
-                              },
-                              "tvlBeaconChain": {
-                                "type": "number",
-                                "description": "The TVL of Beacon Chain restaking strategy in ETH",
-                                "example": 1000000
-                              },
-                              "tvlRestaking": {
-                                "type": "number",
-                                "description": "The combined TVL of all liquid restaking strategies in ETH",
-                                "example": 1000000
-                              },
-                              "tvlWETH": {
-                                "type": "number",
-                                "description": "The TVL of WETH restaking strategy in ETH",
-                                "example": 1000000
-                              },
-                              "tvlStrategies": {
-                                "type": "object",
-                                "additionalProperties": {
-                                  "type": "number",
-                                  "description": "The total value locked (TVL) in the strategy, denominated in the strategy's native token",
-                                  "example": 1000000
-                                },
-                                "description": "The TVL of each individual restaking strategy in its native token",
-                                "example": {
-                                  "Eigen": 1000000,
-                                  "cbETH": 2000000
-                                }
-                              },
-                              "tvlStrategiesEth": {
-                                "type": "object",
-                                "additionalProperties": {
-                                  "type": "number",
-                                  "description": "The total value locked (TVL) in the strategy, denominated in ETH",
-                                  "example": 1000000
-                                },
-                                "description": "The TVL of each individual restaking strategy in ETH",
-                                "example": {
-                                  "Eigen": 1000000,
-                                  "cbETH": 2000000
-                                }
-                              }
-                            },
-                            "required": [
-                              "tvl",
-                              "tvlBeaconChain",
-                              "tvlRestaking",
-                              "tvlWETH",
-                              "tvlStrategies",
-                              "tvlStrategiesEth"
-                            ],
-                            "description": "The total value locked (TVL) in the AVS",
-                            "example": {
-                              "tvl": 1000000,
-                              "tvlBeaconChain": 1000000,
-                              "tvlWETH": 1000000,
-                              "tvlRestaking": 1000000,
-                              "tvlStrategies": {
-                                "Eigen": 1000000,
-                                "cbETH": 2000000
-                              },
-                              "tvlStrategiesEth": {
-                                "stETH": 1000000,
-                                "cbETH": 2000000
-                              }
-                            }
-                          },
                           "curatedMetadata": {
                             "type": "object",
                             "properties": {
@@ -2727,6 +2653,80 @@
                               ],
                               "isVisible": true,
                               "isVerified": true
+                            }
+                          },
+                          "tvl": {
+                            "type": "object",
+                            "properties": {
+                              "tvl": {
+                                "type": "number",
+                                "description": "The combined TVL of all restaking strategies in ETH",
+                                "example": 1000000
+                              },
+                              "tvlBeaconChain": {
+                                "type": "number",
+                                "description": "The TVL of Beacon Chain restaking strategy in ETH",
+                                "example": 1000000
+                              },
+                              "tvlRestaking": {
+                                "type": "number",
+                                "description": "The combined TVL of all liquid restaking strategies in ETH",
+                                "example": 1000000
+                              },
+                              "tvlWETH": {
+                                "type": "number",
+                                "description": "The TVL of WETH restaking strategy in ETH",
+                                "example": 1000000
+                              },
+                              "tvlStrategies": {
+                                "type": "object",
+                                "additionalProperties": {
+                                  "type": "number",
+                                  "description": "The total value locked (TVL) in the strategy, denominated in the strategy's native token",
+                                  "example": 1000000
+                                },
+                                "description": "The TVL of each individual restaking strategy in its native token",
+                                "example": {
+                                  "Eigen": 1000000,
+                                  "cbETH": 2000000
+                                }
+                              },
+                              "tvlStrategiesEth": {
+                                "type": "object",
+                                "additionalProperties": {
+                                  "type": "number",
+                                  "description": "The total value locked (TVL) in the strategy, denominated in ETH",
+                                  "example": 1000000
+                                },
+                                "description": "The TVL of each individual restaking strategy in ETH",
+                                "example": {
+                                  "Eigen": 1000000,
+                                  "cbETH": 2000000
+                                }
+                              }
+                            },
+                            "required": [
+                              "tvl",
+                              "tvlBeaconChain",
+                              "tvlRestaking",
+                              "tvlWETH",
+                              "tvlStrategies",
+                              "tvlStrategiesEth"
+                            ],
+                            "description": "The total value locked (TVL) in the AVS",
+                            "example": {
+                              "tvl": 1000000,
+                              "tvlBeaconChain": 1000000,
+                              "tvlWETH": 1000000,
+                              "tvlRestaking": 1000000,
+                              "tvlStrategies": {
+                                "Eigen": 1000000,
+                                "cbETH": 2000000
+                              },
+                              "tvlStrategiesEth": {
+                                "stETH": 1000000,
+                                "cbETH": 2000000
+                              }
                             }
                           }
                         },
@@ -3115,80 +3115,6 @@
                       "description": "The total number of stakers staking in the AVS",
                       "example": 10
                     },
-                    "tvl": {
-                      "type": "object",
-                      "properties": {
-                        "tvl": {
-                          "type": "number",
-                          "description": "The combined TVL of all restaking strategies in ETH",
-                          "example": 1000000
-                        },
-                        "tvlBeaconChain": {
-                          "type": "number",
-                          "description": "The TVL of Beacon Chain restaking strategy in ETH",
-                          "example": 1000000
-                        },
-                        "tvlRestaking": {
-                          "type": "number",
-                          "description": "The combined TVL of all liquid restaking strategies in ETH",
-                          "example": 1000000
-                        },
-                        "tvlWETH": {
-                          "type": "number",
-                          "description": "The TVL of WETH restaking strategy in ETH",
-                          "example": 1000000
-                        },
-                        "tvlStrategies": {
-                          "type": "object",
-                          "additionalProperties": {
-                            "type": "number",
-                            "description": "The total value locked (TVL) in the strategy, denominated in the strategy's native token",
-                            "example": 1000000
-                          },
-                          "description": "The TVL of each individual restaking strategy in its native token",
-                          "example": {
-                            "Eigen": 1000000,
-                            "cbETH": 2000000
-                          }
-                        },
-                        "tvlStrategiesEth": {
-                          "type": "object",
-                          "additionalProperties": {
-                            "type": "number",
-                            "description": "The total value locked (TVL) in the strategy, denominated in ETH",
-                            "example": 1000000
-                          },
-                          "description": "The TVL of each individual restaking strategy in ETH",
-                          "example": {
-                            "Eigen": 1000000,
-                            "cbETH": 2000000
-                          }
-                        }
-                      },
-                      "required": [
-                        "tvl",
-                        "tvlBeaconChain",
-                        "tvlRestaking",
-                        "tvlWETH",
-                        "tvlStrategies",
-                        "tvlStrategiesEth"
-                      ],
-                      "description": "The total value locked (TVL) in the AVS",
-                      "example": {
-                        "tvl": 1000000,
-                        "tvlBeaconChain": 1000000,
-                        "tvlWETH": 1000000,
-                        "tvlRestaking": 1000000,
-                        "tvlStrategies": {
-                          "Eigen": 1000000,
-                          "cbETH": 2000000
-                        },
-                        "tvlStrategiesEth": {
-                          "stETH": 1000000,
-                          "cbETH": 2000000
-                        }
-                      }
-                    },
                     "curatedMetadata": {
                       "type": "object",
                       "properties": {
@@ -3294,6 +3220,80 @@
                         ],
                         "isVisible": true,
                         "isVerified": true
+                      }
+                    },
+                    "tvl": {
+                      "type": "object",
+                      "properties": {
+                        "tvl": {
+                          "type": "number",
+                          "description": "The combined TVL of all restaking strategies in ETH",
+                          "example": 1000000
+                        },
+                        "tvlBeaconChain": {
+                          "type": "number",
+                          "description": "The TVL of Beacon Chain restaking strategy in ETH",
+                          "example": 1000000
+                        },
+                        "tvlRestaking": {
+                          "type": "number",
+                          "description": "The combined TVL of all liquid restaking strategies in ETH",
+                          "example": 1000000
+                        },
+                        "tvlWETH": {
+                          "type": "number",
+                          "description": "The TVL of WETH restaking strategy in ETH",
+                          "example": 1000000
+                        },
+                        "tvlStrategies": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "number",
+                            "description": "The total value locked (TVL) in the strategy, denominated in the strategy's native token",
+                            "example": 1000000
+                          },
+                          "description": "The TVL of each individual restaking strategy in its native token",
+                          "example": {
+                            "Eigen": 1000000,
+                            "cbETH": 2000000
+                          }
+                        },
+                        "tvlStrategiesEth": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "number",
+                            "description": "The total value locked (TVL) in the strategy, denominated in ETH",
+                            "example": 1000000
+                          },
+                          "description": "The TVL of each individual restaking strategy in ETH",
+                          "example": {
+                            "Eigen": 1000000,
+                            "cbETH": 2000000
+                          }
+                        }
+                      },
+                      "required": [
+                        "tvl",
+                        "tvlBeaconChain",
+                        "tvlRestaking",
+                        "tvlWETH",
+                        "tvlStrategies",
+                        "tvlStrategiesEth"
+                      ],
+                      "description": "The total value locked (TVL) in the AVS",
+                      "example": {
+                        "tvl": 1000000,
+                        "tvlBeaconChain": 1000000,
+                        "tvlWETH": 1000000,
+                        "tvlRestaking": 1000000,
+                        "tvlStrategies": {
+                          "Eigen": 1000000,
+                          "cbETH": 2000000
+                        },
+                        "tvlStrategiesEth": {
+                          "stETH": 1000000,
+                          "cbETH": 2000000
+                        }
                       }
                     }
                   },

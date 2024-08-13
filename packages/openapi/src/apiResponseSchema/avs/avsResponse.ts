@@ -66,24 +66,6 @@ export const AvsSchema = z.object({
         .number()
         .describe('The total number of stakers staking in the AVS')
         .openapi({ example: 10 }),
-    tvl: TvlSchema.optional()
-        .describe('The total value locked (TVL) in the AVS')
-        .openapi({
-            example: {
-                tvl: 1000000,
-                tvlBeaconChain: 1000000,
-                tvlWETH: 1000000,
-                tvlRestaking: 1000000,
-                tvlStrategies: {
-                    Eigen: 1000000,
-                    cbETH: 2000000,
-                },
-                tvlStrategiesEth: {
-                    stETH: 1000000,
-                    cbETH: 2000000,
-                },
-            },
-        }),
     curatedMetadata: CuratedMetadataSchema.optional()
         .describe('To curate visibility and additional information of the AVS ')
         .openapi({
@@ -101,5 +83,23 @@ export const AvsSchema = z.object({
                 isVerified: true
             },
         }),
+    tvl: TvlSchema.optional()
+        .describe('The total value locked (TVL) in the AVS')
+        .openapi({
+            example: {
+                tvl: 1000000,
+                tvlBeaconChain: 1000000,
+                tvlWETH: 1000000,
+                tvlRestaking: 1000000,
+                tvlStrategies: {
+                    Eigen: 1000000,
+                    cbETH: 2000000,
+                },
+                tvlStrategiesEth: {
+                    stETH: 1000000,
+                    cbETH: 2000000,
+                },
+            },
+        })    
 });
 
