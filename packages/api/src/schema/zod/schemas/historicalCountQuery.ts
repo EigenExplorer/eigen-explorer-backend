@@ -98,19 +98,31 @@ export const HistoricalCountSchema = z
 		startAt: z
 			.string()
 			.optional()
-			.refine((val) => !val || isoRegex.test(val) || yyyymmddRegex.test(val), {
-				message:
-					'Invalid date format for startAt. Use YYYY-MM-DD or ISO 8601 format.'
-			})
+			.refine(
+				(val) =>
+					!val ||
+					((isoRegex.test(val) || yyyymmddRegex.test(val)) &&
+						!Number.isNaN(new Date(val).getTime())),
+				{
+					message:
+						'Invalid date format for startAt. Use YYYY-MM-DD or ISO 8601 format.'
+				}
+			)
 			.default('')
 			.describe('Start date in ISO string format'),
 		endAt: z
 			.string()
 			.optional()
-			.refine((val) => !val || isoRegex.test(val) || yyyymmddRegex.test(val), {
-				message:
-					'Invalid date format for endAt. Use YYYY-MM-DD or ISO 8601 format.'
-			})
+			.refine(
+				(val) =>
+					!val ||
+					((isoRegex.test(val) || yyyymmddRegex.test(val)) &&
+						!Number.isNaN(new Date(val).getTime())),
+				{
+					message:
+						'Invalid date format for endAt. Use YYYY-MM-DD or ISO 8601 format.'
+				}
+			)
 			.default('')
 			.describe('End date in ISO string format')
 	})
