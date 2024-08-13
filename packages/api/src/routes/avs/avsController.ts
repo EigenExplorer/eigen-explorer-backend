@@ -222,6 +222,16 @@ export async function getAVS(req: Request, res: Response) {
 			where: {
 				operatorAddress: {
 					in: avs.operators.map((o) => o.operatorAddress)
+				},
+				shares: {
+					some: {
+						strategyAddress: {
+							in: [
+								...new Set(avs.operators.flatMap((o) => o.restakedStrategies))
+							]
+						},
+						shares: { gt: '0' }
+					}
 				}
 			}
 		})
@@ -294,7 +304,21 @@ export async function getAVSStakers(req: Request, res: Response) {
 			.map((o) => o.operatorAddress)
 
 		const stakersCount = await prisma.staker.count({
-			where: { operatorAddress: { in: operatorAddresses } }
+			where: {
+				operatorAddress: {
+					in: operatorAddresses
+				},
+				shares: {
+					some: {
+						strategyAddress: {
+							in: [
+								...new Set(avs.operators.flatMap((o) => o.restakedStrategies))
+							]
+						},
+						shares: { gt: '0' }
+					}
+				}
+			}
 		})
 
 		const stakersRecords = await prisma.staker.findMany({

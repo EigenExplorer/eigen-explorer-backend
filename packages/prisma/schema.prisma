@@ -28,7 +28,6 @@ model Avs {
 
   totalStakers   Int
   totalOperators Int
-  tvlEth         Decimal @db.Decimal(20, 8)
 
   createdAtBlock BigInt   @default(0)
   updatedAtBlock BigInt   @default(0)
@@ -106,7 +105,6 @@ model Operator {
 
   totalStakers Int
   totalAvs     Int
-  tvlEth       Decimal @db.Decimal(20, 8)
 
   createdAtBlock BigInt   @default(0)
   updatedAtBlock BigInt   @default(0)
