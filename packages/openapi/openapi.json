@@ -3791,14 +3791,20 @@
                               }
                             ]
                           },
+                          "restakedStrategies": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "pattern": "^0x[a-fA-F0-9]{40}$"
+                            },
+                            "description": "The list of restaked strategies",
+                            "example": [
+                              "0x35f4f28a8d3ff20eed10e087e8f96ea2641e6aa1"
+                            ]
+                          },
                           "totalStakers": {
                             "type": "number",
-                            "description": "The total number of stakers opted into the AVS operator",
-                            "example": 10
-                          },
-                          "totalAvs": {
-                            "type": "number",
-                            "description": "The total number of AVS opted by the AVS operator",
+                            "description": "The total number of stakers who have delegated to this AVS operator",
                             "example": 10
                           },
                           "tvl": {
@@ -3890,8 +3896,8 @@
                           "createdAt",
                           "updatedAt",
                           "shares",
-                          "totalStakers",
-                          "totalAvs"
+                          "restakedStrategies",
+                          "totalStakers"
                         ]
                       }
                     },
@@ -4120,7 +4126,7 @@
                           },
                           "totalStakers": {
                             "type": "number",
-                            "description": "The total number of stakers opted into the AVS operator",
+                            "description": "The total number of stakers who have delegated to this AVS operator",
                             "example": 10
                           },
                           "totalAvs": {
@@ -4432,7 +4438,7 @@
                     },
                     "totalStakers": {
                       "type": "number",
-                      "description": "The total number of stakers opted into the AVS operator",
+                      "description": "The total number of stakers who have delegated to this AVS operator",
                       "example": 10
                     },
                     "totalAvs": {

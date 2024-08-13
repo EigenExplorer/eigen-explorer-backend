@@ -1,10 +1,10 @@
-import z from '../../../api/src/schema/zod';
-import { OperatorMetaDataSchema } from '../../../api/src/schema/zod/schemas/base/operatorMetaData';
-import { EthereumAddressSchema } from '../../../api/src/schema/zod/schemas/base/ethereumAddress';
-import { TvlSchema } from './base/tvlResponses';
-import { StrategySharesSchema } from '../../../api/src/schema/zod/schemas/base/strategyShares';
+import z from '../../../../api/src/schema/zod';
+import { EthereumAddressSchema } from "../../../../api/src/schema/zod/schemas/base/ethereumAddress";
+import { OperatorMetaDataSchema } from "../../../../api/src/schema/zod/schemas/base/operatorMetaData";
+import { StrategySharesSchema } from '../../../../api/src/schema/zod/schemas/base/strategyShares';
+import { TvlSchema } from '../base/tvlResponses';
 
-export const OperatorResponseSchema = z.object({
+export const AvsOperatorResponseSchema = z.object({
     address: EthereumAddressSchema.describe(
         'The contract address of the AVS operator'
     ).openapi({ example: '0x09e6eb09213bdd3698bd8afb43ec3cb0ecff683a' }),
@@ -48,13 +48,13 @@ export const OperatorResponseSchema = z.object({
                 },
             ],
         }),
+    restakedStrategies: z
+        .array(EthereumAddressSchema)
+        .describe('The list of restaked strategies')
+        .openapi({ example: ['0x35f4f28a8d3ff20eed10e087e8f96ea2641e6aa1'] }),
     totalStakers: z
         .number()
         .describe('The total number of stakers who have delegated to this AVS operator')
-        .openapi({ example: 10 }),
-    totalAvs: z
-        .number()
-        .describe('The total number of AVS opted by the AVS operator')
         .openapi({ example: 10 }),
     tvl: TvlSchema.optional()
         .describe('The total value locked (TVL) in the AVS operator')
