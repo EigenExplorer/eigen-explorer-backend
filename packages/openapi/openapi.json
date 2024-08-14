@@ -1386,7 +1386,7 @@
     "/metrics/historical/tvl/restaking/{address}": {
       "get": {
         "operationId": "getHistoricalTvlRestaking",
-        "summary": "Retrieve historical TVL data by strategy address.",
+        "summary": "Retrieve historical TVL data by strategy address",
         "description": "Returns the historical total value locked (TVL) data over specified timestamp values in a specific LST strategy.",
         "tags": [
           "Metrics"
@@ -1395,12 +1395,12 @@
           {
             "in": "path",
             "name": "address",
-            "description": "The address of the Strategy",
+            "description": "The address of the strategy",
             "schema": {
               "type": "string",
               "pattern": "^0x[a-fA-F0-9]{40}$",
-              "description": "The address of the Strategy",
-              "example": "0xacb55c530acdb2849e6d4f36992cd8c9d50ed8f7"
+              "description": "The address of the strategy",
+              "example": "0x54945180dB7943c0ed0FEE7EdaB2Bd24620256bc"
             },
             "required": true
           },
