@@ -28,7 +28,7 @@ export const IndividualStrategyTvlResponseSchema = TvlResponseSchema.extend({
     tvlEth: z
         .number()
         .describe(
-            "The value of the restaking strategy TVL, denominated in Eth"
+            "The value of the restaking strategy TVL, denominated in ETH"
         )
         .openapi({ example: 1000000 }),
 });
