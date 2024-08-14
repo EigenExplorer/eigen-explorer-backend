@@ -1524,7 +1524,7 @@
       "get": {
         "operationId": "getHistoricalWithdrawalsAggregate",
         "summary": "Retrieve historical withdrawal aggregate data",
-        "description": "Returns historical aggregate data for withdrawals, including total value locked (TVL) in ETH at specified timestamp values.",
+        "description": "Returns historical aggregate data for withdrawals, including the total value of withdrawals in ETH at specified timestamp values.",
         "tags": [
           "Metrics"
         ],
@@ -1585,7 +1585,7 @@
         ],
         "responses": {
           "200": {
-            "description": "The historical aggregate data for withdrawals, including total value locked (TVL) in ETH at specified timestamp values.",
+            "description": "The historical aggregate data for withdrawals, including the total value of withdrawals in ETH at specified timestamp values.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1601,15 +1601,15 @@
                             "description": "The timestamp for the recorded data point",
                             "example": "2024-04-11T08:31:11.000Z"
                           },
-                          "tvlEth": {
+                          "valueEth": {
                             "type": "number",
-                            "description": "The total value locked (TVL) in ETH at the timestamp",
+                            "description": "The total value in ETH at the timestamp",
                             "example": 10
                           }
                         },
                         "required": [
                           "timestamp",
-                          "tvlEth"
+                          "valueEth"
                         ]
                       }
                     }
@@ -1649,7 +1649,7 @@
       "get": {
         "operationId": "getHistoricalDepositsAggregate",
         "summary": "Retrieve historical deposit aggregate data",
-        "description": "Returns historical aggregate data for deposits, including total value locked (TVL) in ETH at specified timestamp values.",
+        "description": "Returns historical aggregate data for deposits, including the total value of deposits in ETH at specified timestamp values.",
         "tags": [
           "Metrics"
         ],
@@ -1710,7 +1710,7 @@
         ],
         "responses": {
           "200": {
-            "description": "The historical aggregate data for deposits, including total value locked (TVL) in ETH at specified timestamp values.",
+            "description": "The historical aggregate data for deposits, including the total value of deposits in ETH at specified timestamp values.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1726,15 +1726,15 @@
                             "description": "The timestamp for the recorded data point",
                             "example": "2024-04-11T08:31:11.000Z"
                           },
-                          "tvlEth": {
+                          "valueEth": {
                             "type": "number",
-                            "description": "The total value locked (TVL) in ETH at the timestamp",
+                            "description": "The total value in ETH at the timestamp",
                             "example": 10
                           }
                         },
                         "required": [
                           "timestamp",
-                          "tvlEth"
+                          "valueEth"
                         ]
                       }
                     }
