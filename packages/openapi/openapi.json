@@ -1601,15 +1601,15 @@
                             "description": "The timestamp for the recorded data point",
                             "example": "2024-04-11T08:31:11.000Z"
                           },
-                          "valueEth": {
+                          "tvlEth": {
                             "type": "number",
-                            "description": "The total value in ETH at the timestamp",
+                            "description": "The total value locked (TVL) in ETH at the timestamp",
                             "example": 10
                           }
                         },
                         "required": [
                           "timestamp",
-                          "valueEth"
+                          "tvlEth"
                         ]
                       }
                     }
@@ -1726,15 +1726,15 @@
                             "description": "The timestamp for the recorded data point",
                             "example": "2024-04-11T08:31:11.000Z"
                           },
-                          "valueEth": {
+                          "tvlEth": {
                             "type": "number",
-                            "description": "The total value in ETH at the timestamp",
+                            "description": "The total value locked (TVL) in ETH at the timestamp",
                             "example": 10
                           }
                         },
                         "required": [
                           "timestamp",
-                          "valueEth"
+                          "tvlEth"
                         ]
                       }
                     }
