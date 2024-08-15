@@ -34,6 +34,17 @@ export const AvsHistoricalAggregateSchema =  HistoricalAggregateSchema.extend({
         .openapi({ example: 10 }),
 });
 
+export const HistoricalValueAggregateSchema = z.object({
+    timestamp: z
+        .string()
+        .describe('The timestamp for the recorded data point')
+        .openapi({ example: '2024-04-11T08:31:11.000Z' }),
+    valueEth: z
+        .number()
+        .describe('The value in ETH at the timestamp')
+        .openapi({ example: 10 }),
+});
+
 
 
 
