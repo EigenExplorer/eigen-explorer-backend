@@ -17,6 +17,7 @@ import { getContract } from 'viem'
 import { strategyAbi } from '../../data/abi/strategy'
 import { getViemClient } from '../../viem/viemClient'
 import { getStrategiesWithShareUnderlying } from '../strategies/strategiesController'
+import { WithChangeQuerySchema } from '../../schema/zod/schemas/withChangeQuery'
 
 type TvlWithoutChange = number
 
@@ -130,8 +131,13 @@ export async function getMetrics(req: Request, res: Response) {
  * @param res
  */
 export async function getTvl(req: Request, res: Response) {
+	const queryCheck = WithChangeQuerySchema.safeParse(req.query)
+	if (!queryCheck.success) {
+		return handleAndReturnErrorResponse(req, res, queryCheck.error)
+	}
+
 	try {
-		const withChange = true // TODO
+		const { withChange }  = queryCheck.data
 		const tvlRestaking = (await doGetTvl(withChange)).tvlRestaking
 		const tvlBeaconChain = await doGetTvlBeaconChain(withChange)
 
@@ -162,8 +168,13 @@ export async function getTvl(req: Request, res: Response) {
  * @param res
  */
 export async function getTvlBeaconChain(req: Request, res: Response) {
+	const queryCheck = WithChangeQuerySchema.safeParse(req.query)
+	if (!queryCheck.success) {
+		return handleAndReturnErrorResponse(req, res, queryCheck.error)
+	}
+
 	try {
-		const withChange = true // TODO
+		const { withChange }  = queryCheck.data
 		const tvlBeaconChain = await doGetTvlBeaconChain(withChange)
 
 		res.send({
@@ -185,8 +196,13 @@ export async function getTvlBeaconChain(req: Request, res: Response) {
  * @param res
  */
 export async function getTvlRestaking(req: Request, res: Response) {
+	const queryCheck = WithChangeQuerySchema.safeParse(req.query)
+	if (!queryCheck.success) {
+		return handleAndReturnErrorResponse(req, res, queryCheck.error)
+	}
+
 	try {
-		const withChange = true //TODO
+		const { withChange }  = queryCheck.data
 		const tvlResponse = await doGetTvl(withChange)
 
 		res.send({
@@ -209,9 +225,14 @@ export async function getTvlRestaking(req: Request, res: Response) {
  * @param res
  */
 export async function getTvlRestakingByStrategy(req: Request, res: Response) {
+	const queryCheck = WithChangeQuerySchema.safeParse(req.query)
+	if (!queryCheck.success) {
+		return handleAndReturnErrorResponse(req, res, queryCheck.error)
+	}
+
 	try {
+		const { withChange }  = queryCheck.data
 		const { strategy } = req.params
-		const withChange = true //TODO
 
 		const strategies = Object.keys(getEigenContracts().Strategies)
 		const foundStrategy = strategies.find(
