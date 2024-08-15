@@ -109,7 +109,8 @@ export async function getAllAVS(req: Request, res: Response) {
 						: undefined,
 					operators: undefined,
 					metadataUrl: undefined,
-					isMetadataSynced: undefined
+					isMetadataSynced: undefined,
+					restakeableStrategies: undefined
 				}
 			})
 		)
@@ -214,25 +215,6 @@ export async function getAVS(req: Request, res: Response) {
 			}
 		})
 
-		const totalOperators = avs.operators.length
-		const totalStakers = await prisma.staker.count({
-			where: {
-				operatorAddress: {
-					in: avs.operators.map((o) => o.operatorAddress)
-				},
-				shares: {
-					some: {
-						strategyAddress: {
-							in: [
-								...new Set(avs.operators.flatMap((o) => o.restakedStrategies))
-							]
-						},
-						shares: { gt: '0' }
-					}
-				}
-			}
-		})
-
 		const shares = withOperatorShares(avs.operators).filter(
 			(s) =>
 				avs.restakeableStrategies.indexOf(s.strategyAddress.toLowerCase()) !==
@@ -248,8 +230,8 @@ export async function getAVS(req: Request, res: Response) {
 			...avs,
 			curatedMetadata: withCuratedMetadata ? avs.curatedMetadata : undefined,
 			shares,
-			totalOperators,
-			totalStakers,
+			totalOperators: avs.totalOperators,
+			totalStakers: avs.totalStakers,
 			tvl: withTvl
 				? sharesToTVL(
 						shares,
@@ -259,7 +241,8 @@ export async function getAVS(req: Request, res: Response) {
 				: undefined,
 			operators: undefined,
 			metadataUrl: undefined,
-			isMetadataSynced: undefined
+			isMetadataSynced: undefined,
+			restakeableStrategies: undefined
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
