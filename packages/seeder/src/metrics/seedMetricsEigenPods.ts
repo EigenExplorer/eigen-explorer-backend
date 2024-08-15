@@ -3,7 +3,8 @@ import { getPrismaClient } from '../utils/prismaClient'
 import {
 	bulkUpdateDbTransactions,
 	fetchLastSyncTime,
-	loopThroughDates
+	loopThroughDates,
+	setToStartOfHour
 } from '../utils/seeder'
 import { dateToEpoch } from '../utils/beaconChain'
 
@@ -76,8 +77,8 @@ async function processLogsInBatches(
 	let hourlyMetrics: LastMetricEigenPodsHourly[] = []
 
 	for (
-		let currentDate = new Date(startDate);
-		currentDate < endDate;
+		let currentDate = setToStartOfHour(startDate);
+		currentDate < setToStartOfHour(endDate);
 		currentDate = new Date(
 			currentDate.getTime() + 24 * 60 * 60 * 1000 * BATCH_DAYS
 		)

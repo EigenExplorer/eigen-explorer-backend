@@ -44,11 +44,7 @@ export async function monitorAvsMetrics() {
 						shares: {
 							some: {
 								strategyAddress: {
-									in: [
-										...new Set(
-											avs.operators.flatMap((o) => o.restakedStrategies)
-										)
-									]
+									in: avs.restakeableStrategies
 								},
 								shares: { gt: '0' }
 							}

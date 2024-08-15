@@ -4,7 +4,8 @@ import {
 	bulkUpdateDbTransactions,
 	fetchLastSyncTime,
 	IMap,
-	loopThroughDates
+	loopThroughDates,
+	setToStartOfHour
 } from '../utils/seeder'
 import { chunkArray } from '../utils/array'
 
@@ -179,8 +180,8 @@ async function processLogsInBatches(
 	)
 
 	for (
-		let currentDate = new Date(startDate);
-		currentDate < endDate;
+		let currentDate = setToStartOfHour(startDate);
+		currentDate < setToStartOfHour(endDate);
 		currentDate = new Date(
 			currentDate.getTime() + 24 * 60 * 60 * 1000 * BATCH_DAYS
 		)
