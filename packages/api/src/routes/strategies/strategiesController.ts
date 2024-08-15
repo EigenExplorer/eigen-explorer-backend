@@ -10,6 +10,11 @@ import { TokenPrices } from '../../utils/tokenPrices'
 import { serviceManagerUIAbi } from '../../data/abi/serviceManagerUIAbi'
 import { getPrismaClient } from '../../utils/prismaClient'
 
+export interface StrategyShareSummary {
+	strategyAddress: string;
+	totalShares: bigint;
+}
+
 // ABI path for dynamic imports
 const abiPath = {
 	cbeth: '../../data/abi/cbEthAbi',
@@ -212,15 +217,15 @@ export function sharesToTVL(
 			(stp) =>
 				stp.strategyAddress.toLowerCase() === s.strategyAddress.toLowerCase()
 		)
-		const sharesUnderlying = strategiesWithSharesUnderlying.find(
+		const groupSharesUnderlying = strategiesWithSharesUnderlying.find(
 			(su) =>
 				su.strategyAddress.toLowerCase() === s.strategyAddress.toLowerCase()
 		)
 
-		if (foundStrategyIndex !== -1 && sharesUnderlying) {
+		if (foundStrategyIndex !== -1 && groupSharesUnderlying) {
 			const strategyShares =
 				Number(
-					(BigInt(s.shares) * BigInt(sharesUnderlying.sharesToUnderlying)) /
+					(BigInt(s.shares) * BigInt(groupSharesUnderlying.sharesToUnderlying)) /
 						BigInt(1e18)
 				) / 1e18
 
@@ -254,6 +259,41 @@ export function sharesToTVL(
 		tvlStrategies: Object.fromEntries(tvlStrategies.entries()),
 		tvlStrategiesEth: Object.fromEntries(tvlStrategiesEth.entries())
 	}
+}
+
+export function sharesToOperatorDelegationValue(
+    groupedShares: StrategyShareSummary[],
+	strategiesWithSharesUnderlying: {
+		strategyAddress: string
+		sharesToUnderlying: number
+	}[],
+    strategyTokenPrices: TokenPrices
+) {
+    let totalOperatorDelegationValue = 0 ; 
+
+    groupedShares.forEach(group => {
+		const groupSharesUnderlying = strategiesWithSharesUnderlying.find(
+			(su) =>
+				su.strategyAddress.toLowerCase() === group.strategyAddress.toLowerCase()
+		)
+		if(groupSharesUnderlying){
+			const strategyShares =
+				Number(
+					(BigInt(group.totalShares) * BigInt(groupSharesUnderlying.sharesToUnderlying)) /
+						BigInt(1e18)
+				) / 1e18
+
+			const strategyTokenPrice = Object.values(strategyTokenPrices).find(
+				(stp) =>
+					stp.strategyAddress.toLowerCase() === group.strategyAddress.toLowerCase()
+			)
+			if (strategyTokenPrice) {
+				const groupStrategyValue = strategyShares * strategyTokenPrice.eth
+				totalOperatorDelegationValue += groupStrategyValue
+			}
+	}
+    });
+    return totalOperatorDelegationValue;
 }
 
 export async function getRestakeableStrategies(

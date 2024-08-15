@@ -16,7 +16,7 @@ import { fetchStrategyTokenPrices } from '../../utils/tokenPrices'
 import { getContract } from 'viem'
 import { strategyAbi } from '../../data/abi/strategy'
 import { getViemClient } from '../../viem/viemClient'
-import { getStrategiesWithShareUnderlying } from '../strategies/strategiesController'
+import { getStrategiesWithShareUnderlying, sharesToOperatorDelegationValue, StrategyShareSummary } from '../strategies/strategiesController'
 
 type TvlWithoutChange = number
 
@@ -666,6 +666,34 @@ export async function getHistoricalDepositCount(req: Request, res: Response) {
 			variant
 		)
 		res.status(200).send({ data })
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+/**
+ * Function for route /deployment-ratio
+ * Returns the Deployment Ratio
+ *
+ * @param req
+ * @param res
+ */
+export async function getDeploymentRatio(req: Request, res: Response) {
+	try {
+		const tvlRestaking = (await doGetTvl()).tvlRestaking
+		const tvlBeaconChain = await doGetTvlBeaconChain()
+
+		const strategyTokenPrices = await fetchStrategyTokenPrices()
+        const strategiesWithSharesUnderlying = await getStrategiesWithShareUnderlying()
+
+		let totalOperatorDelegationValue = 0;
+		const groupStrategyShares:StrategyShareSummary[] = await prisma.$queryRaw`SELECT "strategyAddress", SUM(CAST("shares" AS NUMERIC)) as "totalShares" FROM public."OperatorStrategyShares" GROUP BY "strategyAddress";`;
+		totalOperatorDelegationValue = sharesToOperatorDelegationValue(groupStrategyShares,strategiesWithSharesUnderlying, strategyTokenPrices);
+
+		res.send({
+			deploymentRatio: totalOperatorDelegationValue/(tvlRestaking + tvlBeaconChain)
+		})
+
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
 	}
