@@ -117,12 +117,6 @@ export async function getOperator(req: Request, res: Response) {
 			include: {
 				shares: {
 					select: { strategyAddress: true, shares: true }
-				},
-				_count: {
-					select: {
-						stakers: true,
-						avs: true
-					}
 				}
 			}
 		})
@@ -134,8 +128,8 @@ export async function getOperator(req: Request, res: Response) {
 
 		res.send({
 			...operator,
-			totalStakers: operator._count.stakers,
-			totalAvs: operator._count.avs,
+			totalStakers: operator.totalStakers,
+			totalAvs: operator.totalAvs,
 			tvl: withTvl
 				? sharesToTVL(
 						operator.shares,
@@ -145,8 +139,7 @@ export async function getOperator(req: Request, res: Response) {
 				: undefined,
 			stakers: undefined,
 			metadataUrl: undefined,
-			isMetadataSynced: undefined,
-			_count: undefined
+			isMetadataSynced: undefined
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
