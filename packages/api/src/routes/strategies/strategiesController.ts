@@ -217,15 +217,15 @@ export function sharesToTVL(
 			(stp) =>
 				stp.strategyAddress.toLowerCase() === s.strategyAddress.toLowerCase()
 		)
-		const groupSharesUnderlying = strategiesWithSharesUnderlying.find(
+		const sharesUnderlying = strategiesWithSharesUnderlying.find(
 			(su) =>
 				su.strategyAddress.toLowerCase() === s.strategyAddress.toLowerCase()
 		)
 
-		if (foundStrategyIndex !== -1 && groupSharesUnderlying) {
+		if (foundStrategyIndex !== -1 && sharesUnderlying) {
 			const strategyShares =
 				Number(
-					(BigInt(s.shares) * BigInt(groupSharesUnderlying.sharesToUnderlying)) /
+					(BigInt(s.shares) * BigInt(sharesUnderlying.sharesToUnderlying)) /
 						BigInt(1e18)
 				) / 1e18
 
