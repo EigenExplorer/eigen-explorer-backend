@@ -20,8 +20,8 @@ import { getStrategiesWithShareUnderlying } from '../strategies/strategiesContro
 
 type TvlWithoutChange = number
 
-interface TvlWithChange {
-	tvl: number
+type TvlWithChange = {
+	tvl: TvlWithoutChange
 	change24h: { value: number; percent: number }
 	change7d: { value: number; percent: number }
 }
@@ -43,6 +43,7 @@ type EthTvlModelMap = {
 	metricDepositHourly: Prisma.MetricDepositHourly
 	metricWithdrawalHourly: Prisma.MetricWithdrawalHourly
 	metricEigenPodsHourly: Prisma.MetricEigenPodsHourly
+	validator: Prisma.Validator
 }
 type EthTvlModelName = keyof EthTvlModelMap
 
@@ -89,8 +90,8 @@ export async function getMetrics(req: Request, res: Response) {
 			totalOperators,
 			totalStakers
 		] = await Promise.all([
-			doGetTvl(),
-			doGetTvlBeaconChain(),
+			doGetTvl(false),
+			doGetTvlBeaconChain(false),
 			doGetTotalAvsCount(false),
 			doGetTotalOperatorCount(false),
 			doGetTotalStakerCount(false)
@@ -105,8 +106,10 @@ export async function getMetrics(req: Request, res: Response) {
 		}
 
 		res.send({
-			tvl: tvlRestaking.tvlRestaking + (tvlBeaconChain as TvlWithoutChange),
-			tvlBeaconChain,
+			tvl:
+				(tvlRestaking.tvlRestaking as TvlWithoutChange) +
+				(tvlBeaconChain as TvlWithoutChange),
+			tvlBeaconChain: tvlBeaconChain as TvlWithoutChange,
 			...tvlRestaking,
 			totalAvs: metrics.totalAvs,
 			totalOperators: metrics.totalOperators,
@@ -128,11 +131,23 @@ export async function getMetrics(req: Request, res: Response) {
  */
 export async function getTvl(req: Request, res: Response) {
 	try {
-		const tvlRestaking = (await doGetTvl()).tvlRestaking
-		const tvlBeaconChain = await doGetTvlBeaconChain()
+		const withChange = true // TODO
+		const tvlRestaking = (await doGetTvl(withChange)).tvlRestaking
+		const tvlBeaconChain = await doGetTvlBeaconChain(withChange)
 
 		res.send({
-			tvl: tvlRestaking + tvlBeaconChain
+			...(withChange
+				? {
+						...combineTvlWithChange(
+							tvlRestaking as TvlWithChange,
+							tvlBeaconChain as TvlWithChange
+						)
+				  }
+				: {
+						tvl:
+							(tvlRestaking as TvlWithoutChange) +
+							(tvlBeaconChain as TvlWithoutChange)
+				  })
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
@@ -148,10 +163,13 @@ export async function getTvl(req: Request, res: Response) {
  */
 export async function getTvlBeaconChain(req: Request, res: Response) {
 	try {
-		const tvlBeaconChain = await doGetTvlBeaconChain()
+		const withChange = true // TODO
+		const tvlBeaconChain = await doGetTvlBeaconChain(withChange)
 
 		res.send({
-			tvl: tvlBeaconChain
+			...(withChange
+				? { ...(tvlBeaconChain as TvlWithChange) }
+				: { tvl: tvlBeaconChain as TvlWithoutChange })
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
@@ -168,12 +186,15 @@ export async function getTvlBeaconChain(req: Request, res: Response) {
  */
 export async function getTvlRestaking(req: Request, res: Response) {
 	try {
-		const tvlRestaking = await doGetTvl()
+		const withChange = true //TODO
+		const tvlResponse = await doGetTvl(withChange)
 
 		res.send({
-			tvl: tvlRestaking.tvlRestaking,
-			tvlStrategies: tvlRestaking.tvlStrategies,
-			tvlStrategiesEth: tvlRestaking.tvlStrategiesEth
+			...(withChange
+				? { ...(tvlResponse.tvlRestaking as TvlWithChange) }
+				: { tvlRestaking: tvlResponse.tvlRestaking as TvlWithoutChange }),
+			tvlStrategies: tvlResponse.tvlStrategies,
+			tvlStrategiesEth: tvlResponse.tvlStrategiesEth
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
@@ -190,6 +211,7 @@ export async function getTvlRestaking(req: Request, res: Response) {
 export async function getTvlRestakingByStrategy(req: Request, res: Response) {
 	try {
 		const { strategy } = req.params
+		const withChange = true //TODO
 
 		const strategies = Object.keys(getEigenContracts().Strategies)
 		const foundStrategy = strategies.find(
@@ -203,12 +225,16 @@ export async function getTvlRestakingByStrategy(req: Request, res: Response) {
 			})
 		}
 
-		const tvl = await doGetTvlStrategy(
-			getEigenContracts().Strategies[foundStrategy].strategyContract
+		const tvlResponse = await doGetTvlStrategy(
+			getEigenContracts().Strategies[foundStrategy].strategyContract,
+			withChange
 		)
 
 		res.send({
-			...tvl
+			...(withChange
+				? { tvl: { ...(tvlResponse.tvl as TvlWithChange) } }
+				: { tvl: tvlResponse.tvl as TvlWithoutChange }),
+			tvlEth: tvlResponse.tvlEth
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
@@ -673,8 +699,9 @@ export async function getHistoricalDepositCount(req: Request, res: Response) {
 
 // --- TVL Routes ---
 
-async function doGetTvl() {
-	let tvlRestaking = 0
+async function doGetTvl(withChange: boolean) {
+	let tvlRestaking: TvlWithoutChange = 0
+	const ethPrices = withChange ? await fetchCurrentEthPrices() : undefined
 
 	const strategyKeys = Object.keys(getEigenContracts().Strategies)
 	const strategiesContracts = strategyKeys.map((s) =>
@@ -738,15 +765,23 @@ async function doGetTvl() {
 	} catch (error) {}
 
 	return {
-		tvlRestaking,
+		tvlRestaking: withChange
+			? await calculateTvlChange(
+					tvlRestaking,
+					'metricStrategyHourly',
+					ethPrices
+			  )
+			: tvlRestaking,
 		tvlStrategies,
 		tvlStrategiesEth: Object.fromEntries(tvlStrategiesEth.entries())
 	}
 }
 
-async function doGetTvlStrategy(strategy: `0x${string}`) {
+async function doGetTvlStrategy(strategy: `0x${string}`, withChange: boolean) {
 	let tvl = 0
 	let tvlEth = 0
+
+	const ethPrices = withChange ? await fetchCurrentEthPrices() : undefined
 
 	try {
 		const strategyTokenPrices = await fetchStrategyTokenPrices()
@@ -773,7 +808,14 @@ async function doGetTvlStrategy(strategy: `0x${string}`) {
 	} catch (error) {}
 
 	return {
-		tvl,
+		tvl: withChange
+			? await calculateTvlChange(
+					tvl,
+					'metricStrategyHourly',
+					ethPrices,
+					strategy
+			  )
+			: (tvl as TvlWithoutChange),
 		tvlEth
 	}
 }
@@ -784,7 +826,9 @@ async function doGetTvlStrategy(strategy: `0x${string}`) {
  *
  * @returns
  */
-async function doGetTvlBeaconChain() {
+async function doGetTvlBeaconChain(
+	withChange: boolean
+): Promise<TvlWithoutChange | TvlWithChange> {
 	const totalValidators = await prisma.validator.aggregate({
 		_sum: {
 			balance: true
@@ -793,7 +837,9 @@ async function doGetTvlBeaconChain() {
 
 	const currentTvl = Number(totalValidators._sum.balance) / 1e9
 
-	return currentTvl
+	return withChange
+		? ((await calculateTvlChange(currentTvl, 'validator')) as TvlWithChange)
+		: (currentTvl as TvlWithoutChange)
 }
 
 // --- Total Routes ---
@@ -2021,29 +2067,139 @@ function checkEthDenomination(modelName: string): modelName is EthTvlModelName {
 }
 
 /**
- * Calculates 24h/7d tvl change
+ * Processes 24h/7d tvl change
  *
- * @param currentTvl
- * @param tvl24hOffset
- * @param tvl7dOffset
+ * @param tvl
+ * @param modelName
+ * @param ethPrices
+ * @param address
  * @returns
  */
-function calculateTvlChanges(
-	currentTvl: number,
-	tvl24hOffset: number,
-	tvl7dOffset: number
-) {
-	return {
-		tvl: currentTvl,
-		change24h: {
-			value: currentTvl - tvl24hOffset,
-			percent:
-				tvl24hOffset === 0 ? 0 : (currentTvl - tvl24hOffset) / tvl24hOffset
-		},
-		change7d: {
-			value: currentTvl - tvl7dOffset,
-			percent: tvl7dOffset === 0 ? 0 : (currentTvl - tvl7dOffset) / tvl7dOffset
+async function calculateTvlChange(
+	tvl: TvlWithoutChange,
+	modelName: MetricModelName,
+	ethPrices?: Map<string, number>,
+	address?: string
+): Promise<TvlWithChange> {
+	const isEthDenominated = checkEthDenomination(modelName)
+
+	let tvl24hAgo = 0
+	let tvl7dAgo = 0
+
+	if (!isEthDenominated) {
+		if (!ethPrices) {
+			throw new Error('ETH prices are required for processing this data')
 		}
+
+		const timestamps = await prisma.metricStrategyHourly.groupBy({
+			by: ['strategyAddress'],
+			where: {
+				timestamp: {
+					lte: getTimestamp('24h'),
+					gte: getTimestamp('7d')
+				},
+				strategyAddress: address ? address : {}
+			},
+			_max: {
+				timestamp: true
+			},
+			_min: {
+				timestamp: true
+			}
+		})
+
+		const historicalRecords = await prisma.metricStrategyHourly.findMany({
+			where: {
+				OR: timestamps.flatMap((record) => [
+					{
+						strategyAddress: record.strategyAddress,
+						timestamp: record._min.timestamp
+					},
+					{
+						strategyAddress: record.strategyAddress,
+						timestamp: record._max.timestamp
+					}
+				]) as Prisma.Prisma.MetricStrategyHourlyWhereInput[]
+			},
+			orderBy: {
+				strategyAddress: 'asc'
+			}
+		})
+
+		for (const record of historicalRecords) {
+			const ethPrice = ethPrices.get(record.strategyAddress.toLowerCase()) || 1
+			const tvlInEth = Number(record.tvl) * ethPrice
+
+			if (record.timestamp.getTime() === getTimestamp('24h').getTime()) {
+				tvl24hAgo += tvlInEth
+			} else if (record.timestamp.getTime() === getTimestamp('7d').getTime()) {
+				tvl7dAgo += tvlInEth
+			}
+		}
+	} else {
+		const historicalRecords = await prisma.metricEigenPodsHourly.findMany({
+			where: {
+				timestamp: {
+					lte: getTimestamp('24h'),
+					gte: getTimestamp('7d')
+				}
+			},
+			orderBy: {
+				timestamp: 'desc'
+			}
+		})
+
+		const [record24hAgo, ...rest] = historicalRecords
+		const record7dAgo = rest.pop()
+
+		tvl24hAgo = Number(record24hAgo?.tvlEth)
+		tvl7dAgo = Number(record7dAgo?.tvlEth)
+	}
+
+	const change24h = {
+		value: tvl - tvl24hAgo,
+		percent: ((tvl - tvl24hAgo) / tvl24hAgo) * 100
+	}
+
+	const change7d = {
+		value: tvl - tvl7dAgo,
+		percent: ((tvl - tvl7dAgo) / tvl7dAgo) * 100
+	}
+
+	const tvlWithChange: TvlWithChange = {
+		tvl,
+		change24h,
+		change7d
+	}
+
+	return tvlWithChange
+}
+
+/**
+ * Sums the values of two TvlWithChange items and returns a TvlWithChange object
+ *
+ * @param tvl1
+ * @param tvl2
+ * @returns
+ */
+async function combineTvlWithChange(
+	tvl1: TvlWithChange,
+	tvl2: TvlWithChange
+): Promise<TvlWithChange> {
+	const combinedTvl = tvl1.tvl + tvl2.tvl
+	const combinedChange24h = {
+		value: tvl1.change24h.value + tvl2.change24h.value,
+		percent: tvl1.change24h.percent + tvl2.change24h.percent
+	}
+	const combinedChange7d = {
+		value: tvl1.change7d.value + tvl2.change7d.value,
+		percent: tvl1.change7d.percent + tvl2.change7d.percent
+	}
+
+	return {
+		tvl: combinedTvl,
+		change24h: combinedChange24h,
+		change7d: combinedChange7d
 	}
 }
 
