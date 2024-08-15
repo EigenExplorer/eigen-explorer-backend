@@ -30,22 +30,6 @@ export const WithTvlQuerySchema = z
 	})
 	.refine(
 		(data) => {
-			if (
-				data.sortByTotalStakers !== undefined ||
-				data.sortByTotalAvs !== undefined ||
-				data.sortByTotalOperators !== undefined
-			) {
-				return data.withTvl === true
-			}
-			return true
-		},
-		{
-			message: 'sortBy can only be used when withTvl is true',
-			path: ['withTvl']
-		}
-	)
-	.refine(
-		(data) => {
 			const sortByFields = [
 				data.sortByTotalStakers,
 				data.sortByTotalAvs,
