@@ -17,6 +17,7 @@ import { getContract } from 'viem'
 import { strategyAbi } from '../../data/abi/strategy'
 import { getViemClient } from '../../viem/viemClient'
 import { getStrategiesWithShareUnderlying } from '../strategies/strategiesController'
+import { fetchEthCirculatingSupply } from '../../utils/ethCirculatingSupply'
 
 type TvlWithoutChange = number
 
@@ -666,6 +667,104 @@ export async function getHistoricalDepositCount(req: Request, res: Response) {
 			variant
 		)
 		res.status(200).send({ data })
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+/**
+ * Function for route /restaking-rataio
+ * Returns the Restaking Ratio
+ *
+ * @param req
+ * @param res
+ */
+
+// type HistoricalTvlRecord = {
+// 	timestamp: string
+// 	tvlEth: number
+// }
+// Helper function to calculate restaking ratio
+function calculateRestakingRatio(
+	tvlEth: number,
+	ethCirculation: number
+): number {
+	return tvlEth / ethCirculation;
+}
+  
+  // Main function
+  export async function getRestakingRatio(req: Request, res: Response) {
+	try {
+
+		const tvlRestaking = (await doGetTvl()).tvlRestaking
+		const tvlBeaconChain = await doGetTvlBeaconChain()
+
+		const ethSupplyData = await fetchEthCirculatingSupply()
+		const currentEthCirculation = ethSupplyData.current_circulating_supply
+		const ethCirculation24hAgo = ethSupplyData.supply_24h_ago
+		const ethCirculation7dAgo = ethSupplyData.supply_7d_ago
+
+		const timestampNow = new Date()
+		const timestamp24h = new Date(
+			new Date().setUTCHours(timestampNow.getUTCHours() - 24)
+		  )
+		  const timestamp7d = new Date(
+			new Date().setUTCDate(timestampNow.getUTCDate() - 7)
+		  )
+
+		console.log("timestamp24h ",timestamp24h)
+		console.log("timestamp7d ",timestamp7d)
+
+		const data = await doGetHistoricalTvlTotal(
+			timestamp7d.toString(),
+			timestamp24h.toString(),
+			'1d',
+			'cumulative'
+		)
+
+		console.log(data)
+
+		const tvlEth24hAgo = data[data.length - 1]?.tvlEth || 0 
+		const tvlEth7dAgo = data[0]?.tvlEth || 0 
+
+		const currentRestakingRatio = calculateRestakingRatio(
+			tvlRestaking + tvlBeaconChain,
+			currentEthCirculation
+		)
+
+		const restakingRatio24hAgo = calculateRestakingRatio(
+			tvlEth24hAgo,
+			ethCirculation24hAgo
+		)
+
+		const restakingRatio7dAgo =  calculateRestakingRatio(
+			tvlEth7dAgo,
+			ethCirculation7dAgo
+		)
+
+		const change24hValue = currentRestakingRatio - restakingRatio24hAgo;
+		const change24hPercent =
+			(restakingRatio24hAgo !== 0
+				? (change24hValue / restakingRatio24hAgo)
+				: 0)
+
+		const change7dValue = currentRestakingRatio - restakingRatio7dAgo
+		const change7dPercent =
+			(restakingRatio7dAgo !== 0
+				? (change7dValue / restakingRatio7dAgo)
+				: 0)
+
+		res.send({
+			total: currentRestakingRatio,
+			change24h: {
+				value: change24hValue,
+				percent: change24hPercent
+			},
+			change7d: {
+				value: change7dValue,
+				percent: change7dPercent
+			}
+		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
 	}

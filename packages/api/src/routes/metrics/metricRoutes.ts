@@ -21,7 +21,8 @@ import {
 	getHistoricalTvlWithdrawal,
 	getHistoricalTvlDeposit,
 	getTotalWithdrawals,
-	getTotalDeposits
+	getTotalDeposits,
+	getRestakingRatio
 } from './metricController'
 
 import routeCache from 'route-cache'
@@ -120,6 +121,12 @@ router.get(
 	'/historical/count-deposits',
 	routeCache.cacheSeconds(120),
 	getHistoricalDepositCount
+)
+
+router.get(
+	'/restaking-ratio',
+	// routeCache.cacheSeconds(120),
+	getRestakingRatio
 )
 
 export default router
