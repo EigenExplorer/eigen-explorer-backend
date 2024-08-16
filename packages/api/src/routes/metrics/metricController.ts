@@ -2,7 +2,7 @@ import type { Request, Response } from 'express'
 import type Prisma from '@prisma/client'
 import prisma from '../../utils/prismaClient'
 import {
-	type EigenStrategiesContractAddress,
+	EigenStrategiesContractAddress,
 	getEigenContracts
 } from '../../data/address'
 import {
@@ -43,6 +43,28 @@ type TotalWithChange = {
 	total: TotalWithoutChange
 	change24h: { value: number; percent: number }
 	change7d: { value: number; percent: number }
+}
+type TotalWithdrawalsWithoutChange = {
+	total: number
+	pending: number
+	completed: number
+}
+type TotalWithdrawalsWithChange = {
+	total: {
+		value: number
+		change24h: { value: number; percent: number }
+		change7d: { value: number; percent: number }
+	}
+	pending: {
+		value: number
+		change24h: { value: number; percent: number }
+		change7d: { value: number; percent: number }
+	}
+	completed: {
+		value: number
+		change24h: { value: number; percent: number }
+		change7d: { value: number; percent: number }
+	}
 }
 
 // --- Historical TVL Routes ---
@@ -380,7 +402,11 @@ export async function getTotalWithdrawals(req: Request, res: Response) {
 		const { withChange } = queryCheck.data
 		const total = await doGetTotalWithdrawals(withChange)
 
-		res.send(total) // TODO: return with change
+		res.send({
+			...(withChange
+				? { ...(total as TotalWithdrawalsWithChange) }
+				: { ...(total as TotalWithdrawalsWithoutChange) })
+		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
 	}
@@ -957,18 +983,23 @@ async function doGetTotalAvsCount(
 		return totalNow as TotalWithoutChange
 	}
 
-	const change24hValue = await prisma.avs.count({
+	const getChange24hValue = prisma.avs.count({
 		where: {
 			createdAt: { gte: getTimestamp('24h') },
 			...getAvsFilterQuery(true)
 		}
 	})
-	const change7dValue = await prisma.avs.count({
+	const getChange7dValue = prisma.avs.count({
 		where: {
 			createdAt: { gte: getTimestamp('7d') },
 			...getAvsFilterQuery(true)
 		}
 	})
+
+	const [change24hValue, change7dValue] = await Promise.all([
+		getChange24hValue,
+		getChange7dValue
+	])
 
 	return calculateTotalChange(totalNow, change24hValue, change7dValue)
 }
@@ -986,16 +1017,21 @@ async function doGetTotalOperatorCount(withChange: boolean) {
 		return totalNow as TotalWithoutChange
 	}
 
-	const change24hValue = await prisma.operator.count({
+	const getChange24hValue = prisma.operator.count({
 		where: {
 			createdAt: { gte: getTimestamp('24h') }
 		}
 	})
-	const change7dValue = await prisma.operator.count({
+	const getChange7dValue = prisma.operator.count({
 		where: {
 			createdAt: { gte: getTimestamp('7d') }
 		}
 	})
+
+	const [change24hValue, change7dValue] = await Promise.all([
+		getChange24hValue,
+		getChange7dValue
+	])
 
 	return calculateTotalChange(totalNow, change24hValue, change7dValue)
 }
@@ -1015,18 +1051,23 @@ async function doGetTotalStakerCount(withChange: boolean) {
 		return totalNow as TotalWithoutChange
 	}
 
-	const change24hValue = await prisma.staker.count({
+	const getChange24hValue = prisma.staker.count({
 		where: {
 			createdAt: { gte: getTimestamp('24h') },
 			operatorAddress: { not: null }
 		}
 	})
-	const change7dValue = await prisma.staker.count({
+	const getChange7dValue = prisma.staker.count({
 		where: {
 			createdAt: { gte: getTimestamp('7d') },
 			operatorAddress: { not: null }
 		}
 	})
+
+	const [change24hValue, change7dValue] = await Promise.all([
+		getChange24hValue,
+		getChange7dValue
+	])
 
 	return calculateTotalChange(totalNow, change24hValue, change7dValue)
 }
@@ -1037,20 +1078,88 @@ async function doGetTotalStakerCount(withChange: boolean) {
  * @param withChange
  * @returns
  */
-async function doGetTotalWithdrawals(withChange: boolean) {
+async function doGetTotalWithdrawals(
+	withChange: boolean
+): Promise<TotalWithdrawalsWithoutChange | TotalWithdrawalsWithChange> {
 	const totalNow = await prisma.withdrawalQueued.count()
 	const completedNow = await prisma.withdrawalCompleted.count()
 	const pendingNow = totalNow - completedNow
 
 	if (!withChange) {
 		return {
-			total: totalNow as TotalWithoutChange,
+			total: totalNow,
 			pending: pendingNow,
 			completed: completedNow
 		}
 	}
 
-	// TODO: return with change
+	const getTotal24hAgo = prisma.withdrawalQueued.count({
+		where: {
+			createdAt: { gte: getTimestamp('24h') }
+		}
+	})
+	const getCompleted24hAgo = prisma.withdrawalCompleted.count({
+		where: {
+			createdAt: { gte: getTimestamp('24h') }
+		}
+	})
+	const getTotal7dAgo = prisma.withdrawalQueued.count({
+		where: {
+			createdAt: { gte: getTimestamp('7d') }
+		}
+	})
+	const getCompleted7dAgo = prisma.withdrawalCompleted.count({
+		where: {
+			createdAt: { gte: getTimestamp('7d') }
+		}
+	})
+
+	const [total24hAgo, completed24hAgo, total7dAgo, completed7dAgo] =
+		await Promise.all([
+			getTotal24hAgo,
+			getCompleted24hAgo,
+			getTotal7dAgo,
+			getCompleted7dAgo
+		])
+
+	const pending24hAgo = total24hAgo - completed24hAgo
+	const pending7dAgo = total7dAgo - completed7dAgo
+
+	const totalChange = await calculateTotalChange(
+		totalNow,
+		totalNow - total24hAgo,
+		totalNow - total7dAgo
+	)
+
+	const pendingChange = await calculateTotalChange(
+		pendingNow,
+		pendingNow - pending24hAgo,
+		pendingNow - pending7dAgo
+	)
+
+	const completedChange = await calculateTotalChange(
+		completedNow,
+		completedNow - completed24hAgo,
+		completedNow - completed7dAgo
+	)
+
+	return {
+		total: {
+			value: totalChange.total,
+			change24h: totalChange.change24h,
+			change7d: totalChange.change7d
+		},
+		pending: {
+			value: pendingChange.total,
+			change24h: pendingChange.change24h,
+			change7d: pendingChange.change7d
+		},
+		completed: {
+			value: completedChange.total,
+			change24h: completedChange.change24h,
+			change7d: completedChange.change7d
+		}
+	}
 }
 
 /**
@@ -1066,16 +1175,21 @@ async function doGetTotalDeposits(withChange: boolean) {
 		return totalNow as TotalWithoutChange
 	}
 
-	const change24hValue = await prisma.deposit.count({
+	const getChange24hValue = prisma.deposit.count({
 		where: {
 			createdAt: { gte: getTimestamp('24h') }
 		}
 	})
-	const change7dValue = await prisma.deposit.count({
+	const getChange7dValue = prisma.deposit.count({
 		where: {
 			createdAt: { gte: getTimestamp('7d') }
 		}
 	})
+
+	const [change24hValue, change7dValue] = await Promise.all([
+		getChange24hValue,
+		getChange7dValue
+	])
 
 	return calculateTotalChange(totalNow, change24hValue, change7dValue)
 }
@@ -2125,7 +2239,8 @@ function checkEthDenomination(modelName: string): modelName is EthTvlModelName {
 	const ethTvlModelNames: EthTvlModelName[] = [
 		'metricDepositHourly',
 		'metricWithdrawalHourly',
-		'metricEigenPodsHourly'
+		'metricEigenPodsHourly',
+		'validator'
 	]
 	return ethTvlModelNames.includes(modelName as EthTvlModelName)
 }
@@ -2141,16 +2256,19 @@ function checkEthDenomination(modelName: string): modelName is EthTvlModelName {
 async function calculateTotalChange(
 	total: number,
 	change24hValue: number,
-	change7dValue: number
+	change7dValue: number,
+	precision = 1000
 ): Promise<TotalWithChange> {
 	const change24hPercent =
 		change24hValue !== 0
-			? Math.round((change24hValue / (total - change24hValue)) * 1000) / 1000
+			? Math.round((change24hValue / (total - change24hValue)) * precision) /
+			  precision
 			: 0
 
 	const change7dPercent =
 		change7dValue !== 0
-			? Math.round((change7dValue / (total - change7dValue)) * 1000) / 1000
+			? Math.round((change7dValue / (total - change7dValue)) * precision) /
+			  precision
 			: 0
 
 	return {
@@ -2228,12 +2346,12 @@ async function calculateTvlChange(
 
 		for (const record of historicalRecords) {
 			const ethPrice = ethPrices.get(record.strategyAddress.toLowerCase()) || 1
-			const tvlInEth = Number(record.tvl) * ethPrice
+			const tvlEth = Number(record.tvl) * ethPrice
 
 			if (record.timestamp.getTime() === getTimestamp('24h').getTime()) {
-				tvl24hAgo += tvlInEth
+				tvl24hAgo += tvlEth
 			} else if (record.timestamp.getTime() === getTimestamp('7d').getTime()) {
-				tvl7dAgo += tvlInEth
+				tvl7dAgo += tvlEth
 			}
 		}
 	} else {
