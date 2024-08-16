@@ -2,7 +2,7 @@ import type { Request, Response } from 'express'
 import type Prisma from '@prisma/client'
 import prisma from '../../utils/prismaClient'
 import {
-	EigenStrategiesContractAddress,
+	type EigenStrategiesContractAddress,
 	getEigenContracts
 } from '../../data/address'
 import {
@@ -87,7 +87,7 @@ type NativeTvlModelMap = {
 	metricAvsStrategyHourly: Prisma.MetricAvsStrategyHourly
 	metricOperatorStrategyHourly: Prisma.MetricOperatorStrategyHourly
 }
-type NativeTvlModelName = keyof NativeTvlModelMap // Models with tvl denominated in their own native token
+type NativeTvlModelName = keyof NativeTvlModelMap // Models with TVL denominated in their own native token
 
 type MetricModelMap = EthTvlModelMap & NativeTvlModelMap
 type MetricModelName = keyof (EthTvlModelMap & NativeTvlModelMap)
@@ -184,10 +184,10 @@ export async function getTvl(req: Request, res: Response) {
 		res.send({
 			...(withChange
 				? {
-						...combineTvlWithChange(
+						...(await combineTvlWithChange(
 							tvlRestaking as TvlWithChange,
 							tvlBeaconChain as TvlWithChange
-						)
+						))
 				  }
 				: {
 						tvl:
@@ -271,8 +271,8 @@ export async function getTvlRestakingByStrategy(req: Request, res: Response) {
 	}
 
 	try {
-		const { withChange } = queryCheck.data
 		const { strategy } = req.params
+		const { withChange } = queryCheck.data
 
 		const strategies = Object.keys(getEigenContracts().Strategies)
 		const foundStrategy = strategies.find(
@@ -2287,74 +2287,61 @@ async function calculateTotalChange(
 /**
  * Processes 24h/7d tvl change
  *
- * @param tvl
+ * @param tvlEth
  * @param modelName
  * @param ethPrices
  * @param address
  * @returns
  */
 async function calculateTvlChange(
-	tvl: TvlWithoutChange,
+	tvlEth: TvlWithoutChange,
 	modelName: MetricModelName,
 	ethPrices?: Map<string, number>,
 	address?: string
 ): Promise<TvlWithChange> {
 	const isEthDenominated = checkEthDenomination(modelName)
 
-	let tvl24hAgo = 0
-	let tvl7dAgo = 0
+	let tvlEth24hAgo = 0
+	let tvlEth7dAgo = 0
 
 	if (!isEthDenominated) {
 		if (!ethPrices) {
 			throw new Error('ETH prices are required for processing this data')
 		}
 
-		const timestamps = await prisma.metricStrategyHourly.groupBy({
-			by: ['strategyAddress'],
+		let changeTvlEth24hAgo = 0
+		let changeTvlEth7dAgo = 0
+
+		// Get all records from 7d ago
+		const historicalRecords = await prisma.metricStrategyHourly.findMany({
 			where: {
 				timestamp: {
-					lte: getTimestamp('24h'),
 					gte: getTimestamp('7d')
 				},
 				strategyAddress: address ? address : {}
 			},
-			_max: {
-				timestamp: true
-			},
-			_min: {
-				timestamp: true
-			}
-		})
-
-		const historicalRecords = await prisma.metricStrategyHourly.findMany({
-			where: {
-				OR: timestamps.flatMap((record) => [
-					{
-						strategyAddress: record.strategyAddress,
-						timestamp: record._min.timestamp
-					},
-					{
-						strategyAddress: record.strategyAddress,
-						timestamp: record._max.timestamp
-					}
-				]) as Prisma.Prisma.MetricStrategyHourlyWhereInput[]
-			},
 			orderBy: {
-				strategyAddress: 'asc'
+				timestamp: 'desc'
 			}
 		})
 
+		// Calculate the change in TVL
 		for (const record of historicalRecords) {
-			const ethPrice = ethPrices.get(record.strategyAddress.toLowerCase()) || 1
-			const tvlEth = Number(record.tvl) * ethPrice
+			const changeTvlEth =
+				Number(record.changeTvl) * (ethPrices.get(record.strategyAddress) || 0)
 
-			if (record.timestamp.getTime() === getTimestamp('24h').getTime()) {
-				tvl24hAgo += tvlEth
-			} else if (record.timestamp.getTime() === getTimestamp('7d').getTime()) {
-				tvl7dAgo += tvlEth
-			}
+			changeTvlEth24hAgo +=
+				record.timestamp.getTime() >= getTimestamp('24h').getTime()
+					? changeTvlEth
+					: 0
+			changeTvlEth7dAgo += changeTvlEth
 		}
+
+		// Find TVL values 24h/7d ago
+		tvlEth24hAgo = tvlEth - changeTvlEth24hAgo
+		tvlEth7dAgo = tvlEth - changeTvlEth7dAgo
 	} else {
+		// Get all records between 7d & 24h ago
 		const historicalRecords = await prisma.metricEigenPodsHourly.findMany({
 			where: {
 				timestamp: {
@@ -2367,30 +2354,31 @@ async function calculateTvlChange(
 			}
 		})
 
+		// Pick the earliest and latest record
 		const [record24hAgo, ...rest] = historicalRecords
 		const record7dAgo = rest.pop()
 
-		tvl24hAgo = Number(record24hAgo?.tvlEth)
-		tvl7dAgo = Number(record7dAgo?.tvlEth)
+		// Find TVL values 24h/7d ago
+		tvlEth24hAgo = Number(record24hAgo?.tvlEth)
+		tvlEth7dAgo = Number(record7dAgo?.tvlEth)
 	}
 
+	// Calculate change values and percentages
 	const change24h = {
-		value: tvl - tvl24hAgo,
-		percent: ((tvl - tvl24hAgo) / tvl24hAgo) * 100
+		value: tvlEth - tvlEth24hAgo,
+		percent: ((tvlEth - tvlEth24hAgo) / tvlEth24hAgo) * 100
 	}
 
 	const change7d = {
-		value: tvl - tvl7dAgo,
-		percent: ((tvl - tvl7dAgo) / tvl7dAgo) * 100
+		value: tvlEth - tvlEth7dAgo,
+		percent: ((tvlEth - tvlEth7dAgo) / tvlEth7dAgo) * 100
 	}
 
-	const tvlWithChange: TvlWithChange = {
-		tvl,
+	return {
+		tvl: tvlEth,
 		change24h,
 		change7d
 	}
-
-	return tvlWithChange
 }
 
 /**
