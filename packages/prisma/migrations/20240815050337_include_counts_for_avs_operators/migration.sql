@@ -1,0 +1,7 @@
+-- AlterTable
+ALTER TABLE "Avs" ADD COLUMN     "totalOperators" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "totalStakers" INTEGER NOT NULL DEFAULT 0;
+
+-- AlterTable
+ALTER TABLE "Operator" ADD COLUMN     "totalAvs" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "totalStakers" INTEGER NOT NULL DEFAULT 0;

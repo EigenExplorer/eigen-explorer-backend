@@ -94,6 +94,11 @@ type MetricModelName = keyof (EthTvlModelMap & NativeTvlModelMap)
 
 // --- Historical Metrics Routes ---
 
+type HistoricalValueRecord = {
+	timestamp: string
+	valueEth: number
+}
+
 type HistoricalAggregateRecord = {
 	timestamp: string
 	tvlEth: number
@@ -1510,7 +1515,7 @@ async function doGetHistoricalTvlWithdrawal(
 		}
 	})
 
-	const results: HistoricalTvlRecord[] = []
+	const results: HistoricalValueRecord[] = []
 
 	// MetricHourly records are created only when activity is detected, not necessarily for all timestamps. If cumulative, we may need to set initial tvl value
 	let tvlEth = variant === 'cumulative' ? Number(hourlyData[0].tvlEth) : 0
@@ -1534,7 +1539,7 @@ async function doGetHistoricalTvlWithdrawal(
 
 		results.push({
 			timestamp: new Date(Number(currentTimestamp)).toISOString(),
-			tvlEth
+			valueEth: tvlEth
 		})
 
 		currentTimestamp = nextTimestamp
@@ -1586,7 +1591,7 @@ async function doGetHistoricalTvlDeposit(
 		}
 	})
 
-	const results: HistoricalTvlRecord[] = []
+	const results: HistoricalValueRecord[] = []
 
 	// MetricHourly records are created only when activity is detected, not necessarily for all timestamps. If cumulative, we may need to set initial tvl value
 	let tvlEth = variant === 'cumulative' ? Number(hourlyData[0].tvlEth) : 0
@@ -1610,7 +1615,7 @@ async function doGetHistoricalTvlDeposit(
 
 		results.push({
 			timestamp: new Date(Number(currentTimestamp)).toISOString(),
-			tvlEth
+			valueEth: tvlEth
 		})
 
 		currentTimestamp = nextTimestamp

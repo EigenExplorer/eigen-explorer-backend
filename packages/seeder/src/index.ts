@@ -32,6 +32,8 @@ import { seedRestakedStrategies } from './seedAvsRestakedStrategies'
 import { seedEthPricesDaily } from './seedEthPricesDaily'
 import { seedMetricsEigenPodsHourly } from './metrics/seedMetricsEigenPods'
 import { seedMetricsTvlHourly } from './metrics/seedMetricsTvl'
+import { monitorAvsMetrics } from './monitors/avsMetrics'
+import { monitorOperatorMetrics } from './monitors/operatorMetrics'
 
 console.log('Initializing Seeder ...')
 
@@ -86,6 +88,8 @@ async function seedMetadata() {
 
 			await monitorAvsMetadata()
 			await monitorOperatorMetadata()
+			await monitorAvsMetrics()
+			await monitorOperatorMetrics()
 		} catch (error) {
 			console.log('Failed to monitor metadata at:', Date.now())
 		}
