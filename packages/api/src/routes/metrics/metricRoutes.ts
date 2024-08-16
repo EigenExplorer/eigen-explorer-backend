@@ -125,7 +125,7 @@ router.get(
 
 router.get(
 	'/restaking-ratio',
-	// routeCache.cacheSeconds(120),
+	routeCache.cacheSeconds(120),
 	getRestakingRatio
 )
 

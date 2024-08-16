@@ -679,23 +679,8 @@ export async function getHistoricalDepositCount(req: Request, res: Response) {
  * @param req
  * @param res
  */
-
-// type HistoricalTvlRecord = {
-// 	timestamp: string
-// 	tvlEth: number
-// }
-// Helper function to calculate restaking ratio
-function calculateRestakingRatio(
-	tvlEth: number,
-	ethCirculation: number
-): number {
-	return tvlEth / ethCirculation;
-}
-  
-  // Main function
-  export async function getRestakingRatio(req: Request, res: Response) {
+export async function getRestakingRatio(req: Request, res: Response) {
 	try {
-
 		const tvlRestaking = (await doGetTvl()).tvlRestaking
 		const tvlBeaconChain = await doGetTvlBeaconChain()
 
@@ -712,20 +697,15 @@ function calculateRestakingRatio(
 			new Date().setUTCDate(timestampNow.getUTCDate() - 7)
 		  )
 
-		console.log("timestamp24h ",timestamp24h)
-		console.log("timestamp7d ",timestamp7d)
-
-		const data = await doGetHistoricalTvlTotal(
+		const historicalData = await doGetHistoricalTvlTotal(
 			timestamp7d.toString(),
 			timestamp24h.toString(),
 			'1d',
 			'cumulative'
 		)
 
-		console.log(data)
-
-		const tvlEth24hAgo = data[data.length - 1]?.tvlEth || 0 
-		const tvlEth7dAgo = data[0]?.tvlEth || 0 
+		const tvlEth24hAgo = historicalData[historicalData.length - 1]?.tvlEth || 0 
+		const tvlEth7dAgo = historicalData[0]?.tvlEth || 0 
 
 		const currentRestakingRatio = calculateRestakingRatio(
 			tvlRestaking + tvlBeaconChain,
@@ -2336,4 +2316,19 @@ async function calculateMetricsForHistoricalRecord(
 		totalOperators: newOperators,
 		totalAvs: newAvs
 	}
+}
+
+/**
+ * Calculates the restaking ratio, which is the proportion of TVL
+ * in restaking strategies relative to the total circulating supply of ETH.
+ *
+ * @param tvlEth - The total TVL in restaking strategies, denominated in ETH.
+ * @param ethCirculation - The total circulating supply of ETH at a given time.
+ * @returns The restaking ratio as a number
+ */
+function calculateRestakingRatio(
+	tvlEth: number,
+	ethCirculation: number
+): number {
+	return tvlEth / ethCirculation;
 }

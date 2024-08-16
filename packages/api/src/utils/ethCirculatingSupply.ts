@@ -14,8 +14,6 @@ export async function fetchEthCirculatingSupply(): Promise<CirculatingSupply> {
   const cached24hAgo = await cacheStore.get('eth_circulating_supply_24h_ago')
   const cached7dAgo = await cacheStore.get('eth_circulating_supply_7d_ago')
 
-  console.log("cachedCurrent ",cachedCurrent)
-
   let currentSupply = cachedCurrent
   let supply24hAgo = cached24hAgo
   let supply7dAgo = cached7dAgo
@@ -30,12 +28,10 @@ export async function fetchEthCirculatingSupply(): Promise<CirculatingSupply> {
     })
     const payloadCurrent = await responseCurrent.json()
     currentSupply = payloadCurrent.data.ETH[0].circulating_supply
-    console.log("currentSupply", currentSupply)
     await cacheStore.set('eth_circulating_supply_current', currentSupply, 86_400_000)
   }
 
   if (!supply24hAgo) {
-    console.log("timestampNow ",timestampNow)
     const timestamp24h = new Date(
       new Date().setUTCHours(timestampNow.getUTCHours() - 24)
     )
@@ -47,7 +43,6 @@ export async function fetchEthCirculatingSupply(): Promise<CirculatingSupply> {
     })
     const payload24hAgo = await response24hAgo.json()
     supply24hAgo = payload24hAgo.data[1].circulating_supply
-    console.log("supply24hAgo", supply24hAgo)
     await cacheStore.set('eth_circulating_supply_24h_ago', supply24hAgo, 86_400_000)
   }
 
@@ -63,7 +58,6 @@ export async function fetchEthCirculatingSupply(): Promise<CirculatingSupply> {
     })
     const payload7dAgo = await response7dAgo.json()
     supply7dAgo = payload7dAgo.data[1].circulating_supply
-    console.log("supply7dAgo", supply7dAgo)
     await cacheStore.set('eth_circulating_supply_7d_ago', supply7dAgo, 86_400_000)
   }
 
