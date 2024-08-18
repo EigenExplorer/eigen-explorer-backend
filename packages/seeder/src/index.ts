@@ -94,7 +94,7 @@ async function seedMetadata() {
 			console.log('Failed to monitor metadata at:', Date.now())
 		}
 
-		await delay(120)
+		await delay(720)
 	}
 }
 
