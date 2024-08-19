@@ -123,6 +123,10 @@ router.get(
 	getHistoricalDepositCount
 )
 
-router.get('/restaking-ratio', routeCache.cacheSeconds(120), getRestakingRatio)
+router.get(
+	'/restaking-ratio', 
+	routeCache.cacheSeconds(120), 
+	getRestakingRatio
+)
 
 export default router
