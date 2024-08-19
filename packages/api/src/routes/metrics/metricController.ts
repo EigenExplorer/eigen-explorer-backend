@@ -16,9 +16,7 @@ import { fetchStrategyTokenPrices } from '../../utils/tokenPrices'
 import { getContract } from 'viem'
 import { strategyAbi } from '../../data/abi/strategy'
 import { getViemClient } from '../../viem/viemClient'
-import {
-	getStrategiesWithShareUnderlying
-} from '../strategies/strategiesController'
+import { getStrategiesWithShareUnderlying } from '../strategies/strategiesController'
 
 type TvlWithoutChange = number
 
@@ -778,27 +776,24 @@ export async function getDeploymentRatio(req: Request, res: Response) {
 		)
 
 		const currentDeploymentRatio =
-		currentDelegationValue / (tvlRestaking + tvlBeaconChain)
+			currentDelegationValue / (tvlRestaking + tvlBeaconChain)
 
 		const deploymentRatio24hAgo =
-			(currentDelegationValue - delegationValue24hAgo) /
-			tvlEth24hAgo
+			(currentDelegationValue - delegationValue24hAgo) / tvlEth24hAgo
 
 		const deploymentRatio7dAgo =
-			(currentDelegationValue - delegationValue7dAgo) /
-			tvlEth7dAgo
-		
+			(currentDelegationValue - delegationValue7dAgo) / tvlEth7dAgo
+
 		const change24hValue = currentDeploymentRatio - deploymentRatio24hAgo
 		const change7dValue = currentDeploymentRatio - deploymentRatio7dAgo
 
 		const change24hPercent =
 			deploymentRatio24hAgo !== 0
-				? (change24hValue/
-						deploymentRatio24hAgo)
+				? Math.round((change24hValue / deploymentRatio24hAgo) * 1000) / 1000
 				: 0
 		const change7dPercent =
 			deploymentRatio7dAgo !== 0
-				? (change7dValue/ deploymentRatio7dAgo)
+				? Math.round((change7dValue / deploymentRatio7dAgo) * 1000) / 1000
 				: 0
 
 		res.send({
@@ -2343,7 +2338,7 @@ async function calculateMetricsForHistoricalRecord(
 							intervalHourlyData[
 								lastRecordIndex
 							] as AggregateModelMap['metricAvsHourly']
-						).totalOperators
+					  ).totalOperators
 					: 0
 
 			newAvs =
@@ -2352,7 +2347,7 @@ async function calculateMetricsForHistoricalRecord(
 							intervalHourlyData[
 								lastRecordIndex
 							] as AggregateModelMap['metricOperatorHourly']
-						).totalAvs
+					  ).totalAvs
 					: 0
 		}
 	} else {
@@ -2367,14 +2362,14 @@ async function calculateMetricsForHistoricalRecord(
 				? (intervalHourlyData as AggregateModelMap['metricAvsHourly'][]).reduce(
 						(sum, record) => sum + record.changeOperators,
 						0
-					)
+				  )
 				: 0
 
 		newAvs =
 			totalAvs !== undefined && totalAvs !== null
 				? (
 						intervalHourlyData as AggregateModelMap['metricOperatorHourly'][]
-					).reduce((sum, record) => sum + record.changeAvs, 0)
+				  ).reduce((sum, record) => sum + record.changeAvs, 0)
 				: 0
 	}
 
