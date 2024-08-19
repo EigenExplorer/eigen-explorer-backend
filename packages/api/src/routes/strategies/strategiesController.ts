@@ -10,8 +10,6 @@ import { TokenPrices } from '../../utils/tokenPrices'
 import { serviceManagerUIAbi } from '../../data/abi/serviceManagerUIAbi'
 import { getPrismaClient } from '../../utils/prismaClient'
 
-
-
 // ABI path for dynamic imports
 const abiPath = {
 	cbeth: '../../data/abi/cbEthAbi',
