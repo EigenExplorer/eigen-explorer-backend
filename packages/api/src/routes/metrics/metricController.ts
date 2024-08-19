@@ -707,20 +707,12 @@ export async function getRestakingRatio(req: Request, res: Response) {
 		const tvlEth24hAgo = historicalData[historicalData.length - 1]?.tvlEth || 0
 		const tvlEth7dAgo = historicalData[0]?.tvlEth || 0
 
-		const currentRestakingRatio = calculateRestakingRatio(
-			tvlRestaking + tvlBeaconChain,
-			currentEthCirculation
-		)
+		const currentRestakingRatio =
+			(tvlRestaking + tvlBeaconChain) / currentEthCirculation
 
-		const restakingRatio24hAgo = calculateRestakingRatio(
-			tvlEth24hAgo,
-			ethCirculation24hAgo
-		)
+		const restakingRatio24hAgo = tvlEth24hAgo / ethCirculation24hAgo
 
-		const restakingRatio7dAgo = calculateRestakingRatio(
-			tvlEth7dAgo,
-			ethCirculation7dAgo
-		)
+		const restakingRatio7dAgo = tvlEth7dAgo / ethCirculation7dAgo
 
 		const change24hValue = currentRestakingRatio - restakingRatio24hAgo
 		const change24hPercent =
@@ -2312,19 +2304,4 @@ async function calculateMetricsForHistoricalRecord(
 		totalOperators: newOperators,
 		totalAvs: newAvs
 	}
-}
-
-/**
- * Calculates the restaking ratio, which is the proportion of TVL
- * in restaking strategies relative to the total circulating supply of ETH.
- *
- * @param tvlEth - The total TVL in restaking strategies, denominated in ETH.
- * @param ethCirculation - The total circulating supply of ETH at a given time.
- * @returns The restaking ratio as a number
- */
-function calculateRestakingRatio(
-	tvlEth: number,
-	ethCirculation: number
-): number {
-	return tvlEth / ethCirculation
 }
