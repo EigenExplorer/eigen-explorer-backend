@@ -2268,7 +2268,7 @@ async function calculateMetricsForHistoricalRecord(
 							intervalHourlyData[
 								lastRecordIndex
 							] as AggregateModelMap['metricAvsHourly']
-						).totalOperators
+					  ).totalOperators
 					: 0
 
 			newAvs =
@@ -2277,7 +2277,7 @@ async function calculateMetricsForHistoricalRecord(
 							intervalHourlyData[
 								lastRecordIndex
 							] as AggregateModelMap['metricOperatorHourly']
-						).totalAvs
+					  ).totalAvs
 					: 0
 		}
 	} else {
@@ -2292,14 +2292,14 @@ async function calculateMetricsForHistoricalRecord(
 				? (intervalHourlyData as AggregateModelMap['metricAvsHourly'][]).reduce(
 						(sum, record) => sum + record.changeOperators,
 						0
-					)
+				  )
 				: 0
 
 		newAvs =
 			totalAvs !== undefined && totalAvs !== null
 				? (
 						intervalHourlyData as AggregateModelMap['metricOperatorHourly'][]
-					).reduce((sum, record) => sum + record.changeAvs, 0)
+				  ).reduce((sum, record) => sum + record.changeAvs, 0)
 				: 0
 	}
 
