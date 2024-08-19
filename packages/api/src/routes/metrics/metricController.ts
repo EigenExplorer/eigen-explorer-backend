@@ -716,11 +716,15 @@ export async function getRestakingRatio(req: Request, res: Response) {
 
 		const change24hValue = currentRestakingRatio - restakingRatio24hAgo
 		const change24hPercent =
-			restakingRatio24hAgo !== 0 ? change24hValue / restakingRatio24hAgo : 0
+			restakingRatio24hAgo !== 0
+				? Math.round((change24hValue / restakingRatio24hAgo) * 1000) / 1000
+				: 0
 
 		const change7dValue = currentRestakingRatio - restakingRatio7dAgo
 		const change7dPercent =
-			restakingRatio7dAgo !== 0 ? change7dValue / restakingRatio7dAgo : 0
+			restakingRatio7dAgo !== 0
+				? Math.round((change7dValue / restakingRatio7dAgo) * 1000) / 1000
+				: 0
 
 		res.send({
 			total: currentRestakingRatio,
