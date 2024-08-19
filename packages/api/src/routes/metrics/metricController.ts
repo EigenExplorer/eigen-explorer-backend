@@ -253,7 +253,7 @@ export async function getTvlRestaking(req: Request, res: Response) {
 		res.send({
 			...(withChange
 				? { ...(tvlResponse.tvlRestaking as TvlWithChange) }
-				: { tvlRestaking: tvlResponse.tvlRestaking as TvlWithoutChange }),
+				: { tvl: tvlResponse.tvlRestaking as TvlWithoutChange }),
 			tvlStrategies: tvlResponse.tvlStrategies,
 			tvlStrategiesEth: tvlResponse.tvlStrategiesEth
 		})
