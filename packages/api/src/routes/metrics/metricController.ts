@@ -692,10 +692,10 @@ export async function getRestakingRatio(req: Request, res: Response) {
 		const timestampNow = new Date()
 		const timestamp24h = new Date(
 			new Date().setUTCHours(timestampNow.getUTCHours() - 24)
-		  )
-		  const timestamp7d = new Date(
+		)
+		const timestamp7d = new Date(
 			new Date().setUTCDate(timestampNow.getUTCDate() - 7)
-		  )
+		)
 
 		const historicalData = await doGetHistoricalTvlTotal(
 			timestamp7d.toString(),
@@ -704,8 +704,8 @@ export async function getRestakingRatio(req: Request, res: Response) {
 			'cumulative'
 		)
 
-		const tvlEth24hAgo = historicalData[historicalData.length - 1]?.tvlEth || 0 
-		const tvlEth7dAgo = historicalData[0]?.tvlEth || 0 
+		const tvlEth24hAgo = historicalData[historicalData.length - 1]?.tvlEth || 0
+		const tvlEth7dAgo = historicalData[0]?.tvlEth || 0
 
 		const currentRestakingRatio = calculateRestakingRatio(
 			tvlRestaking + tvlBeaconChain,
@@ -717,22 +717,18 @@ export async function getRestakingRatio(req: Request, res: Response) {
 			ethCirculation24hAgo
 		)
 
-		const restakingRatio7dAgo =  calculateRestakingRatio(
+		const restakingRatio7dAgo = calculateRestakingRatio(
 			tvlEth7dAgo,
 			ethCirculation7dAgo
 		)
 
-		const change24hValue = currentRestakingRatio - restakingRatio24hAgo;
+		const change24hValue = currentRestakingRatio - restakingRatio24hAgo
 		const change24hPercent =
-			(restakingRatio24hAgo !== 0
-				? (change24hValue / restakingRatio24hAgo)
-				: 0)
+			restakingRatio24hAgo !== 0 ? change24hValue / restakingRatio24hAgo : 0
 
 		const change7dValue = currentRestakingRatio - restakingRatio7dAgo
 		const change7dPercent =
-			(restakingRatio7dAgo !== 0
-				? (change7dValue / restakingRatio7dAgo)
-				: 0)
+			restakingRatio7dAgo !== 0 ? change7dValue / restakingRatio7dAgo : 0
 
 		res.send({
 			total: currentRestakingRatio,
@@ -2276,7 +2272,7 @@ async function calculateMetricsForHistoricalRecord(
 							intervalHourlyData[
 								lastRecordIndex
 							] as AggregateModelMap['metricAvsHourly']
-					  ).totalOperators
+						).totalOperators
 					: 0
 
 			newAvs =
@@ -2285,7 +2281,7 @@ async function calculateMetricsForHistoricalRecord(
 							intervalHourlyData[
 								lastRecordIndex
 							] as AggregateModelMap['metricOperatorHourly']
-					  ).totalAvs
+						).totalAvs
 					: 0
 		}
 	} else {
@@ -2300,14 +2296,14 @@ async function calculateMetricsForHistoricalRecord(
 				? (intervalHourlyData as AggregateModelMap['metricAvsHourly'][]).reduce(
 						(sum, record) => sum + record.changeOperators,
 						0
-				  )
+					)
 				: 0
 
 		newAvs =
 			totalAvs !== undefined && totalAvs !== null
 				? (
 						intervalHourlyData as AggregateModelMap['metricOperatorHourly'][]
-				  ).reduce((sum, record) => sum + record.changeAvs, 0)
+					).reduce((sum, record) => sum + record.changeAvs, 0)
 				: 0
 	}
 
@@ -2330,5 +2326,5 @@ function calculateRestakingRatio(
 	tvlEth: number,
 	ethCirculation: number
 ): number {
-	return tvlEth / ethCirculation;
+	return tvlEth / ethCirculation
 }
