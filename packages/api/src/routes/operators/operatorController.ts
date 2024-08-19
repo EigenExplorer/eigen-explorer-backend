@@ -41,6 +41,9 @@ export async function getAllOperators(req: Request, res: Response) {
 		// Fetch records and apply sort if applicable
 		const operatorRecords = await prisma.operator.findMany({
 			include: {
+				avs: {
+					select: { avsAddress: true, isActive: true }
+				},
 				shares: {
 					select: { strategyAddress: true, shares: true }
 				}
@@ -63,6 +66,7 @@ export async function getAllOperators(req: Request, res: Response) {
 
 		const operators = operatorRecords.map((operator) => ({
 			...operator,
+			avsRegistrations: operator.avs,
 			totalStakers: operator.totalStakers,
 			totalAvs: operator.totalAvs,
 			tvl: withTvl
@@ -73,7 +77,8 @@ export async function getAllOperators(req: Request, res: Response) {
 				  )
 				: undefined,
 			metadataUrl: undefined,
-			isMetadataSynced: undefined
+			isMetadataSynced: undefined,
+			avs: undefined
 		}))
 
 		res.send({
@@ -115,6 +120,9 @@ export async function getOperator(req: Request, res: Response) {
 		const operator = await prisma.operator.findUniqueOrThrow({
 			where: { address: address.toLowerCase() },
 			include: {
+				avs: {
+					select: { avsAddress: true, isActive: true }
+				},
 				shares: {
 					select: { strategyAddress: true, shares: true }
 				}
@@ -128,6 +136,7 @@ export async function getOperator(req: Request, res: Response) {
 
 		res.send({
 			...operator,
+			avsRegistrations: operator.avs,
 			totalStakers: operator.totalStakers,
 			totalAvs: operator.totalAvs,
 			tvl: withTvl
@@ -139,7 +148,8 @@ export async function getOperator(req: Request, res: Response) {
 				: undefined,
 			stakers: undefined,
 			metadataUrl: undefined,
-			isMetadataSynced: undefined
+			isMetadataSynced: undefined,
+			avs: undefined
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
