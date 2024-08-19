@@ -693,6 +693,16 @@ export async function getDeploymentRatio(req: Request, res: Response) {
 			new Date().setUTCDate(timestampNow.getUTCDate() - 7)
 		)
 
+		const historicalData = await doGetHistoricalTvlTotal(
+			timestamp7d.toString(),
+			timestamp24h.toString(),
+			'1d',
+			'cumulative'
+		)
+
+		const tvlEth24hAgo = historicalData[historicalData.length - 1]?.tvlEth || 0
+		const tvlEth7dAgo = historicalData[0]?.tvlEth || 0
+
 		const lastMetricsTimestamps =
 			await prisma.metricOperatorStrategyHourly.groupBy({
 				by: ['operatorAddress', 'strategyAddress'],
@@ -717,7 +727,7 @@ export async function getDeploymentRatio(req: Request, res: Response) {
 				}
 			})
 
-		const totalDelegationValueNow = Number(totalDelegationValue._sum.tvl || 0)
+		const currentDelegationValue = Number(totalDelegationValue._sum.tvl || 0)
 
 		const change24hMetrics = await prisma.metricOperatorStrategyHourly.findMany(
 			{
@@ -739,9 +749,7 @@ export async function getDeploymentRatio(req: Request, res: Response) {
 			}
 		)
 
-		console.log('change24hMetrics ', change24hMetrics)
-
-		const totalDelegationValue24h = change24hMetrics.reduce(
+		const delegationValue24hAgo = change24hMetrics.reduce(
 			(sum, metric) => sum + metric.changeTvl.toNumber(),
 			0
 		)
@@ -764,52 +772,43 @@ export async function getDeploymentRatio(req: Request, res: Response) {
 			}
 		})
 
-		const totalDelegationValue7d = change7dMetrics.reduce(
+		const delegationValue7dAgo = change7dMetrics.reduce(
 			(sum, metric) => sum + metric.changeTvl.toNumber(),
 			0
 		)
 
-		const historicalData = await doGetHistoricalTvlTotal(
-			timestamp7d.toString(),
-			timestamp24h.toString(),
-			'1d',
-			'cumulative'
-		)
-
-		const tvlEth24hAgo = historicalData[historicalData.length - 1]?.tvlEth || 0
-		const tvlEth7dAgo = historicalData[0]?.tvlEth || 0
-
-		const deploymentRatioNow =
-			totalDelegationValueNow / (tvlRestaking + tvlBeaconChain)
+		const currentDeploymentRatio =
+		currentDelegationValue / (tvlRestaking + tvlBeaconChain)
 
 		const deploymentRatio24hAgo =
-			(totalDelegationValueNow - totalDelegationValue24h) /
+			(currentDelegationValue - delegationValue24hAgo) /
 			tvlEth24hAgo
 
 		const deploymentRatio7dAgo =
-			(totalDelegationValueNow - totalDelegationValue7d) /
+			(currentDelegationValue - delegationValue7dAgo) /
 			tvlEth7dAgo
+		
+		const change24hValue = currentDeploymentRatio - deploymentRatio24hAgo
+		const change7dValue = currentDeploymentRatio - deploymentRatio7dAgo
 
 		const change24hPercent =
 			deploymentRatio24hAgo !== 0
-				? ((deploymentRatioNow - deploymentRatio24hAgo) /
-						deploymentRatio24hAgo) *
-					100
+				? (change24hValue/
+						deploymentRatio24hAgo)
 				: 0
 		const change7dPercent =
 			deploymentRatio7dAgo !== 0
-				? ((deploymentRatioNow - deploymentRatio7dAgo) / deploymentRatio7dAgo) *
-					100
+				? (change7dValue/ deploymentRatio7dAgo)
 				: 0
 
 		res.send({
-			deploymentRatio: deploymentRatioNow,
+			deploymentRatio: currentDeploymentRatio,
 			change24h: {
-				value: deploymentRatioNow - deploymentRatio24hAgo,
+				value: change24hValue,
 				percent: change24hPercent
 			},
 			change7d: {
-				value: deploymentRatioNow - deploymentRatio7dAgo,
+				value: change7dValue,
 				percent: change7dPercent
 			}
 		})
