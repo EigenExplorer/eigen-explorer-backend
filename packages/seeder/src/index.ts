@@ -37,6 +37,14 @@ import { monitorOperatorMetrics } from './monitors/operatorMetrics'
 
 console.log('Initializing Seeder ...')
 
+const UPDATE_DELAY = 120
+
+const UPDATE_FREQUENCY_INSTANT = 120
+const UPDATE_FREQUENCY_SLOW = 240
+const UPDATE_FREQUENCY_HOURLY = 3600
+const UPDATE_FREQUENCY_QUARTERLY = UPDATE_FREQUENCY_HOURLY * 4
+const UPDATE_FREQUENCY_DAILY = UPDATE_FREQUENCY_HOURLY * 24
+
 function delay(seconds: number) {
 	return new Promise((resolve) => setTimeout(resolve, seconds * 1000))
 }
@@ -75,12 +83,12 @@ async function seedEigenData() {
 			console.log(error)
 		}
 
-		await delay(120)
+		await delay(UPDATE_FREQUENCY_INSTANT)
 	}
 }
 
 async function seedMetadata() {
-	await delay(60)
+	await delay(UPDATE_DELAY)
 
 	while (true) {
 		try {
@@ -92,14 +100,15 @@ async function seedMetadata() {
 			await monitorOperatorMetrics()
 		} catch (error) {
 			console.log('Failed to monitor metadata at:', Date.now())
+			console.log(error)
 		}
 
-		await delay(720)
+		await delay(UPDATE_FREQUENCY_SLOW)
 	}
 }
 
 async function seedEigenStrategiesData() {
-	await delay(120)
+	await delay(UPDATE_DELAY * 2)
 
 	while (true) {
 		try {
@@ -108,16 +117,16 @@ async function seedEigenStrategiesData() {
 			await seedStrategies()
 			await seedEthPricesDaily()
 		} catch (error) {
-			console.log(error)
 			console.log('Failed to seed strategies at:', Date.now())
+			console.log(error)
 		}
 
-		await delay(3600 * 24)
+		await delay(UPDATE_FREQUENCY_DAILY)
 	}
 }
 
 async function seedRestakedData() {
-	await delay(240)
+	await delay(UPDATE_DELAY * 3)
 
 	while (true) {
 		try {
@@ -125,16 +134,16 @@ async function seedRestakedData() {
 
 			await seedRestakedStrategies()
 		} catch (error) {
-			console.log(error)
 			console.log('Failed to seed restaked data at:', Date.now())
+			console.log(error)
 		}
 
-		await delay(3600 * 4)
+		await delay(UPDATE_FREQUENCY_QUARTERLY)
 	}
 }
 
 async function seedMetricsData() {
-	await delay(240)
+	await delay(UPDATE_DELAY * 4)
 
 	while (true) {
 		try {
@@ -146,11 +155,11 @@ async function seedMetricsData() {
 			await seedMetricsEigenPodsHourly()
 			await seedMetricsTvlHourly()
 		} catch (error) {
-			console.log(error)
 			console.log('Failed to seed metrics data at:', Date.now())
+			console.log(error)
 		}
 
-		await delay(3600)
+		await delay(UPDATE_FREQUENCY_HOURLY)
 	}
 }
 
