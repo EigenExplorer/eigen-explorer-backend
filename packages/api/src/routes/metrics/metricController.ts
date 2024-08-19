@@ -740,14 +740,11 @@ export async function getDeploymentRatio(req: Request, res: Response) {
 						gte: timestamp24h,
 						lt: timestampNow
 					}
-				},
-				orderBy: {
-					timestamp: 'desc'
 				}
 			}
 		)
 
-		const delegationValue24hAgo = change24hMetrics.reduce(
+		const change24hDelegationValue = change24hMetrics.reduce(
 			(sum, metric) => sum + metric.changeTvl.toNumber(),
 			0
 		)
@@ -764,13 +761,10 @@ export async function getDeploymentRatio(req: Request, res: Response) {
 					gte: timestamp7d,
 					lt: timestampNow
 				}
-			},
-			orderBy: {
-				timestamp: 'desc'
 			}
 		})
 
-		const delegationValue7dAgo = change7dMetrics.reduce(
+		const change7dDelegationValue = change7dMetrics.reduce(
 			(sum, metric) => sum + metric.changeTvl.toNumber(),
 			0
 		)
@@ -779,31 +773,36 @@ export async function getDeploymentRatio(req: Request, res: Response) {
 			currentDelegationValue / (tvlRestaking + tvlBeaconChain)
 
 		const deploymentRatio24hAgo =
-			(currentDelegationValue - delegationValue24hAgo) / tvlEth24hAgo
+			(currentDelegationValue - change24hDelegationValue) / tvlEth24hAgo
 
 		const deploymentRatio7dAgo =
-			(currentDelegationValue - delegationValue7dAgo) / tvlEth7dAgo
-
-		const change24hValue = currentDeploymentRatio - deploymentRatio24hAgo
-		const change7dValue = currentDeploymentRatio - deploymentRatio7dAgo
+			(currentDelegationValue - change7dDelegationValue) / tvlEth7dAgo
 
 		const change24hPercent =
 			deploymentRatio24hAgo !== 0
-				? Math.round((change24hValue / deploymentRatio24hAgo) * 1000) / 1000
+				? Math.round(
+						((currentDeploymentRatio - deploymentRatio24hAgo) /
+							deploymentRatio24hAgo) *
+							1000
+				  ) / 1000
 				: 0
 		const change7dPercent =
 			deploymentRatio7dAgo !== 0
-				? Math.round((change7dValue / deploymentRatio7dAgo) * 1000) / 1000
+				? Math.round(
+						((currentDeploymentRatio - deploymentRatio7dAgo) /
+							deploymentRatio7dAgo) *
+							1000
+				  ) / 1000
 				: 0
 
 		res.send({
 			deploymentRatio: currentDeploymentRatio,
 			change24h: {
-				value: change24hValue,
+				value: change24hDelegationValue,
 				percent: change24hPercent
 			},
 			change7d: {
-				value: change7dValue,
+				value: change7dDelegationValue,
 				percent: change7dPercent
 			}
 		})
