@@ -10,10 +10,7 @@ import { TokenPrices } from '../../utils/tokenPrices'
 import { serviceManagerUIAbi } from '../../data/abi/serviceManagerUIAbi'
 import { getPrismaClient } from '../../utils/prismaClient'
 
-export interface StrategyShareSummary {
-	strategyAddress: string;
-	totalShares: bigint;
-}
+
 
 // ABI path for dynamic imports
 const abiPath = {
