@@ -261,41 +261,6 @@ export function sharesToTVL(
 	}
 }
 
-export function sharesToOperatorDelegationValue(
-    groupedShares: StrategyShareSummary[],
-	strategiesWithSharesUnderlying: {
-		strategyAddress: string
-		sharesToUnderlying: number
-	}[],
-    strategyTokenPrices: TokenPrices
-) {
-    let totalOperatorDelegationValue = 0 ; 
-
-    groupedShares.forEach(group => {
-		const groupSharesUnderlying = strategiesWithSharesUnderlying.find(
-			(su) =>
-				su.strategyAddress.toLowerCase() === group.strategyAddress.toLowerCase()
-		)
-		if(groupSharesUnderlying){
-			const strategyShares =
-				Number(
-					(BigInt(group.totalShares) * BigInt(groupSharesUnderlying.sharesToUnderlying)) /
-						BigInt(1e18)
-				) / 1e18
-
-			const strategyTokenPrice = Object.values(strategyTokenPrices).find(
-				(stp) =>
-					stp.strategyAddress.toLowerCase() === group.strategyAddress.toLowerCase()
-			)
-			if (strategyTokenPrice) {
-				const groupStrategyValue = strategyShares * strategyTokenPrice.eth
-				totalOperatorDelegationValue += groupStrategyValue
-			}
-	}
-    });
-    return totalOperatorDelegationValue;
-}
-
 export async function getRestakeableStrategies(
 	avsAddress: string
 ): Promise<string[]> {

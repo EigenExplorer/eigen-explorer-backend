@@ -16,7 +16,9 @@ import { fetchStrategyTokenPrices } from '../../utils/tokenPrices'
 import { getContract } from 'viem'
 import { strategyAbi } from '../../data/abi/strategy'
 import { getViemClient } from '../../viem/viemClient'
-import { getStrategiesWithShareUnderlying, sharesToOperatorDelegationValue, StrategyShareSummary } from '../strategies/strategiesController'
+import {
+	getStrategiesWithShareUnderlying
+} from '../strategies/strategiesController'
 
 type TvlWithoutChange = number
 
@@ -683,17 +685,125 @@ export async function getDeploymentRatio(req: Request, res: Response) {
 		const tvlRestaking = (await doGetTvl()).tvlRestaking
 		const tvlBeaconChain = await doGetTvlBeaconChain()
 
-		const strategyTokenPrices = await fetchStrategyTokenPrices()
-        const strategiesWithSharesUnderlying = await getStrategiesWithShareUnderlying()
+		const timestampNow = new Date()
+		const timestamp24h = new Date(
+			new Date().setUTCHours(timestampNow.getUTCHours() - 24)
+		)
+		const timestamp7d = new Date(
+			new Date().setUTCDate(timestampNow.getUTCDate() - 7)
+		)
 
-		let totalOperatorDelegationValue = 0;
-		const groupStrategyShares:StrategyShareSummary[] = await prisma.$queryRaw`SELECT "strategyAddress", SUM(CAST("shares" AS NUMERIC)) as "totalShares" FROM public."OperatorStrategyShares" GROUP BY "strategyAddress";`;
-		totalOperatorDelegationValue = sharesToOperatorDelegationValue(groupStrategyShares,strategiesWithSharesUnderlying, strategyTokenPrices);
+		const lastMetricsTimestamps =
+			await prisma.metricOperatorStrategyHourly.groupBy({
+				by: ['operatorAddress', 'strategyAddress'],
+				_max: { timestamp: true }
+			})
 
-		res.send({
-			deploymentRatio: totalOperatorDelegationValue/(tvlRestaking + tvlBeaconChain)
+		const validMetricsTimestamps = lastMetricsTimestamps.filter(
+			(metric) => metric._max.timestamp !== null
+		)
+
+		const totalDelegationValue =
+			await prisma.metricOperatorStrategyHourly.aggregate({
+				_sum: {
+					tvl: true
+				},
+				where: {
+					OR: validMetricsTimestamps.map((metric) => ({
+						operatorAddress: metric.operatorAddress,
+						strategyAddress: metric.strategyAddress,
+						timestamp: metric._max.timestamp as Date // Assert that timestamp is a Date
+					}))
+				}
+			})
+
+		const totalDelegationValueNow = Number(totalDelegationValue._sum.tvl || 0)
+
+		// Calculate change24h
+		const change24hMetrics = await prisma.metricOperatorStrategyHourly.findMany(
+			{
+				select: {
+					operatorAddress: true,
+					strategyAddress: true,
+					changeTvl: true,
+					timestamp: true
+				},
+				where: {
+					timestamp: {
+						gte: timestamp24h,
+						lt: timestampNow
+					}
+				},
+				orderBy: {
+					timestamp: 'desc'
+				}
+			}
+		)
+
+		console.log('change24hMetrics ', change24hMetrics)
+
+		const totalDelegationValue24h = change24hMetrics.reduce(
+			(sum, metric) => sum + metric.changeTvl.toNumber(),
+			0
+		)
+
+		// Calculate change7d
+		const change7dMetrics = await prisma.metricOperatorStrategyHourly.findMany({
+			select: {
+				operatorAddress: true,
+				strategyAddress: true,
+				changeTvl: true,
+				timestamp: true
+			},
+			where: {
+				timestamp: {
+					gte: timestamp7d,
+					lt: timestampNow
+				}
+			},
+			orderBy: {
+				timestamp: 'desc'
+			}
 		})
 
+		const totalDelegationValue7d = change7dMetrics.reduce(
+			(sum, metric) => sum + metric.changeTvl.toNumber(),
+			0
+		)
+
+		const deploymentRatioNow =
+			totalDelegationValueNow / (tvlRestaking + tvlBeaconChain)
+
+		const deploymentRatio24hAgo =
+			(totalDelegationValueNow - totalDelegationValue24h) /
+			(tvlRestaking + tvlBeaconChain)
+		const deploymentRatio7dAgo =
+			(totalDelegationValueNow - totalDelegationValue7d) /
+			(tvlRestaking + tvlBeaconChain)
+
+		const change24hPercent =
+			deploymentRatio24hAgo !== 0
+				? ((deploymentRatioNow - deploymentRatio24hAgo) /
+						deploymentRatio24hAgo) *
+					100
+				: 0
+		const change7dPercent =
+			deploymentRatio7dAgo !== 0
+				? ((deploymentRatioNow - deploymentRatio7dAgo) / deploymentRatio7dAgo) *
+					100
+				: 0
+
+		res.send({
+			deploymentRatio: deploymentRatioNow,
+			change24h: {
+				value: deploymentRatioNow - deploymentRatio24hAgo,
+				percent: change24hPercent
+			},
+			change7d: {
+				value: deploymentRatioNow - deploymentRatio7dAgo,
+				percent: change7dPercent
+			}
+		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
 	}
@@ -2225,7 +2335,7 @@ async function calculateMetricsForHistoricalRecord(
 							intervalHourlyData[
 								lastRecordIndex
 							] as AggregateModelMap['metricAvsHourly']
-					  ).totalOperators
+						).totalOperators
 					: 0
 
 			newAvs =
@@ -2234,7 +2344,7 @@ async function calculateMetricsForHistoricalRecord(
 							intervalHourlyData[
 								lastRecordIndex
 							] as AggregateModelMap['metricOperatorHourly']
-					  ).totalAvs
+						).totalAvs
 					: 0
 		}
 	} else {
@@ -2249,14 +2359,14 @@ async function calculateMetricsForHistoricalRecord(
 				? (intervalHourlyData as AggregateModelMap['metricAvsHourly'][]).reduce(
 						(sum, record) => sum + record.changeOperators,
 						0
-				  )
+					)
 				: 0
 
 		newAvs =
 			totalAvs !== undefined && totalAvs !== null
 				? (
 						intervalHourlyData as AggregateModelMap['metricOperatorHourly'][]
-				  ).reduce((sum, record) => sum + record.changeAvs, 0)
+					).reduce((sum, record) => sum + record.changeAvs, 0)
 				: 0
 	}
 
