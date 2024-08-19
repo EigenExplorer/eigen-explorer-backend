@@ -712,14 +712,13 @@ export async function getDeploymentRatio(req: Request, res: Response) {
 					OR: validMetricsTimestamps.map((metric) => ({
 						operatorAddress: metric.operatorAddress,
 						strategyAddress: metric.strategyAddress,
-						timestamp: metric._max.timestamp as Date // Assert that timestamp is a Date
+						timestamp: metric._max.timestamp as Date
 					}))
 				}
 			})
 
 		const totalDelegationValueNow = Number(totalDelegationValue._sum.tvl || 0)
 
-		// Calculate change24h
 		const change24hMetrics = await prisma.metricOperatorStrategyHourly.findMany(
 			{
 				select: {
@@ -747,7 +746,6 @@ export async function getDeploymentRatio(req: Request, res: Response) {
 			0
 		)
 
-		// Calculate change7d
 		const change7dMetrics = await prisma.metricOperatorStrategyHourly.findMany({
 			select: {
 				operatorAddress: true,
@@ -771,15 +769,26 @@ export async function getDeploymentRatio(req: Request, res: Response) {
 			0
 		)
 
+		const historicalData = await doGetHistoricalTvlTotal(
+			timestamp7d.toString(),
+			timestamp24h.toString(),
+			'1d',
+			'cumulative'
+		)
+
+		const tvlEth24hAgo = historicalData[historicalData.length - 1]?.tvlEth || 0
+		const tvlEth7dAgo = historicalData[0]?.tvlEth || 0
+
 		const deploymentRatioNow =
 			totalDelegationValueNow / (tvlRestaking + tvlBeaconChain)
 
 		const deploymentRatio24hAgo =
 			(totalDelegationValueNow - totalDelegationValue24h) /
-			(tvlRestaking + tvlBeaconChain)
+			tvlEth24hAgo
+
 		const deploymentRatio7dAgo =
 			(totalDelegationValueNow - totalDelegationValue7d) /
-			(tvlRestaking + tvlBeaconChain)
+			tvlEth7dAgo
 
 		const change24hPercent =
 			deploymentRatio24hAgo !== 0
