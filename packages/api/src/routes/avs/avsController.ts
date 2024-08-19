@@ -510,32 +510,21 @@ export function getAvsFilterQuery(filterName?: boolean) {
 		  }
 		: {}
 
-	return getNetwork().testnet
-		? {
-				AND: [
-					queryWithName,
-					{
-						OR: [
-							{
-								curatedMetadata: {
-									isVisible: true
-								}
-							},
-							{
-								curatedMetadata: null
-							}
-						]
-					}
-				]
-		  }
-		: {
-				AND: [
-					queryWithName,
+	return {
+		AND: [
+			queryWithName,
+			{
+				OR: [
 					{
 						curatedMetadata: {
 							isVisible: true
 						}
+					},
+					{
+						curatedMetadata: null
 					}
 				]
-		  }
+			}
+		]
+	}
 }
