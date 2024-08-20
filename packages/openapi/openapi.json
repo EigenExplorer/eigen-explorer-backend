@@ -847,11 +847,11 @@
           {
             "in": "path",
             "name": "address",
-            "description": "The address of the AVS ",
+            "description": "AVS service manager contract address",
             "schema": {
               "type": "string",
               "pattern": "^0x[a-fA-F0-9]{40}$",
-              "description": "The address of the AVS ",
+              "description": "AVS service manager contract address",
               "example": "0x870679e138bcdf293b7ff14dd44b70fc97e12fc0"
             },
             "required": true
@@ -3005,11 +3005,11 @@
           {
             "in": "path",
             "name": "address",
-            "description": "The address of the AVS ",
+            "description": "AVS service manager contract address",
             "schema": {
               "type": "string",
               "pattern": "^0x[a-fA-F0-9]{40}$",
-              "description": "The address of the AVS ",
+              "description": "AVS service manager contract address",
               "example": "0x870679e138bcdf293b7ff14dd44b70fc97e12fc0"
             },
             "required": true
@@ -3407,11 +3407,11 @@
           {
             "in": "path",
             "name": "address",
-            "description": "The address of the AVS ",
+            "description": "AVS service manager contract address",
             "schema": {
               "type": "string",
               "pattern": "^0x[a-fA-F0-9]{40}$",
-              "description": "The address of the AVS ",
+              "description": "AVS service manager contract address",
               "example": "0x870679e138bcdf293b7ff14dd44b70fc97e12fc0"
             },
             "required": true
@@ -3678,11 +3678,11 @@
           {
             "in": "path",
             "name": "address",
-            "description": "The address of the AVS ",
+            "description": "AVS service manager contract address",
             "schema": {
               "type": "string",
               "pattern": "^0x[a-fA-F0-9]{40}$",
-              "description": "The address of the AVS ",
+              "description": "AVS service manager contract address",
               "example": "0x870679e138bcdf293b7ff14dd44b70fc97e12fc0"
             },
             "required": true
@@ -4037,6 +4037,34 @@
           },
           {
             "in": "query",
+            "name": "sortByTotalAvs",
+            "description": "Sort results in asc or desc order of total AVS (only valid for Operator queries)",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "description": "Sort results in asc or desc order of total AVS (only valid for Operator queries)",
+              "example": "desc"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sortByTotalStakers",
+            "description": "Sort results in asc or desc order of total stakers",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "description": "Sort results in asc or desc order of total stakers",
+              "example": "desc"
+            }
+          },
+          {
+            "in": "query",
             "name": "skip",
             "description": "The number of records to skip for pagination",
             "schema": {
@@ -4122,6 +4150,16 @@
                             "description": "The URL of the AVS operator's X",
                             "example": "https://twitter.com/acme"
                           },
+                          "totalStakers": {
+                            "type": "number",
+                            "description": "The total number of stakers who have delegated to this AVS operator",
+                            "example": 10
+                          },
+                          "totalAvs": {
+                            "type": "number",
+                            "description": "The total number of AVS opted by the AVS operator",
+                            "example": 10
+                          },
                           "createdAtBlock": {
                             "type": "string",
                             "description": "The block number at which the AVS Operator was registered",
@@ -4176,15 +4214,39 @@
                               }
                             ]
                           },
-                          "totalStakers": {
-                            "type": "number",
-                            "description": "The total number of stakers who have delegated to this AVS operator",
-                            "example": 10
-                          },
-                          "totalAvs": {
-                            "type": "number",
-                            "description": "The total number of AVS opted by the AVS operator",
-                            "example": 10
+                          "avsRegistrations": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "avsAddress": {
+                                  "type": "string",
+                                  "pattern": "^0x[a-fA-F0-9]{40}$",
+                                  "description": "AVS service manager contract address",
+                                  "example": "0x870679e138bcdf293b7ff14dd44b70fc97e12fc0"
+                                },
+                                "isActive": {
+                                  "type": "boolean",
+                                  "description": "True indicates the operator is currently participating while false indicates the operator was previously active but is no longer participating.",
+                                  "example": false
+                                }
+                              },
+                              "required": [
+                                "avsAddress",
+                                "isActive"
+                              ]
+                            },
+                            "description": "Operator AVS registrations and their participation status",
+                            "example": [
+                              {
+                                "avsAddress": "0x870679e138bcdf293b7ff14dd44b70fc97e12fc0",
+                                "isActive": true
+                              },
+                              {
+                                "avsAddress": "0xe8e59c6c8b56f2c178f63bcfc4ce5e5e2359c8fc",
+                                "isActive": false
+                              }
+                            ]
                           },
                           "tvl": {
                             "type": "object",
@@ -4270,13 +4332,14 @@
                           "metadataTelegram",
                           "metadataWebsite",
                           "metadataX",
+                          "totalStakers",
+                          "totalAvs",
                           "createdAtBlock",
                           "updatedAtBlock",
                           "createdAt",
                           "updatedAt",
                           "shares",
-                          "totalStakers",
-                          "totalAvs"
+                          "avsRegistrations"
                         ]
                       }
                     },
@@ -4434,6 +4497,16 @@
                       "description": "The URL of the AVS operator's X",
                       "example": "https://twitter.com/acme"
                     },
+                    "totalStakers": {
+                      "type": "number",
+                      "description": "The total number of stakers who have delegated to this AVS operator",
+                      "example": 10
+                    },
+                    "totalAvs": {
+                      "type": "number",
+                      "description": "The total number of AVS opted by the AVS operator",
+                      "example": 10
+                    },
                     "createdAtBlock": {
                       "type": "string",
                       "description": "The block number at which the AVS Operator was registered",
@@ -4488,15 +4561,39 @@
                         }
                       ]
                     },
-                    "totalStakers": {
-                      "type": "number",
-                      "description": "The total number of stakers who have delegated to this AVS operator",
-                      "example": 10
-                    },
-                    "totalAvs": {
-                      "type": "number",
-                      "description": "The total number of AVS opted by the AVS operator",
-                      "example": 10
+                    "avsRegistrations": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "avsAddress": {
+                            "type": "string",
+                            "pattern": "^0x[a-fA-F0-9]{40}$",
+                            "description": "AVS service manager contract address",
+                            "example": "0x870679e138bcdf293b7ff14dd44b70fc97e12fc0"
+                          },
+                          "isActive": {
+                            "type": "boolean",
+                            "description": "True indicates the operator is currently participating while false indicates the operator was previously active but is no longer participating.",
+                            "example": false
+                          }
+                        },
+                        "required": [
+                          "avsAddress",
+                          "isActive"
+                        ]
+                      },
+                      "description": "Operator AVS registrations and their participation status",
+                      "example": [
+                        {
+                          "avsAddress": "0x870679e138bcdf293b7ff14dd44b70fc97e12fc0",
+                          "isActive": true
+                        },
+                        {
+                          "avsAddress": "0xe8e59c6c8b56f2c178f63bcfc4ce5e5e2359c8fc",
+                          "isActive": false
+                        }
+                      ]
                     },
                     "tvl": {
                       "type": "object",
@@ -4582,13 +4679,14 @@
                     "metadataTelegram",
                     "metadataWebsite",
                     "metadataX",
+                    "totalStakers",
+                    "totalAvs",
                     "createdAtBlock",
                     "updatedAtBlock",
                     "createdAt",
                     "updatedAt",
                     "shares",
-                    "totalStakers",
-                    "totalAvs"
+                    "avsRegistrations"
                   ]
                 }
               }
