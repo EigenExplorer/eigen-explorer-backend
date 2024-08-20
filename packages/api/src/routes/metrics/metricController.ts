@@ -730,10 +730,7 @@ export async function getDeploymentRatio(req: Request, res: Response) {
 		const change24hMetrics = await prisma.metricOperatorStrategyHourly.findMany(
 			{
 				select: {
-					operatorAddress: true,
-					strategyAddress: true,
-					changeTvl: true,
-					timestamp: true
+					changeTvl: true
 				},
 				where: {
 					timestamp: {
@@ -751,10 +748,7 @@ export async function getDeploymentRatio(req: Request, res: Response) {
 
 		const change7dMetrics = await prisma.metricOperatorStrategyHourly.findMany({
 			select: {
-				operatorAddress: true,
-				strategyAddress: true,
-				changeTvl: true,
-				timestamp: true
+				changeTvl: true
 			},
 			where: {
 				timestamp: {
