@@ -10,7 +10,7 @@ export const AvsRegistrationSchema = z.object({
 	isActive: z
 		.boolean()
 		.describe(
-			'The operator is currently participating if active, otherwise they were previously active but no longer are'
+			'True indicates operator is an active participant while False indicates it used to be one but not anymore'
 		)
 		.openapi({ example: false })
 })
