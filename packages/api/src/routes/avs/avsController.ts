@@ -12,6 +12,7 @@ import {
 	getStrategiesWithShareUnderlying,
 	sharesToTVL
 } from '../strategies/strategiesController'
+import { UpdatedSinceQuerySchema } from '../../schema/zod/schemas/updatedSinceQuery'
 
 /**
  * Route to get a list of all AVSs
@@ -258,9 +259,10 @@ export async function getAVS(req: Request, res: Response) {
  */
 export async function getAVSStakers(req: Request, res: Response) {
 	// Validate query and params
-	const queryCheck = PaginationQuerySchema.and(WithTvlQuerySchema).safeParse(
-		req.query
-	)
+	const queryCheck = PaginationQuerySchema.and(WithTvlQuerySchema)
+		.and(UpdatedSinceQuerySchema)
+		.safeParse(req.query)
+
 	if (!queryCheck.success) {
 		return handleAndReturnErrorResponse(req, res, queryCheck.error)
 	}
@@ -272,7 +274,7 @@ export async function getAVSStakers(req: Request, res: Response) {
 
 	try {
 		const { address } = req.params
-		const { skip, take, withTvl } = queryCheck.data
+		const { skip, take, withTvl, updatedSince } = queryCheck.data
 
 		const avs = await prisma.avs.findUniqueOrThrow({
 			where: { address: address.toLowerCase(), ...getAvsFilterQuery() },
@@ -302,7 +304,10 @@ export async function getAVSStakers(req: Request, res: Response) {
 		})
 
 		const stakersRecords = await prisma.staker.findMany({
-			where: { operatorAddress: { in: operatorAddresses } },
+			where: {
+				...(updatedSince ? { updatedAt: { gte: new Date(updatedSince) } } : {}),
+				operatorAddress: { in: operatorAddresses }
+			},
 			skip,
 			take,
 			include: { shares: true }
