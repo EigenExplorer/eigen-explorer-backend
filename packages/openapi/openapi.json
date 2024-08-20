@@ -4227,7 +4227,7 @@
                                 },
                                 "isActive": {
                                   "type": "boolean",
-                                  "description": "True indicates the operator is currently participating while false indicates the operator was previously active but is no longer participating.",
+                                  "description": "The operator is currently participating if active, otherwise they were previously active but no longer are",
                                   "example": false
                                 }
                               },
@@ -4574,7 +4574,7 @@
                           },
                           "isActive": {
                             "type": "boolean",
-                            "description": "True indicates the operator is currently participating while false indicates the operator was previously active but is no longer participating.",
+                            "description": "The operator is currently participating if active, otherwise they were previously active but no longer are",
                             "example": false
                           }
                         },
