@@ -19,10 +19,10 @@ const AvsResponseSchema = z.object({
 const CombinedQuerySchema = z
 	.object({})
 	.merge(WithTvlQuerySchema)
-	.merge(PaginationQuerySchema)
 	.merge(WithCuratedMetadata)
 	.merge(SortByTotalStakers)
 	.merge(SortByTotalOperators)
+	.merge(PaginationQuerySchema)
 
 export const getAllAvs: ZodOpenApiOperationObject = {
 	operationId: 'getAllAvs',

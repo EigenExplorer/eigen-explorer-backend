@@ -16,6 +16,14 @@ export const AvsSchema = z.object({
 	metadataTelegram: AvsMetaDataSchema.shape.metadataTelegram,
 	metadataWebsite: AvsMetaDataSchema.shape.metadataWebsite,
 	metadataX: AvsMetaDataSchema.shape.metadataX,
+	totalStakers: z
+		.number()
+		.describe('The total number of stakers staking in the AVS')
+		.openapi({ example: 10 }),
+	totalOperators: z
+		.number()
+		.describe('The total number of operators operating the AVS')
+		.openapi({ example: 10 }),
 	// restakeableStrategies: z
 	//     .array(EthereumAddressSchema)
 	//     .describe('The list of supported restaking strategies')
@@ -41,6 +49,23 @@ export const AvsSchema = z.object({
 	//     .optional()
 	//     .describe('The tags associated with the AVS')
 	//     .openapi({ example: ['DA', 'DeFi'] }),
+	curatedMetadata: CuratedMetadataSchema.optional()
+	.describe('To curate visibility and additional information of the AVS ')
+	.openapi({
+		example: {
+			avsAddress: '0x2344c0fe02ccd2b32155ca0ffcb1978a6d96a552',
+			metadataName: 'Example AVS',
+			metadataDescription: 'This is an example AVS',
+			metadataDiscord: 'https://discord.com/invite/abcdefghij',
+			metadataLogo: "The URL of the AVS's logo",
+			metadataTelegram: "The URL of the AVS's Telegram channel",
+			metadataWebsite: 'https://acme.com',
+			metadataX: 'https://twitter.com/acme',
+			tags: ['Example tag 1', 'Example tag 2'],
+			isVisible: true,
+			isVerified: true
+		}
+	}),
 	shares: z
 		.array(StrategySharesSchema)
 		.describe('The strategy shares held in the AVS')
@@ -55,31 +80,6 @@ export const AvsSchema = z.object({
 					shares: '9323641881708650182301'
 				}
 			]
-		}),
-	totalOperators: z
-		.number()
-		.describe('The total number of operators operating the AVS')
-		.openapi({ example: 10 }),
-	totalStakers: z
-		.number()
-		.describe('The total number of stakers staking in the AVS')
-		.openapi({ example: 10 }),
-	curatedMetadata: CuratedMetadataSchema.optional()
-		.describe('To curate visibility and additional information of the AVS ')
-		.openapi({
-			example: {
-				avsAddress: '0x2344c0fe02ccd2b32155ca0ffcb1978a6d96a552',
-				metadataName: 'Example AVS',
-				metadataDescription: 'This is an example AVS',
-				metadataDiscord: 'https://discord.com/invite/abcdefghij',
-				metadataLogo: "The URL of the AVS's logo",
-				metadataTelegram: "The URL of the AVS's Telegram channel",
-				metadataWebsite: 'https://acme.com',
-				metadataX: 'https://twitter.com/acme',
-				tags: ['Example tag 1', 'Example tag 2'],
-				isVisible: true,
-				isVerified: true
-			}
 		}),
 	tvl: TvlSchema.optional()
 		.describe('The total value locked (TVL) in the AVS')

@@ -2421,28 +2421,6 @@
           },
           {
             "in": "query",
-            "name": "skip",
-            "description": "The number of records to skip for pagination",
-            "schema": {
-              "type": "string",
-              "default": "0",
-              "description": "The number of records to skip for pagination",
-              "example": 0
-            }
-          },
-          {
-            "in": "query",
-            "name": "take",
-            "description": "The number of records to return for pagination",
-            "schema": {
-              "type": "string",
-              "default": "12",
-              "description": "The number of records to return for pagination",
-              "example": 12
-            }
-          },
-          {
-            "in": "query",
             "name": "withCuratedMetadata",
             "description": "Toggle whether the route should send curated metadata",
             "schema": {
@@ -2482,6 +2460,28 @@
               ],
               "description": "Sort results in asc or desc order of total AVS (only valid for AVS queries)",
               "example": "desc"
+            }
+          },
+          {
+            "in": "query",
+            "name": "skip",
+            "description": "The number of records to skip for pagination",
+            "schema": {
+              "type": "string",
+              "default": "0",
+              "description": "The number of records to skip for pagination",
+              "example": 0
+            }
+          },
+          {
+            "in": "query",
+            "name": "take",
+            "description": "The number of records to return for pagination",
+            "schema": {
+              "type": "string",
+              "default": "12",
+              "description": "The number of records to return for pagination",
+              "example": 12
             }
           }
         ],
@@ -2549,6 +2549,16 @@
                             "description": "The URL of the AVS's X",
                             "example": "https://twitter.com/acme"
                           },
+                          "totalStakers": {
+                            "type": "number",
+                            "description": "The total number of stakers staking in the AVS",
+                            "example": 10
+                          },
+                          "totalOperators": {
+                            "type": "number",
+                            "description": "The total number of operators operating the AVS",
+                            "example": 10
+                          },
                           "createdAtBlock": {
                             "type": "string",
                             "description": "The block number at which the AVS was created",
@@ -2568,50 +2578,6 @@
                             "type": "string",
                             "description": "The time stamp at which the AVS was last updated",
                             "example": "2024-04-11T08:31:11.000Z"
-                          },
-                          "shares": {
-                            "type": "array",
-                            "items": {
-                              "type": "object",
-                              "properties": {
-                                "strategyAddress": {
-                                  "type": "string",
-                                  "pattern": "^0x[a-fA-F0-9]{40}$",
-                                  "description": "The contract address of the restaking strategy",
-                                  "example": "0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0"
-                                },
-                                "shares": {
-                                  "type": "string",
-                                  "description": "The amount of shares held in the strategy",
-                                  "example": "1277920000000000000000000"
-                                }
-                              },
-                              "required": [
-                                "strategyAddress",
-                                "shares"
-                              ]
-                            },
-                            "description": "The strategy shares held in the AVS",
-                            "example": [
-                              {
-                                "strategyAddress": "0x93c4b944d05dfe6df7645a86cd2206016c51564d",
-                                "shares": "135064894598947935263152"
-                              },
-                              {
-                                "strategyAddress": "0x54945180db7943c0ed0fee7edab2bd24620256bc",
-                                "shares": "9323641881708650182301"
-                              }
-                            ]
-                          },
-                          "totalOperators": {
-                            "type": "number",
-                            "description": "The total number of operators operating the AVS",
-                            "example": 10
-                          },
-                          "totalStakers": {
-                            "type": "number",
-                            "description": "The total number of stakers staking in the AVS",
-                            "example": 10
                           },
                           "curatedMetadata": {
                             "type": "object",
@@ -2720,6 +2686,40 @@
                               "isVerified": true
                             }
                           },
+                          "shares": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "strategyAddress": {
+                                  "type": "string",
+                                  "pattern": "^0x[a-fA-F0-9]{40}$",
+                                  "description": "The contract address of the restaking strategy",
+                                  "example": "0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0"
+                                },
+                                "shares": {
+                                  "type": "string",
+                                  "description": "The amount of shares held in the strategy",
+                                  "example": "1277920000000000000000000"
+                                }
+                              },
+                              "required": [
+                                "strategyAddress",
+                                "shares"
+                              ]
+                            },
+                            "description": "The strategy shares held in the AVS",
+                            "example": [
+                              {
+                                "strategyAddress": "0x93c4b944d05dfe6df7645a86cd2206016c51564d",
+                                "shares": "135064894598947935263152"
+                              },
+                              {
+                                "strategyAddress": "0x54945180db7943c0ed0fee7edab2bd24620256bc",
+                                "shares": "9323641881708650182301"
+                              }
+                            ]
+                          },
                           "tvl": {
                             "type": "object",
                             "properties": {
@@ -2804,13 +2804,13 @@
                           "metadataTelegram",
                           "metadataWebsite",
                           "metadataX",
+                          "totalStakers",
+                          "totalOperators",
                           "createdAtBlock",
                           "updatedAtBlock",
                           "createdAt",
                           "updatedAt",
-                          "shares",
-                          "totalOperators",
-                          "totalStakers"
+                          "shares"
                         ]
                       }
                     },
@@ -3104,6 +3104,16 @@
                       "description": "The URL of the AVS's X",
                       "example": "https://twitter.com/acme"
                     },
+                    "totalStakers": {
+                      "type": "number",
+                      "description": "The total number of stakers staking in the AVS",
+                      "example": 10
+                    },
+                    "totalOperators": {
+                      "type": "number",
+                      "description": "The total number of operators operating the AVS",
+                      "example": 10
+                    },
                     "createdAtBlock": {
                       "type": "string",
                       "description": "The block number at which the AVS was created",
@@ -3123,50 +3133,6 @@
                       "type": "string",
                       "description": "The time stamp at which the AVS was last updated",
                       "example": "2024-04-11T08:31:11.000Z"
-                    },
-                    "shares": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "strategyAddress": {
-                            "type": "string",
-                            "pattern": "^0x[a-fA-F0-9]{40}$",
-                            "description": "The contract address of the restaking strategy",
-                            "example": "0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0"
-                          },
-                          "shares": {
-                            "type": "string",
-                            "description": "The amount of shares held in the strategy",
-                            "example": "1277920000000000000000000"
-                          }
-                        },
-                        "required": [
-                          "strategyAddress",
-                          "shares"
-                        ]
-                      },
-                      "description": "The strategy shares held in the AVS",
-                      "example": [
-                        {
-                          "strategyAddress": "0x93c4b944d05dfe6df7645a86cd2206016c51564d",
-                          "shares": "135064894598947935263152"
-                        },
-                        {
-                          "strategyAddress": "0x54945180db7943c0ed0fee7edab2bd24620256bc",
-                          "shares": "9323641881708650182301"
-                        }
-                      ]
-                    },
-                    "totalOperators": {
-                      "type": "number",
-                      "description": "The total number of operators operating the AVS",
-                      "example": 10
-                    },
-                    "totalStakers": {
-                      "type": "number",
-                      "description": "The total number of stakers staking in the AVS",
-                      "example": 10
                     },
                     "curatedMetadata": {
                       "type": "object",
@@ -3275,6 +3241,40 @@
                         "isVerified": true
                       }
                     },
+                    "shares": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "strategyAddress": {
+                            "type": "string",
+                            "pattern": "^0x[a-fA-F0-9]{40}$",
+                            "description": "The contract address of the restaking strategy",
+                            "example": "0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0"
+                          },
+                          "shares": {
+                            "type": "string",
+                            "description": "The amount of shares held in the strategy",
+                            "example": "1277920000000000000000000"
+                          }
+                        },
+                        "required": [
+                          "strategyAddress",
+                          "shares"
+                        ]
+                      },
+                      "description": "The strategy shares held in the AVS",
+                      "example": [
+                        {
+                          "strategyAddress": "0x93c4b944d05dfe6df7645a86cd2206016c51564d",
+                          "shares": "135064894598947935263152"
+                        },
+                        {
+                          "strategyAddress": "0x54945180db7943c0ed0fee7edab2bd24620256bc",
+                          "shares": "9323641881708650182301"
+                        }
+                      ]
+                    },
                     "tvl": {
                       "type": "object",
                       "properties": {
@@ -3359,13 +3359,13 @@
                     "metadataTelegram",
                     "metadataWebsite",
                     "metadataX",
+                    "totalStakers",
+                    "totalOperators",
                     "createdAtBlock",
                     "updatedAtBlock",
                     "createdAt",
                     "updatedAt",
-                    "shares",
-                    "totalOperators",
-                    "totalStakers"
+                    "shares"
                   ]
                 }
               }
