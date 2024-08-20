@@ -78,7 +78,6 @@ type EthTvlModelMap = {
 	metricDepositHourly: Prisma.MetricDepositHourly
 	metricWithdrawalHourly: Prisma.MetricWithdrawalHourly
 	metricEigenPodsHourly: Prisma.MetricEigenPodsHourly
-	validator: Prisma.Validator
 }
 type EthTvlModelName = keyof EthTvlModelMap // Models with TVL denominated in ETH
 
@@ -965,7 +964,7 @@ async function doGetTvlBeaconChain(
 	const currentTvl = Number(totalValidators._sum.balance) / 1e9
 
 	return withChange
-		? ((await calculateTvlChange(currentTvl, 'validator')) as TvlWithChange)
+		? ((await calculateTvlChange(currentTvl, 'metricEigenPodsHourly')) as TvlWithChange)
 		: (currentTvl as TvlWithoutChange)
 }
 
@@ -2244,8 +2243,7 @@ function checkEthDenomination(modelName: string): modelName is EthTvlModelName {
 	const ethTvlModelNames: EthTvlModelName[] = [
 		'metricDepositHourly',
 		'metricWithdrawalHourly',
-		'metricEigenPodsHourly',
-		'validator'
+		'metricEigenPodsHourly'
 	]
 	return ethTvlModelNames.includes(modelName as EthTvlModelName)
 }
