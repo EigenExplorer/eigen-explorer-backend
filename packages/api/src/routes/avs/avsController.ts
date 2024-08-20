@@ -1,17 +1,17 @@
-import prisma from '../../utils/prismaClient'
 import type { Request, Response } from 'express'
+import type { IMap } from '../../schema/generic'
+import prisma from '../../utils/prismaClient'
 import { PaginationQuerySchema } from '../../schema/zod/schemas/paginationQuery'
 import { handleAndReturnErrorResponse } from '../../schema/errors'
 import { EthereumAddressSchema } from '../../schema/zod/schemas/base/ethereumAddress'
-import { IMap } from '../../schema/generic'
 import { WithTvlQuerySchema } from '../../schema/zod/schemas/withTvlQuery'
+import { getNetwork } from '../../viem/viemClient'
+import { fetchStrategyTokenPrices } from '../../utils/tokenPrices'
+import { WithCuratedMetadata } from '../../schema/zod/schemas/withCuratedMetadataQuery'
 import {
 	getStrategiesWithShareUnderlying,
 	sharesToTVL
 } from '../strategies/strategiesController'
-import { getNetwork } from '../../viem/viemClient'
-import { fetchStrategyTokenPrices } from '../../utils/tokenPrices'
-import { WithCuratedMetadata } from '../../schema/zod/schemas/withCuratedMetadataQuery'
 
 /**
  * Route to get a list of all AVSs
@@ -30,14 +30,30 @@ export async function getAllAVS(req: Request, res: Response) {
 	}
 
 	try {
-		const { skip, take, withTvl, withCuratedMetadata } = queryCheck.data
-
-		// Fetch count and record
-		const avsCount = await prisma.avs.count({ where: getAvsFilterQuery(true) })
-		const avsRecords = await prisma.avs.findMany({
-			where: getAvsFilterQuery(true),
+		const {
 			skip,
 			take,
+			withTvl,
+			withCuratedMetadata,
+			sortByTotalStakers,
+			sortByTotalOperators
+		} = queryCheck.data
+
+		// Fetch count
+		const avsCount = await prisma.avs.count({
+			where: getAvsFilterQuery(true)
+		})
+
+		// Setup sort if applicable
+		const sortConfig = sortByTotalStakers
+			? { field: 'totalStakers', order: sortByTotalStakers }
+			: sortByTotalOperators
+			  ? { field: 'totalOperators', order: sortByTotalOperators }
+			  : null
+
+		// Fetch records and apply sort if applicable
+		const avsRecords = await prisma.avs.findMany({
+			where: getAvsFilterQuery(true),
 			include: {
 				curatedMetadata: withCuratedMetadata,
 				operators: {
@@ -50,7 +66,16 @@ export async function getAllAVS(req: Request, res: Response) {
 						}
 					}
 				}
-			}
+			},
+			skip,
+			take,
+			...(sortConfig
+				? {
+						orderBy: {
+							[sortConfig.field]: sortConfig.order
+						}
+				  }
+				: {})
 		})
 
 		const strategyTokenPrices = withTvl ? await fetchStrategyTokenPrices() : {}
@@ -60,15 +85,6 @@ export async function getAllAVS(req: Request, res: Response) {
 
 		const data = await Promise.all(
 			avsRecords.map(async (avs) => {
-				const totalOperators = avs.operators.length
-				const totalStakers = await prisma.staker.count({
-					where: {
-						operatorAddress: {
-							in: avs.operators.map((o) => o.operatorAddress)
-						}
-					}
-				})
-
 				const shares = withOperatorShares(avs.operators).filter(
 					(s) =>
 						avs.restakeableStrategies.indexOf(
@@ -81,9 +97,9 @@ export async function getAllAVS(req: Request, res: Response) {
 					curatedMetadata: withCuratedMetadata
 						? avs.curatedMetadata
 						: undefined,
+					totalOperators: avs.totalOperators,
+					totalStakers: avs.totalStakers,
 					shares,
-					totalOperators,
-					totalStakers,
 					tvl: withTvl
 						? sharesToTVL(
 								shares,
@@ -93,7 +109,8 @@ export async function getAllAVS(req: Request, res: Response) {
 						: undefined,
 					operators: undefined,
 					metadataUrl: undefined,
-					isMetadataSynced: undefined
+					isMetadataSynced: undefined,
+					restakeableStrategies: undefined
 				}
 			})
 		)
@@ -128,7 +145,9 @@ export async function getAllAVSAddresses(req: Request, res: Response) {
 		const { skip, take } = queryCheck.data
 
 		// Fetch count and records
-		const avsCount = await prisma.avs.count({ where: getAvsFilterQuery(true) })
+		const avsCount = await prisma.avs.count({
+			where: getAvsFilterQuery(true)
+		})
 		const avsRecords = await prisma.avs.findMany({
 			where: getAvsFilterQuery(true),
 			skip,
@@ -196,15 +215,6 @@ export async function getAVS(req: Request, res: Response) {
 			}
 		})
 
-		const totalOperators = avs.operators.length
-		const totalStakers = await prisma.staker.count({
-			where: {
-				operatorAddress: {
-					in: avs.operators.map((o) => o.operatorAddress)
-				}
-			}
-		})
-
 		const shares = withOperatorShares(avs.operators).filter(
 			(s) =>
 				avs.restakeableStrategies.indexOf(s.strategyAddress.toLowerCase()) !==
@@ -220,8 +230,8 @@ export async function getAVS(req: Request, res: Response) {
 			...avs,
 			curatedMetadata: withCuratedMetadata ? avs.curatedMetadata : undefined,
 			shares,
-			totalOperators,
-			totalStakers,
+			totalOperators: avs.totalOperators,
+			totalStakers: avs.totalStakers,
 			tvl: withTvl
 				? sharesToTVL(
 						shares,
@@ -231,7 +241,8 @@ export async function getAVS(req: Request, res: Response) {
 				: undefined,
 			operators: undefined,
 			metadataUrl: undefined,
-			isMetadataSynced: undefined
+			isMetadataSynced: undefined,
+			restakeableStrategies: undefined
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
@@ -273,7 +284,21 @@ export async function getAVSStakers(req: Request, res: Response) {
 			.map((o) => o.operatorAddress)
 
 		const stakersCount = await prisma.staker.count({
-			where: { operatorAddress: { in: operatorAddresses } }
+			where: {
+				operatorAddress: {
+					in: operatorAddresses
+				},
+				shares: {
+					some: {
+						strategyAddress: {
+							in: [
+								...new Set(avs.operators.flatMap((o) => o.restakedStrategies))
+							]
+						},
+						shares: { gt: '0' }
+					}
+				}
+			}
 		})
 
 		const stakersRecords = await prisma.staker.findMany({

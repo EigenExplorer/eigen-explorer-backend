@@ -26,6 +26,9 @@ model Avs {
   curatedMetadata       AvsCuratedMetadata?
   restakeableStrategies String[]
 
+  totalStakers   Int @default(0)
+  totalOperators Int @default(0)
+
   createdAtBlock BigInt   @default(0)
   updatedAtBlock BigInt   @default(0)
   createdAt      DateTime @default(now())
@@ -99,6 +102,9 @@ model Operator {
   avs     AvsOperator[]
   shares  OperatorStrategyShares[]
   stakers Staker[]
+
+  totalStakers Int @default(0)
+  totalAvs     Int @default(0)
 
   createdAtBlock BigInt   @default(0)
   updatedAtBlock BigInt   @default(0)

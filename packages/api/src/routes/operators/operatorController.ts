@@ -4,11 +4,11 @@ import { PaginationQuerySchema } from '../../schema/zod/schemas/paginationQuery'
 import { EthereumAddressSchema } from '../../schema/zod/schemas/base/ethereumAddress'
 import { WithTvlQuerySchema } from '../../schema/zod/schemas/withTvlQuery'
 import { handleAndReturnErrorResponse } from '../../schema/errors'
+import { fetchStrategyTokenPrices } from '../../utils/tokenPrices'
 import {
 	getStrategiesWithShareUnderlying,
 	sharesToTVL
 } from '../strategies/strategiesController'
-import { fetchStrategyTokenPrices } from '../../utils/tokenPrices'
 
 /**
  * Route to get a list of all operators
@@ -24,25 +24,39 @@ export async function getAllOperators(req: Request, res: Response) {
 	if (!result.success) {
 		return handleAndReturnErrorResponse(req, res, result.error)
 	}
-	const { skip, take, withTvl } = result.data
+	const { skip, take, withTvl, sortByTotalStakers, sortByTotalAvs } =
+		result.data
 
 	try {
-		// Fetch count and records
+		// Count records
 		const operatorCount = await prisma.operator.count()
+
+		// Setup sort if applicable
+		const sortConfig = sortByTotalStakers
+			? { field: 'totalStakers', order: sortByTotalStakers }
+			: sortByTotalAvs
+			  ? { field: 'totalAvs', order: sortByTotalAvs }
+			  : null
+
+		// Fetch records and apply sort if applicable
 		const operatorRecords = await prisma.operator.findMany({
-			skip,
-			take,
 			include: {
+				avs: {
+					select: { avsAddress: true, isActive: true }
+				},
 				shares: {
 					select: { strategyAddress: true, shares: true }
-				},
-				_count: {
-					select: {
-						avs: true,
-						stakers: true
-					}
 				}
-			}
+			},
+			skip,
+			take,
+			...(sortConfig
+				? {
+						orderBy: {
+							[sortConfig.field]: sortConfig.order
+						}
+				  }
+				: {})
 		})
 
 		const strategyTokenPrices = withTvl ? await fetchStrategyTokenPrices() : {}
@@ -52,8 +66,9 @@ export async function getAllOperators(req: Request, res: Response) {
 
 		const operators = operatorRecords.map((operator) => ({
 			...operator,
-			totalStakers: operator._count.stakers,
-			totalAvs: operator._count.avs,
+			avsRegistrations: operator.avs,
+			totalStakers: operator.totalStakers,
+			totalAvs: operator.totalAvs,
 			tvl: withTvl
 				? sharesToTVL(
 						operator.shares,
@@ -61,10 +76,9 @@ export async function getAllOperators(req: Request, res: Response) {
 						strategyTokenPrices
 				  )
 				: undefined,
-			stakers: undefined,
 			metadataUrl: undefined,
 			isMetadataSynced: undefined,
-			_count: undefined
+			avs: undefined
 		}))
 
 		res.send({
@@ -97,7 +111,7 @@ export async function getOperator(req: Request, res: Response) {
 	if (!paramCheck.success) {
 		return handleAndReturnErrorResponse(req, res, paramCheck.error)
 	}
-	
+
 	const { withTvl } = result.data
 
 	try {
@@ -106,14 +120,11 @@ export async function getOperator(req: Request, res: Response) {
 		const operator = await prisma.operator.findUniqueOrThrow({
 			where: { address: address.toLowerCase() },
 			include: {
+				avs: {
+					select: { avsAddress: true, isActive: true }
+				},
 				shares: {
 					select: { strategyAddress: true, shares: true }
-				},
-				_count: {
-					select: {
-						stakers: true,
-						avs: true
-					}
 				}
 			}
 		})
@@ -125,8 +136,9 @@ export async function getOperator(req: Request, res: Response) {
 
 		res.send({
 			...operator,
-			totalStakers: operator._count.stakers,
-			totalAvs: operator._count.avs,
+			avsRegistrations: operator.avs,
+			totalStakers: operator.totalStakers,
+			totalAvs: operator.totalAvs,
 			tvl: withTvl
 				? sharesToTVL(
 						operator.shares,
@@ -137,7 +149,7 @@ export async function getOperator(req: Request, res: Response) {
 			stakers: undefined,
 			metadataUrl: undefined,
 			isMetadataSynced: undefined,
-			_count: undefined
+			avs: undefined
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)

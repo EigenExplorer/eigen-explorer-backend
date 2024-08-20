@@ -2,6 +2,8 @@ import z from '..'
 
 const dayInMs = 24 * 60 * 60 * 1000
 const gracePeriod = 10 * 60 * 1000 // 10 mins
+const isoRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?Z?$/
+const yyyymmddRegex = /^\d{4}-\d{2}-\d{2}$/
 
 /**
  * Range limits and default ranges basis requested frequency
@@ -98,41 +100,36 @@ export const HistoricalCountSchema = z
 		startAt: z
 			.string()
 			.optional()
-			.describe('Start date in ISO string format')
-			.refine((val) => !val || !Number.isNaN(Date.parse(val)), {
-				message: 'Invalid date format'
-			})
+			.refine(
+				(val) =>
+					!val ||
+					((isoRegex.test(val) || yyyymmddRegex.test(val)) &&
+						!Number.isNaN(new Date(val).getTime())),
+				{
+					message:
+						'Invalid date format for startAt. Use YYYY-MM-DD or ISO 8601 format.'
+				}
+			)
 			.default('')
 			.describe('Start date in ISO string format')
 			.openapi({ example: '2024-04-11T08:31:11.000' }),
 		endAt: z
 			.string()
 			.optional()
-			.describe('End date in ISO string format')
-			.refine((val) => !val || !Number.isNaN(Date.parse(val)), {
-				message: 'Invalid date format'
-			})
+			.refine(
+				(val) =>
+					!val ||
+					((isoRegex.test(val) || yyyymmddRegex.test(val)) &&
+						!Number.isNaN(new Date(val).getTime())),
+				{
+					message:
+						'Invalid date format for endAt. Use YYYY-MM-DD or ISO 8601 format.'
+				}
+			)
 			.default('')
 			.describe('End date in ISO string format')
 			.openapi({ example: '2024-04-12T08:31:11.000' })
 	})
-	.refine(
-		(data) => {
-			const { startAt, endAt } = data
-			if (!startAt && !endAt) return true
-			if (startAt && new Date(startAt)) {
-				if (endAt && new Date(endAt)) {
-					return true
-				}
-				return true
-			}
-			return false
-		},
-		{
-			message: 'Provide valid date string in ISO format',
-			path: ['endAt', 'startAt']
-		}
-	)
 	.refine(
 		(data) => {
 			if (data.startAt && data.endAt) {
@@ -149,11 +146,15 @@ export const HistoricalCountSchema = z
 	)
 	.refine(
 		(data) => {
-			const { frequency, startAt, endAt } = data
-			const dates = getDefaultDates(frequency, startAt, endAt)
-			Object.assign(data, dates)
+			try {
+				const { frequency, startAt, endAt } = data
+				const dates = getDefaultDates(frequency, startAt, endAt)
+				Object.assign(data, dates)
 
-			return validateDateRange(data.startAt, data.endAt, frequency)
+				return validateDateRange(data.startAt, data.endAt, frequency)
+			} catch {
+				return false
+			}
 		},
 		{
 			message:

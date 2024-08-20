@@ -1,4 +1,4 @@
-import type prisma from '@prisma/client'
+import prisma from '@prisma/client'
 import { type EntityMetadata, defaultMetadata } from './utils/metadata'
 import { getPrismaClient } from './utils/prismaClient'
 import {
@@ -125,6 +125,8 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 				metadataX: metadata.x,
 				restakeableStrategies: [],
 				isMetadataSynced,
+				totalStakers: 0,
+				totalOperators: 0,
 				createdAtBlock,
 				updatedAtBlock,
 				createdAt,
@@ -179,6 +181,8 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 						metadataX: metadata.x,
 						restakeableStrategies: [],
 						isMetadataSynced,
+						totalStakers: 0,
+						totalOperators: 0,
 						createdAtBlock,
 						updatedAtBlock,
 						createdAt,

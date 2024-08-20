@@ -34,6 +34,12 @@ export async function loopThroughBlocks(
 	return lastBlock
 }
 
+export function setToStartOfHour(date: Date): Date {
+	const hourlyDate = new Date(date)
+	hourlyDate.setMinutes(0, 0, 0)
+	return hourlyDate
+}
+
 export async function loopThroughDates(
 	startDate: Date,
 	endDate: Date,
@@ -41,11 +47,6 @@ export async function loopThroughDates(
 	cb: (from: Date, to: Date) => Promise<any>,
 	frequency: 'hourly' | 'daily' = 'hourly'
 ) {
-	const setToStartOfHour = (date: Date): Date => {
-		const hourlyDate = new Date(date)
-		hourlyDate.setMinutes(0, 0, 0)
-		return hourlyDate
-	}
 
 	let currentDate = setToStartOfHour(startDate)
 	const adjustedEndDate = setToStartOfHour(endDate)
