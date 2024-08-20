@@ -893,8 +893,8 @@
             "description": "Start date in ISO string format",
             "schema": {
               "type": "string",
-              "description": "Start date in ISO string format",
               "default": "",
+              "description": "Start date in ISO string format",
               "example": "2024-04-11T08:31:11.000"
             }
           },
@@ -904,8 +904,8 @@
             "description": "End date in ISO string format",
             "schema": {
               "type": "string",
-              "description": "End date in ISO string format",
               "default": "",
+              "description": "End date in ISO string format",
               "example": "2024-04-12T08:31:11.000"
             }
           }
@@ -1042,8 +1042,8 @@
             "description": "Start date in ISO string format",
             "schema": {
               "type": "string",
-              "description": "Start date in ISO string format",
               "default": "",
+              "description": "Start date in ISO string format",
               "example": "2024-04-11T08:31:11.000"
             }
           },
@@ -1053,8 +1053,8 @@
             "description": "End date in ISO string format",
             "schema": {
               "type": "string",
-              "description": "End date in ISO string format",
               "default": "",
+              "description": "End date in ISO string format",
               "example": "2024-04-12T08:31:11.000"
             }
           }
@@ -1179,8 +1179,8 @@
             "description": "Start date in ISO string format",
             "schema": {
               "type": "string",
-              "description": "Start date in ISO string format",
               "default": "",
+              "description": "Start date in ISO string format",
               "example": "2024-04-11T08:31:11.000"
             }
           },
@@ -1190,8 +1190,8 @@
             "description": "End date in ISO string format",
             "schema": {
               "type": "string",
-              "description": "End date in ISO string format",
               "default": "",
+              "description": "End date in ISO string format",
               "example": "2024-04-12T08:31:11.000"
             }
           }
@@ -1304,8 +1304,8 @@
             "description": "Start date in ISO string format",
             "schema": {
               "type": "string",
-              "description": "Start date in ISO string format",
               "default": "",
+              "description": "Start date in ISO string format",
               "example": "2024-04-11T08:31:11.000"
             }
           },
@@ -1315,8 +1315,8 @@
             "description": "End date in ISO string format",
             "schema": {
               "type": "string",
-              "description": "End date in ISO string format",
               "default": "",
+              "description": "End date in ISO string format",
               "example": "2024-04-12T08:31:11.000"
             }
           }
@@ -1441,8 +1441,8 @@
             "description": "Start date in ISO string format",
             "schema": {
               "type": "string",
-              "description": "Start date in ISO string format",
               "default": "",
+              "description": "Start date in ISO string format",
               "example": "2024-04-11T08:31:11.000"
             }
           },
@@ -1452,8 +1452,8 @@
             "description": "End date in ISO string format",
             "schema": {
               "type": "string",
-              "description": "End date in ISO string format",
               "default": "",
+              "description": "End date in ISO string format",
               "example": "2024-04-12T08:31:11.000"
             }
           }
@@ -1566,8 +1566,8 @@
             "description": "Start date in ISO string format",
             "schema": {
               "type": "string",
-              "description": "Start date in ISO string format",
               "default": "",
+              "description": "Start date in ISO string format",
               "example": "2024-04-11T08:31:11.000"
             }
           },
@@ -1577,8 +1577,8 @@
             "description": "End date in ISO string format",
             "schema": {
               "type": "string",
-              "description": "End date in ISO string format",
               "default": "",
+              "description": "End date in ISO string format",
               "example": "2024-04-12T08:31:11.000"
             }
           }
@@ -1691,8 +1691,8 @@
             "description": "Start date in ISO string format",
             "schema": {
               "type": "string",
-              "description": "Start date in ISO string format",
               "default": "",
+              "description": "Start date in ISO string format",
               "example": "2024-04-11T08:31:11.000"
             }
           },
@@ -1702,8 +1702,8 @@
             "description": "End date in ISO string format",
             "schema": {
               "type": "string",
-              "description": "End date in ISO string format",
               "default": "",
+              "description": "End date in ISO string format",
               "example": "2024-04-12T08:31:11.000"
             }
           }
@@ -1816,8 +1816,8 @@
             "description": "Start date in ISO string format",
             "schema": {
               "type": "string",
-              "description": "Start date in ISO string format",
               "default": "",
+              "description": "Start date in ISO string format",
               "example": "2024-04-11T08:31:11.000"
             }
           },
@@ -1827,8 +1827,8 @@
             "description": "End date in ISO string format",
             "schema": {
               "type": "string",
-              "description": "End date in ISO string format",
               "default": "",
+              "description": "End date in ISO string format",
               "example": "2024-04-12T08:31:11.000"
             }
           }
@@ -1941,8 +1941,8 @@
             "description": "Start date in ISO string format",
             "schema": {
               "type": "string",
-              "description": "Start date in ISO string format",
               "default": "",
+              "description": "Start date in ISO string format",
               "example": "2024-04-11T08:31:11.000"
             }
           },
@@ -1952,8 +1952,8 @@
             "description": "End date in ISO string format",
             "schema": {
               "type": "string",
-              "description": "End date in ISO string format",
               "default": "",
+              "description": "End date in ISO string format",
               "example": "2024-04-12T08:31:11.000"
             }
           }
@@ -2066,8 +2066,8 @@
             "description": "Start date in ISO string format",
             "schema": {
               "type": "string",
-              "description": "Start date in ISO string format",
               "default": "",
+              "description": "Start date in ISO string format",
               "example": "2024-04-11T08:31:11.000"
             }
           },
@@ -2077,8 +2077,8 @@
             "description": "End date in ISO string format",
             "schema": {
               "type": "string",
-              "description": "End date in ISO string format",
               "default": "",
+              "description": "End date in ISO string format",
               "example": "2024-04-12T08:31:11.000"
             }
           }
@@ -2191,8 +2191,8 @@
             "description": "Start date in ISO string format",
             "schema": {
               "type": "string",
-              "description": "Start date in ISO string format",
               "default": "",
+              "description": "Start date in ISO string format",
               "example": "2024-04-11T08:31:11.000"
             }
           },
@@ -2202,8 +2202,8 @@
             "description": "End date in ISO string format",
             "schema": {
               "type": "string",
-              "description": "End date in ISO string format",
               "default": "",
+              "description": "End date in ISO string format",
               "example": "2024-04-12T08:31:11.000"
             }
           }
@@ -2316,8 +2316,8 @@
             "description": "Start date in ISO string format",
             "schema": {
               "type": "string",
-              "description": "Start date in ISO string format",
               "default": "",
+              "description": "Start date in ISO string format",
               "example": "2024-04-11T08:31:11.000"
             }
           },
@@ -2327,8 +2327,8 @@
             "description": "End date in ISO string format",
             "schema": {
               "type": "string",
-              "description": "End date in ISO string format",
               "default": "",
+              "description": "End date in ISO string format",
               "example": "2024-04-12T08:31:11.000"
             }
           }
@@ -2455,6 +2455,34 @@
               "description": "Toggle whether the route should send curated metadata",
               "example": "false"
             }
+          },
+          {
+            "in": "query",
+            "name": "sortByTotalStakers",
+            "description": "Sort results in asc or desc order of total stakers",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "description": "Sort results in asc or desc order of total stakers",
+              "example": "desc"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sortByTotalOperators",
+            "description": "Sort results in asc or desc order of total AVS (only valid for AVS queries)",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "description": "Sort results in asc or desc order of total AVS (only valid for AVS queries)",
+              "example": "desc"
+            }
           }
         ],
         "responses": {
@@ -2520,17 +2548,6 @@
                             "format": "uri",
                             "description": "The URL of the AVS's X",
                             "example": "https://twitter.com/acme"
-                          },
-                          "restakeableStrategies": {
-                            "type": "array",
-                            "items": {
-                              "type": "string",
-                              "pattern": "^0x[a-fA-F0-9]{40}$"
-                            },
-                            "description": "The list of supported restaking strategies",
-                            "example": [
-                              "0x35f4f28a8d3ff20eed10e087e8f96ea2641e6aa1"
-                            ]
                           },
                           "createdAtBlock": {
                             "type": "string",
@@ -2787,7 +2804,6 @@
                           "metadataTelegram",
                           "metadataWebsite",
                           "metadataX",
-                          "restakeableStrategies",
                           "createdAtBlock",
                           "updatedAtBlock",
                           "createdAt",
@@ -3088,17 +3104,6 @@
                       "description": "The URL of the AVS's X",
                       "example": "https://twitter.com/acme"
                     },
-                    "restakeableStrategies": {
-                      "type": "array",
-                      "items": {
-                        "type": "string",
-                        "pattern": "^0x[a-fA-F0-9]{40}$"
-                      },
-                      "description": "The list of supported restaking strategies",
-                      "example": [
-                        "0x35f4f28a8d3ff20eed10e087e8f96ea2641e6aa1"
-                      ]
-                    },
                     "createdAtBlock": {
                       "type": "string",
                       "description": "The block number at which the AVS was created",
@@ -3354,7 +3359,6 @@
                     "metadataTelegram",
                     "metadataWebsite",
                     "metadataX",
-                    "restakeableStrategies",
                     "createdAtBlock",
                     "updatedAtBlock",
                     "createdAt",
