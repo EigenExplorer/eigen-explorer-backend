@@ -78,19 +78,6 @@ export async function monitorOperatorMetrics() {
 						tvlEth: tvlObject.tvl,
 						sharesHash
 					})
-					console.log(
-						'updating ..',
-						operator.address,
-						sharesHash,
-						operator.sharesHash
-					)
-				} else {
-					console.log(
-						'skipping ..',
-						operator.address,
-						sharesHash,
-						operator.sharesHash
-					)
 				}
 			}
 
