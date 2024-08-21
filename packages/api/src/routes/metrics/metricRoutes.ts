@@ -22,6 +22,7 @@ import {
 	getHistoricalTvlDeposit,
 	getTotalWithdrawals,
 	getTotalDeposits,
+	getRestakingRatio,
 	getDeploymentRatio
 } from './metricController'
 
@@ -124,7 +125,13 @@ router.get(
 )
 
 router.get(
-	'/deployment-ratio',
+	'/restaking-ratio', 
+	routeCache.cacheSeconds(120), 
+	getRestakingRatio
+)
+
+router.get(
+  '/deployment-ratio',
 	routeCache.cacheSeconds(120),
 	getDeploymentRatio
 )

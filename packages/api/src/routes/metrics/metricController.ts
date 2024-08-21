@@ -17,6 +17,7 @@ import { getContract } from 'viem'
 import { strategyAbi } from '../../data/abi/strategy'
 import { getViemClient } from '../../viem/viemClient'
 import { getStrategiesWithShareUnderlying } from '../strategies/strategiesController'
+import { fetchEthCirculatingSupply } from '../../utils/ethCirculatingSupply'
 import { WithChangeQuerySchema } from '../../schema/zod/schemas/withChangeQuery'
 
 const beaconAddress = '0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0'
@@ -930,6 +931,76 @@ export async function getDeploymentRatio(req: Request, res: Response) {
 			},
 			change7d: {
 				value: change7dDelegationValue,
+				percent: change7dPercent
+			}
+		})
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+/**
+ * Function for route /restaking-rataio
+ * Returns the Restaking Ratio
+ *
+ * @param req
+ * @param res
+ */
+export async function getRestakingRatio(req: Request, res: Response) {
+	try {
+		const tvlRestaking = (await doGetTvl()).tvlRestaking
+		const tvlBeaconChain = await doGetTvlBeaconChain()
+
+		const ethSupplyData = await fetchEthCirculatingSupply()
+		const currentEthCirculation = ethSupplyData.current_circulating_supply
+		const ethCirculation24hAgo = ethSupplyData.supply_24h_ago
+		const ethCirculation7dAgo = ethSupplyData.supply_7d_ago
+
+		const timestampNow = new Date()
+		const timestamp24h = new Date(
+			new Date().setUTCHours(timestampNow.getUTCHours() - 24)
+		)
+		const timestamp7d = new Date(
+			new Date().setUTCDate(timestampNow.getUTCDate() - 7)
+		)
+
+		const historicalData = await doGetHistoricalTvlTotal(
+			timestamp7d.toString(),
+			timestamp24h.toString(),
+			'1d',
+			'cumulative'
+		)
+
+		const tvlEth24hAgo = historicalData[historicalData.length - 1]?.tvlEth || 0
+		const tvlEth7dAgo = historicalData[0]?.tvlEth || 0
+
+		const currentRestakingRatio =
+			(tvlRestaking + tvlBeaconChain) / currentEthCirculation
+
+		const restakingRatio24hAgo = tvlEth24hAgo / ethCirculation24hAgo
+
+		const restakingRatio7dAgo = tvlEth7dAgo / ethCirculation7dAgo
+
+		const change24hValue = currentRestakingRatio - restakingRatio24hAgo
+		const change24hPercent =
+			restakingRatio24hAgo !== 0
+				? Math.round((change24hValue / restakingRatio24hAgo) * 1000) / 1000
+				: 0
+
+		const change7dValue = currentRestakingRatio - restakingRatio7dAgo
+		const change7dPercent =
+			restakingRatio7dAgo !== 0
+				? Math.round((change7dValue / restakingRatio7dAgo) * 1000) / 1000
+				: 0
+
+		res.send({
+			total: currentRestakingRatio,
+			change24h: {
+				value: change24hValue,
+				percent: change24hPercent
+			},
+			change7d: {
+				value: change7dValue,
 				percent: change7dPercent
 			}
 		})
