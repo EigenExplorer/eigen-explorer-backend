@@ -29,6 +29,9 @@ model Avs {
   totalStakers   Int @default(0)
   totalOperators Int @default(0)
 
+  tvlEth     Decimal @default(0) @db.Decimal(20, 8)
+  sharesHash String?
+
   createdAtBlock BigInt   @default(0)
   updatedAtBlock BigInt   @default(0)
   createdAt      DateTime @default(now())
@@ -105,6 +108,9 @@ model Operator {
 
   totalStakers Int @default(0)
   totalAvs     Int @default(0)
+
+  tvlEth     Decimal @default(0) @db.Decimal(20, 8)
+  sharesHash String?
 
   createdAtBlock BigInt   @default(0)
   updatedAtBlock BigInt   @default(0)

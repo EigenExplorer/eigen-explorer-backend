@@ -24,7 +24,7 @@ export async function getAllOperators(req: Request, res: Response) {
 	if (!result.success) {
 		return handleAndReturnErrorResponse(req, res, result.error)
 	}
-	const { skip, take, withTvl, sortByTotalStakers, sortByTotalAvs } =
+	const { skip, take, withTvl, sortByTvl, sortByTotalStakers, sortByTotalAvs } =
 		result.data
 
 	try {
@@ -36,7 +36,9 @@ export async function getAllOperators(req: Request, res: Response) {
 			? { field: 'totalStakers', order: sortByTotalStakers }
 			: sortByTotalAvs
 			  ? { field: 'totalAvs', order: sortByTotalAvs }
-			  : null
+			  : sortByTvl
+				  ? { field: 'tvlEth', order: sortByTvl }
+				  : null
 
 		// Fetch records and apply sort if applicable
 		const operatorRecords = await prisma.operator.findMany({
@@ -78,7 +80,9 @@ export async function getAllOperators(req: Request, res: Response) {
 				: undefined,
 			metadataUrl: undefined,
 			isMetadataSynced: undefined,
-			avs: undefined
+			avs: undefined,
+			tvlEth: undefined,
+			sharesHash: undefined
 		}))
 
 		res.send({
@@ -149,7 +153,9 @@ export async function getOperator(req: Request, res: Response) {
 			stakers: undefined,
 			metadataUrl: undefined,
 			isMetadataSynced: undefined,
-			avs: undefined
+			avs: undefined,
+			tvlEth: undefined,
+			sharesHash: undefined
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
