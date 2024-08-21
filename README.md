@@ -22,11 +22,11 @@ The project is structured with multiple packages located in the packages directo
   ```
   npx prisma migrate dev --name init
   ```
-- Generate the Prisma client:
+
+  The above command generates the prisma client as well, if not use: 
    ```
   npm run prisma:generate
   ```
-
 
 ### 2. Seed the Database
 
@@ -36,7 +36,9 @@ The project is structured with multiple packages located in the packages directo
   npm install
   ```
 - To seed the database tables with data, use the command:
-  npm sttart
+  ```
+  npm start
+  ```
 - Note: If this is too time/resource-consuming, you can manually add sample data to the tables for testing.
 
 ### 3. Start the API Server
