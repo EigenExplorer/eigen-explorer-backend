@@ -1,6 +1,6 @@
-# Eigen Explorer Node / Server Backend
+# EigenExplorer Node / Server Backend
 
-This is the node/server backend for [Eigen Explorer](https://eigenexplorer.com). Eigen Explorer backend provides an array of API endpoints organized around REST for community users and developers to quickly access data and information about the Eigen Layer ecosystem.
+This is the node/server backend for [EigenExplorer](https://eigenexplorer.com). EigenExplorer backend provides an array of API endpoints organized around REST for community users and developers to quickly access data and information about the Eigen Layer ecosystem.
 
 Our API features predictable resource-oriented URLs, accepts form-encoded request bodies, returns JSON-encoded responses, and adheres to standard HTTP response codes, authentication methods, and verbs.
 
@@ -61,7 +61,7 @@ The project is structured with multiple packages located in the packages directo
   ```
   npm start
   ```
-- You can refer to the Eigen Explorer Docs repository (https://github.com/EigenExplorer/eigen-explorer-docs) for contributing to the API documentation.
+- You can refer to the EigenExplorer Docs repository (https://github.com/EigenExplorer/eigen-explorer-docs) for contributing to the API documentation.
 ## Contributing
 
 Feel free to contribute to the project by opening an issue or submitting a pull request.
