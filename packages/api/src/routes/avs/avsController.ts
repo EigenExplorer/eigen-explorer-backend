@@ -35,6 +35,7 @@ export async function getAllAVS(req: Request, res: Response) {
 			take,
 			withTvl,
 			withCuratedMetadata,
+			sortByTvl,
 			sortByTotalStakers,
 			sortByTotalOperators
 		} = queryCheck.data
@@ -49,7 +50,9 @@ export async function getAllAVS(req: Request, res: Response) {
 			? { field: 'totalStakers', order: sortByTotalStakers }
 			: sortByTotalOperators
 			  ? { field: 'totalOperators', order: sortByTotalOperators }
-			  : null
+			  : sortByTvl
+				  ? { field: 'tvlEth', order: sortByTvl }
+				  : null
 
 		// Fetch records and apply sort if applicable
 		const avsRecords = await prisma.avs.findMany({

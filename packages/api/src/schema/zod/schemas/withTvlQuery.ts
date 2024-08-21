@@ -8,6 +8,11 @@ export const WithTvlQuerySchema = z
 			.describe('Toggle whether the route should calculate the TVL from shares')
 			.transform((val) => val === 'true')
 			.openapi({ example: 'false' }),
+		sortByTvl: z
+			.enum(['asc', 'desc'])
+			.optional()
+			.describe('Sort results in asc or desc order of TVL value')
+			.openapi({ example: 'desc' }),
 		sortByTotalStakers: z
 			.enum(['asc', 'desc'])
 			.optional()
@@ -31,6 +36,7 @@ export const WithTvlQuerySchema = z
 	.refine(
 		(data) => {
 			const sortByFields = [
+				data.sortByTvl,
 				data.sortByTotalStakers,
 				data.sortByTotalAvs,
 				data.sortByTotalOperators
@@ -40,6 +46,7 @@ export const WithTvlQuerySchema = z
 		{
 			message: 'Only one sortBy option can be used',
 			path: [
+				'sortByTvl',
 				'sortByTotalStakers',
 				'sortByTotalAvs',
 				'sortByTotalOperators'
