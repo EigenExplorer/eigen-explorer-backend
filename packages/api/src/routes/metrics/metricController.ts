@@ -814,8 +814,8 @@ export async function getHistoricalDepositCount(req: Request, res: Response) {
  */
 export async function getDeploymentRatio(req: Request, res: Response) {
 	try {
-		const tvlRestaking = (await doGetTvl()).tvlRestaking
-		const tvlBeaconChain = await doGetTvlBeaconChain()
+		const tvlRestaking = (await doGetTvl(false)).tvlRestaking as number
+		const tvlBeaconChain = await doGetTvlBeaconChain(false) as number
 
 		const timestampNow = new Date()
 		const timestamp24h = new Date(
@@ -948,8 +948,8 @@ export async function getDeploymentRatio(req: Request, res: Response) {
  */
 export async function getRestakingRatio(req: Request, res: Response) {
 	try {
-		const tvlRestaking = (await doGetTvl()).tvlRestaking
-		const tvlBeaconChain = await doGetTvlBeaconChain()
+		const tvlRestaking = (await doGetTvl(false)).tvlRestaking as number
+		const tvlBeaconChain = await doGetTvlBeaconChain(false) as number
 
 		const ethSupplyData = await fetchEthCirculatingSupply()
 		const currentEthCirculation = ethSupplyData.current_circulating_supply
