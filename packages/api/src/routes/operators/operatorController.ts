@@ -78,7 +78,9 @@ export async function getAllOperators(req: Request, res: Response) {
 				: undefined,
 			metadataUrl: undefined,
 			isMetadataSynced: undefined,
-			avs: undefined
+			avs: undefined,
+			tvlEth: undefined,
+			sharesHash: undefined
 		}))
 
 		res.send({
@@ -149,7 +151,9 @@ export async function getOperator(req: Request, res: Response) {
 			stakers: undefined,
 			metadataUrl: undefined,
 			isMetadataSynced: undefined,
-			avs: undefined
+			avs: undefined,
+			tvlEth: undefined,
+			sharesHash: undefined
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)

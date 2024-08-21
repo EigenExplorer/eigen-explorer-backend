@@ -110,7 +110,9 @@ export async function getAllAVS(req: Request, res: Response) {
 					operators: undefined,
 					metadataUrl: undefined,
 					isMetadataSynced: undefined,
-					restakeableStrategies: undefined
+					restakeableStrategies: undefined,
+					tvlEth: undefined,
+					sharesHash: undefined
 				}
 			})
 		)
@@ -242,7 +244,9 @@ export async function getAVS(req: Request, res: Response) {
 			operators: undefined,
 			metadataUrl: undefined,
 			isMetadataSynced: undefined,
-			restakeableStrategies: undefined
+			restakeableStrategies: undefined,
+			tvlEth: undefined,
+			sharesHash: undefined
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
@@ -421,7 +425,9 @@ export async function getAVSOperators(req: Request, res: Response) {
 					: undefined,
 				stakers: undefined,
 				metadataUrl: undefined,
-				isMetadataSynced: undefined
+				isMetadataSynced: undefined,
+				tvlEth: undefined,
+				sharesHash: undefined
 			}
 		})
 
