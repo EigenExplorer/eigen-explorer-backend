@@ -3,7 +3,9 @@ import {
 	getEigenContracts
 } from '../data/address'
 
-import { cacheStore } from 'route-cache'
+import NodeCache from 'node-cache'
+
+const cacheStore = new NodeCache()
 
 type Tokens = keyof EigenStrategiesContractAddress
 
@@ -32,7 +34,7 @@ export async function fetchStrategyTokenPrices(): Promise<TokenPrices> {
 	const keys = Object.keys(getEigenContracts().Strategies) as Tokens[]
 	const keysStr = CMC_TOKEN_IDS.join(',')
 
-	const cachedValue = await cacheStore.get(`price_${keysStr}`)
+	const cachedValue = cacheStore.get(`price_${keysStr}`)
 
 	if (cachedValue) {
 		return cachedValue
@@ -61,7 +63,7 @@ export async function fetchStrategyTokenPrices(): Promise<TokenPrices> {
 		tokenPrices[k] = price
 	})
 
-	await cacheStore.set(`price_${keysStr}`, tokenPrices, 120_000)
+	cacheStore.set(`price_${keysStr}`, tokenPrices, 120)
 
 	return tokenPrices
 }
