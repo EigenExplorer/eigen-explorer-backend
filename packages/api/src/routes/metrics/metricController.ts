@@ -2,7 +2,7 @@ import type { Request, Response } from 'express'
 import type Prisma from '@prisma/client'
 import prisma from '../../utils/prismaClient'
 import {
-	EigenStrategiesContractAddress,
+	type EigenStrategiesContractAddress,
 	getEigenContracts
 } from '../../data/address'
 import {
@@ -18,19 +18,81 @@ import { strategyAbi } from '../../data/abi/strategy'
 import { getViemClient } from '../../viem/viemClient'
 import { getStrategiesWithShareUnderlying } from '../strategies/strategiesController'
 import { fetchEthCirculatingSupply } from '../../utils/ethCirculatingSupply'
+import { WithChangeQuerySchema } from '../../schema/zod/schemas/withChangeQuery'
+
+const beaconAddress = '0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0'
+
+/* 
+===================
+====== Types ======
+=================== 
+*/
+
+// --- TVL Routes ---
 
 type TvlWithoutChange = number
-
-interface TvlWithChange {
-	tvl: number
+type TvlWithChange = {
+	tvl: TvlWithoutChange
 	change24h: { value: number; percent: number }
 	change7d: { value: number; percent: number }
 }
+
+// --- Total Routes ---
+
+type TotalWithoutChange = number
+type TotalWithChange = {
+	total: TotalWithoutChange
+	change24h: { value: number; percent: number }
+	change7d: { value: number; percent: number }
+}
+type TotalWithdrawalsWithoutChange = {
+	total: number
+	pending: number
+	completed: number
+}
+type TotalWithdrawalsWithChange = {
+	total: {
+		value: number
+		change24h: { value: number; percent: number }
+		change7d: { value: number; percent: number }
+	}
+	pending: {
+		value: number
+		change24h: { value: number; percent: number }
+		change7d: { value: number; percent: number }
+	}
+	completed: {
+		value: number
+		change24h: { value: number; percent: number }
+		change7d: { value: number; percent: number }
+	}
+}
+
+// --- Historical TVL Routes ---
 
 type HistoricalTvlRecord = {
 	timestamp: string
 	tvlEth: number
 }
+
+type EthTvlModelMap = {
+	metricDepositHourly: Prisma.MetricDepositHourly
+	metricWithdrawalHourly: Prisma.MetricWithdrawalHourly
+	metricEigenPodsHourly: Prisma.MetricEigenPodsHourly
+}
+type EthTvlModelName = keyof EthTvlModelMap // Models with TVL denominated in ETH
+
+type NativeTvlModelMap = {
+	metricStrategyHourly: Prisma.MetricStrategyHourly
+	metricAvsStrategyHourly: Prisma.MetricAvsStrategyHourly
+	metricOperatorStrategyHourly: Prisma.MetricOperatorStrategyHourly
+}
+type NativeTvlModelName = keyof NativeTvlModelMap // Models with TVL denominated in their own native token
+
+type MetricModelMap = EthTvlModelMap & NativeTvlModelMap
+type MetricModelName = keyof (EthTvlModelMap & NativeTvlModelMap)
+
+// --- Historical Metrics Routes ---
 
 type HistoricalValueRecord = {
 	timestamp: string
@@ -44,33 +106,11 @@ type HistoricalAggregateRecord = {
 	totalOperators?: number
 	totalAvs?: number
 }
-
-// Models with tvl denominated in ETH
-type EthTvlModelMap = {
-	metricDepositHourly: Prisma.MetricDepositHourly
-	metricWithdrawalHourly: Prisma.MetricWithdrawalHourly
-	metricEigenPodsHourly: Prisma.MetricEigenPodsHourly
-}
-type EthTvlModelName = keyof EthTvlModelMap
-
-// Models with tvl denominated in their own native token
-type NativeTvlModelMap = {
-	metricStrategyHourly: Prisma.MetricStrategyHourly
-	metricAvsStrategyHourly: Prisma.MetricAvsStrategyHourly
-	metricOperatorStrategyHourly: Prisma.MetricOperatorStrategyHourly
-}
-type NativeTvlModelName = keyof NativeTvlModelMap
-
-type MetricModelMap = EthTvlModelMap & NativeTvlModelMap
-type MetricModelName = keyof (EthTvlModelMap & NativeTvlModelMap)
-
 type AggregateModelMap = {
 	metricAvsHourly: Prisma.MetricAvsHourly
 	metricOperatorHourly: Prisma.MetricOperatorHourly
 }
 type AggregateModelName = keyof AggregateModelMap
-
-const beaconAddress = '0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0'
 
 /* 
 ========================
@@ -82,7 +122,7 @@ const beaconAddress = '0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0'
 
 /**
  * Function for route /
- * Returns all TVL metrics & count metrics for AVS, Operator & Stakers
+ * Returns all TVL metrics & count metrics for AVS, Operator & Stakers (without 24h/7d change)
  *
  * @param req
  * @param res
@@ -96,8 +136,8 @@ export async function getMetrics(req: Request, res: Response) {
 			totalOperators,
 			totalStakers
 		] = await Promise.all([
-			doGetTvl(),
-			doGetTvlBeaconChain(),
+			doGetTvl(false),
+			doGetTvlBeaconChain(false),
 			doGetTotalAvsCount(false),
 			doGetTotalOperatorCount(false),
 			doGetTotalStakerCount(false)
@@ -112,12 +152,14 @@ export async function getMetrics(req: Request, res: Response) {
 		}
 
 		res.send({
-			tvl: tvlRestaking.tvlRestaking + (tvlBeaconChain as TvlWithoutChange),
-			tvlBeaconChain,
+			tvl:
+				(tvlRestaking.tvlRestaking as TvlWithoutChange) +
+				(tvlBeaconChain as TvlWithoutChange),
+			tvlBeaconChain: tvlBeaconChain as TvlWithoutChange,
 			...tvlRestaking,
-			totalAvs: metrics.totalAvs,
-			totalOperators: metrics.totalOperators,
-			totalStakers: metrics.totalStakers
+			totalAvs: metrics.totalAvs as TotalWithoutChange,
+			totalOperators: metrics.totalOperators as TotalWithoutChange,
+			totalStakers: metrics.totalStakers as TotalWithoutChange
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
@@ -128,18 +170,35 @@ export async function getMetrics(req: Request, res: Response) {
 
 /**
  * Function for route /tvl
- * Returns total EL TVL
+ * Returns total EL TVL with the option of 24h/7d change
  *
  * @param req
  * @param res
  */
 export async function getTvl(req: Request, res: Response) {
+	const queryCheck = WithChangeQuerySchema.safeParse(req.query)
+	if (!queryCheck.success) {
+		return handleAndReturnErrorResponse(req, res, queryCheck.error)
+	}
+
 	try {
-		const tvlRestaking = (await doGetTvl()).tvlRestaking
-		const tvlBeaconChain = await doGetTvlBeaconChain()
+		const { withChange } = queryCheck.data
+		const tvlRestaking = (await doGetTvl(withChange)).tvlRestaking
+		const tvlBeaconChain = await doGetTvlBeaconChain(withChange)
 
 		res.send({
-			tvl: tvlRestaking + tvlBeaconChain
+			...(withChange
+				? {
+						...(await combineTvlWithChange(
+							tvlRestaking as TvlWithChange,
+							tvlBeaconChain as TvlWithChange
+						))
+				  }
+				: {
+						tvl:
+							(tvlRestaking as TvlWithoutChange) +
+							(tvlBeaconChain as TvlWithoutChange)
+				  })
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
@@ -148,17 +207,25 @@ export async function getTvl(req: Request, res: Response) {
 
 /**
  * Function for route /tvl/beacon-chain
- * Returns Beacon Chain TVL
+ * Returns Beacon Chain TVL with the option of 24h/7d change
  *
  * @param req
  * @param res
  */
 export async function getTvlBeaconChain(req: Request, res: Response) {
+	const queryCheck = WithChangeQuerySchema.safeParse(req.query)
+	if (!queryCheck.success) {
+		return handleAndReturnErrorResponse(req, res, queryCheck.error)
+	}
+
 	try {
-		const tvlBeaconChain = await doGetTvlBeaconChain()
+		const { withChange } = queryCheck.data
+		const tvlBeaconChain = await doGetTvlBeaconChain(withChange)
 
 		res.send({
-			tvl: tvlBeaconChain
+			...(withChange
+				? { ...(tvlBeaconChain as TvlWithChange) }
+				: { tvl: tvlBeaconChain as TvlWithoutChange })
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
@@ -167,20 +234,28 @@ export async function getTvlBeaconChain(req: Request, res: Response) {
 
 /**
  * Function for route /tvl/restaking
- * Returns Liquid Staking TVL
+ * Returns Liquid Staking TVL with the option of 24h/7d change
  * Note: This TVL value includes Beacon ETH that's restaked (which is different from TVL Beacon Chain)
  *
  * @param req
  * @param res
  */
 export async function getTvlRestaking(req: Request, res: Response) {
+	const queryCheck = WithChangeQuerySchema.safeParse(req.query)
+	if (!queryCheck.success) {
+		return handleAndReturnErrorResponse(req, res, queryCheck.error)
+	}
+
 	try {
-		const tvlRestaking = await doGetTvl()
+		const { withChange } = queryCheck.data
+		const tvlResponse = await doGetTvl(withChange)
 
 		res.send({
-			tvl: tvlRestaking.tvlRestaking,
-			tvlStrategies: tvlRestaking.tvlStrategies,
-			tvlStrategiesEth: tvlRestaking.tvlStrategiesEth
+			...(withChange
+				? { ...(tvlResponse.tvlRestaking as TvlWithChange) }
+				: { tvl: tvlResponse.tvlRestaking as TvlWithoutChange }),
+			tvlStrategies: tvlResponse.tvlStrategies,
+			tvlStrategiesEth: tvlResponse.tvlStrategiesEth
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
@@ -189,14 +264,20 @@ export async function getTvlRestaking(req: Request, res: Response) {
 
 /**
  * Function for route /tvl/restaking/:strategy
- * Returns strategy TVL for any given strategy address
+ * Returns strategy TVL for any given strategy address with the option of 24h/7d change
  *
  * @param req
  * @param res
  */
 export async function getTvlRestakingByStrategy(req: Request, res: Response) {
+	const queryCheck = WithChangeQuerySchema.safeParse(req.query)
+	if (!queryCheck.success) {
+		return handleAndReturnErrorResponse(req, res, queryCheck.error)
+	}
+
 	try {
 		const { strategy } = req.params
+		const { withChange } = queryCheck.data
 
 		const strategies = Object.keys(getEigenContracts().Strategies)
 		const foundStrategy = strategies.find(
@@ -210,12 +291,16 @@ export async function getTvlRestakingByStrategy(req: Request, res: Response) {
 			})
 		}
 
-		const tvl = await doGetTvlStrategy(
-			getEigenContracts().Strategies[foundStrategy].strategyContract
+		const tvlResponse = await doGetTvlStrategy(
+			getEigenContracts().Strategies[foundStrategy].strategyContract,
+			withChange
 		)
 
 		res.send({
-			...tvl
+			...(withChange
+				? { ...(tvlResponse.tvl as TvlWithChange) }
+				: { tvl: tvlResponse.tvl as TvlWithoutChange }),
+			tvlEth: tvlResponse.tvlEth
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
@@ -226,16 +311,26 @@ export async function getTvlRestakingByStrategy(req: Request, res: Response) {
 
 /**
  * Function for route /total-avs
- * Returns number of whitelisted AVSs along with 24h/7d change
+ * Returns number of whitelisted AVSs with the option of 24h/7d change
  *
  * @param req
  * @param res
  */
 export async function getTotalAvs(req: Request, res: Response) {
-	try {
-		const total = await doGetTotalAvsCount(true)
+	const queryCheck = WithChangeQuerySchema.safeParse(req.query)
+	if (!queryCheck.success) {
+		return handleAndReturnErrorResponse(req, res, queryCheck.error)
+	}
 
-		res.send(total)
+	try {
+		const { withChange } = queryCheck.data
+		const total = await doGetTotalAvsCount(withChange)
+
+		res.send({
+			...(withChange
+				? { ...(total as TotalWithChange) }
+				: { total: total as TotalWithoutChange })
+		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
 	}
@@ -243,16 +338,26 @@ export async function getTotalAvs(req: Request, res: Response) {
 
 /**
  * Function for route /total-operators
- * Returns number of Operators along with 24h/7d change
+ * Returns number of Operators with the option of 24h/7d change
  *
  * @param req
  * @param res
  */
 export async function getTotalOperators(req: Request, res: Response) {
-	try {
-		const total = await doGetTotalOperatorCount(true)
+	const queryCheck = WithChangeQuerySchema.safeParse(req.query)
+	if (!queryCheck.success) {
+		return handleAndReturnErrorResponse(req, res, queryCheck.error)
+	}
 
-		res.send(total)
+	try {
+		const { withChange } = queryCheck.data
+		const total = await doGetTotalOperatorCount(withChange)
+
+		res.send({
+			...(withChange
+				? { ...(total as TotalWithChange) }
+				: { total: total as TotalWithoutChange })
+		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
 	}
@@ -260,16 +365,26 @@ export async function getTotalOperators(req: Request, res: Response) {
 
 /**
  * Function for route /total-stakers
- * Returns number of Stakers along with 24h/7d change
+ * Returns number of Stakers with the option of 24h/7d change
  *
  * @param req
  * @param res
  */
 export async function getTotalStakers(req: Request, res: Response) {
-	try {
-		const total = await doGetTotalStakerCount(true)
+	const queryCheck = WithChangeQuerySchema.safeParse(req.query)
+	if (!queryCheck.success) {
+		return handleAndReturnErrorResponse(req, res, queryCheck.error)
+	}
 
-		res.send(total)
+	try {
+		const { withChange } = queryCheck.data
+		const total = await doGetTotalStakerCount(withChange)
+
+		res.send({
+			...(withChange
+				? { ...(total as TotalWithChange) }
+				: { total: total as TotalWithoutChange })
+		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
 	}
@@ -277,16 +392,26 @@ export async function getTotalStakers(req: Request, res: Response) {
 
 /**
  * Function for route /total-withdrawals
- * Returns number total, pending and completed Withdrawals
+ * Returns number total, pending and completed Withdrawals with the option of 24h/7d change
  *
  * @param req
  * @param res
  */
 export async function getTotalWithdrawals(req: Request, res: Response) {
-	try {
-		const total = await doGetTotalWithdrawals()
+	const queryCheck = WithChangeQuerySchema.safeParse(req.query)
+	if (!queryCheck.success) {
+		return handleAndReturnErrorResponse(req, res, queryCheck.error)
+	}
 
-		res.send(total)
+	try {
+		const { withChange } = queryCheck.data
+		const total = await doGetTotalWithdrawals(withChange)
+
+		res.send({
+			...(withChange
+				? { ...(total as TotalWithdrawalsWithChange) }
+				: { ...(total as TotalWithdrawalsWithoutChange) })
+		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
 	}
@@ -294,17 +419,25 @@ export async function getTotalWithdrawals(req: Request, res: Response) {
 
 /**
  * Function for route /total-deposits
- * Returns number total Deposits
+ * Returns number total Deposits with the option of 24h/7d change
  *
  * @param req
  * @param res
  */
 export async function getTotalDeposits(req: Request, res: Response) {
+	const queryCheck = WithChangeQuerySchema.safeParse(req.query)
+	if (!queryCheck.success) {
+		return handleAndReturnErrorResponse(req, res, queryCheck.error)
+	}
+
 	try {
-		const total = await doGetTotalDeposits()
+		const { withChange } = queryCheck.data
+		const total = await doGetTotalDeposits(withChange)
 
 		res.send({
-			total
+			...(withChange
+				? { ...(total as TotalWithChange) }
+				: { total: total as TotalWithoutChange })
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
@@ -673,6 +806,140 @@ export async function getHistoricalDepositCount(req: Request, res: Response) {
 }
 
 /**
+ * Function for route /deployment-ratio
+ * Returns the Deployment Ratio
+ *
+ * @param req
+ * @param res
+ */
+export async function getDeploymentRatio(req: Request, res: Response) {
+	try {
+		const tvlRestaking = (await doGetTvl()).tvlRestaking
+		const tvlBeaconChain = await doGetTvlBeaconChain()
+
+		const timestampNow = new Date()
+		const timestamp24h = new Date(
+			new Date().setUTCHours(timestampNow.getUTCHours() - 24)
+		)
+		const timestamp7d = new Date(
+			new Date().setUTCDate(timestampNow.getUTCDate() - 7)
+		)
+
+		const historicalData = await doGetHistoricalTvlTotal(
+			timestamp7d.toString(),
+			timestamp24h.toString(),
+			'1d',
+			'cumulative'
+		)
+
+		const tvlEth24hAgo = historicalData[historicalData.length - 1]?.tvlEth || 0
+		const tvlEth7dAgo = historicalData[0]?.tvlEth || 0
+
+		const lastMetricsTimestamps =
+			await prisma.metricOperatorStrategyHourly.groupBy({
+				by: ['operatorAddress', 'strategyAddress'],
+				_max: { timestamp: true }
+			})
+
+		const validMetricsTimestamps = lastMetricsTimestamps.filter(
+			(metric) => metric._max.timestamp !== null
+		)
+
+		const totalDelegationValue =
+			await prisma.metricOperatorStrategyHourly.aggregate({
+				_sum: {
+					tvl: true
+				},
+				where: {
+					OR: validMetricsTimestamps.map((metric) => ({
+						operatorAddress: metric.operatorAddress,
+						strategyAddress: metric.strategyAddress,
+						timestamp: metric._max.timestamp as Date
+					}))
+				}
+			})
+
+		const currentDelegationValue = Number(totalDelegationValue._sum.tvl || 0)
+
+		const change24hMetrics = await prisma.metricOperatorStrategyHourly.findMany(
+			{
+				select: {
+					changeTvl: true
+				},
+				where: {
+					timestamp: {
+						gte: timestamp24h,
+						lt: timestampNow
+					}
+				}
+			}
+		)
+
+		const change24hDelegationValue = change24hMetrics.reduce(
+			(sum, metric) => sum + metric.changeTvl.toNumber(),
+			0
+		)
+
+		const change7dMetrics = await prisma.metricOperatorStrategyHourly.findMany({
+			select: {
+				changeTvl: true
+			},
+			where: {
+				timestamp: {
+					gte: timestamp7d,
+					lt: timestampNow
+				}
+			}
+		})
+
+		const change7dDelegationValue = change7dMetrics.reduce(
+			(sum, metric) => sum + metric.changeTvl.toNumber(),
+			0
+		)
+
+		const currentDeploymentRatio =
+			currentDelegationValue / (tvlRestaking + tvlBeaconChain)
+
+		const deploymentRatio24hAgo =
+			(currentDelegationValue - change24hDelegationValue) / tvlEth24hAgo
+
+		const deploymentRatio7dAgo =
+			(currentDelegationValue - change7dDelegationValue) / tvlEth7dAgo
+
+		const change24hPercent =
+			deploymentRatio24hAgo !== 0
+				? Math.round(
+						((currentDeploymentRatio - deploymentRatio24hAgo) /
+							deploymentRatio24hAgo) *
+							1000
+				  ) / 1000
+				: 0
+		const change7dPercent =
+			deploymentRatio7dAgo !== 0
+				? Math.round(
+						((currentDeploymentRatio - deploymentRatio7dAgo) /
+							deploymentRatio7dAgo) *
+							1000
+				  ) / 1000
+				: 0
+
+		res.send({
+			deploymentRatio: currentDeploymentRatio,
+			change24h: {
+				value: change24hDelegationValue,
+				percent: change24hPercent
+			},
+			change7d: {
+				value: change7dDelegationValue,
+				percent: change7dPercent
+			}
+		})
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+/**
  * Function for route /restaking-rataio
  * Returns the Restaking Ratio
  *
@@ -750,8 +1017,15 @@ export async function getRestakingRatio(req: Request, res: Response) {
 
 // --- TVL Routes ---
 
-async function doGetTvl() {
-	let tvlRestaking = 0
+/**
+ * Processes total TVL and optionally 24h/7d change for restaked ETH
+ *
+ * @param withChange
+ * @returns
+ */
+async function doGetTvl(withChange: boolean) {
+	let tvlRestaking: TvlWithoutChange = 0
+	const ethPrices = withChange ? await fetchCurrentEthPrices() : undefined
 
 	const strategyKeys = Object.keys(getEigenContracts().Strategies)
 	const strategiesContracts = strategyKeys.map((s) =>
@@ -815,15 +1089,30 @@ async function doGetTvl() {
 	} catch (error) {}
 
 	return {
-		tvlRestaking,
+		tvlRestaking: withChange
+			? await calculateTvlChange(
+					tvlRestaking,
+					'metricStrategyHourly',
+					ethPrices
+			  )
+			: tvlRestaking,
 		tvlStrategies,
 		tvlStrategiesEth: Object.fromEntries(tvlStrategiesEth.entries())
 	}
 }
 
-async function doGetTvlStrategy(strategy: `0x${string}`) {
+/**
+ * Processes total TVL and optionally 24h/7d change for a given strategy
+ *
+ * @param strategy
+ * @param withChange
+ * @returns
+ */
+async function doGetTvlStrategy(strategy: `0x${string}`, withChange: boolean) {
 	let tvl = 0
 	let tvlEth = 0
+
+	const ethPrices = withChange ? await fetchCurrentEthPrices() : undefined
 
 	try {
 		const strategyTokenPrices = await fetchStrategyTokenPrices()
@@ -850,18 +1139,27 @@ async function doGetTvlStrategy(strategy: `0x${string}`) {
 	} catch (error) {}
 
 	return {
-		tvl,
+		tvl: withChange
+			? await calculateTvlChange(
+					tvl,
+					'metricStrategyHourly',
+					ethPrices,
+					strategy
+			  )
+			: (tvl as TvlWithoutChange),
 		tvlEth
 	}
 }
 
 /**
- * Processes total TVL and 24h/7d change for Beacon Chain ETH
+ * Processes total TVL and optionally 24h/7d change for Beacon Chain ETH
  * Used by getMetrics() & getBeaconChainTvl()
  *
  * @returns
  */
-async function doGetTvlBeaconChain() {
+async function doGetTvlBeaconChain(
+	withChange: boolean
+): Promise<TvlWithoutChange | TvlWithChange> {
 	const totalValidators = await prisma.validator.aggregate({
 		_sum: {
 			balance: true
@@ -870,181 +1168,239 @@ async function doGetTvlBeaconChain() {
 
 	const currentTvl = Number(totalValidators._sum.balance) / 1e9
 
-	return currentTvl
+	return withChange
+		? ((await calculateTvlChange(currentTvl, 'metricEigenPodsHourly')) as TvlWithChange)
+		: (currentTvl as TvlWithoutChange)
 }
 
 // --- Total Routes ---
 
-async function doGetTotalAvsCount(withChange: boolean) {
+/**
+ * Processes total AVS count and optionally 24h/7d change
+ *
+ * @param withChange
+ * @returns
+ */
+async function doGetTotalAvsCount(
+	withChange: boolean
+): Promise<TotalWithoutChange | TotalWithChange> {
 	const totalNow = await prisma.avs.count({
 		where: getAvsFilterQuery(true)
 	})
 
 	if (!withChange) {
-		return totalNow
+		return totalNow as TotalWithoutChange
 	}
 
-	const timestampNow = new Date()
-	const timestamp24h = new Date(
-		new Date().setUTCHours(timestampNow.getUTCHours() - 24)
-	)
-	const timestamp7d = new Date(
-		new Date().setUTCDate(timestampNow.getUTCDate() - 7)
-	)
-	const change24hValue = await prisma.avs.count({
+	const getChange24hValue = prisma.avs.count({
 		where: {
-			createdAt: { gte: timestamp24h },
+			createdAt: { gte: getTimestamp('24h') },
 			...getAvsFilterQuery(true)
 		}
 	})
-	const change7dValue = await prisma.avs.count({
+	const getChange7dValue = prisma.avs.count({
 		where: {
-			createdAt: { gte: timestamp7d },
+			createdAt: { gte: getTimestamp('7d') },
 			...getAvsFilterQuery(true)
 		}
 	})
 
-	const change24hPercent =
-		change24hValue !== 0
-			? Math.round((change24hValue / (totalNow - change24hValue)) * 1000) / 1000
-			: 0
+	const [change24hValue, change7dValue] = await Promise.all([
+		getChange24hValue,
+		getChange7dValue
+	])
 
-	const change7dPercent =
-		change7dValue !== 0
-			? Math.round((change7dValue / (totalNow - change7dValue)) * 1000) / 1000
-			: 0
-
-	return {
-		total: totalNow,
-		change24h: {
-			value: change24hValue,
-			percent: change24hPercent
-		},
-		change7d: {
-			value: change7dValue,
-			percent: change7dPercent
-		}
-	}
+	return calculateTotalChange(totalNow, change24hValue, change7dValue)
 }
 
+/**
+ * Processes total Operator count and optionally 24h/7d change
+ *
+ * @param withChange
+ * @returns
+ */
 async function doGetTotalOperatorCount(withChange: boolean) {
 	const totalNow = await prisma.operator.count()
 
 	if (!withChange) {
-		return totalNow
+		return totalNow as TotalWithoutChange
 	}
 
-	const timestampNow = new Date()
-	const timestamp24h = new Date(
-		new Date().setUTCHours(timestampNow.getUTCHours() - 24)
-	)
-	const timestamp7d = new Date(
-		new Date().setUTCDate(timestampNow.getUTCDate() - 7)
-	)
-
-	const change24hValue = await prisma.operator.count({
+	const getChange24hValue = prisma.operator.count({
 		where: {
-			createdAt: { gte: timestamp24h }
+			createdAt: { gte: getTimestamp('24h') }
 		}
 	})
-	const change7dValue = await prisma.operator.count({
+	const getChange7dValue = prisma.operator.count({
 		where: {
-			createdAt: { gte: timestamp7d }
+			createdAt: { gte: getTimestamp('7d') }
 		}
 	})
 
-	const change24hPercent =
-		change24hValue !== 0
-			? Math.round((change24hValue / (totalNow - change24hValue)) * 1000) / 1000
-			: 0
+	const [change24hValue, change7dValue] = await Promise.all([
+		getChange24hValue,
+		getChange7dValue
+	])
 
-	const change7dPercent =
-		change7dValue !== 0
-			? Math.round((change7dValue / (totalNow - change7dValue)) * 1000) / 1000
-			: 0
-
-	return {
-		total: totalNow,
-		change24h: {
-			value: change24hValue,
-			percent: change24hPercent
-		},
-		change7d: {
-			value: change7dValue,
-			percent: change7dPercent
-		}
-	}
+	return calculateTotalChange(totalNow, change24hValue, change7dValue)
 }
 
+/**
+ * Processes total Staker count and optionally 24h/7d change
+ *
+ * @param withChange
+ * @returns
+ */
 async function doGetTotalStakerCount(withChange: boolean) {
 	const totalNow = await prisma.staker.count({
 		where: { operatorAddress: { not: null } }
 	})
 
 	if (!withChange) {
-		return totalNow
+		return totalNow as TotalWithoutChange
 	}
 
-	const timestampNow = new Date()
-	const timestamp24h = new Date(
-		new Date().setUTCHours(timestampNow.getUTCHours() - 24)
-	)
-	const timestamp7d = new Date(
-		new Date().setUTCDate(timestampNow.getUTCDate() - 7)
-	)
-
-	const change24hValue = await prisma.staker.count({
+	const getChange24hValue = prisma.staker.count({
 		where: {
-			createdAt: { gte: timestamp24h },
+			createdAt: { gte: getTimestamp('24h') },
 			operatorAddress: { not: null }
 		}
 	})
-	const change7dValue = await prisma.staker.count({
+	const getChange7dValue = prisma.staker.count({
 		where: {
-			createdAt: { gte: timestamp7d },
+			createdAt: { gte: getTimestamp('7d') },
 			operatorAddress: { not: null }
 		}
 	})
 
-	const change24hPercent =
-		change24hValue !== 0
-			? Math.round((change24hValue / (totalNow - change24hValue)) * 1000) / 1000
-			: 0
+	const [change24hValue, change7dValue] = await Promise.all([
+		getChange24hValue,
+		getChange7dValue
+	])
 
-	const change7dPercent =
-		change7dValue !== 0
-			? Math.round((change7dValue / (totalNow - change7dValue)) * 1000) / 1000
-			: 0
+	return calculateTotalChange(totalNow, change24hValue, change7dValue)
+}
+
+/**
+ * Processes total Withdrawals count and optionally 24h/7d change
+ *
+ * @param withChange
+ * @returns
+ */
+async function doGetTotalWithdrawals(
+	withChange: boolean
+): Promise<TotalWithdrawalsWithoutChange | TotalWithdrawalsWithChange> {
+	const totalNow = await prisma.withdrawalQueued.count()
+	const completedNow = await prisma.withdrawalCompleted.count()
+	const pendingNow = totalNow - completedNow
+
+	if (!withChange) {
+		return {
+			total: totalNow,
+			pending: pendingNow,
+			completed: completedNow
+		}
+	}
+
+	const getTotal24hAgo = prisma.withdrawalQueued.count({
+		where: {
+			createdAt: { gte: getTimestamp('24h') }
+		}
+	})
+	const getCompleted24hAgo = prisma.withdrawalCompleted.count({
+		where: {
+			createdAt: { gte: getTimestamp('24h') }
+		}
+	})
+	const getTotal7dAgo = prisma.withdrawalQueued.count({
+		where: {
+			createdAt: { gte: getTimestamp('7d') }
+		}
+	})
+	const getCompleted7dAgo = prisma.withdrawalCompleted.count({
+		where: {
+			createdAt: { gte: getTimestamp('7d') }
+		}
+	})
+
+	const [total24hAgo, completed24hAgo, total7dAgo, completed7dAgo] =
+		await Promise.all([
+			getTotal24hAgo,
+			getCompleted24hAgo,
+			getTotal7dAgo,
+			getCompleted7dAgo
+		])
+
+	const pending24hAgo = total24hAgo - completed24hAgo
+	const pending7dAgo = total7dAgo - completed7dAgo
+
+	const totalChange = await calculateTotalChange(
+		totalNow,
+		totalNow - total24hAgo,
+		totalNow - total7dAgo
+	)
+
+	const pendingChange = await calculateTotalChange(
+		pendingNow,
+		pendingNow - pending24hAgo,
+		pendingNow - pending7dAgo
+	)
+
+	const completedChange = await calculateTotalChange(
+		completedNow,
+		completedNow - completed24hAgo,
+		completedNow - completed7dAgo
+	)
 
 	return {
-		total: totalNow,
-		change24h: {
-			value: change24hValue,
-			percent: change24hPercent
+		total: {
+			value: totalChange.total,
+			change24h: totalChange.change24h,
+			change7d: totalChange.change7d
 		},
-		change7d: {
-			value: change7dValue,
-			percent: change7dPercent
+		pending: {
+			value: pendingChange.total,
+			change24h: pendingChange.change24h,
+			change7d: pendingChange.change7d
+		},
+		completed: {
+			value: completedChange.total,
+			change24h: completedChange.change24h,
+			change7d: completedChange.change7d
 		}
 	}
 }
 
-async function doGetTotalWithdrawals() {
-	const total = await prisma.withdrawalQueued.count()
-	const completed = await prisma.withdrawalCompleted.count()
-	const pending = total - completed
+/**
+ * Processes total Deposits count and optionally 24h/7d change
+ *
+ * @param withChange
+ * @returns
+ */
+async function doGetTotalDeposits(withChange: boolean) {
+	const totalNow = await prisma.deposit.count()
 
-	return {
-		total,
-		pending,
-		completed
+	if (!withChange) {
+		return totalNow as TotalWithoutChange
 	}
-}
 
-async function doGetTotalDeposits() {
-	const deposits = await prisma.deposit.count()
+	const getChange24hValue = prisma.deposit.count({
+		where: {
+			createdAt: { gte: getTimestamp('24h') }
+		}
+	})
+	const getChange7dValue = prisma.deposit.count({
+		where: {
+			createdAt: { gte: getTimestamp('7d') }
+		}
+	})
 
-	return deposits
+	const [change24hValue, change7dValue] = await Promise.all([
+		getChange24hValue,
+		getChange7dValue
+	])
+
+	return calculateTotalChange(totalNow, change24hValue, change7dValue)
 }
 
 // --- Historical TVL Routes ---
@@ -2098,29 +2454,166 @@ function checkEthDenomination(modelName: string): modelName is EthTvlModelName {
 }
 
 /**
- * Calculates 24h/7d tvl change
+ * Processes 24h/7d total count change
  *
- * @param currentTvl
- * @param tvl24hOffset
- * @param tvl7dOffset
+ * @param total
+ * @param change24hValue
+ * @param change7dValue
  * @returns
  */
-function calculateTvlChanges(
-	currentTvl: number,
-	tvl24hOffset: number,
-	tvl7dOffset: number
-) {
+async function calculateTotalChange(
+	total: number,
+	change24hValue: number,
+	change7dValue: number,
+	precision = 1000
+): Promise<TotalWithChange> {
+	const change24hPercent =
+		change24hValue !== 0
+			? Math.round((change24hValue / (total - change24hValue)) * precision) /
+			  precision
+			: 0
+
+	const change7dPercent =
+		change7dValue !== 0
+			? Math.round((change7dValue / (total - change7dValue)) * precision) /
+			  precision
+			: 0
+
 	return {
-		tvl: currentTvl,
+		total,
 		change24h: {
-			value: currentTvl - tvl24hOffset,
-			percent:
-				tvl24hOffset === 0 ? 0 : (currentTvl - tvl24hOffset) / tvl24hOffset
+			value: change24hValue,
+			percent: change24hPercent
 		},
 		change7d: {
-			value: currentTvl - tvl7dOffset,
-			percent: tvl7dOffset === 0 ? 0 : (currentTvl - tvl7dOffset) / tvl7dOffset
+			value: change7dValue,
+			percent: change7dPercent
 		}
+	}
+}
+
+/**
+ * Processes 24h/7d tvl change
+ *
+ * @param tvlEth
+ * @param modelName
+ * @param ethPrices
+ * @param address
+ * @returns
+ */
+async function calculateTvlChange(
+	tvlEth: TvlWithoutChange,
+	modelName: MetricModelName,
+	ethPrices?: Map<string, number>,
+	address?: string
+): Promise<TvlWithChange> {
+	const isEthDenominated = checkEthDenomination(modelName)
+
+	let tvlEth24hAgo = 0
+	let tvlEth7dAgo = 0
+
+	if (!isEthDenominated) {
+		if (!ethPrices) {
+			throw new Error('ETH prices are required for processing this data')
+		}
+
+		let changeTvlEth24hAgo = 0
+		let changeTvlEth7dAgo = 0
+
+		// Get all records from 7d ago
+		const historicalRecords = await prisma.metricStrategyHourly.findMany({
+			where: {
+				timestamp: {
+					gte: getTimestamp('7d')
+				},
+				strategyAddress: address ? address : {}
+			},
+			orderBy: {
+				timestamp: 'desc'
+			}
+		})
+
+		// Calculate the change in TVL
+		for (const record of historicalRecords) {
+			const changeTvlEth =
+				Number(record.changeTvl) * (ethPrices.get(record.strategyAddress) || 0)
+
+			changeTvlEth24hAgo +=
+				record.timestamp.getTime() >= getTimestamp('24h').getTime()
+					? changeTvlEth
+					: 0
+			changeTvlEth7dAgo += changeTvlEth
+		}
+
+		// Find TVL values 24h/7d ago
+		tvlEth24hAgo = tvlEth - changeTvlEth24hAgo
+		tvlEth7dAgo = tvlEth - changeTvlEth7dAgo
+	} else {
+		// Get all records between 7d & 24h ago
+		const historicalRecords = await prisma.metricEigenPodsHourly.findMany({
+			where: {
+				timestamp: {
+					lte: getTimestamp('24h'),
+					gte: getTimestamp('7d')
+				}
+			},
+			orderBy: {
+				timestamp: 'desc'
+			}
+		})
+
+		// Pick the earliest and latest record
+		const [record24hAgo, ...rest] = historicalRecords
+		const record7dAgo = rest.pop()
+
+		// Find TVL values 24h/7d ago
+		tvlEth24hAgo = Number(record24hAgo?.tvlEth)
+		tvlEth7dAgo = Number(record7dAgo?.tvlEth)
+	}
+
+	// Calculate change values and percentages
+	const change24h = {
+		value: tvlEth - tvlEth24hAgo,
+		percent: ((tvlEth - tvlEth24hAgo) / tvlEth24hAgo) * 100
+	}
+
+	const change7d = {
+		value: tvlEth - tvlEth7dAgo,
+		percent: ((tvlEth - tvlEth7dAgo) / tvlEth7dAgo) * 100
+	}
+
+	return {
+		tvl: tvlEth,
+		change24h,
+		change7d
+	}
+}
+
+/**
+ * Sums the values of two TvlWithChange items and returns a TvlWithChange object
+ *
+ * @param tvl1
+ * @param tvl2
+ * @returns
+ */
+async function combineTvlWithChange(
+	tvl1: TvlWithChange,
+	tvl2: TvlWithChange
+): Promise<TvlWithChange> {
+	const combinedTvl = tvl1.tvl + tvl2.tvl
+	const combinedChange24h = {
+		value: tvl1.change24h.value + tvl2.change24h.value,
+		percent: tvl1.change24h.percent + tvl2.change24h.percent
+	}
+	const combinedChange7d = {
+		value: tvl1.change7d.value + tvl2.change7d.value,
+		percent: tvl1.change7d.percent + tvl2.change7d.percent
+	}
+
+	return {
+		tvl: combinedTvl,
+		change24h: combinedChange24h,
+		change7d: combinedChange7d
 	}
 }
 

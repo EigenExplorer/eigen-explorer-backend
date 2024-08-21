@@ -1,6 +1,6 @@
-# Eigen Explorer Node / Server Backend
+# EigenExplorer Node / Server Backend
 
-This is the node/server backend for [Eigen Explorer](https://eigenexplorer.com). Eigen Explorer backend provides an array of API endpoints organized around REST for community users and developers to quickly access data and information about the Eigen Layer ecosystem.
+This is the node/server backend for [EigenExplorer](https://eigenexplorer.com). EigenExplorer backend provides an array of API endpoints organized around REST for community users and developers to quickly access data and information about the Eigen Layer ecosystem.
 
 Our API features predictable resource-oriented URLs, accepts form-encoded request bodies, returns JSON-encoded responses, and adheres to standard HTTP response codes, authentication methods, and verbs.
 
@@ -22,11 +22,11 @@ The project is structured with multiple packages located in the packages directo
   ```
   npx prisma migrate dev --name init
   ```
-- Generate the Prisma client:
+
+  The above command generates the prisma client as well, if not use: 
    ```
   npm run prisma:generate
   ```
-
 
 ### 2. Seed the Database
 
@@ -36,7 +36,9 @@ The project is structured with multiple packages located in the packages directo
   npm install
   ```
 - To seed the database tables with data, use the command:
-  npm sttart
+  ```
+  npm start
+  ```
 - Note: If this is too time/resource-consuming, you can manually add sample data to the tables for testing.
 
 ### 3. Start the API Server
@@ -59,7 +61,7 @@ The project is structured with multiple packages located in the packages directo
   ```
   npm start
   ```
-- You can refer to the Eigen Explorer Docs repository (https://github.com/EigenExplorer/eigen-explorer-docs) for contributing to the API documentation.
+- You can refer to the EigenExplorer Docs repository (https://github.com/EigenExplorer/eigen-explorer-docs) for contributing to the API documentation.
 ## Contributing
 
 Feel free to contribute to the project by opening an issue or submitting a pull request.
