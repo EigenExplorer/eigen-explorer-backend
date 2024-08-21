@@ -35,6 +35,7 @@ export async function getAllAVS(req: Request, res: Response) {
 			take,
 			withTvl,
 			withCuratedMetadata,
+			sortByTvl,
 			sortByTotalStakers,
 			sortByTotalOperators
 		} = queryCheck.data
@@ -49,7 +50,9 @@ export async function getAllAVS(req: Request, res: Response) {
 			? { field: 'totalStakers', order: sortByTotalStakers }
 			: sortByTotalOperators
 			  ? { field: 'totalOperators', order: sortByTotalOperators }
-			  : null
+			  : sortByTvl
+				  ? { field: 'tvlEth', order: sortByTvl }
+				  : null
 
 		// Fetch records and apply sort if applicable
 		const avsRecords = await prisma.avs.findMany({
@@ -110,7 +113,9 @@ export async function getAllAVS(req: Request, res: Response) {
 					operators: undefined,
 					metadataUrl: undefined,
 					isMetadataSynced: undefined,
-					restakeableStrategies: undefined
+					restakeableStrategies: undefined,
+					tvlEth: undefined,
+					sharesHash: undefined
 				}
 			})
 		)
@@ -242,7 +247,9 @@ export async function getAVS(req: Request, res: Response) {
 			operators: undefined,
 			metadataUrl: undefined,
 			isMetadataSynced: undefined,
-			restakeableStrategies: undefined
+			restakeableStrategies: undefined,
+			tvlEth: undefined,
+			sharesHash: undefined
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
@@ -421,7 +428,9 @@ export async function getAVSOperators(req: Request, res: Response) {
 					: undefined,
 				stakers: undefined,
 				metadataUrl: undefined,
-				isMetadataSynced: undefined
+				isMetadataSynced: undefined,
+				tvlEth: undefined,
+				sharesHash: undefined
 			}
 		})
 
