@@ -54,29 +54,39 @@ export async function monitorAvsMetrics() {
 
 				const totalOperators = avs.operators.length
 
-				data.push({ address: avs.address, totalStakers, totalOperators })
+				if (
+					avs.totalOperators !== totalOperators ||
+					avs.totalStakers !== totalStakers
+				) {
+					data.push({ address: avs.address, totalStakers, totalOperators })
+				}
 			}
 
 			skip += take
-			const query = `
-				UPDATE "Avs" AS a
-				SET
-					"totalStakers" = a2."totalStakers",
-					"totalOperators" = a2."totalOperators"
-				FROM
-					(
-						VALUES
-							${data
-								.map(
-									(d) =>
-										`('${d.address}', ${d.totalStakers}, ${d.totalOperators})`
-								)
-								.join(', ')}
-					) AS a2 (address, "totalStakers", "totalOperators")
-				WHERE
-					a2.address = a.address;
-			`
-			dbTransactions.push(prismaClient.$executeRaw`${prisma.Prisma.raw(query)}`)
+
+			if (data.length > 0) {
+				const query = `
+					UPDATE "Avs" AS a
+					SET
+						"totalStakers" = a2."totalStakers",
+						"totalOperators" = a2."totalOperators"
+					FROM
+						(
+							VALUES
+								${data
+									.map(
+										(d) =>
+											`('${d.address}', ${d.totalStakers}, ${d.totalOperators})`
+									)
+									.join(', ')}
+						) AS a2 (address, "totalStakers", "totalOperators")
+					WHERE
+						a2.address = a.address;
+				`
+				dbTransactions.push(
+					prismaClient.$executeRaw`${prisma.Prisma.raw(query)}`
+				)
+			}
 		} catch (error) {}
 	}
 
