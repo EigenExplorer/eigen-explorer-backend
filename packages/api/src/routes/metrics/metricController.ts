@@ -804,6 +804,140 @@ export async function getHistoricalDepositCount(req: Request, res: Response) {
 	}
 }
 
+/**
+ * Function for route /deployment-ratio
+ * Returns the Deployment Ratio
+ *
+ * @param req
+ * @param res
+ */
+export async function getDeploymentRatio(req: Request, res: Response) {
+	try {
+		const tvlRestaking = (await doGetTvl()).tvlRestaking
+		const tvlBeaconChain = await doGetTvlBeaconChain()
+
+		const timestampNow = new Date()
+		const timestamp24h = new Date(
+			new Date().setUTCHours(timestampNow.getUTCHours() - 24)
+		)
+		const timestamp7d = new Date(
+			new Date().setUTCDate(timestampNow.getUTCDate() - 7)
+		)
+
+		const historicalData = await doGetHistoricalTvlTotal(
+			timestamp7d.toString(),
+			timestamp24h.toString(),
+			'1d',
+			'cumulative'
+		)
+
+		const tvlEth24hAgo = historicalData[historicalData.length - 1]?.tvlEth || 0
+		const tvlEth7dAgo = historicalData[0]?.tvlEth || 0
+
+		const lastMetricsTimestamps =
+			await prisma.metricOperatorStrategyHourly.groupBy({
+				by: ['operatorAddress', 'strategyAddress'],
+				_max: { timestamp: true }
+			})
+
+		const validMetricsTimestamps = lastMetricsTimestamps.filter(
+			(metric) => metric._max.timestamp !== null
+		)
+
+		const totalDelegationValue =
+			await prisma.metricOperatorStrategyHourly.aggregate({
+				_sum: {
+					tvl: true
+				},
+				where: {
+					OR: validMetricsTimestamps.map((metric) => ({
+						operatorAddress: metric.operatorAddress,
+						strategyAddress: metric.strategyAddress,
+						timestamp: metric._max.timestamp as Date
+					}))
+				}
+			})
+
+		const currentDelegationValue = Number(totalDelegationValue._sum.tvl || 0)
+
+		const change24hMetrics = await prisma.metricOperatorStrategyHourly.findMany(
+			{
+				select: {
+					changeTvl: true
+				},
+				where: {
+					timestamp: {
+						gte: timestamp24h,
+						lt: timestampNow
+					}
+				}
+			}
+		)
+
+		const change24hDelegationValue = change24hMetrics.reduce(
+			(sum, metric) => sum + metric.changeTvl.toNumber(),
+			0
+		)
+
+		const change7dMetrics = await prisma.metricOperatorStrategyHourly.findMany({
+			select: {
+				changeTvl: true
+			},
+			where: {
+				timestamp: {
+					gte: timestamp7d,
+					lt: timestampNow
+				}
+			}
+		})
+
+		const change7dDelegationValue = change7dMetrics.reduce(
+			(sum, metric) => sum + metric.changeTvl.toNumber(),
+			0
+		)
+
+		const currentDeploymentRatio =
+			currentDelegationValue / (tvlRestaking + tvlBeaconChain)
+
+		const deploymentRatio24hAgo =
+			(currentDelegationValue - change24hDelegationValue) / tvlEth24hAgo
+
+		const deploymentRatio7dAgo =
+			(currentDelegationValue - change7dDelegationValue) / tvlEth7dAgo
+
+		const change24hPercent =
+			deploymentRatio24hAgo !== 0
+				? Math.round(
+						((currentDeploymentRatio - deploymentRatio24hAgo) /
+							deploymentRatio24hAgo) *
+							1000
+				  ) / 1000
+				: 0
+		const change7dPercent =
+			deploymentRatio7dAgo !== 0
+				? Math.round(
+						((currentDeploymentRatio - deploymentRatio7dAgo) /
+							deploymentRatio7dAgo) *
+							1000
+				  ) / 1000
+				: 0
+
+		res.send({
+			deploymentRatio: currentDeploymentRatio,
+			change24h: {
+				value: change24hDelegationValue,
+				percent: change24hPercent
+			},
+			change7d: {
+				value: change7dDelegationValue,
+				percent: change7dPercent
+			}
+		})
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
 /*
 ============================
 === Processing Functions ===
