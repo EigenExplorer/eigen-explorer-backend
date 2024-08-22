@@ -844,7 +844,11 @@ export async function getDeploymentRatio(req: Request, res: Response) {
 async function doGetDeploymentRatio(withChange: boolean) :Promise<RatioWithoutChange | RatioWithChange> {
 	const tvlRestaking = (await doGetTvl(withChange)).tvlRestaking;
     const tvlBeaconChain = await doGetTvlBeaconChain(withChange);
-	const totalTvl = Number(tvlRestaking) + Number(tvlBeaconChain)
+
+	const restakingTvlValue = extractTvlValue(tvlRestaking);
+	const beaconChainTvlValue = extractTvlValue(tvlBeaconChain);
+
+	const totalTvl = restakingTvlValue + beaconChainTvlValue
 
 	const ethPrices = await fetchCurrentEthPrices()
 	const lastMetricsTimestamps =
@@ -957,6 +961,13 @@ async function doGetDeploymentRatio(withChange: boolean) :Promise<RatioWithoutCh
 	return currentDeploymentRatio
 }
 
+function extractTvlValue(tvl: number | TvlWithChange): number {
+    if (typeof tvl === 'object' && 'tvl' in tvl) {
+        return tvl.tvl;  // Extract the tvl property if it's an object
+    }
+    return tvl as number;  // Otherwise, it's already a number
+}
+
 /**
  * Function for route /restaking-rataio
  * Returns the Restaking Ratio
@@ -968,10 +979,14 @@ async function doGetRestakingRatio(withChange: boolean) :Promise<RatioWithoutCha
 
 	const tvlRestaking = (await doGetTvl(withChange)).tvlRestaking;
     const tvlBeaconChain = await doGetTvlBeaconChain(withChange);
+
+	const restakingTvlValue = extractTvlValue(tvlRestaking);
+	const beaconChainTvlValue = extractTvlValue(tvlBeaconChain);
+
     const ethSupplyData = await fetchEthCirculatingSupply(withChange);
     const currentEthCirculation = ethSupplyData.current_circulating_supply;
 
-	const totalTvl = Number(tvlRestaking) + Number(tvlBeaconChain)
+	const totalTvl = restakingTvlValue + beaconChainTvlValue
 
 	const currentRestakingRatio = totalTvl/currentEthCirculation
 	if (!withChange) {
@@ -983,8 +998,6 @@ async function doGetRestakingRatio(withChange: boolean) :Promise<RatioWithoutCha
 		const ethCirculation7dAgo = ethSupplyData.supply_7d_ago;
 
 		if(typeof tvlRestaking === 'object' && typeof tvlBeaconChain === 'object'){
-			// const tvlEth = tvlRestaking.tvl + tvlBeaconChain.tvl 
-			
 			const tvlEth24hChange = tvlRestaking.change24h.value + tvlBeaconChain.change24h.value
         	const tvlEth7dChange = tvlRestaking.change7d.value + tvlBeaconChain.change7d.value
 
