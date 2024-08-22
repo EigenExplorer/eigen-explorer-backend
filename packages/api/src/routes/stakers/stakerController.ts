@@ -31,7 +31,10 @@ export async function getAllStakers(req: Request, res: Response) {
 
 	try {
 		// Fetch count and record
-		const stakersCount = await prisma.staker.count()
+		const stakersCount = await prisma.staker.count({
+			where: updatedSince ? { updatedAt: { gte: new Date(updatedSince) } } : {}
+		})
+		
 		const stakersRecords = await prisma.staker.findMany({
 			skip,
 			take,

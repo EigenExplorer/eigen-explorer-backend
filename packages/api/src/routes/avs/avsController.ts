@@ -294,6 +294,7 @@ export async function getAVSStakers(req: Request, res: Response) {
 
 		const stakersCount = await prisma.staker.count({
 			where: {
+				...(updatedSince ? { updatedAt: { gte: new Date(updatedSince) } } : {}),
 				operatorAddress: {
 					in: operatorAddresses
 				},
@@ -313,7 +314,17 @@ export async function getAVSStakers(req: Request, res: Response) {
 		const stakersRecords = await prisma.staker.findMany({
 			where: {
 				...(updatedSince ? { updatedAt: { gte: new Date(updatedSince) } } : {}),
-				operatorAddress: { in: operatorAddresses }
+				operatorAddress: { in: operatorAddresses },
+				shares: {
+					some: {
+						strategyAddress: {
+							in: [
+								...new Set(avs.operators.flatMap((o) => o.restakedStrategies))
+							]
+						},
+						shares: { gt: '0' }
+					}
+				}
 			},
 			skip,
 			take,
