@@ -9,6 +9,7 @@ import {
 	getStrategiesWithShareUnderlying,
 	sharesToTVL
 } from '../strategies/strategiesController'
+import { WithAdditionalDataQuery } from '../../schema/zod/schemas/withAdditionalDataQuery'
 
 /**
  * Route to get a list of all operators
@@ -106,7 +107,9 @@ export async function getAllOperators(req: Request, res: Response) {
  */
 export async function getOperator(req: Request, res: Response) {
 	// Validate pagination query
-	const result = WithTvlQuerySchema.safeParse(req.query)
+	const result = WithTvlQuerySchema.and(WithAdditionalDataQuery).safeParse(
+		req.query
+	)
 	if (!result.success) {
 		return handleAndReturnErrorResponse(req, res, result.error)
 	}
@@ -116,7 +119,7 @@ export async function getOperator(req: Request, res: Response) {
 		return handleAndReturnErrorResponse(req, res, paramCheck.error)
 	}
 
-	const { withTvl } = result.data
+	const { withTvl, withAvsData } = result.data
 
 	try {
 		const { address } = req.params
@@ -125,13 +128,45 @@ export async function getOperator(req: Request, res: Response) {
 			where: { address: address.toLowerCase() },
 			include: {
 				avs: {
-					select: { avsAddress: true, isActive: true }
+					select: {
+						avsAddress: true,
+						isActive: true,
+						...(withAvsData
+							? {
+									avs: {
+										select: {
+											metadataUrl: true,
+											metadataName: true,
+											metadataDescription: true,
+											metadataDiscord: true,
+											metadataLogo: true,
+											metadataTelegram: true,
+											metadataWebsite: true,
+											metadataX: true,
+											curatedMetadata: true,
+											restakeableStrategies: true,
+											totalStakers: true,
+											totalOperators: true,
+											tvlEth: true,
+											createdAtBlock: true,
+											updatedAtBlock: true,
+											createdAt: true,
+											updatedAt: true
+										}
+									}
+							  }
+							: {})
+					}
 				},
-				shares: {
-					select: { strategyAddress: true, shares: true }
-				}
+				shares: { select: { strategyAddress: true, shares: true } }
 			}
 		})
+
+		const avsRegistrations = operator.avs.map((registration) => ({
+			avsAddress: registration.avsAddress,
+			isActive: registration.isActive,
+			...(withAvsData && registration.avs ? registration.avs : {})
+		}))
 
 		const strategyTokenPrices = withTvl ? await fetchStrategyTokenPrices() : {}
 		const strategiesWithSharesUnderlying = withTvl
@@ -140,7 +175,7 @@ export async function getOperator(req: Request, res: Response) {
 
 		res.send({
 			...operator,
-			avsRegistrations: operator.avs,
+			avsRegistrations,
 			totalStakers: operator.totalStakers,
 			totalAvs: operator.totalAvs,
 			tvl: withTvl
