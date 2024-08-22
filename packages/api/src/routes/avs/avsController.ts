@@ -5,13 +5,13 @@ import { PaginationQuerySchema } from '../../schema/zod/schemas/paginationQuery'
 import { handleAndReturnErrorResponse } from '../../schema/errors'
 import { EthereumAddressSchema } from '../../schema/zod/schemas/base/ethereumAddress'
 import { WithTvlQuerySchema } from '../../schema/zod/schemas/withTvlQuery'
-import { getNetwork } from '../../viem/viemClient'
 import { fetchStrategyTokenPrices } from '../../utils/tokenPrices'
 import { WithCuratedMetadata } from '../../schema/zod/schemas/withCuratedMetadataQuery'
 import {
 	getStrategiesWithShareUnderlying,
 	sharesToTVL
 } from '../strategies/strategiesController'
+import { SortByQuerySchema } from '../../schema/zod/schemas/sortByQuery'
 
 /**
  * Route to get a list of all AVSs
@@ -22,6 +22,7 @@ import {
 export async function getAllAVS(req: Request, res: Response) {
 	// Validate pagination query
 	const queryCheck = PaginationQuerySchema.and(WithTvlQuerySchema)
+		.and(SortByQuerySchema)
 		.and(WithCuratedMetadata)
 		.safeParse(req.query)
 
@@ -360,9 +361,9 @@ export async function getAVSStakers(req: Request, res: Response) {
  */
 export async function getAVSOperators(req: Request, res: Response) {
 	// Validate query and params
-	const queryCheck = PaginationQuerySchema.and(WithTvlQuerySchema).safeParse(
-		req.query
-	)
+	const queryCheck = PaginationQuerySchema.and(WithTvlQuerySchema)
+		.and(SortByQuerySchema)
+		.safeParse(req.query)
 	if (!queryCheck.success) {
 		return handleAndReturnErrorResponse(req, res, queryCheck.error)
 	}

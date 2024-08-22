@@ -10,6 +10,7 @@ import {
 	sharesToTVL
 } from '../strategies/strategiesController'
 import { WithAdditionalDataQuery } from '../../schema/zod/schemas/withAdditionalDataQuery'
+import { SortByQuerySchema } from '../../schema/zod/schemas/sortByQuery'
 
 /**
  * Route to get a list of all operators
@@ -19,9 +20,9 @@ import { WithAdditionalDataQuery } from '../../schema/zod/schemas/withAdditional
  */
 export async function getAllOperators(req: Request, res: Response) {
 	// Validate pagination query
-	const result = PaginationQuerySchema.and(WithTvlQuerySchema).safeParse(
-		req.query
-	)
+	const result = PaginationQuerySchema.and(WithTvlQuerySchema)
+		.and(SortByQuerySchema)
+		.safeParse(req.query)
 	if (!result.success) {
 		return handleAndReturnErrorResponse(req, res, result.error)
 	}
