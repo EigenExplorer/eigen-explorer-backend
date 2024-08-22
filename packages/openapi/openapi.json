@@ -3625,6 +3625,16 @@
           },
           {
             "in": "query",
+            "name": "updatedSince",
+            "description": "Fetch stakers updated since this timestamp",
+            "schema": {
+              "type": "string",
+              "description": "Fetch stakers updated since this timestamp",
+              "example": "2024-04-11T08:31:11.000Z"
+            }
+          },
+          {
+            "in": "query",
             "name": "skip",
             "description": "The number of records to skip for pagination",
             "schema": {
@@ -5356,6 +5366,16 @@
               "default": "false",
               "description": "Toggle whether the route should calculate the TVL from shares",
               "example": "false"
+            }
+          },
+          {
+            "in": "query",
+            "name": "updatedSince",
+            "description": "Fetch stakers updated since this timestamp",
+            "schema": {
+              "type": "string",
+              "description": "Fetch stakers updated since this timestamp",
+              "example": "2024-04-11T08:31:11.000Z"
             }
           },
           {

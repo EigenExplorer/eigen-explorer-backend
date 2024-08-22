@@ -5,6 +5,7 @@ import { ZodOpenApiOperationObject } from 'zod-openapi'
 import { PaginationQuerySchema } from '../../../../api/src/schema/zod/schemas/paginationQuery'
 import { PaginationMetaResponsesSchema } from '../../apiResponseSchema/base/paginationMetaResponses'
 import { StakerResponseSchema } from '../../apiResponseSchema/stakerResponse'
+import { UpdatedSinceQuerySchema } from '../../../../api/src/schema/zod/schemas/updatedSinceQuery';
 import { WithTvlQuerySchema } from '../../../../api/src/schema/zod/schemas/withTvlQuery'
 
 const AvsAddressParam = z.object({
@@ -16,6 +17,7 @@ const AvsAddressParam = z.object({
 const CombinedQuerySchema = z
 	.object({})
 	.merge(WithTvlQuerySchema)
+	.merge(UpdatedSinceQuerySchema)
 	.merge(PaginationQuerySchema)
 
 const AvsStakerResponseSchema = z.object({
