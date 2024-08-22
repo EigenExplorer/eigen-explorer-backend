@@ -9,7 +9,7 @@ import {
 	getStrategiesWithShareUnderlying,
 	sharesToTVL
 } from '../strategies/strategiesController'
-import { WithAdditionalDataQuery } from '../../schema/zod/schemas/withAdditionalDataQuery'
+import { WithAdditionalDataQuerySchema } from '../../schema/zod/schemas/withAdditionalDataQuery'
 import { SortByQuerySchema } from '../../schema/zod/schemas/sortByQuery'
 
 /**
@@ -108,7 +108,7 @@ export async function getAllOperators(req: Request, res: Response) {
  */
 export async function getOperator(req: Request, res: Response) {
 	// Validate pagination query
-	const result = WithTvlQuerySchema.and(WithAdditionalDataQuery).safeParse(
+	const result = WithTvlQuerySchema.and(WithAdditionalDataQuerySchema).safeParse(
 		req.query
 	)
 	if (!result.success) {

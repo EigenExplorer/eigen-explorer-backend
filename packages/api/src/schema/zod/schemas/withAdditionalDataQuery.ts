@@ -1,6 +1,6 @@
 import z from '..'
 
-export const WithAdditionalDataQuery = z.object({
+export const WithAdditionalDataQuerySchema = z.object({
 	withAvsData: z
 		.enum(['true', 'false'])
 		.default('false')
