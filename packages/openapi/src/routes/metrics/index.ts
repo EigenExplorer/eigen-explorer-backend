@@ -9,6 +9,8 @@ import { getTotalOperatorsMetric } from './getTotalOperators';
 import { getTotalStakerssMetric } from './getTotalStakers';
 import { getTotalWithdrawals } from './getTotalWithdrawals';
 import { getTotalDeposits } from './getTotalDeposits';
+import { getDeploymentRatio } from './getDeploymentRatio';
+import { getRestakingRatio } from './getRestakingRatio';
 
 export const metricsRoutes: ZodOpenApiPathsObject = {
     '/metrics': {
@@ -24,5 +26,7 @@ export const metricsRoutes: ZodOpenApiPathsObject = {
     '/metrics/total-operators': { get: getTotalOperatorsMetric },
     '/metrics/total-stakers': { get: getTotalStakerssMetric },
     '/metrics/total-withdrawals': { get: getTotalWithdrawals },
-    '/metrics/total-deposits': { get: getTotalDeposits }
+    '/metrics/total-deposits': { get: getTotalDeposits },
+    '/metrics/deployment-ratio': { get: getDeploymentRatio },
+    '/metrics/restaking-ratio': { get: getRestakingRatio },
 };

@@ -835,6 +835,184 @@
         }
       }
     },
+    "/metrics/deployment-ratio": {
+      "get": {
+        "operationId": "getDeploymentRatio",
+        "summary": "Retrieve deployment ratio",
+        "description": "Returns deployment ratio, which is calculated as the value of funds delegated to operators in ETH divided by the total EigenLayer TVL.",
+        "tags": [
+          "Metrics"
+        ],
+        "responses": {
+          "200": {
+            "description": "The value of deployment ratio",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "deploymentRatio": {
+                      "type": "number",
+                      "description": "The current value of Deployment Ratio",
+                      "example": 1
+                    },
+                    "change24h": {
+                      "type": "object",
+                      "properties": {
+                        "value": {
+                          "type": "number",
+                          "example": 10
+                        },
+                        "percent": {
+                          "type": "number",
+                          "example": 0.01
+                        }
+                      },
+                      "required": [
+                        "value",
+                        "percent"
+                      ]
+                    },
+                    "change7d": {
+                      "type": "object",
+                      "properties": {
+                        "value": {
+                          "type": "number",
+                          "example": 10
+                        },
+                        "percent": {
+                          "type": "number",
+                          "example": 0.01
+                        }
+                      },
+                      "required": [
+                        "value",
+                        "percent"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "deploymentRatio",
+                    "change24h",
+                    "change7d"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/metrics/restaking-ratio": {
+      "get": {
+        "operationId": "getRestakingRatio",
+        "summary": "Retrieve restaking ratio",
+        "description": "Returns restaking ratio, which is calculated as the total EigenLayer TVL divided by the total ETH in circulation.",
+        "tags": [
+          "Metrics"
+        ],
+        "responses": {
+          "200": {
+            "description": "The value of restaking ratio",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "restakingRatio": {
+                      "type": "number",
+                      "description": "The current value of Restaking Ratio",
+                      "example": 1
+                    },
+                    "change24h": {
+                      "type": "object",
+                      "properties": {
+                        "value": {
+                          "type": "number",
+                          "example": 10
+                        },
+                        "percent": {
+                          "type": "number",
+                          "example": 0.01
+                        }
+                      },
+                      "required": [
+                        "value",
+                        "percent"
+                      ]
+                    },
+                    "change7d": {
+                      "type": "object",
+                      "properties": {
+                        "value": {
+                          "type": "number",
+                          "example": 10
+                        },
+                        "percent": {
+                          "type": "number",
+                          "example": 0.01
+                        }
+                      },
+                      "required": [
+                        "value",
+                        "percent"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "restakingRatio",
+                    "change24h",
+                    "change7d"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
     "/metrics/historical/avs/{address}": {
       "get": {
         "operationId": "getHistoricalAvsAggregate",
@@ -2436,6 +2614,20 @@
           },
           {
             "in": "query",
+            "name": "sortByTvl",
+            "description": "Sort results in asc or desc order of TVL value",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "description": "Sort results in asc or desc order of TVL value",
+              "example": "desc"
+            }
+          },
+          {
+            "in": "query",
             "name": "sortByTotalStakers",
             "description": "Sort results in asc or desc order of total stakers",
             "schema": {
@@ -3704,6 +3896,20 @@
           },
           {
             "in": "query",
+            "name": "sortOperatorsByTvl",
+            "description": "Sort Operators of a given AVS in asc or desc order of TVL (only valid for individual AVS queries)",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "description": "Sort Operators of a given AVS in asc or desc order of TVL (only valid for individual AVS queries)",
+              "example": "desc"
+            }
+          },
+          {
+            "in": "query",
             "name": "skip",
             "description": "The number of records to skip for pagination",
             "schema": {
@@ -4033,6 +4239,20 @@
               "default": "false",
               "description": "Toggle whether the route should calculate the TVL from shares",
               "example": "false"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sortByTvl",
+            "description": "Sort results in asc or desc order of TVL value",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "description": "Sort results in asc or desc order of TVL value",
+              "example": "desc"
             }
           },
           {

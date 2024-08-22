@@ -8,8 +8,9 @@ import { WithTvlQuerySchema } from '../../../../api/src/schema/zod/schemas/withT
 import { WithCuratedMetadata } from '../../../../api/src/schema/zod/schemas/withCuratedMetadataQuery'
 import {
 	SortByTotalOperators,
-	SortByTotalStakers
-} from '../../../../api/src/schema/zod/schemas/sortingQuery'
+	SortByTotalStakers,
+	SortByTvl
+} from '../../../../api/src/schema/zod/schemas/separateSortingQueries'
 
 const AvsResponseSchema = z.object({
 	data: z.array(AvsSchema),
@@ -20,6 +21,7 @@ const CombinedQuerySchema = z
 	.object({})
 	.merge(WithTvlQuerySchema)
 	.merge(WithCuratedMetadata)
+	.merge(SortByTvl)
 	.merge(SortByTotalStakers)
 	.merge(SortByTotalOperators)
 	.merge(PaginationQuerySchema)
@@ -33,6 +35,7 @@ export const getAllAvs: ZodOpenApiOperationObject = {
 		query: CombinedQuerySchema.refine(
 			(data) => {
 				const sortByFields = [
+					data.sortByTvl,
 					data.sortByTotalStakers,
 					data.sortByTotalOperators
 				].filter((field) => field !== undefined)
@@ -40,7 +43,7 @@ export const getAllAvs: ZodOpenApiOperationObject = {
 			},
 			{
 				message: 'Only one sortBy option can be used',
-				path: ['sortByTotalStakers', 'sortByTotalOperators']
+				path: ['sortByTvl', 'sortByTotalStakers', 'sortByTotalOperators']
 			}
 		)
 	},
