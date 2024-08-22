@@ -927,11 +927,11 @@ export async function getDeploymentRatio(req: Request, res: Response) {
 			deploymentRatio: currentDeploymentRatio,
 			change24h: {
 				value: change24hDelegationValue,
-				percent: change24hPercent
+				percent: change24hPercent * 100
 			},
 			change7d: {
 				value: change7dDelegationValue,
-				percent: change7dPercent
+				percent: change7dPercent * 100
 			}
 		})
 	} catch (error) {
@@ -997,11 +997,11 @@ export async function getRestakingRatio(req: Request, res: Response) {
 			restakingRatio: currentRestakingRatio,
 			change24h: {
 				value: change24hValue,
-				percent: change24hPercent
+				percent: change24hPercent * 100
 			},
 			change7d: {
 				value: change7dValue,
-				percent: change7dPercent
+				percent: change7dPercent * 100
 			}
 		})
 	} catch (error) {
