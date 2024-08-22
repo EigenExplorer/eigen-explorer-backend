@@ -7,6 +7,7 @@ import { OperatorResponseSchema } from '../../apiResponseSchema/operatorResponse
 import { PaginationMetaResponsesSchema } from '../../apiResponseSchema/base/paginationMetaResponses'
 import { WithTvlQuerySchema } from '../../../../api/src/schema/zod/schemas/withTvlQuery'
 import { AvsOperatorResponseSchema } from '../../apiResponseSchema/avs/avsOperatorResponse'
+import { SortOperatorsByTvl } from '../../../../api/src/schema/zod/schemas/separateSortingQueries'
 
 const AvsAddressParam = z.object({
 	address: EthereumAddressSchema.describe(
@@ -22,6 +23,7 @@ const AvsOperatorCombinedResponseSchema = z.object({
 const CombinedQuerySchema = z
 	.object({})
 	.merge(WithTvlQuerySchema)
+	.merge(SortOperatorsByTvl)
 	.merge(PaginationQuerySchema)
 
 export const getAvsOperatorsByAddress: ZodOpenApiOperationObject = {

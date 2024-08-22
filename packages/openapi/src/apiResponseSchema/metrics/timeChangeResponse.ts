@@ -1,11 +1,11 @@
 import z from '../../../../api/src/schema/zod';
 
-const Change24HoursResponseSchema = z.object({
+export const Change24HoursResponseSchema = z.object({
     value: z.number().openapi({ example: 10 }),
     percent: z.number().openapi({ example: 0.01})
 });
 
-const Change7DaysResponseSchema = z.object({
+export const Change7DaysResponseSchema = z.object({
     value: z.number().openapi({ example: 10 }),
     percent: z.number().openapi({ example: 0.01 })
 });
