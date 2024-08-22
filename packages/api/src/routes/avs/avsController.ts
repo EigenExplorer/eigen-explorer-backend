@@ -11,8 +11,8 @@ import {
 	getStrategiesWithShareUnderlying,
 	sharesToTVL
 } from '../strategies/strategiesController'
-import { SortByQuerySchema } from '../../schema/zod/schemas/sortByQuery'
 import { UpdatedSinceQuerySchema } from '../../schema/zod/schemas/updatedSinceQuery'
+import { SortByQuerySchema } from '../../schema/zod/schemas/sortByQuery'
 
 /**
  * Route to get a list of all AVSs
