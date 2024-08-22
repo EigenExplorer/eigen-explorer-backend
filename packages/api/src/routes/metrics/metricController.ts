@@ -994,7 +994,7 @@ export async function getRestakingRatio(req: Request, res: Response) {
 				: 0
 
 		res.send({
-			total: currentRestakingRatio,
+			restakingRatio: currentRestakingRatio,
 			change24h: {
 				value: change24hValue,
 				percent: change24hPercent

@@ -5,13 +5,14 @@ import { PaginationQuerySchema } from '../../schema/zod/schemas/paginationQuery'
 import { handleAndReturnErrorResponse } from '../../schema/errors'
 import { EthereumAddressSchema } from '../../schema/zod/schemas/base/ethereumAddress'
 import { WithTvlQuerySchema } from '../../schema/zod/schemas/withTvlQuery'
-import { getNetwork } from '../../viem/viemClient'
 import { fetchStrategyTokenPrices } from '../../utils/tokenPrices'
 import { WithCuratedMetadata } from '../../schema/zod/schemas/withCuratedMetadataQuery'
 import {
 	getStrategiesWithShareUnderlying,
 	sharesToTVL
 } from '../strategies/strategiesController'
+import { UpdatedSinceQuerySchema } from '../../schema/zod/schemas/updatedSinceQuery'
+import { SortByQuerySchema } from '../../schema/zod/schemas/sortByQuery'
 
 /**
  * Route to get a list of all AVSs
@@ -22,6 +23,7 @@ import {
 export async function getAllAVS(req: Request, res: Response) {
 	// Validate pagination query
 	const queryCheck = PaginationQuerySchema.and(WithTvlQuerySchema)
+		.and(SortByQuerySchema)
 		.and(WithCuratedMetadata)
 		.safeParse(req.query)
 
@@ -265,9 +267,10 @@ export async function getAVS(req: Request, res: Response) {
  */
 export async function getAVSStakers(req: Request, res: Response) {
 	// Validate query and params
-	const queryCheck = PaginationQuerySchema.and(WithTvlQuerySchema).safeParse(
-		req.query
-	)
+	const queryCheck = PaginationQuerySchema.and(WithTvlQuerySchema)
+		.and(UpdatedSinceQuerySchema)
+		.safeParse(req.query)
+
 	if (!queryCheck.success) {
 		return handleAndReturnErrorResponse(req, res, queryCheck.error)
 	}
@@ -279,7 +282,7 @@ export async function getAVSStakers(req: Request, res: Response) {
 
 	try {
 		const { address } = req.params
-		const { skip, take, withTvl } = queryCheck.data
+		const { skip, take, withTvl, updatedSince } = queryCheck.data
 
 		const avs = await prisma.avs.findUniqueOrThrow({
 			where: { address: address.toLowerCase(), ...getAvsFilterQuery() },
@@ -292,6 +295,7 @@ export async function getAVSStakers(req: Request, res: Response) {
 
 		const stakersCount = await prisma.staker.count({
 			where: {
+				...(updatedSince ? { updatedAt: { gte: new Date(updatedSince) } } : {}),
 				operatorAddress: {
 					in: operatorAddresses
 				},
@@ -309,7 +313,20 @@ export async function getAVSStakers(req: Request, res: Response) {
 		})
 
 		const stakersRecords = await prisma.staker.findMany({
-			where: { operatorAddress: { in: operatorAddresses } },
+			where: {
+				...(updatedSince ? { updatedAt: { gte: new Date(updatedSince) } } : {}),
+				operatorAddress: { in: operatorAddresses },
+				shares: {
+					some: {
+						strategyAddress: {
+							in: [
+								...new Set(avs.operators.flatMap((o) => o.restakedStrategies))
+							]
+						},
+						shares: { gt: '0' }
+					}
+				}
+			},
 			skip,
 			take,
 			include: { shares: true }
@@ -360,9 +377,9 @@ export async function getAVSStakers(req: Request, res: Response) {
  */
 export async function getAVSOperators(req: Request, res: Response) {
 	// Validate query and params
-	const queryCheck = PaginationQuerySchema.and(WithTvlQuerySchema).safeParse(
-		req.query
-	)
+	const queryCheck = PaginationQuerySchema.and(WithTvlQuerySchema)
+		.and(SortByQuerySchema)
+		.safeParse(req.query)
 	if (!queryCheck.success) {
 		return handleAndReturnErrorResponse(req, res, queryCheck.error)
 	}
@@ -374,7 +391,7 @@ export async function getAVSOperators(req: Request, res: Response) {
 
 	try {
 		const { address } = req.params
-		const { skip, take, withTvl } = queryCheck.data
+		const { skip, take, withTvl, sortOperatorsByTvl } = queryCheck.data
 
 		const avs = await prisma.avs.findUniqueOrThrow({
 			where: { address: address.toLowerCase(), ...getAvsFilterQuery() },
@@ -391,6 +408,7 @@ export async function getAVSOperators(req: Request, res: Response) {
 			},
 			skip,
 			take,
+			orderBy: sortOperatorsByTvl ? { tvlEth: sortOperatorsByTvl } : undefined,
 			include: {
 				shares: {
 					select: { strategyAddress: true, shares: true }
