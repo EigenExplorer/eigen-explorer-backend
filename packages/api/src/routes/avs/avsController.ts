@@ -374,7 +374,7 @@ export async function getAVSOperators(req: Request, res: Response) {
 
 	try {
 		const { address } = req.params
-		const { skip, take, withTvl } = queryCheck.data
+		const { skip, take, withTvl, sortOperatorsByTvl } = queryCheck.data
 
 		const avs = await prisma.avs.findUniqueOrThrow({
 			where: { address: address.toLowerCase(), ...getAvsFilterQuery() },
@@ -391,6 +391,7 @@ export async function getAVSOperators(req: Request, res: Response) {
 			},
 			skip,
 			take,
+			orderBy: sortOperatorsByTvl ? { tvlEth: sortOperatorsByTvl } : undefined,
 			include: {
 				shares: {
 					select: { strategyAddress: true, shares: true }
