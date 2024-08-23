@@ -17,7 +17,7 @@ import { getContract } from 'viem'
 import { strategyAbi } from '../../data/abi/strategy'
 import { getViemClient } from '../../viem/viemClient'
 import { getStrategiesWithShareUnderlying } from '../strategies/strategiesController'
-import { fetchEthCirculatingSupply } from '../../utils/ethCirculatingSupply'
+import { CirculatingSupplyWithChange, fetchEthCirculatingSupply } from '../../utils/ethCirculatingSupply'
 import { WithChangeQuerySchema } from '../../schema/zod/schemas/withChangeQuery'
 
 const beaconAddress = '0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0'
@@ -822,238 +822,44 @@ export async function getHistoricalDepositCount(req: Request, res: Response) {
  * @param res
  */
 export async function getDeploymentRatio(req: Request, res: Response) {
-	const queryCheck = WithChangeQuerySchema.safeParse(req.query)
-		if (!queryCheck.success) {
-			return handleAndReturnErrorResponse(req, res, queryCheck.error)
-		}
-
-		try {
-			const { withChange } = queryCheck.data
-			
-			const ratio = await doGetDeploymentRatio(withChange)
-			res.send({
-				...(withChange
-					? { ...(ratio as RatioWithChange) }
-					: { ratio: ratio as RatioWithoutChange })
-			})
-		} catch (error) {
-			handleAndReturnErrorResponse(req, res, error)
-		}
-}
-
-async function doGetDeploymentRatio(withChange: boolean) :Promise<RatioWithoutChange | RatioWithChange> {
-	const tvlRestaking = (await doGetTvl(withChange)).tvlRestaking;
-    const tvlBeaconChain = await doGetTvlBeaconChain(withChange);
-
-	const restakingTvlValue = extractTvlValue(tvlRestaking);
-	const beaconChainTvlValue = extractTvlValue(tvlBeaconChain);
-
-	const totalTvl = restakingTvlValue + beaconChainTvlValue
-
-	const ethPrices = await fetchCurrentEthPrices()
-	const lastMetricsTimestamps =
-			await prisma.metricOperatorStrategyHourly.groupBy({
-				by: ['operatorAddress', 'strategyAddress'],
-				_max: { timestamp: true }
-			})
-
-	const validMetricsTimestamps = lastMetricsTimestamps.filter(
-		(metric) => metric._max.timestamp !== null
-	)
-
-	const metrics = await prisma.metricOperatorStrategyHourly.findMany({
-		where: {
-			OR: validMetricsTimestamps.map((metric) => ({
-				operatorAddress: metric.operatorAddress,
-				strategyAddress: metric.strategyAddress,
-				timestamp: metric._max.timestamp as Date
-			}))
-		}
-	})
-
-	let currentDelegationValue = 0;
-
-	for (const metric of metrics) {
-		currentDelegationValue += Number(metric.tvl) * (ethPrices.get(metric.strategyAddress) || 0)
-	}
-
-	const currentDeploymentRatio = currentDelegationValue / totalTvl
-
-	if (!withChange) {
-		return currentDeploymentRatio
-	}
-
-	if(typeof tvlRestaking === 'object' && typeof tvlBeaconChain === 'object'){
-		
-		const tvlEth24hChange = tvlRestaking.change24h.value + tvlBeaconChain.change24h.value
-		const tvlEth7dChange = tvlRestaking.change7d.value + tvlBeaconChain.change7d.value	
-
-		const tvlEth24hAgo = totalTvl + tvlEth24hChange
-		const tvlEth7dAgo = totalTvl + tvlEth7dChange
-
-		let changeDelegation24hAgo = 0
-		let changeDelegationValue7dAgo = 0
-
-		const historicalRecords = await prisma.metricOperatorStrategyHourly.findMany(
-			{
-				select: {
-					changeTvl: true,
-					timestamp: true,
-					strategyAddress: true
-				},
-				where: {
-					timestamp: {
-						gte: getTimestamp('7d')
-					}
-				},
-				orderBy: {
-					timestamp: 'desc'
-				}
-			}
-		)
-
-		// Calculate the change in TVL
-		for (const record of historicalRecords) {
-			const changeTvlEth =
-				Number(record.changeTvl) * (ethPrices.get(record.strategyAddress) || 0)
-
-			changeDelegation24hAgo +=
-				record.timestamp.getTime() >= getTimestamp('24h').getTime()
-					? changeTvlEth
-					: 0
-					changeDelegationValue7dAgo += changeTvlEth
-		}
-
-
-		const deploymentRatio24hAgo = (currentDelegationValue - changeDelegation24hAgo) / tvlEth24hAgo
-		const deploymentRatio7dAgo = (currentDelegationValue - changeDelegationValue7dAgo) / tvlEth7dAgo
-
-		const change24hValue = currentDeploymentRatio - deploymentRatio24hAgo;
-
-		const change24hPercent =
-			deploymentRatio24hAgo !== 0
-				? Math.round(
-						(change24hValue / deploymentRatio24hAgo) *
-							1000
-				  ) / 1000
-				: 0
-
-
-		const change7dValue = currentDeploymentRatio - deploymentRatio7dAgo;
-		const change7dPercent =
-			deploymentRatio7dAgo !== 0
-					? Math.round((change7dValue / deploymentRatio7dAgo) * 1000) / 1000
-					: 0;
-
-		return ({
-					ratio: currentDeploymentRatio,
-					change24h: {
-						value: deploymentRatio24hAgo,
-						percent: change24hPercent * 100
-					},
-					change7d: {
-						value: deploymentRatio7dAgo,
-						percent: change7dPercent * 100
-					}
-				} as RatioWithChange)
-	}
-
-	return currentDeploymentRatio
-}
-
-function extractTvlValue(tvl: number | TvlWithChange): number {
-    if (typeof tvl === 'object' && 'tvl' in tvl) {
-        return tvl.tvl;  // Extract the tvl property if it's an object
+    const queryCheck = WithChangeQuerySchema.safeParse(req.query)
+    if (!queryCheck.success) {
+        return handleAndReturnErrorResponse(req, res, queryCheck.error)
     }
-    return tvl as number;  // Otherwise, it's already a number
-}
 
-/**
- * Function for route /restaking-rataio
- * Returns the Restaking Ratio
- *
- * @param req
- * @param res
- */
-async function doGetRestakingRatio(withChange: boolean) :Promise<RatioWithoutChange | RatioWithChange> {
+    try {
+        const { withChange } = queryCheck.data
+        const ratio = await doGetDeploymentRatio(withChange)
 
-	const tvlRestaking = (await doGetTvl(withChange)).tvlRestaking;
-    const tvlBeaconChain = await doGetTvlBeaconChain(withChange);
-
-	const restakingTvlValue = extractTvlValue(tvlRestaking);
-	const beaconChainTvlValue = extractTvlValue(tvlBeaconChain);
-
-    const ethSupplyData = await fetchEthCirculatingSupply(withChange);
-    const currentEthCirculation = ethSupplyData.current_circulating_supply;
-
-	const totalTvl = restakingTvlValue + beaconChainTvlValue
-
-	const currentRestakingRatio = totalTvl/currentEthCirculation
-	if (!withChange) {
-		return currentRestakingRatio
-	}
-	
-	if ('supply_24h_ago' in ethSupplyData && 'supply_7d_ago' in ethSupplyData) {
-		const ethCirculation24hAgo = ethSupplyData.supply_24h_ago;
-		const ethCirculation7dAgo = ethSupplyData.supply_7d_ago;
-
-		if(typeof tvlRestaking === 'object' && typeof tvlBeaconChain === 'object'){
-			const tvlEth24hChange = tvlRestaking.change24h.value + tvlBeaconChain.change24h.value
-        	const tvlEth7dChange = tvlRestaking.change7d.value + tvlBeaconChain.change7d.value
-
-			const tvlEth24hAgo = totalTvl + tvlEth24hChange
-			const tvlEth7dAgo = totalTvl + tvlEth7dChange
-			
-			const restakingRatio24hAgo = tvlEth24hAgo / ethCirculation24hAgo
-        	const restakingRatio7dAgo = tvlEth7dAgo / ethCirculation7dAgo
-
-			const change24hValue = currentRestakingRatio - restakingRatio24hAgo;
-			const change24hPercent =
-				restakingRatio24hAgo !== 0
-					? Math.round((change24hValue / restakingRatio24hAgo) * 1000) / 1000
-					: 0;
-
-			const change7dValue = currentRestakingRatio - restakingRatio7dAgo;
-			const change7dPercent =
-				restakingRatio7dAgo !== 0
-					? Math.round((change7dValue / restakingRatio7dAgo) * 1000) / 1000
-					: 0;
-						
-			return ({
-				ratio: currentRestakingRatio,
-				change24h: {
-					value: change24hValue,
-					percent: change24hPercent * 100
-				},
-				change7d: {
-					value: change7dValue,
-					percent: change7dPercent * 100
-				}
-			} as RatioWithChange)
-		}		
-	  }
-	  return currentRestakingRatio
+        res.send({
+            ...(withChange
+                ? { ...(ratio as RatioWithChange) }
+                : { ratio: ratio as RatioWithoutChange })
+        })
+    } catch (error) {
+        handleAndReturnErrorResponse(req, res, error)
+    }
 }
 
 export async function getRestakingRatio(req: Request, res: Response) {
 
-	const queryCheck = WithChangeQuerySchema.safeParse(req.query)
-	if (!queryCheck.success) {
-		return handleAndReturnErrorResponse(req, res, queryCheck.error)
-	}
+    const queryCheck = WithChangeQuerySchema.safeParse(req.query)
+    if (!queryCheck.success) {
+        return handleAndReturnErrorResponse(req, res, queryCheck.error)
+    }
 
-	try {
-		const { withChange } = queryCheck.data
-		
-		const ratio = await doGetRestakingRatio(withChange)
-		res.send({
-			...(withChange
-				? { ...(ratio as RatioWithChange) }
-				: { ratio: ratio as RatioWithoutChange })
-		})
-	} catch (error) {
-		handleAndReturnErrorResponse(req, res, error)
-	}
+    try {
+        const { withChange } = queryCheck.data
+        const ratio = await doGetRestakingRatio(withChange)
+
+        res.send({
+            ...(withChange
+                ? { ...(ratio as RatioWithChange) }
+                : { ratio: ratio as RatioWithoutChange })
+        })
+    } catch (error) {
+        handleAndReturnErrorResponse(req, res, error)
+    }
 }
 
 /*
@@ -2405,6 +2211,180 @@ async function doGetHistoricalCount(
 	return results
 }
 
+/**
+ * Function for calculating the Restaking Ratio
+ */
+async function doGetRestakingRatio(withChange: boolean): Promise<RatioWithoutChange | RatioWithChange> {
+
+    const tvlRestaking = (await doGetTvl(withChange)).tvlRestaking;
+    const tvlBeaconChain = await doGetTvlBeaconChain(withChange);
+
+    const restakingTvlValue = extractTvlValue(tvlRestaking);
+    const beaconChainTvlValue = extractTvlValue(tvlBeaconChain);
+
+    const ethSupplyData = await fetchEthCirculatingSupply(withChange);
+    const currentEthCirculation = ethSupplyData.current_circulating_supply;
+
+    const totalTvl = restakingTvlValue + beaconChainTvlValue
+
+    const currentRestakingRatio = totalTvl / currentEthCirculation
+    if (!withChange) {
+        return currentRestakingRatio
+    }
+    
+	const ethCirculation24hAgo = (ethSupplyData as CirculatingSupplyWithChange).supply_24h_ago;
+	const ethCirculation7dAgo = (ethSupplyData as CirculatingSupplyWithChange).supply_7d_ago;
+
+	const tvlEth24hChange = (tvlRestaking as TvlWithChange).change24h.value + (tvlBeaconChain as TvlWithChange).change24h.value
+	const tvlEth7dChange = (tvlRestaking as TvlWithChange).change7d.value + (tvlBeaconChain as TvlWithChange).change7d.value
+
+	const tvlEth24hAgo = totalTvl - tvlEth24hChange
+	const tvlEth7dAgo = totalTvl - tvlEth7dChange
+
+	const restakingRatio24hAgo = tvlEth24hAgo / ethCirculation24hAgo
+	const restakingRatio7dAgo = tvlEth7dAgo / ethCirculation7dAgo
+
+	const change24hValue = currentRestakingRatio - restakingRatio24hAgo;
+	const change24hPercent =
+		restakingRatio24hAgo !== 0
+			? Math.round((change24hValue / restakingRatio24hAgo) * 1000) / 1000
+			: 0;
+
+	const change7dValue = currentRestakingRatio - restakingRatio7dAgo;
+	const change7dPercent =
+		restakingRatio7dAgo !== 0
+			? Math.round((change7dValue / restakingRatio7dAgo) * 1000) / 1000
+			: 0;
+
+		return ({
+			ratio: currentRestakingRatio,
+			change24h: {
+				value: change24hValue,
+				percent: change24hPercent * 100
+			},
+			change7d: {
+				value: change7dValue,
+				percent: change7dPercent * 100
+			}
+		} as RatioWithChange)
+}
+
+/**
+ * Function for calculating the Deployment Ratio
+ */
+async function doGetDeploymentRatio(withChange: boolean): Promise<RatioWithoutChange | RatioWithChange> {
+    const tvlRestaking = (await doGetTvl(withChange)).tvlRestaking;
+    const tvlBeaconChain = await doGetTvlBeaconChain(withChange);
+
+    const restakingTvlValue = extractTvlValue(tvlRestaking);
+    const beaconChainTvlValue = extractTvlValue(tvlBeaconChain);
+
+    const totalTvl = restakingTvlValue + beaconChainTvlValue
+
+    const ethPrices = await fetchCurrentEthPrices()
+    const lastMetricsTimestamps =
+        await prisma.metricOperatorStrategyHourly.groupBy({
+            by: ['operatorAddress', 'strategyAddress'],
+            _max: { timestamp: true }
+        })
+
+    const validMetricsTimestamps = lastMetricsTimestamps.filter(
+        (metric) => metric._max.timestamp !== null
+    )
+
+    const metrics = await prisma.metricOperatorStrategyHourly.findMany({
+        where: {
+            OR: validMetricsTimestamps.map((metric) => ({
+                operatorAddress: metric.operatorAddress,
+                strategyAddress: metric.strategyAddress,
+                timestamp: metric._max.timestamp as Date
+            }))
+        }
+    })
+
+    let currentDelegationValue = 0;
+
+    for (const metric of metrics) {
+        currentDelegationValue += Number(metric.tvl) * (ethPrices.get(metric.strategyAddress) || 0)
+    }
+
+    const currentDeploymentRatio = currentDelegationValue / totalTvl
+
+    if (!withChange) {
+        return currentDeploymentRatio
+    }
+
+	const tvlEth24hChange = (tvlRestaking as TvlWithChange).change24h.value + (tvlBeaconChain as TvlWithChange).change24h.value
+	const tvlEth7dChange = (tvlRestaking as TvlWithChange).change7d.value + (tvlBeaconChain as TvlWithChange).change7d.value
+
+	const tvlEth24hAgo = totalTvl - tvlEth24hChange
+	const tvlEth7dAgo = totalTvl - tvlEth7dChange
+
+	let changeDelegation24hAgo = 0
+	let changeDelegationValue7dAgo = 0
+
+	const historicalRecords = await prisma.metricOperatorStrategyHourly.findMany(
+		{
+			select: {
+				changeTvl: true,
+				timestamp: true,
+				strategyAddress: true
+			},
+			where: {
+				timestamp: {
+					gte: getTimestamp('7d')
+				}
+			},
+			orderBy: {
+				timestamp: 'desc'
+			}
+		}
+	)
+
+	for (const record of historicalRecords) {
+		const changeTvlEth =
+			Number(record.changeTvl) * (ethPrices.get(record.strategyAddress) || 0)
+
+		changeDelegation24hAgo +=
+			record.timestamp.getTime() >= getTimestamp('24h').getTime()
+				? changeTvlEth
+				: 0
+		changeDelegationValue7dAgo += changeTvlEth
+	}
+
+	const deploymentRatio24hAgo = (currentDelegationValue - changeDelegation24hAgo) / tvlEth24hAgo
+	const deploymentRatio7dAgo = (currentDelegationValue - changeDelegationValue7dAgo) / tvlEth7dAgo
+
+	const change24hValue = currentDeploymentRatio - deploymentRatio24hAgo;
+
+	const change24hPercent =
+		deploymentRatio24hAgo !== 0
+			? Math.round(
+				(change24hValue / deploymentRatio24hAgo) *
+				1000
+			) / 1000
+			: 0
+
+
+	const change7dValue = currentDeploymentRatio - deploymentRatio7dAgo;
+	const change7dPercent =
+		deploymentRatio7dAgo !== 0
+			? Math.round((change7dValue / deploymentRatio7dAgo) * 1000) / 1000
+			: 0;
+
+	return ({
+		ratio: currentDeploymentRatio,
+		change24h: {
+			value: change24hValue,
+			percent: change24hPercent * 100
+		},
+		change7d: {
+			value: change7dValue,
+			percent: change7dPercent * 100
+		}
+	} as RatioWithChange)
+}
+
 /*
 =========================
 === Utility Functions ===
@@ -2417,7 +2397,7 @@ async function doGetHistoricalCount(
  * @param offset
  * @returns
  */
-function getTimestamp(offset?: string) {
+export function getTimestamp(offset?: string) {
 	switch (offset) {
 		case '24h': {
 			const now = new Date()
@@ -2848,4 +2828,14 @@ async function calculateMetricsForHistoricalRecord(
 		totalOperators: newOperators,
 		totalAvs: newAvs
 	}
+}
+
+/**
+ * Extracts the TVL value from a TvlWithChange object or directly returns the number.
+ *
+ * @param tvl
+ * @returns
+ */
+function extractTvlValue(tvl: number | TvlWithChange): number {
+    return (tvl as TvlWithChange).tvl || (tvl as number);
 }
