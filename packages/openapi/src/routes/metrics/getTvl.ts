@@ -2,11 +2,11 @@ import z from '../../../../api/src/schema/zod';
 import { ZodOpenApiOperationObject } from 'zod-openapi';
 import { openApiErrorResponses } from '../../apiResponseSchema/base/errorResponses';
 import { TotalTvlResponseSchema } from '../../apiResponseSchema/metrics/tvlResponse';
-import { TvlWithChangeQuerySchema } from '../../../../api/src/schema/zod/schemas/withChangeQuery';
+import { WithChangeQuerySchema } from '../../../../api/src/schema/zod/schemas/withChangeQuery';
 
 const QuerySchema = z
     .object({})
-    .merge(TvlWithChangeQuerySchema)
+    .merge(WithChangeQuerySchema)
 
 export const getTvlMetrics: ZodOpenApiOperationObject = {
     operationId: 'getTvlMetrics',
