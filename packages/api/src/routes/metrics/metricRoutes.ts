@@ -126,13 +126,13 @@ router.get(
 )
 
 router.get(
-	'/restaking-ratio',
-	routeCache.cacheSeconds(120),
+	'/restaking-ratio', 
+	routeCache.cacheSeconds(120), 
 	getRestakingRatio
 )
 
 router.get(
-	'/deployment-ratio',
+  '/deployment-ratio',
 	routeCache.cacheSeconds(120),
 	getDeploymentRatio
 )
