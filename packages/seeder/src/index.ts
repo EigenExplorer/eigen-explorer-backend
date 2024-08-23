@@ -5,7 +5,7 @@ import { seedAvsOperators } from './seedAvsOperators'
 import { seedOperators } from './seedOperators'
 import { seedPods } from './seedPods'
 import { seedStakers } from './seedStakers'
-import { getViemClient } from './utils/viemClient'
+import { getNetwork, getViemClient } from './utils/viemClient'
 import { seedBlockData } from './blocks/seedBlockData'
 import { seedLogsAVSMetadata } from './events/seedLogsAVSMetadata'
 import { seedLogsOperatorMetadata } from './events/seedLogsOperatorMetadata'
@@ -39,8 +39,8 @@ console.log('Initializing Seeder ...')
 
 const UPDATE_DELAY = 120
 
-const UPDATE_FREQUENCY_INSTANT = 120
-const UPDATE_FREQUENCY_SLOW = 240
+const UPDATE_FREQUENCY_INSTANT = getNetwork().testnet ? 300 : 120
+const UPDATE_FREQUENCY_SLOW = getNetwork().testnet ? 720 : 240
 const UPDATE_FREQUENCY_HOURLY = 3600
 const UPDATE_FREQUENCY_QUARTERLY = UPDATE_FREQUENCY_HOURLY * 4
 const UPDATE_FREQUENCY_DAILY = UPDATE_FREQUENCY_HOURLY * 24
@@ -54,7 +54,7 @@ async function seedEigenData() {
 		try {
 			const viemClient = getViemClient()
 			const targetBlock = await viemClient.getBlockNumber()
-			console.log('\nSeeding data ...', targetBlock)
+			console.log(`\nSeeding data, every ${UPDATE_FREQUENCY_INSTANT} seconds, till block ${targetBlock}:`)
 
 			await seedBlockData(targetBlock)
 			await seedLogsAVSMetadata(targetBlock)
@@ -92,7 +92,7 @@ async function seedMetadata() {
 
 	while (true) {
 		try {
-			console.log('\nMonitoring metadata...')
+			console.log(`\nSeeding metadata, every ${UPDATE_FREQUENCY_SLOW} seconds:`)
 
 			await monitorAvsMetadata()
 			await monitorOperatorMetadata()
