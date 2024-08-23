@@ -39,18 +39,29 @@ export const TotalDepositsSchema = z.object({
 })
 
 export const TotalWithdrawalsSchema = z.object({
-    total: z
-        .number()
-        .describe('The total number of withdrawals')
-        .openapi({ example: 1000000 }),
-    pending: z
-        .number()
-        .describe('The pending number of withdrawals')
-        .openapi({ example: 1000000 }),
-    completed: z
-        .number()
-        .describe('The completed number of withdrawals')
-        .openapi({ example: 1000000 }),
-    change24h: Change24HoursResponseSchema.optional(),
-    change7d: Change7DaysResponseSchema.optional(),
-})
+    total: z.object({
+        value: z
+            .number()
+            .describe('The total number of withdrawals')
+            .openapi({ example: 1000000 }),
+        change24h: Change24HoursResponseSchema.optional(),
+        change7d: Change7DaysResponseSchema.optional(),
+    }),
+    pending: z.object({
+        value: z
+            .number()
+            .describe('The pending number of withdrawals')
+            .openapi({ example: 1000000 }),
+        change24h: Change24HoursResponseSchema.optional(),
+        change7d: Change7DaysResponseSchema.optional(),
+    }),
+    completed: z.object({
+        value: z
+            .number()
+            .describe('The completed number of withdrawals')
+            .openapi({ example: 1000000 }),
+        change24h: Change24HoursResponseSchema.optional(),
+        change7d: Change7DaysResponseSchema.optional(),
+    }),
+});
+
