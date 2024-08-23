@@ -1,6 +1,12 @@
+import z from '../../../../api/src/schema/zod';
 import { ZodOpenApiOperationObject } from 'zod-openapi';
 import { openApiErrorResponses } from '../../apiResponseSchema/base/errorResponses';
 import { BeaconChainTvlResponseSchema } from '../../apiResponseSchema/metrics/tvlResponse';
+import { TvlWithChangeQuerySchema } from '../../../../api/src/schema/zod/schemas/withChangeQuery';
+
+const QuerySchema = z
+    .object({})
+    .merge(TvlWithChangeQuerySchema)
 
 export const getBeaconChainTvlMetric: ZodOpenApiOperationObject = {
     operationId: 'getBeaconChainTvlMetric',
@@ -8,7 +14,7 @@ export const getBeaconChainTvlMetric: ZodOpenApiOperationObject = {
     description:
         'Returns the total value locked (TVL) in the Beacon Chain restaking EigenPods.',
     tags: ['Metrics'],
-    requestParams: {},
+    requestParams: { query: QuerySchema },
     responses: {
         '200': {
             description: 'The value of the Beacon Chain restaking TVL in ETH.',

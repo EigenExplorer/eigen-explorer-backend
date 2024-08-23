@@ -199,6 +199,23 @@
         "tags": [
           "Metrics"
         ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "withChange",
+            "description": "Toggle whether the route should return 24h/7d change for TVL",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ],
+              "default": "false",
+              "description": "Toggle whether the route should return 24h/7d change for TVL",
+              "example": "false"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "The value of the combined TVL in ETH.",
@@ -211,6 +228,44 @@
                       "type": "number",
                       "description": "The value of the combined TVL in ETH",
                       "example": 1000000
+                    },
+                    "change24h": {
+                      "type": "object",
+                      "properties": {
+                        "value": {
+                          "type": "number",
+                          "description": "The absolute change in the value over the past 24 hours",
+                          "example": 10
+                        },
+                        "percent": {
+                          "type": "number",
+                          "description": "The percentage change in the value over the past 24 hours",
+                          "example": 0.01
+                        }
+                      },
+                      "required": [
+                        "value",
+                        "percent"
+                      ]
+                    },
+                    "change7d": {
+                      "type": "object",
+                      "properties": {
+                        "value": {
+                          "type": "number",
+                          "description": "The absolute change in the value over the past 7 days",
+                          "example": 10
+                        },
+                        "percent": {
+                          "type": "number",
+                          "description": "The percentage change in the value over the past 7 days",
+                          "example": 0.01
+                        }
+                      },
+                      "required": [
+                        "value",
+                        "percent"
+                      ]
                     }
                   },
                   "required": [
@@ -252,6 +307,23 @@
         "tags": [
           "Metrics"
         ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "withChange",
+            "description": "Toggle whether the route should return 24h/7d change for TVL",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ],
+              "default": "false",
+              "description": "Toggle whether the route should return 24h/7d change for TVL",
+              "example": "false"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "The value of the Beacon Chain restaking TVL in ETH.",
@@ -264,6 +336,44 @@
                       "type": "number",
                       "description": "The value of the Beacon Chain restaking TVL in ETH",
                       "example": 1000000
+                    },
+                    "change24h": {
+                      "type": "object",
+                      "properties": {
+                        "value": {
+                          "type": "number",
+                          "description": "The absolute change in the value over the past 24 hours",
+                          "example": 10
+                        },
+                        "percent": {
+                          "type": "number",
+                          "description": "The percentage change in the value over the past 24 hours",
+                          "example": 0.01
+                        }
+                      },
+                      "required": [
+                        "value",
+                        "percent"
+                      ]
+                    },
+                    "change7d": {
+                      "type": "object",
+                      "properties": {
+                        "value": {
+                          "type": "number",
+                          "description": "The absolute change in the value over the past 7 days",
+                          "example": 10
+                        },
+                        "percent": {
+                          "type": "number",
+                          "description": "The percentage change in the value over the past 7 days",
+                          "example": 0.01
+                        }
+                      },
+                      "required": [
+                        "value",
+                        "percent"
+                      ]
                     }
                   },
                   "required": [
@@ -305,6 +415,23 @@
         "tags": [
           "Metrics"
         ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "withChange",
+            "description": "Toggle whether the route should return 24h/7d change for TVL",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ],
+              "default": "false",
+              "description": "Toggle whether the route should return 24h/7d change for TVL",
+              "example": "false"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "The value of combined restaking strategy TVL and a breakdown of the TVL for each individual strategy.",
@@ -317,6 +444,44 @@
                       "type": "number",
                       "description": "The value of the combined restaking strategy TVL in ETH",
                       "example": 1000000
+                    },
+                    "change24h": {
+                      "type": "object",
+                      "properties": {
+                        "value": {
+                          "type": "number",
+                          "description": "The absolute change in the value over the past 24 hours",
+                          "example": 10
+                        },
+                        "percent": {
+                          "type": "number",
+                          "description": "The percentage change in the value over the past 24 hours",
+                          "example": 0.01
+                        }
+                      },
+                      "required": [
+                        "value",
+                        "percent"
+                      ]
+                    },
+                    "change7d": {
+                      "type": "object",
+                      "properties": {
+                        "value": {
+                          "type": "number",
+                          "description": "The absolute change in the value over the past 7 days",
+                          "example": 10
+                        },
+                        "percent": {
+                          "type": "number",
+                          "description": "The percentage change in the value over the past 7 days",
+                          "example": 0.01
+                        }
+                      },
+                      "required": [
+                        "value",
+                        "percent"
+                      ]
                     },
                     "tvlStrategies": {
                       "type": "object",
@@ -397,6 +562,21 @@
               "example": "cbETH"
             },
             "required": true
+          },
+          {
+            "in": "query",
+            "name": "withChange",
+            "description": "Toggle whether the route should return 24h/7d change for TVL",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ],
+              "default": "false",
+              "description": "Toggle whether the route should return 24h/7d change for TVL",
+              "example": "false"
+            }
           }
         ],
         "responses": {
@@ -411,6 +591,44 @@
                       "type": "number",
                       "description": "The value of the restaking strategy TVL, denominated in the strategy's native token",
                       "example": 1000000
+                    },
+                    "change24h": {
+                      "type": "object",
+                      "properties": {
+                        "value": {
+                          "type": "number",
+                          "description": "The absolute change in the value over the past 24 hours",
+                          "example": 10
+                        },
+                        "percent": {
+                          "type": "number",
+                          "description": "The percentage change in the value over the past 24 hours",
+                          "example": 0.01
+                        }
+                      },
+                      "required": [
+                        "value",
+                        "percent"
+                      ]
+                    },
+                    "change7d": {
+                      "type": "object",
+                      "properties": {
+                        "value": {
+                          "type": "number",
+                          "description": "The absolute change in the value over the past 7 days",
+                          "example": 10
+                        },
+                        "percent": {
+                          "type": "number",
+                          "description": "The percentage change in the value over the past 7 days",
+                          "example": 0.01
+                        }
+                      },
+                      "required": [
+                        "value",
+                        "percent"
+                      ]
                     },
                     "tvlEth": {
                       "type": "number",
@@ -458,6 +676,23 @@
         "tags": [
           "Metrics"
         ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "withChange",
+            "description": "Toggle whether the route should return 24h/7d change for count of AVS",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ],
+              "default": "false",
+              "description": "Toggle whether the route should return 24h/7d change for count of AVS",
+              "example": "false"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "The total number of AVS registered.",
@@ -476,10 +711,12 @@
                       "properties": {
                         "value": {
                           "type": "number",
+                          "description": "The absolute change in the value over the past 24 hours",
                           "example": 10
                         },
                         "percent": {
                           "type": "number",
+                          "description": "The percentage change in the value over the past 24 hours",
                           "example": 0.01
                         }
                       },
@@ -493,10 +730,12 @@
                       "properties": {
                         "value": {
                           "type": "number",
+                          "description": "The absolute change in the value over the past 7 days",
                           "example": 10
                         },
                         "percent": {
                           "type": "number",
+                          "description": "The percentage change in the value over the past 7 days",
                           "example": 0.01
                         }
                       },
@@ -507,9 +746,7 @@
                     }
                   },
                   "required": [
-                    "total",
-                    "change24h",
-                    "change7d"
+                    "total"
                   ]
                 }
               }
@@ -547,6 +784,23 @@
         "tags": [
           "Metrics"
         ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "withChange",
+            "description": "Toggle whether the route should return 24h/7d change for count of AVS operators",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ],
+              "default": "false",
+              "description": "Toggle whether the route should return 24h/7d change for count of AVS operators",
+              "example": "false"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "The total number of AVS operators registered.",
@@ -565,10 +819,12 @@
                       "properties": {
                         "value": {
                           "type": "number",
+                          "description": "The absolute change in the value over the past 24 hours",
                           "example": 10
                         },
                         "percent": {
                           "type": "number",
+                          "description": "The percentage change in the value over the past 24 hours",
                           "example": 0.01
                         }
                       },
@@ -582,10 +838,12 @@
                       "properties": {
                         "value": {
                           "type": "number",
+                          "description": "The absolute change in the value over the past 7 days",
                           "example": 10
                         },
                         "percent": {
                           "type": "number",
+                          "description": "The percentage change in the value over the past 7 days",
                           "example": 0.01
                         }
                       },
@@ -596,9 +854,7 @@
                     }
                   },
                   "required": [
-                    "total",
-                    "change24h",
-                    "change7d"
+                    "total"
                   ]
                 }
               }
@@ -636,6 +892,23 @@
         "tags": [
           "Metrics"
         ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "withChange",
+            "description": "Toggle whether the route should return 24h/7d change for count of AVS stakers",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ],
+              "default": "false",
+              "description": "Toggle whether the route should return 24h/7d change for count of AVS stakers",
+              "example": "false"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "The total number of AVS stakers registered.",
@@ -654,10 +927,12 @@
                       "properties": {
                         "value": {
                           "type": "number",
+                          "description": "The absolute change in the value over the past 24 hours",
                           "example": 10
                         },
                         "percent": {
                           "type": "number",
+                          "description": "The percentage change in the value over the past 24 hours",
                           "example": 0.01
                         }
                       },
@@ -671,10 +946,12 @@
                       "properties": {
                         "value": {
                           "type": "number",
+                          "description": "The absolute change in the value over the past 7 days",
                           "example": 10
                         },
                         "percent": {
                           "type": "number",
+                          "description": "The percentage change in the value over the past 7 days",
                           "example": 0.01
                         }
                       },
@@ -685,9 +962,7 @@
                     }
                   },
                   "required": [
-                    "total",
-                    "change24h",
-                    "change7d"
+                    "total"
                   ]
                 }
               }
@@ -725,6 +1000,23 @@
         "tags": [
           "Metrics"
         ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "withChange",
+            "description": "Toggle whether the route should return 24h/7d change for count of withdrawals",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ],
+              "default": "false",
+              "description": "Toggle whether the route should return 24h/7d change for count of withdrawals",
+              "example": "false"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "The total number of withdrawals.",
@@ -740,13 +1032,51 @@
                     },
                     "pending": {
                       "type": "number",
-                      "description": "The  pending number of withdrawals",
+                      "description": "The pending number of withdrawals",
                       "example": 1000000
                     },
                     "completed": {
                       "type": "number",
                       "description": "The completed number of withdrawals",
                       "example": 1000000
+                    },
+                    "change24h": {
+                      "type": "object",
+                      "properties": {
+                        "value": {
+                          "type": "number",
+                          "description": "The absolute change in the value over the past 24 hours",
+                          "example": 10
+                        },
+                        "percent": {
+                          "type": "number",
+                          "description": "The percentage change in the value over the past 24 hours",
+                          "example": 0.01
+                        }
+                      },
+                      "required": [
+                        "value",
+                        "percent"
+                      ]
+                    },
+                    "change7d": {
+                      "type": "object",
+                      "properties": {
+                        "value": {
+                          "type": "number",
+                          "description": "The absolute change in the value over the past 7 days",
+                          "example": 10
+                        },
+                        "percent": {
+                          "type": "number",
+                          "description": "The percentage change in the value over the past 7 days",
+                          "example": 0.01
+                        }
+                      },
+                      "required": [
+                        "value",
+                        "percent"
+                      ]
                     }
                   },
                   "required": [
@@ -790,6 +1120,23 @@
         "tags": [
           "Metrics"
         ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "withChange",
+            "description": "Toggle whether the route should return 24h/7d change for count of deposits",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ],
+              "default": "false",
+              "description": "Toggle whether the route should return 24h/7d change for count of deposits",
+              "example": "false"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "The total number of deposits.",
@@ -802,6 +1149,44 @@
                       "type": "number",
                       "description": "The total number of deposits",
                       "example": 1000000
+                    },
+                    "change24h": {
+                      "type": "object",
+                      "properties": {
+                        "value": {
+                          "type": "number",
+                          "description": "The absolute change in the value over the past 24 hours",
+                          "example": 10
+                        },
+                        "percent": {
+                          "type": "number",
+                          "description": "The percentage change in the value over the past 24 hours",
+                          "example": 0.01
+                        }
+                      },
+                      "required": [
+                        "value",
+                        "percent"
+                      ]
+                    },
+                    "change7d": {
+                      "type": "object",
+                      "properties": {
+                        "value": {
+                          "type": "number",
+                          "description": "The absolute change in the value over the past 7 days",
+                          "example": 10
+                        },
+                        "percent": {
+                          "type": "number",
+                          "description": "The percentage change in the value over the past 7 days",
+                          "example": 0.01
+                        }
+                      },
+                      "required": [
+                        "value",
+                        "percent"
+                      ]
                     }
                   },
                   "required": [
@@ -843,6 +1228,23 @@
         "tags": [
           "Metrics"
         ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "withChange",
+            "description": "Toggle whether the route should return 24h/7d change for ratio value",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ],
+              "default": "false",
+              "description": "Toggle whether the route should return 24h/7d change for ratio value",
+              "example": "false"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "The value of deployment ratio",
@@ -851,7 +1253,7 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "deploymentRatio": {
+                    "ratio": {
                       "type": "number",
                       "description": "The current value of Deployment Ratio",
                       "example": 1
@@ -861,10 +1263,12 @@
                       "properties": {
                         "value": {
                           "type": "number",
+                          "description": "The absolute change in the value over the past 24 hours",
                           "example": 10
                         },
                         "percent": {
                           "type": "number",
+                          "description": "The percentage change in the value over the past 24 hours",
                           "example": 0.01
                         }
                       },
@@ -878,10 +1282,12 @@
                       "properties": {
                         "value": {
                           "type": "number",
+                          "description": "The absolute change in the value over the past 7 days",
                           "example": 10
                         },
                         "percent": {
                           "type": "number",
+                          "description": "The percentage change in the value over the past 7 days",
                           "example": 0.01
                         }
                       },
@@ -892,9 +1298,7 @@
                     }
                   },
                   "required": [
-                    "deploymentRatio",
-                    "change24h",
-                    "change7d"
+                    "ratio"
                   ]
                 }
               }
@@ -932,6 +1336,23 @@
         "tags": [
           "Metrics"
         ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "withChange",
+            "description": "Toggle whether the route should return 24h/7d change for ratio value",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ],
+              "default": "false",
+              "description": "Toggle whether the route should return 24h/7d change for ratio value",
+              "example": "false"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "The value of restaking ratio",
@@ -940,7 +1361,7 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "restakingRatio": {
+                    "ratio": {
                       "type": "number",
                       "description": "The current value of Restaking Ratio",
                       "example": 1
@@ -950,10 +1371,12 @@
                       "properties": {
                         "value": {
                           "type": "number",
+                          "description": "The absolute change in the value over the past 24 hours",
                           "example": 10
                         },
                         "percent": {
                           "type": "number",
+                          "description": "The percentage change in the value over the past 24 hours",
                           "example": 0.01
                         }
                       },
@@ -967,10 +1390,12 @@
                       "properties": {
                         "value": {
                           "type": "number",
+                          "description": "The absolute change in the value over the past 7 days",
                           "example": 10
                         },
                         "percent": {
                           "type": "number",
+                          "description": "The percentage change in the value over the past 7 days",
                           "example": 0.01
                         }
                       },
@@ -981,9 +1406,7 @@
                     }
                   },
                   "required": [
-                    "restakingRatio",
-                    "change24h",
-                    "change7d"
+                    "ratio"
                   ]
                 }
               }
@@ -1389,7 +1812,7 @@
                         "properties": {
                           "timestamp": {
                             "type": "string",
-                            "description": "The time stamp for the corresponding TVL value ",
+                            "description": "The timestamp for the corresponding TVL value",
                             "example": "2024-04-11T08:31:11.000Z"
                           },
                           "tvlEth": {
@@ -1514,7 +1937,7 @@
                         "properties": {
                           "timestamp": {
                             "type": "string",
-                            "description": "The time stamp for the corresponding Beacon Chain TVL value ",
+                            "description": "The timestamp for the corresponding TVL value",
                             "example": "2024-04-11T08:31:11.000Z"
                           },
                           "tvlEth": {
@@ -1651,7 +2074,7 @@
                         "properties": {
                           "timestamp": {
                             "type": "string",
-                            "description": "The time stamp for the corresponding Beacon Chain TVL value ",
+                            "description": "The timestamp for the corresponding TVL value",
                             "example": "2024-04-11T08:31:11.000Z"
                           },
                           "tvlEth": {
