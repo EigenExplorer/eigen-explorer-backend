@@ -6,7 +6,7 @@ import {
     StrategyTvlSchema,
     StrategyEthTvlSchema,
 } from '../../apiResponseSchema/base/strategyTvlResponse';
-import { TvlWithChangeQuerySchema } from '../../../../api/src/schema/zod/schemas/withChangeQuery';
+import { WithChangeQuerySchema } from '../../../../api/src/schema/zod/schemas/withChangeQuery';
 
 const RestakingTvlResponseSchema = TvlResponseSchema.extend({
     tvl: z
@@ -19,7 +19,7 @@ const RestakingTvlResponseSchema = TvlResponseSchema.extend({
 
 const QuerySchema = z
     .object({})
-    .merge(TvlWithChangeQuerySchema)
+    .merge(WithChangeQuerySchema)
 
 export const getRestakingTvlMetrics: ZodOpenApiOperationObject = {
     operationId: 'getRestakingTvlMetrics',

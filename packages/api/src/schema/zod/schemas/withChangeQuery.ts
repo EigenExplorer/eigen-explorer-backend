@@ -10,7 +10,7 @@ const createWithChangeQuerySchema = (description: string) =>
 			.openapi({ example: 'false' }),
 	})
 
-export const TvlWithChangeQuerySchema = createWithChangeQuerySchema(
+export const WithChangeQuerySchema = createWithChangeQuerySchema(
 	'Toggle whether the route should return 24h/7d change for TVL'
 )
 

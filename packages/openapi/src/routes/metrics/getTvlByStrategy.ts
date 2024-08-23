@@ -2,7 +2,7 @@ import { ZodOpenApiOperationObject } from 'zod-openapi';
 import { openApiErrorResponses } from '../../apiResponseSchema/base/errorResponses';
 import { IndividualStrategyTvlResponseSchema } from '../../apiResponseSchema/metrics/tvlResponse';
 import z from '../../../../api/src/schema/zod';
-import { TvlWithChangeQuerySchema } from '../../../../api/src/schema/zod/schemas/withChangeQuery';
+import { WithChangeQuerySchema } from '../../../../api/src/schema/zod/schemas/withChangeQuery';
 
 const RestakingStrategyNameParam = z.object({
     strategy: z
@@ -13,7 +13,7 @@ const RestakingStrategyNameParam = z.object({
 
 const QuerySchema = z
     .object({})
-    .merge(TvlWithChangeQuerySchema)
+    .merge(WithChangeQuerySchema)
 
 export const getTvlRestakingMetricByStrategy: ZodOpenApiOperationObject = {
     operationId: 'getTvlRestakingMetricByStrategy',
