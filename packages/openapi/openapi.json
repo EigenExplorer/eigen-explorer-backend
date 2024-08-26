@@ -5189,6 +5189,21 @@
               "description": "Toggle whether the route should calculate the TVL from shares",
               "example": "false"
             }
+          },
+          {
+            "in": "query",
+            "name": "withAvsData",
+            "description": "Toggle whether to return additional data for each AVS registration for a given Operator",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ],
+              "default": "false",
+              "description": "Toggle whether to return additional data for each AVS registration for a given Operator",
+              "example": "false"
+            }
           }
         ],
         "responses": {
