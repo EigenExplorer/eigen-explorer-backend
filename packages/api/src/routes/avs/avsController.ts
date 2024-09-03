@@ -528,20 +528,32 @@ async function doGetAllAvs(queryCheck: any) {
  * @returns
  */
 async function doGetAvsByTextSearch(searchQuery: string) {
-	const data = await prisma.avs.findMany({
+	const avs = await prisma.avs.findMany({
 		where: {
 			OR: [
-				{ address: { search: searchQuery } },
-				{ metadataName: { search: searchQuery } },
-				{ metadataDescription: { search: searchQuery } },
-				{ metadataWebsite: { search: searchQuery } },
+				{ address: { contains: searchQuery, mode: 'insensitive' } },
+				{ metadataName: { contains: searchQuery, mode: 'insensitive' } },
+				{ metadataDescription: { contains: searchQuery, mode: 'insensitive' } },
+				{ metadataWebsite: { contains: searchQuery, mode: 'insensitive' } },
 				{
 					curatedMetadata: {
 						is: {
 							OR: [
-								{ metadataName: { search: searchQuery } },
-								{ metadataDescription: { search: searchQuery } },
-								{ metadataWebsite: { search: searchQuery } }
+								{
+									metadataName: { contains: searchQuery, mode: 'insensitive' }
+								},
+								{
+									metadataDescription: {
+										contains: searchQuery,
+										mode: 'insensitive'
+									}
+								},
+								{
+									metadataWebsite: {
+										contains: searchQuery,
+										mode: 'insensitive'
+									}
+								}
 							]
 						}
 					}
@@ -552,13 +564,25 @@ async function doGetAvsByTextSearch(searchQuery: string) {
 		select: {
 			address: true,
 			metadataName: true,
-			metadataLogo: true
+			metadataLogo: true,
+			curatedMetadata: {
+				select: {
+					metadataName: true,
+					metadataLogo: true
+				}
+			}
 		},
 		orderBy: {
 			tvlEth: 'desc'
 		},
 		take: 10
 	})
+
+	const data = avs.map((item) => ({
+		address: item.address,
+		metadataName: item.curatedMetadata?.metadataName || item.metadataName,
+		metadataLogo: item.curatedMetadata?.metadataLogo || item.metadataLogo
+	}))
 
 	return { data, avsCount: data.length }
 }

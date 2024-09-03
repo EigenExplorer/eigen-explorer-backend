@@ -265,10 +265,10 @@ async function doGetOperatorsByTextSearch(searchQuery: string) {
 	const operators = await prisma.operator.findMany({
 		where: {
 			OR: [
-				{ address: { search: searchQuery } },
-				{ metadataName: { search: searchQuery } },
-				{ metadataDescription: { search: searchQuery } },
-				{ metadataWebsite: { search: searchQuery } }
+				{ address: { contains: searchQuery, mode: 'insensitive' } },
+				{ metadataName: { contains: searchQuery, mode: 'insensitive' } },
+				{ metadataDescription: { contains: searchQuery, mode: 'insensitive' } },
+				{ metadataWebsite: { contains: searchQuery, mode: 'insensitive' } }
 			]
 		},
 		select: {
