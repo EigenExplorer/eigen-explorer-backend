@@ -11,10 +11,11 @@ import {
 } from '../strategies/strategiesController'
 import { WithAdditionalDataQuerySchema } from '../../schema/zod/schemas/withAdditionalDataQuery'
 import { SortByQuerySchema } from '../../schema/zod/schemas/sortByQuery'
-import { ByTextSearchQuerySchema } from '../../schema/zod/schemas/asSearchQuery'
+import { ByTextSearchQuerySchema } from '../../schema/zod/schemas/byTextSearchQuery'
 
 /**
- * Route to get a list of all operators
+ * Function for route /operators
+ * Returns a list of all Operators. Optionally perform a text search for a list of matched Operators.
  *
  * @param req
  * @param res
@@ -50,7 +51,8 @@ export async function getAllOperators(req: Request, res: Response) {
 }
 
 /**
- * Route to get a single operator
+ * Function for route /operators/:address
+ * Returns a single Operator by address
  *
  * @param req
  * @param res
@@ -148,7 +150,8 @@ export async function getOperator(req: Request, res: Response) {
 }
 
 /**
- * Protected route to invalidate the metadata of a given address
+ * Function for route /operators/:address/invalidate-metadata
+ * Protected route to invalidate the metadata of a given Operator
  *
  * @param req
  * @param res
@@ -179,6 +182,13 @@ export async function invalidateMetadata(req: Request, res: Response) {
 
 // --- Processing functions ---
 
+/**
+ * Used by getAllOperators()
+ * Processes all Operators optionally sorting by tvl, totalStakers and totalAvs
+ *
+ * @param result
+ * @returns
+ */
 // biome-ignore lint/suspicious/noExplicitAny: <explanation>
 async function doGetAllOperators(result: any) {
 	const { skip, take, withTvl, sortByTvl, sortByTotalStakers, sortByTotalAvs } =
@@ -244,23 +254,22 @@ async function doGetAllOperators(result: any) {
 	return { operators, operatorCount }
 }
 
+/**
+ * Used by getAllOperators()
+ * Processes full-text search on name, description and website basis a given query
+ *
+ * @param searchQuery
+ * @returns
+ */
 async function doGetOperatorsByTextSearch(searchQuery: string) {
-	// TODO: Sanitize `searchQuery`
-
 	const operators = await prisma.operator.findMany({
 		where: {
-			address: {
-				search: searchQuery
-			},
-			metadataName: {
-				search: searchQuery
-			},
-			metadataDescription: {
-				search: searchQuery
-			},
-			metadataWebsite: {
-				search: searchQuery
-			}
+			OR: [
+				{ address: { search: searchQuery } },
+				{ metadataName: { search: searchQuery } },
+				{ metadataDescription: { search: searchQuery } },
+				{ metadataWebsite: { search: searchQuery } }
+			]
 		},
 		select: {
 			address: true,
@@ -268,7 +277,7 @@ async function doGetOperatorsByTextSearch(searchQuery: string) {
 			metadataLogo: true
 		},
 		orderBy: {
-			tvlEth: "desc"
+			tvlEth: 'desc'
 		},
 		take: 10
 	})
