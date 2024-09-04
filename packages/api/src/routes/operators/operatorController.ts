@@ -1,3 +1,4 @@
+import type Prisma from '@prisma/client'
 import type { Request, Response } from 'express'
 import prisma from '../../utils/prismaClient'
 import { PaginationQuerySchema } from '../../schema/zod/schemas/paginationQuery'
@@ -24,18 +25,70 @@ export async function getAllOperators(req: Request, res: Response) {
 	// Validate pagination query
 	const result = PaginationQuerySchema.and(WithTvlQuerySchema)
 		.and(SortByQuerySchema)
-		.and(ByTextSearchQuerySchema)
 		.safeParse(req.query)
 	if (!result.success) {
 		return handleAndReturnErrorResponse(req, res, result.error)
 	}
-
-	const { skip, take, byTextSearch } = result.data
+	const { skip, take, withTvl, sortByTvl, sortByTotalStakers, sortByTotalAvs } =
+		result.data
 
 	try {
-		const { operators, operatorCount } = byTextSearch
-			? await doGetOperatorsByTextSearch(byTextSearch.toLowerCase())
-			: await doGetAllOperators(result)
+		// Count records
+		const operatorCount = await prisma.operator.count()
+
+		// Setup sort if applicable
+		const sortConfig = sortByTotalStakers
+			? { field: 'totalStakers', order: sortByTotalStakers }
+			: sortByTotalAvs
+			  ? { field: 'totalAvs', order: sortByTotalAvs }
+			  : sortByTvl
+				  ? { field: 'tvlEth', order: sortByTvl }
+				  : null
+
+		// Fetch records and apply sort if applicable
+		const operatorRecords = await prisma.operator.findMany({
+			include: {
+				avs: {
+					select: { avsAddress: true, isActive: true }
+				},
+				shares: {
+					select: { strategyAddress: true, shares: true }
+				}
+			},
+			skip,
+			take,
+			...(sortConfig
+				? {
+						orderBy: {
+							[sortConfig.field]: sortConfig.order
+						}
+				  }
+				: {})
+		})
+
+		const strategyTokenPrices = withTvl ? await fetchStrategyTokenPrices() : {}
+		const strategiesWithSharesUnderlying = withTvl
+			? await getStrategiesWithShareUnderlying()
+			: []
+
+		const operators = operatorRecords.map((operator) => ({
+			...operator,
+			avsRegistrations: operator.avs,
+			totalStakers: operator.totalStakers,
+			totalAvs: operator.totalAvs,
+			tvl: withTvl
+				? sharesToTVL(
+						operator.shares,
+						strategiesWithSharesUnderlying,
+						strategyTokenPrices
+				  )
+				: undefined,
+			metadataUrl: undefined,
+			isMetadataSynced: undefined,
+			avs: undefined,
+			tvlEth: undefined,
+			sharesHash: undefined
+		}))
 
 		res.send({
 			data: operators,
@@ -150,6 +203,77 @@ export async function getOperator(req: Request, res: Response) {
 }
 
 /**
+ * Function for route /operator/addresses
+ * Returns a list of all Operators, addresses & logos. Optionally perform a text search for a list of matched Operators.
+ *
+ * @param req
+ * @param res
+ */
+export async function getAllOperatorAddresses(req: Request, res: Response) {
+	// Validate pagination query
+	const result = PaginationQuerySchema.and(
+		ByTextSearchQuerySchema
+	).safeParse(req.query)
+	if (!result.success) {
+		return handleAndReturnErrorResponse(req, res, result.error)
+	}
+
+	try {
+		const { skip, take, byTextSearch } = result.data
+		const searchConfig = { contains: byTextSearch, mode: 'insensitive' }
+
+		// Fetch records
+		const operatorRecords = await prisma.operator.findMany({
+			select: {
+				address: true,
+				metadataName: true,
+				metadataLogo: true
+			},
+			where: {
+				...(byTextSearch && {
+					OR: [
+						{ address: searchConfig },
+						{ metadataName: searchConfig },
+						{ metadataDescription: searchConfig },
+						{ metadataWebsite: searchConfig }
+					] as Prisma.Prisma.OperatorWhereInput[]
+				})
+			},
+			...(byTextSearch && {
+				orderBy: {
+					tvlEth: 'desc'
+				}
+			}),
+			skip,
+			take
+		})
+
+		// Determine count
+		const operatorCount = byTextSearch
+			? operatorRecords.length
+			: await prisma.operator.count()
+
+		const data = operatorRecords.map((operator) => ({
+			address: operator.address,
+			name: operator.metadataName,
+			logo: operator.metadataLogo
+		}))
+
+		// Send response with data and metadata
+		res.send({
+			data,
+			meta: {
+				total: operatorCount,
+				skip,
+				take
+			}
+		})
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+/**
  * Function for route /operators/:address/invalidate-metadata
  * Protected route to invalidate the metadata of a given Operator
  *
@@ -178,109 +302,4 @@ export async function invalidateMetadata(req: Request, res: Response) {
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
 	}
-}
-
-// --- Processing functions ---
-
-/**
- * Used by getAllOperators()
- * Processes all Operators optionally sorting by tvl, totalStakers and totalAvs
- *
- * @param result
- * @returns
- */
-// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-async function doGetAllOperators(result: any) {
-	const { skip, take, withTvl, sortByTvl, sortByTotalStakers, sortByTotalAvs } =
-		result.data
-
-	// Count records
-	const operatorCount = await prisma.operator.count()
-
-	// Setup sort if applicable
-	const sortConfig = sortByTotalStakers
-		? { field: 'totalStakers', order: sortByTotalStakers }
-		: sortByTotalAvs
-		  ? { field: 'totalAvs', order: sortByTotalAvs }
-		  : sortByTvl
-			  ? { field: 'tvlEth', order: sortByTvl }
-			  : null
-
-	// Fetch records and apply sort if applicable
-	const operatorRecords = await prisma.operator.findMany({
-		include: {
-			avs: {
-				select: { avsAddress: true, isActive: true }
-			},
-			shares: {
-				select: { strategyAddress: true, shares: true }
-			}
-		},
-		skip,
-		take,
-		...(sortConfig
-			? {
-					orderBy: {
-						[sortConfig.field]: sortConfig.order
-					}
-			  }
-			: {})
-	})
-
-	const strategyTokenPrices = withTvl ? await fetchStrategyTokenPrices() : {}
-	const strategiesWithSharesUnderlying = withTvl
-		? await getStrategiesWithShareUnderlying()
-		: []
-
-	const operators = operatorRecords.map((operator) => ({
-		...operator,
-		avsRegistrations: operator.avs,
-		totalStakers: operator.totalStakers,
-		totalAvs: operator.totalAvs,
-		tvl: withTvl
-			? sharesToTVL(
-					operator.shares,
-					strategiesWithSharesUnderlying,
-					strategyTokenPrices
-			  )
-			: undefined,
-		metadataUrl: undefined,
-		isMetadataSynced: undefined,
-		avs: undefined,
-		tvlEth: undefined,
-		sharesHash: undefined
-	}))
-
-	return { operators, operatorCount }
-}
-
-/**
- * Used by getAllOperators()
- * Processes full-text search on name, description and website basis a given query
- *
- * @param searchQuery
- * @returns
- */
-async function doGetOperatorsByTextSearch(searchQuery: string) {
-	const operators = await prisma.operator.findMany({
-		where: {
-			OR: [
-				{ address: { contains: searchQuery, mode: 'insensitive' } },
-				{ metadataName: { contains: searchQuery, mode: 'insensitive' } },
-				{ metadataDescription: { contains: searchQuery, mode: 'insensitive' } },
-				{ metadataWebsite: { contains: searchQuery, mode: 'insensitive' } }
-			]
-		},
-		select: {
-			address: true,
-			metadataName: true,
-			metadataLogo: true
-		},
-		orderBy: {
-			tvlEth: 'desc'
-		},
-		take: 10
-	})
-
-	return { operators: operators, operatorCount: operators.length }
 }

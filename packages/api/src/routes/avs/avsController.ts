@@ -18,7 +18,7 @@ import { ByTextSearchQuerySchema } from '../../schema/zod/schemas/byTextSearchQu
 
 /**
  * Function for route /avs
- * Returns a list of all AVSs. Optionally perform a text search for a list of matched AVSs.
+ * Returns a list of all AVSs with optional sorts, withTvl and withCuratedMetadata
  *
  * @param req
  * @param res
@@ -140,7 +140,7 @@ export async function getAllAVS(req: Request, res: Response) {
 
 /**
  * Function for route /avs/addresses
- * Returns a list of all AVS and their addresses
+ * Returns a list of all AVS, addresses & logos. Optionally perform a text search for a list of matched AVSs.
  *
  * @param req
  * @param res
