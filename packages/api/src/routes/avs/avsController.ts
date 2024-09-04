@@ -1,3 +1,4 @@
+import type Prisma from '@prisma/client'
 import type { Request, Response } from 'express'
 import type { IMap } from '../../schema/generic'
 import prisma from '../../utils/prismaClient'
@@ -27,19 +28,102 @@ export async function getAllAVS(req: Request, res: Response) {
 	const queryCheck = PaginationQuerySchema.and(WithTvlQuerySchema)
 		.and(SortByQuerySchema)
 		.and(WithCuratedMetadata)
-		.and(ByTextSearchQuerySchema)
 		.safeParse(req.query)
 
 	if (!queryCheck.success) {
 		return handleAndReturnErrorResponse(req, res, queryCheck.error)
 	}
 
-	const { skip, take, byTextSearch } = queryCheck.data
-
 	try {
-		const { data, avsCount } = byTextSearch
-			? await doGetAvsByTextSearch(byTextSearch.toLowerCase())
-			: await doGetAllAvs(queryCheck)
+		const {
+			skip,
+			take,
+			withTvl,
+			withCuratedMetadata,
+			sortByTvl,
+			sortByTotalStakers,
+			sortByTotalOperators
+		} = queryCheck.data
+
+		// Fetch count
+		const avsCount = await prisma.avs.count({
+			where: getAvsFilterQuery(true)
+		})
+
+		// Setup sort if applicable
+		const sortConfig = sortByTotalStakers
+			? { field: 'totalStakers', order: sortByTotalStakers }
+			: sortByTotalOperators
+			  ? { field: 'totalOperators', order: sortByTotalOperators }
+			  : sortByTvl
+				  ? { field: 'tvlEth', order: sortByTvl }
+				  : null
+
+		// Fetch records and apply sort if applicable
+		const avsRecords = await prisma.avs.findMany({
+			where: getAvsFilterQuery(true),
+			include: {
+				curatedMetadata: withCuratedMetadata,
+				operators: {
+					where: { isActive: true },
+					include: {
+						operator: {
+							include: {
+								shares: true
+							}
+						}
+					}
+				}
+			},
+			skip,
+			take,
+			...(sortConfig
+				? {
+						orderBy: {
+							[sortConfig.field]: sortConfig.order
+						}
+				  }
+				: {})
+		})
+
+		const strategyTokenPrices = withTvl ? await fetchStrategyTokenPrices() : {}
+		const strategiesWithSharesUnderlying = withTvl
+			? await getStrategiesWithShareUnderlying()
+			: []
+
+		const data = await Promise.all(
+			avsRecords.map(async (avs) => {
+				const shares = withOperatorShares(avs.operators).filter(
+					(s) =>
+						avs.restakeableStrategies.indexOf(
+							s.strategyAddress.toLowerCase()
+						) !== -1
+				)
+
+				return {
+					...avs,
+					curatedMetadata: withCuratedMetadata
+						? avs.curatedMetadata
+						: undefined,
+					totalOperators: avs.totalOperators,
+					totalStakers: avs.totalStakers,
+					shares,
+					tvl: withTvl
+						? sharesToTVL(
+								shares,
+								strategiesWithSharesUnderlying,
+								strategyTokenPrices
+						  )
+						: undefined,
+					operators: undefined,
+					metadataUrl: undefined,
+					isMetadataSynced: undefined,
+					restakeableStrategies: undefined,
+					tvlEth: undefined,
+					sharesHash: undefined
+				}
+			})
+		)
 
 		res.send({
 			data,
@@ -63,28 +147,72 @@ export async function getAllAVS(req: Request, res: Response) {
  */
 export async function getAllAVSAddresses(req: Request, res: Response) {
 	// Validate pagination query
-	const queryCheck = PaginationQuerySchema.safeParse(req.query)
+	const queryCheck = PaginationQuerySchema.and(
+		ByTextSearchQuerySchema
+	).safeParse(req.query)
 	if (!queryCheck.success) {
 		return handleAndReturnErrorResponse(req, res, queryCheck.error)
 	}
 
 	try {
-		const { skip, take } = queryCheck.data
+		const { skip, take, byTextSearch } = queryCheck.data
+		const searchConfig = { contains: byTextSearch, mode: 'insensitive' }
 
-		// Fetch count and records
-		const avsCount = await prisma.avs.count({
-			where: getAvsFilterQuery(true)
-		})
+		// Fetch records
 		const avsRecords = await prisma.avs.findMany({
-			where: getAvsFilterQuery(true),
+			select: {
+				address: true,
+				metadataName: true,
+				metadataLogo: true,
+				curatedMetadata: {
+					select: {
+						metadataName: true,
+						metadataLogo: true
+					}
+				}
+			},
+			where: {
+				...getAvsFilterQuery(true),
+				...(byTextSearch && {
+					OR: [
+						{ address: searchConfig },
+						{ metadataName: searchConfig },
+						{ metadataDescription: searchConfig },
+						{ metadataWebsite: searchConfig },
+						{
+							curatedMetadata: {
+								is: {
+									OR: [
+										{ metadataName: searchConfig },
+										{ metadataDescription: searchConfig },
+										{ metadataWebsite: searchConfig }
+									]
+								}
+							}
+						}
+					] as Prisma.Prisma.AvsWhereInput[]
+				})
+			},
+			...(byTextSearch && {
+				orderBy: {
+					tvlEth: 'desc'
+				}
+			}),
 			skip,
 			take
 		})
 
-		// Simplified map (assuming avs.address is not asynchronous)
+		// Determine count
+		const avsCount = byTextSearch
+			? avsRecords.length
+			: await prisma.avs.count({
+					where: getAvsFilterQuery(true)
+			  })
+
 		const data = avsRecords.map((avs) => ({
-			name: avs.metadataName,
-			address: avs.address
+			address: avs.address,
+			name: avs.curatedMetadata?.metadataName || avs.metadataName,
+			logo: avs.curatedMetadata?.metadataLogo || avs.metadataLogo
 		}))
 
 		// Send response with data and metadata
@@ -417,174 +545,6 @@ export async function invalidateMetadata(req: Request, res: Response) {
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
 	}
-}
-
-// --- Processing functions ---
-
-/**
- * Used by getAllAvs()
- * Processes all AVS optionally sorting by tvl, totalStakers and totalOperators. Prefers curatedMetadata if it exists.
- *
- * @param queryCheck
- * @returns
- */
-// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-async function doGetAllAvs(queryCheck: any) {
-	const {
-		skip,
-		take,
-		withTvl,
-		withCuratedMetadata,
-		sortByTvl,
-		sortByTotalStakers,
-		sortByTotalOperators
-	} = queryCheck.data
-
-	// Fetch count
-	const avsCount = await prisma.avs.count({
-		where: getAvsFilterQuery(true)
-	})
-
-	// Setup sort if applicable
-	const sortConfig = sortByTotalStakers
-		? { field: 'totalStakers', order: sortByTotalStakers }
-		: sortByTotalOperators
-		  ? { field: 'totalOperators', order: sortByTotalOperators }
-		  : sortByTvl
-			  ? { field: 'tvlEth', order: sortByTvl }
-			  : null
-
-	// Fetch records and apply sort if applicable
-	const avsRecords = await prisma.avs.findMany({
-		where: getAvsFilterQuery(true),
-		include: {
-			curatedMetadata: withCuratedMetadata,
-			operators: {
-				where: { isActive: true },
-				include: {
-					operator: {
-						include: {
-							shares: true
-						}
-					}
-				}
-			}
-		},
-		skip,
-		take,
-		...(sortConfig
-			? {
-					orderBy: {
-						[sortConfig.field]: sortConfig.order
-					}
-			  }
-			: {})
-	})
-
-	const strategyTokenPrices = withTvl ? await fetchStrategyTokenPrices() : {}
-	const strategiesWithSharesUnderlying = withTvl
-		? await getStrategiesWithShareUnderlying()
-		: []
-
-	const data = await Promise.all(
-		avsRecords.map(async (avs) => {
-			const shares = withOperatorShares(avs.operators).filter(
-				(s) =>
-					avs.restakeableStrategies.indexOf(s.strategyAddress.toLowerCase()) !==
-					-1
-			)
-
-			return {
-				...avs,
-				curatedMetadata: withCuratedMetadata ? avs.curatedMetadata : undefined,
-				totalOperators: avs.totalOperators,
-				totalStakers: avs.totalStakers,
-				shares,
-				tvl: withTvl
-					? sharesToTVL(
-							shares,
-							strategiesWithSharesUnderlying,
-							strategyTokenPrices
-					  )
-					: undefined,
-				operators: undefined,
-				metadataUrl: undefined,
-				isMetadataSynced: undefined,
-				restakeableStrategies: undefined,
-				tvlEth: undefined,
-				sharesHash: undefined
-			}
-		})
-	)
-
-	return { data, avsCount }
-}
-
-/**
- * Used by getAllAvs()
- * Processes full-text search on name, description and website basis a given query. Prefers curatedMetadata if it exists.
- *
- * @param searchQuery
- * @returns
- */
-async function doGetAvsByTextSearch(searchQuery: string) {
-	const avs = await prisma.avs.findMany({
-		where: {
-			OR: [
-				{ address: { contains: searchQuery, mode: 'insensitive' } },
-				{ metadataName: { contains: searchQuery, mode: 'insensitive' } },
-				{ metadataDescription: { contains: searchQuery, mode: 'insensitive' } },
-				{ metadataWebsite: { contains: searchQuery, mode: 'insensitive' } },
-				{
-					curatedMetadata: {
-						is: {
-							OR: [
-								{
-									metadataName: { contains: searchQuery, mode: 'insensitive' }
-								},
-								{
-									metadataDescription: {
-										contains: searchQuery,
-										mode: 'insensitive'
-									}
-								},
-								{
-									metadataWebsite: {
-										contains: searchQuery,
-										mode: 'insensitive'
-									}
-								}
-							]
-						}
-					}
-				}
-			],
-			...getAvsFilterQuery(true)
-		},
-		select: {
-			address: true,
-			metadataName: true,
-			metadataLogo: true,
-			curatedMetadata: {
-				select: {
-					metadataName: true,
-					metadataLogo: true
-				}
-			}
-		},
-		orderBy: {
-			tvlEth: 'desc'
-		},
-		take: 10
-	})
-
-	const data = avs.map((item) => ({
-		address: item.address,
-		metadataName: item.curatedMetadata?.metadataName || item.metadataName,
-		metadataLogo: item.curatedMetadata?.metadataLogo || item.metadataLogo
-	}))
-
-	return { data, avsCount: data.length }
 }
 
 // --- Helper functions ---
