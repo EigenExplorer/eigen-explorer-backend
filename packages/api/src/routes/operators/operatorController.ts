@@ -211,9 +211,9 @@ export async function getOperator(req: Request, res: Response) {
  */
 export async function getAllOperatorAddresses(req: Request, res: Response) {
 	// Validate pagination query
-	const result = PaginationQuerySchema.and(
-		ByTextSearchQuerySchema
-	).safeParse(req.query)
+	const result = PaginationQuerySchema.and(ByTextSearchQuerySchema).safeParse(
+		req.query
+	)
 	if (!result.success) {
 		return handleAndReturnErrorResponse(req, res, result.error)
 	}

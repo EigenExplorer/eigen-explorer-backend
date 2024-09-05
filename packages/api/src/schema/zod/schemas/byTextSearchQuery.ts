@@ -7,6 +7,15 @@ export const ByTextSearchQuerySchema = z.object({
 		.refine(
 			(value) => {
 				if (!value) return true
+				return value.length >= 3 && value.length <= 64
+			},
+			{
+				message: 'Search query must be between 3 and 64 characters long.'
+			}
+		)
+		.refine(
+			(value) => {
+				if (!value) return true
 				return /^[a-zA-Z0-9\s.,?-]+$/.test(value)
 			},
 			{
