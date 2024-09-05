@@ -1,3 +1,4 @@
+import type Prisma from '@prisma/client'
 import type { Request, Response } from 'express'
 import prisma from '../../utils/prismaClient'
 import { PaginationQuerySchema } from '../../schema/zod/schemas/paginationQuery'
@@ -11,9 +12,11 @@ import {
 } from '../strategies/strategiesController'
 import { WithAdditionalDataQuerySchema } from '../../schema/zod/schemas/withAdditionalDataQuery'
 import { SortByQuerySchema } from '../../schema/zod/schemas/sortByQuery'
+import { ByTextSearchQuerySchema } from '../../schema/zod/schemas/byTextSearchQuery'
 
 /**
- * Route to get a list of all operators
+ * Function for route /operators
+ * Returns a list of all Operators. Optionally perform a text search for a list of matched Operators.
  *
  * @param req
  * @param res
@@ -101,16 +104,17 @@ export async function getAllOperators(req: Request, res: Response) {
 }
 
 /**
- * Route to get a single operator
+ * Function for route /operators/:address
+ * Returns a single Operator by address
  *
  * @param req
  * @param res
  */
 export async function getOperator(req: Request, res: Response) {
 	// Validate pagination query
-	const result = WithTvlQuerySchema.and(WithAdditionalDataQuerySchema).safeParse(
-		req.query
-	)
+	const result = WithTvlQuerySchema.and(
+		WithAdditionalDataQuerySchema
+	).safeParse(req.query)
 	if (!result.success) {
 		return handleAndReturnErrorResponse(req, res, result.error)
 	}
@@ -199,7 +203,79 @@ export async function getOperator(req: Request, res: Response) {
 }
 
 /**
- * Protected route to invalidate the metadata of a given address
+ * Function for route /operator/addresses
+ * Returns a list of all Operators, addresses & logos. Optionally perform a text search for a list of matched Operators.
+ *
+ * @param req
+ * @param res
+ */
+export async function getAllOperatorAddresses(req: Request, res: Response) {
+	// Validate pagination query
+	const result = PaginationQuerySchema.and(ByTextSearchQuerySchema).safeParse(
+		req.query
+	)
+	if (!result.success) {
+		return handleAndReturnErrorResponse(req, res, result.error)
+	}
+
+	try {
+		const { skip, take, byTextSearch } = result.data
+		const searchConfig = { contains: byTextSearch, mode: 'insensitive' }
+
+		// Fetch records
+		const operatorRecords = await prisma.operator.findMany({
+			select: {
+				address: true,
+				metadataName: true,
+				metadataLogo: true
+			},
+			where: {
+				...(byTextSearch && {
+					OR: [
+						{ address: searchConfig },
+						{ metadataName: searchConfig },
+						{ metadataDescription: searchConfig },
+						{ metadataWebsite: searchConfig }
+					] as Prisma.Prisma.OperatorWhereInput[]
+				})
+			},
+			...(byTextSearch && {
+				orderBy: {
+					tvlEth: 'desc'
+				}
+			}),
+			skip,
+			take
+		})
+
+		// Determine count
+		const operatorCount = byTextSearch
+			? operatorRecords.length
+			: await prisma.operator.count()
+
+		const data = operatorRecords.map((operator) => ({
+			address: operator.address,
+			name: operator.metadataName,
+			logo: operator.metadataLogo
+		}))
+
+		// Send response with data and metadata
+		res.send({
+			data,
+			meta: {
+				total: operatorCount,
+				skip,
+				take
+			}
+		})
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+/**
+ * Function for route /operators/:address/invalidate-metadata
+ * Protected route to invalidate the metadata of a given Operator
  *
  * @param req
  * @param res

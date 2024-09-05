@@ -1,3 +1,4 @@
+import type Prisma from '@prisma/client'
 import type { Request, Response } from 'express'
 import type { IMap } from '../../schema/generic'
 import prisma from '../../utils/prismaClient'
@@ -13,9 +14,11 @@ import {
 } from '../strategies/strategiesController'
 import { UpdatedSinceQuerySchema } from '../../schema/zod/schemas/updatedSinceQuery'
 import { SortByQuerySchema } from '../../schema/zod/schemas/sortByQuery'
+import { ByTextSearchQuerySchema } from '../../schema/zod/schemas/byTextSearchQuery'
 
 /**
- * Route to get a list of all AVSs
+ * Function for route /avs
+ * Returns a list of all AVSs with optional sorts, withTvl and withCuratedMetadata
  *
  * @param req
  * @param res
@@ -136,35 +139,80 @@ export async function getAllAVS(req: Request, res: Response) {
 }
 
 /**
- * Route to get a list of all AVS and their addresses
+ * Function for route /avs/addresses
+ * Returns a list of all AVS, addresses & logos. Optionally perform a text search for a list of matched AVSs.
  *
  * @param req
  * @param res
  */
 export async function getAllAVSAddresses(req: Request, res: Response) {
 	// Validate pagination query
-	const queryCheck = PaginationQuerySchema.safeParse(req.query)
+	const queryCheck = PaginationQuerySchema.and(
+		ByTextSearchQuerySchema
+	).safeParse(req.query)
 	if (!queryCheck.success) {
 		return handleAndReturnErrorResponse(req, res, queryCheck.error)
 	}
 
 	try {
-		const { skip, take } = queryCheck.data
+		const { skip, take, byTextSearch } = queryCheck.data
+		const searchConfig = { contains: byTextSearch, mode: 'insensitive' }
 
-		// Fetch count and records
-		const avsCount = await prisma.avs.count({
-			where: getAvsFilterQuery(true)
-		})
+		// Fetch records
 		const avsRecords = await prisma.avs.findMany({
-			where: getAvsFilterQuery(true),
+			select: {
+				address: true,
+				metadataName: true,
+				metadataLogo: true,
+				curatedMetadata: {
+					select: {
+						metadataName: true,
+						metadataLogo: true
+					}
+				}
+			},
+			where: {
+				...getAvsFilterQuery(true),
+				...(byTextSearch && {
+					OR: [
+						{ address: searchConfig },
+						{ metadataName: searchConfig },
+						{ metadataDescription: searchConfig },
+						{ metadataWebsite: searchConfig },
+						{
+							curatedMetadata: {
+								is: {
+									OR: [
+										{ metadataName: searchConfig },
+										{ metadataDescription: searchConfig },
+										{ metadataWebsite: searchConfig }
+									]
+								}
+							}
+						}
+					] as Prisma.Prisma.AvsWhereInput[]
+				})
+			},
+			...(byTextSearch && {
+				orderBy: {
+					tvlEth: 'desc'
+				}
+			}),
 			skip,
 			take
 		})
 
-		// Simplified map (assuming avs.address is not asynchronous)
+		// Determine count
+		const avsCount = byTextSearch
+			? avsRecords.length
+			: await prisma.avs.count({
+					where: getAvsFilterQuery(true)
+			  })
+
 		const data = avsRecords.map((avs) => ({
-			name: avs.metadataName,
-			address: avs.address
+			address: avs.address,
+			name: avs.curatedMetadata?.metadataName || avs.metadataName,
+			logo: avs.curatedMetadata?.metadataLogo || avs.metadataLogo
 		}))
 
 		// Send response with data and metadata
@@ -182,7 +230,8 @@ export async function getAllAVSAddresses(req: Request, res: Response) {
 }
 
 /**
- * Route to get a single AVS by address
+ * Function for route /avs/:address
+ * Returns a single AVS by address
  *
  * @param req
  * @param res
@@ -259,7 +308,8 @@ export async function getAVS(req: Request, res: Response) {
 }
 
 /**
- * Route to get all AVS stakers
+ * Function for route /avs/:address/stakers
+ * Returns all stakers for a given AVS
  *
  * @param req
  * @param res
@@ -369,7 +419,8 @@ export async function getAVSStakers(req: Request, res: Response) {
 }
 
 /**
- * Route to get all AVS operators
+ * Function for route /avs/:address/operators
+ * Returns all Operators for a given AVS
  *
  * @param req
  * @param res
@@ -465,7 +516,39 @@ export async function getAVSOperators(req: Request, res: Response) {
 	}
 }
 
-// Helper methods
+/**
+ * Function for route /avs/:address/invalidate-metadata
+ * Protected route to invalidate the metadata of a given AVS
+ *
+ * @param req
+ * @param res
+ */
+export async function invalidateMetadata(req: Request, res: Response) {
+	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	}
+
+	try {
+		const { address } = req.params
+
+		const updateResult = await prisma.avs.updateMany({
+			where: { address: address.toLowerCase() },
+			data: { isMetadataSynced: false }
+		})
+
+		if (updateResult.count === 0) {
+			throw new Error('Address not found.')
+		}
+
+		res.send({ message: 'Metadata invalidated successfully.' })
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+// --- Helper functions ---
+
 function withOperatorShares(avsOperators) {
 	const sharesMap: IMap<string, string> = new Map()
 
@@ -495,37 +578,6 @@ function withOperatorShares(avsOperators) {
 	}))
 }
 
-/**
- * Protected route to invalidate the metadata of a given address
- *
- * @param req
- * @param res
- */
-export async function invalidateMetadata(req: Request, res: Response) {
-	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
-	if (!paramCheck.success) {
-		return handleAndReturnErrorResponse(req, res, paramCheck.error)
-	}
-
-	try {
-		const { address } = req.params
-
-		const updateResult = await prisma.avs.updateMany({
-			where: { address: address.toLowerCase() },
-			data: { isMetadataSynced: false }
-		})
-
-		if (updateResult.count === 0) {
-			throw new Error('Address not found.')
-		}
-
-		res.send({ message: 'Metadata invalidated successfully.' })
-	} catch (error) {
-		handleAndReturnErrorResponse(req, res, error)
-	}
-}
-
-// Helper functions
 export function getAvsFilterQuery(filterName?: boolean) {
 	const queryWithName = filterName
 		? {
