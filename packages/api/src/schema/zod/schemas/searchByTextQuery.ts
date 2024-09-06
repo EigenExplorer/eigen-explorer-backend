@@ -1,7 +1,7 @@
 import z from '../'
 
-export const ByTextSearchQuerySchema = z.object({
-	byTextSearch: z
+export const SearchByTextQuerySchema = z.object({
+	searchByText: z
 		.string()
 		.optional()
 		.refine(

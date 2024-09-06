@@ -14,7 +14,7 @@ import {
 } from '../strategies/strategiesController'
 import { UpdatedSinceQuerySchema } from '../../schema/zod/schemas/updatedSinceQuery'
 import { SortByQuerySchema } from '../../schema/zod/schemas/sortByQuery'
-import { ByTextSearchQuerySchema } from '../../schema/zod/schemas/byTextSearchQuery'
+import { SearchByTextQuerySchema } from '../../schema/zod/schemas/searchByTextQuery'
 
 /**
  * Function for route /avs
@@ -28,7 +28,7 @@ export async function getAllAVS(req: Request, res: Response) {
 	const queryCheck = PaginationQuerySchema.and(WithTvlQuerySchema)
 		.and(SortByQuerySchema)
 		.and(WithCuratedMetadata)
-		.and(ByTextSearchQuerySchema)
+		.and(SearchByTextQuerySchema)
 		.safeParse(req.query)
 
 	if (!queryCheck.success) {
@@ -44,10 +44,10 @@ export async function getAllAVS(req: Request, res: Response) {
 			sortByTvl,
 			sortByTotalStakers,
 			sortByTotalOperators,
-			byTextSearch
+			searchByText
 		} = queryCheck.data
 
-		const searchConfig = { contains: byTextSearch, mode: 'insensitive' }
+		const searchConfig = { contains: searchByText, mode: 'insensitive' }
 
 		// Setup sort if applicable
 		const sortConfig = sortByTotalStakers
@@ -59,11 +59,11 @@ export async function getAllAVS(req: Request, res: Response) {
 				  : null
 
 		// Fetch records and apply search/sort
-		const avsRecords = byTextSearch
+		const avsRecords = searchByText
 			? await prisma.avs.findMany({
 					where: {
 						...getAvsFilterQuery(true),
-						...(byTextSearch && {
+						...(searchByText && {
 							OR: [
 								{ address: searchConfig },
 								{ metadataName: searchConfig },
@@ -96,7 +96,7 @@ export async function getAllAVS(req: Request, res: Response) {
 							}
 						}
 					},
-					...(byTextSearch && {
+					...(searchByText && {
 						...(sortConfig
 							? {
 									orderBy: {
@@ -139,7 +139,7 @@ export async function getAllAVS(req: Request, res: Response) {
 			  })
 
 		// Fetch count
-		const avsCount = byTextSearch
+		const avsCount = searchByText
 			? avsRecords.length
 			: await prisma.avs.count({
 					where: getAvsFilterQuery(true)
@@ -207,15 +207,15 @@ export async function getAllAVS(req: Request, res: Response) {
 export async function getAllAVSAddresses(req: Request, res: Response) {
 	// Validate pagination query
 	const queryCheck = PaginationQuerySchema.and(
-		ByTextSearchQuerySchema
+		SearchByTextQuerySchema
 	).safeParse(req.query)
 	if (!queryCheck.success) {
 		return handleAndReturnErrorResponse(req, res, queryCheck.error)
 	}
 
 	try {
-		const { skip, take, byTextSearch } = queryCheck.data
-		const searchConfig = { contains: byTextSearch, mode: 'insensitive' }
+		const { skip, take, searchByText } = queryCheck.data
+		const searchConfig = { contains: searchByText, mode: 'insensitive' }
 
 		// Fetch records
 		const avsRecords = await prisma.avs.findMany({
@@ -232,7 +232,7 @@ export async function getAllAVSAddresses(req: Request, res: Response) {
 			},
 			where: {
 				...getAvsFilterQuery(true),
-				...(byTextSearch && {
+				...(searchByText && {
 					OR: [
 						{ address: searchConfig },
 						{ metadataName: searchConfig },
@@ -252,7 +252,7 @@ export async function getAllAVSAddresses(req: Request, res: Response) {
 					] as Prisma.Prisma.AvsWhereInput[]
 				})
 			},
-			...(byTextSearch && {
+			...(searchByText && {
 				orderBy: {
 					tvlEth: 'desc'
 				}
@@ -262,7 +262,7 @@ export async function getAllAVSAddresses(req: Request, res: Response) {
 		})
 
 		// Determine count
-		const avsCount = byTextSearch
+		const avsCount = searchByText
 			? avsRecords.length
 			: await prisma.avs.count({
 					where: getAvsFilterQuery(true)
