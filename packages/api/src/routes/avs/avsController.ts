@@ -58,7 +58,7 @@ export async function getAllAVS(req: Request, res: Response) {
 				  ? { field: 'tvlEth', order: sortByTvl }
 				  : null
 
-		// Fetch records (override sort if search is enabled)
+		// Fetch records and apply search/sort
 		const avsRecords = byTextSearch
 			? await prisma.avs.findMany({
 					where: {
@@ -97,9 +97,17 @@ export async function getAllAVS(req: Request, res: Response) {
 						}
 					},
 					...(byTextSearch && {
-						orderBy: {
-							tvlEth: 'desc'
-						}
+						...(sortConfig
+							? {
+									orderBy: {
+										[sortConfig.field]: sortConfig.order
+									}
+							  }
+							: {
+									orderBy: {
+										tvlEth: 'desc'
+									}
+							  })
 					}),
 					skip,
 					take

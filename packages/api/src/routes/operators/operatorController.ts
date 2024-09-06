@@ -25,17 +25,24 @@ export async function getAllOperators(req: Request, res: Response) {
 	// Validate pagination query
 	const result = PaginationQuerySchema.and(WithTvlQuerySchema)
 		.and(SortByQuerySchema)
+		.and(ByTextSearchQuerySchema)
 		.safeParse(req.query)
 	if (!result.success) {
 		return handleAndReturnErrorResponse(req, res, result.error)
 	}
-	const { skip, take, withTvl, sortByTvl, sortByTotalStakers, sortByTotalAvs } =
-		result.data
+	const {
+		skip,
+		take,
+		withTvl,
+		sortByTvl,
+		sortByTotalStakers,
+		sortByTotalAvs,
+		byTextSearch
+	} = result.data
+
+	const searchConfig = { contains: byTextSearch, mode: 'insensitive' }
 
 	try {
-		// Count records
-		const operatorCount = await prisma.operator.count()
-
 		// Setup sort if applicable
 		const sortConfig = sortByTotalStakers
 			? { field: 'totalStakers', order: sortByTotalStakers }
@@ -45,26 +52,67 @@ export async function getAllOperators(req: Request, res: Response) {
 				  ? { field: 'tvlEth', order: sortByTvl }
 				  : null
 
-		// Fetch records and apply sort if applicable
-		const operatorRecords = await prisma.operator.findMany({
-			include: {
-				avs: {
-					select: { avsAddress: true, isActive: true }
-				},
-				shares: {
-					select: { strategyAddress: true, shares: true }
-				}
-			},
-			skip,
-			take,
-			...(sortConfig
-				? {
-						orderBy: {
-							[sortConfig.field]: sortConfig.order
+		// Fetch records and apply search/sort
+		const operatorRecords = byTextSearch
+			? await prisma.operator.findMany({
+					include: {
+						avs: {
+							select: { avsAddress: true, isActive: true }
+						},
+						shares: {
+							select: { strategyAddress: true, shares: true }
 						}
-				  }
-				: {})
-		})
+					},
+					where: {
+						...(byTextSearch && {
+							OR: [
+								{ address: searchConfig },
+								{ metadataName: searchConfig },
+								{ metadataDescription: searchConfig },
+								{ metadataWebsite: searchConfig }
+							] as Prisma.Prisma.OperatorWhereInput[]
+						})
+					},
+					...(byTextSearch && {
+						...(sortConfig
+							? {
+									orderBy: {
+										[sortConfig.field]: sortConfig.order
+									}
+							  }
+							: {
+									orderBy: {
+										tvlEth: 'desc'
+									}
+							  })
+					}),
+					skip,
+					take
+			  })
+			: await prisma.operator.findMany({
+					include: {
+						avs: {
+							select: { avsAddress: true, isActive: true }
+						},
+						shares: {
+							select: { strategyAddress: true, shares: true }
+						}
+					},
+					skip,
+					take,
+					...(sortConfig
+						? {
+								orderBy: {
+									[sortConfig.field]: sortConfig.order
+								}
+						  }
+						: {})
+			  })
+
+		// Count records
+		const operatorCount = byTextSearch
+			? operatorRecords.length
+			: await prisma.operator.count()
 
 		const strategyTokenPrices = withTvl ? await fetchStrategyTokenPrices() : {}
 		const strategiesWithSharesUnderlying = withTvl
