@@ -28,6 +28,7 @@ export async function getAllAVS(req: Request, res: Response) {
 	const queryCheck = PaginationQuerySchema.and(WithTvlQuerySchema)
 		.and(SortByQuerySchema)
 		.and(WithCuratedMetadata)
+		.and(ByTextSearchQuerySchema)
 		.safeParse(req.query)
 
 	if (!queryCheck.success) {
@@ -42,13 +43,11 @@ export async function getAllAVS(req: Request, res: Response) {
 			withCuratedMetadata,
 			sortByTvl,
 			sortByTotalStakers,
-			sortByTotalOperators
+			sortByTotalOperators,
+			byTextSearch
 		} = queryCheck.data
 
-		// Fetch count
-		const avsCount = await prisma.avs.count({
-			where: getAvsFilterQuery(true)
-		})
+		const searchConfig = { contains: byTextSearch, mode: 'insensitive' }
 
 		// Setup sort if applicable
 		const sortConfig = sortByTotalStakers
@@ -59,32 +58,84 @@ export async function getAllAVS(req: Request, res: Response) {
 				  ? { field: 'tvlEth', order: sortByTvl }
 				  : null
 
-		// Fetch records and apply sort if applicable
-		const avsRecords = await prisma.avs.findMany({
-			where: getAvsFilterQuery(true),
-			include: {
-				curatedMetadata: withCuratedMetadata,
-				operators: {
-					where: { isActive: true },
+		// Fetch records (override sort if search is enabled)
+		const avsRecords = byTextSearch
+			? await prisma.avs.findMany({
+					where: {
+						...getAvsFilterQuery(true),
+						...(byTextSearch && {
+							OR: [
+								{ address: searchConfig },
+								{ metadataName: searchConfig },
+								{ metadataDescription: searchConfig },
+								{ metadataWebsite: searchConfig },
+								{
+									curatedMetadata: {
+										is: {
+											OR: [
+												{ metadataName: searchConfig },
+												{ metadataDescription: searchConfig },
+												{ metadataWebsite: searchConfig }
+											]
+										}
+									}
+								}
+							] as Prisma.Prisma.AvsWhereInput[]
+						})
+					},
 					include: {
-						operator: {
+						curatedMetadata: withCuratedMetadata,
+						operators: {
+							where: { isActive: true },
 							include: {
-								shares: true
+								operator: {
+									include: {
+										shares: true
+									}
+								}
 							}
 						}
-					}
-				}
-			},
-			skip,
-			take,
-			...(sortConfig
-				? {
+					},
+					...(byTextSearch && {
 						orderBy: {
-							[sortConfig.field]: sortConfig.order
+							tvlEth: 'desc'
 						}
-				  }
-				: {})
-		})
+					}),
+					skip,
+					take
+			  })
+			: await prisma.avs.findMany({
+					where: getAvsFilterQuery(true),
+					include: {
+						curatedMetadata: withCuratedMetadata,
+						operators: {
+							where: { isActive: true },
+							include: {
+								operator: {
+									include: {
+										shares: true
+									}
+								}
+							}
+						}
+					},
+					skip,
+					take,
+					...(sortConfig
+						? {
+								orderBy: {
+									[sortConfig.field]: sortConfig.order
+								}
+						  }
+						: {})
+			  })
+
+		// Fetch count
+		const avsCount = byTextSearch
+			? avsRecords.length
+			: await prisma.avs.count({
+					where: getAvsFilterQuery(true)
+			  })
 
 		const strategyTokenPrices = withTvl ? await fetchStrategyTokenPrices() : {}
 		const strategiesWithSharesUnderlying = withTvl
