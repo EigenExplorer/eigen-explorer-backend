@@ -53,61 +53,33 @@ export async function getAllOperators(req: Request, res: Response) {
 				  : null
 
 		// Fetch records and apply search/sort
-		const operatorRecords = searchByText
-			? await prisma.operator.findMany({
-					include: {
-						avs: {
-							select: { avsAddress: true, isActive: true }
-						},
-						shares: {
-							select: { strategyAddress: true, shares: true }
-						}
-					},
-					where: {
-						...(searchByText && {
-							OR: [
-								{ address: searchConfig },
-								{ metadataName: searchConfig },
-								{ metadataDescription: searchConfig },
-								{ metadataWebsite: searchConfig }
-							] as Prisma.Prisma.OperatorWhereInput[]
-						})
-					},
-					...(searchByText && {
-						...(sortConfig
-							? {
-									orderBy: {
-										[sortConfig.field]: sortConfig.order
-									}
-							  }
-							: {
-									orderBy: {
-										tvlEth: 'desc'
-									}
-							  })
-					}),
-					skip,
-					take
-			  })
-			: await prisma.operator.findMany({
-					include: {
-						avs: {
-							select: { avsAddress: true, isActive: true }
-						},
-						shares: {
-							select: { strategyAddress: true, shares: true }
-						}
-					},
-					skip,
-					take,
-					...(sortConfig
-						? {
-								orderBy: {
-									[sortConfig.field]: sortConfig.order
-								}
-						  }
-						: {})
-			  })
+		const operatorRecords = await prisma.operator.findMany({
+			include: {
+				avs: {
+					select: { avsAddress: true, isActive: true }
+				},
+				shares: {
+					select: { strategyAddress: true, shares: true }
+				}
+			},
+			...(searchByText && {
+				where: {
+					OR: [
+						{ address: searchConfig },
+						{ metadataName: searchConfig },
+						{ metadataDescription: searchConfig },
+						{ metadataWebsite: searchConfig }
+					] as Prisma.Prisma.OperatorWhereInput[]
+				}
+			}),
+			orderBy: sortConfig
+				? { [sortConfig.field]: sortConfig.order }
+				: searchByText
+				  ? { tvlEth: 'desc' }
+				  : undefined,
+			skip,
+			take
+		})
 
 		// Count records
 		const operatorCount = searchByText
