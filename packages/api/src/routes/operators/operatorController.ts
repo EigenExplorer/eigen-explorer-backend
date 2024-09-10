@@ -16,7 +16,7 @@ import { SearchByTextQuerySchema } from '../../schema/zod/schemas/searchByTextQu
 
 /**
  * Function for route /operators
- * Returns a list of all Operators. Optionally perform a text search for a list of matched Operators.
+ * Returns a list of all Operators with optional sorts & text search
  *
  * @param req
  * @param res

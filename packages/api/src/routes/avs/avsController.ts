@@ -18,7 +18,7 @@ import { SearchByTextQuerySchema } from '../../schema/zod/schemas/searchByTextQu
 
 /**
  * Function for route /avs
- * Returns a list of all AVSs with optional sorts, withTvl and withCuratedMetadata
+ * Returns a list of all AVSs with optional sorts, withTvl, withCuratedMetadata & text search
  *
  * @param req
  * @param res
@@ -445,7 +445,7 @@ export async function getAVSStakers(req: Request, res: Response) {
 
 /**
  * Function for route /avs/:address/operators
- * Returns all Operators for a given AVS
+ * Returns all Operators for a given AVS. Optionally perform a text search for a list of matched Operators.
  *
  * @param req
  * @param res
