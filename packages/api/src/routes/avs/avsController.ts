@@ -488,18 +488,23 @@ export async function getAVSOperators(req: Request, res: Response) {
 				},
 				stakers: true
 			},
-			where: searchByText
-				? {
-						OR: [
-							{ address: searchConfig },
-							{ metadataName: searchConfig },
-							{ metadataDescription: searchConfig },
-							{ metadataWebsite: searchConfig }
-						] as Prisma.Prisma.OperatorWhereInput[]
-				  }
-				: {
-						address: { in: avs.operators.map((o) => o.operatorAddress) }
+			where: {
+				AND: [
+				  {
+					address: { in: avs.operators.map((o) => o.operatorAddress) }
 				  },
+				  ...(searchByText
+					? [{
+						OR: [
+						  { address: searchConfig },
+						  { metadataName: searchConfig },
+						  { metadataDescription: searchConfig },
+						  { metadataWebsite: searchConfig }
+						]
+					  }]
+					: [])
+				] as Prisma.Prisma.OperatorWhereInput[]
+			  },
 			orderBy: sortOperatorsByTvl
 				? { tvlEth: sortOperatorsByTvl }
 				: searchByText
