@@ -12,11 +12,11 @@ import {
 } from '../strategies/strategiesController'
 import { WithAdditionalDataQuerySchema } from '../../schema/zod/schemas/withAdditionalDataQuery'
 import { SortByQuerySchema } from '../../schema/zod/schemas/sortByQuery'
-import { ByTextSearchQuerySchema } from '../../schema/zod/schemas/byTextSearchQuery'
+import { SearchByTextQuerySchema } from '../../schema/zod/schemas/searchByTextQuery'
 
 /**
  * Function for route /operators
- * Returns a list of all Operators. Optionally perform a text search for a list of matched Operators.
+ * Returns a list of all Operators with optional sorts & text search
  *
  * @param req
  * @param res
@@ -25,17 +25,24 @@ export async function getAllOperators(req: Request, res: Response) {
 	// Validate pagination query
 	const result = PaginationQuerySchema.and(WithTvlQuerySchema)
 		.and(SortByQuerySchema)
+		.and(SearchByTextQuerySchema)
 		.safeParse(req.query)
 	if (!result.success) {
 		return handleAndReturnErrorResponse(req, res, result.error)
 	}
-	const { skip, take, withTvl, sortByTvl, sortByTotalStakers, sortByTotalAvs } =
-		result.data
+	const {
+		skip,
+		take,
+		withTvl,
+		sortByTvl,
+		sortByTotalStakers,
+		sortByTotalAvs,
+		searchByText
+	} = result.data
+
+	const searchConfig = { contains: searchByText, mode: 'insensitive' }
 
 	try {
-		// Count records
-		const operatorCount = await prisma.operator.count()
-
 		// Setup sort if applicable
 		const sortConfig = sortByTotalStakers
 			? { field: 'totalStakers', order: sortByTotalStakers }
@@ -45,7 +52,7 @@ export async function getAllOperators(req: Request, res: Response) {
 				  ? { field: 'tvlEth', order: sortByTvl }
 				  : null
 
-		// Fetch records and apply sort if applicable
+		// Fetch records and apply search/sort
 		const operatorRecords = await prisma.operator.findMany({
 			include: {
 				avs: {
@@ -55,16 +62,29 @@ export async function getAllOperators(req: Request, res: Response) {
 					select: { strategyAddress: true, shares: true }
 				}
 			},
+			...(searchByText && {
+				where: {
+					OR: [
+						{ address: searchConfig },
+						{ metadataName: searchConfig },
+						{ metadataDescription: searchConfig },
+						{ metadataWebsite: searchConfig }
+					] as Prisma.Prisma.OperatorWhereInput[]
+				}
+			}),
+			orderBy: sortConfig
+				? { [sortConfig.field]: sortConfig.order }
+				: searchByText
+				  ? { tvlEth: 'desc' }
+				  : undefined,
 			skip,
-			take,
-			...(sortConfig
-				? {
-						orderBy: {
-							[sortConfig.field]: sortConfig.order
-						}
-				  }
-				: {})
+			take
 		})
+
+		// Count records
+		const operatorCount = searchByText
+			? operatorRecords.length
+			: await prisma.operator.count()
 
 		const strategyTokenPrices = withTvl ? await fetchStrategyTokenPrices() : {}
 		const strategiesWithSharesUnderlying = withTvl
@@ -211,7 +231,7 @@ export async function getOperator(req: Request, res: Response) {
  */
 export async function getAllOperatorAddresses(req: Request, res: Response) {
 	// Validate pagination query
-	const result = PaginationQuerySchema.and(ByTextSearchQuerySchema).safeParse(
+	const result = PaginationQuerySchema.and(SearchByTextQuerySchema).safeParse(
 		req.query
 	)
 	if (!result.success) {
@@ -219,8 +239,8 @@ export async function getAllOperatorAddresses(req: Request, res: Response) {
 	}
 
 	try {
-		const { skip, take, byTextSearch } = result.data
-		const searchConfig = { contains: byTextSearch, mode: 'insensitive' }
+		const { skip, take, searchByText } = result.data
+		const searchConfig = { contains: searchByText, mode: 'insensitive' }
 
 		// Fetch records
 		const operatorRecords = await prisma.operator.findMany({
@@ -230,7 +250,7 @@ export async function getAllOperatorAddresses(req: Request, res: Response) {
 				metadataLogo: true
 			},
 			where: {
-				...(byTextSearch && {
+				...(searchByText && {
 					OR: [
 						{ address: searchConfig },
 						{ metadataName: searchConfig },
@@ -239,7 +259,7 @@ export async function getAllOperatorAddresses(req: Request, res: Response) {
 					] as Prisma.Prisma.OperatorWhereInput[]
 				})
 			},
-			...(byTextSearch && {
+			...(searchByText && {
 				orderBy: {
 					tvlEth: 'desc'
 				}
@@ -249,7 +269,7 @@ export async function getAllOperatorAddresses(req: Request, res: Response) {
 		})
 
 		// Determine count
-		const operatorCount = byTextSearch
+		const operatorCount = searchByText
 			? operatorRecords.length
 			: await prisma.operator.count()
 

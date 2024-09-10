@@ -14,11 +14,11 @@ import {
 } from '../strategies/strategiesController'
 import { UpdatedSinceQuerySchema } from '../../schema/zod/schemas/updatedSinceQuery'
 import { SortByQuerySchema } from '../../schema/zod/schemas/sortByQuery'
-import { ByTextSearchQuerySchema } from '../../schema/zod/schemas/byTextSearchQuery'
+import { SearchByTextQuerySchema } from '../../schema/zod/schemas/searchByTextQuery'
 
 /**
  * Function for route /avs
- * Returns a list of all AVSs with optional sorts, withTvl and withCuratedMetadata
+ * Returns a list of all AVSs with optional sorts, withTvl, withCuratedMetadata & text search
  *
  * @param req
  * @param res
@@ -28,6 +28,7 @@ export async function getAllAVS(req: Request, res: Response) {
 	const queryCheck = PaginationQuerySchema.and(WithTvlQuerySchema)
 		.and(SortByQuerySchema)
 		.and(WithCuratedMetadata)
+		.and(SearchByTextQuerySchema)
 		.safeParse(req.query)
 
 	if (!queryCheck.success) {
@@ -42,13 +43,11 @@ export async function getAllAVS(req: Request, res: Response) {
 			withCuratedMetadata,
 			sortByTvl,
 			sortByTotalStakers,
-			sortByTotalOperators
+			sortByTotalOperators,
+			searchByText
 		} = queryCheck.data
 
-		// Fetch count
-		const avsCount = await prisma.avs.count({
-			where: getAvsFilterQuery(true)
-		})
+		const searchConfig = { contains: searchByText, mode: 'insensitive' }
 
 		// Setup sort if applicable
 		const sortConfig = sortByTotalStakers
@@ -59,9 +58,30 @@ export async function getAllAVS(req: Request, res: Response) {
 				  ? { field: 'tvlEth', order: sortByTvl }
 				  : null
 
-		// Fetch records and apply sort if applicable
+		// Fetch records and apply search/sort
 		const avsRecords = await prisma.avs.findMany({
-			where: getAvsFilterQuery(true),
+			where: {
+				...getAvsFilterQuery(true),
+				...(searchByText && {
+					OR: [
+						{ address: searchConfig },
+						{ metadataName: searchConfig },
+						{ metadataDescription: searchConfig },
+						{ metadataWebsite: searchConfig },
+						{
+							curatedMetadata: {
+								is: {
+									OR: [
+										{ metadataName: searchConfig },
+										{ metadataDescription: searchConfig },
+										{ metadataWebsite: searchConfig }
+									]
+								}
+							}
+						}
+					] as Prisma.Prisma.AvsWhereInput[]
+				})
+			},
 			include: {
 				curatedMetadata: withCuratedMetadata,
 				operators: {
@@ -75,16 +95,21 @@ export async function getAllAVS(req: Request, res: Response) {
 					}
 				}
 			},
+			orderBy: sortConfig
+				? { [sortConfig.field]: sortConfig.order }
+				: searchByText
+				  ? { tvlEth: 'desc' }
+				  : undefined,
 			skip,
-			take,
-			...(sortConfig
-				? {
-						orderBy: {
-							[sortConfig.field]: sortConfig.order
-						}
-				  }
-				: {})
+			take
 		})
+
+		// Fetch count
+		const avsCount = searchByText
+			? avsRecords.length
+			: await prisma.avs.count({
+					where: getAvsFilterQuery(true)
+			  })
 
 		const strategyTokenPrices = withTvl ? await fetchStrategyTokenPrices() : {}
 		const strategiesWithSharesUnderlying = withTvl
@@ -148,15 +173,15 @@ export async function getAllAVS(req: Request, res: Response) {
 export async function getAllAVSAddresses(req: Request, res: Response) {
 	// Validate pagination query
 	const queryCheck = PaginationQuerySchema.and(
-		ByTextSearchQuerySchema
+		SearchByTextQuerySchema
 	).safeParse(req.query)
 	if (!queryCheck.success) {
 		return handleAndReturnErrorResponse(req, res, queryCheck.error)
 	}
 
 	try {
-		const { skip, take, byTextSearch } = queryCheck.data
-		const searchConfig = { contains: byTextSearch, mode: 'insensitive' }
+		const { skip, take, searchByText } = queryCheck.data
+		const searchConfig = { contains: searchByText, mode: 'insensitive' }
 
 		// Fetch records
 		const avsRecords = await prisma.avs.findMany({
@@ -173,7 +198,7 @@ export async function getAllAVSAddresses(req: Request, res: Response) {
 			},
 			where: {
 				...getAvsFilterQuery(true),
-				...(byTextSearch && {
+				...(searchByText && {
 					OR: [
 						{ address: searchConfig },
 						{ metadataName: searchConfig },
@@ -193,7 +218,7 @@ export async function getAllAVSAddresses(req: Request, res: Response) {
 					] as Prisma.Prisma.AvsWhereInput[]
 				})
 			},
-			...(byTextSearch && {
+			...(searchByText && {
 				orderBy: {
 					tvlEth: 'desc'
 				}
@@ -203,7 +228,7 @@ export async function getAllAVSAddresses(req: Request, res: Response) {
 		})
 
 		// Determine count
-		const avsCount = byTextSearch
+		const avsCount = searchByText
 			? avsRecords.length
 			: await prisma.avs.count({
 					where: getAvsFilterQuery(true)
@@ -420,7 +445,7 @@ export async function getAVSStakers(req: Request, res: Response) {
 
 /**
  * Function for route /avs/:address/operators
- * Returns all Operators for a given AVS
+ * Returns all Operators for a given AVS. Optionally perform a text search for a list of matched Operators.
  *
  * @param req
  * @param res
@@ -430,6 +455,7 @@ export async function getAVSOperators(req: Request, res: Response) {
 	// Validate query and params
 	const queryCheck = PaginationQuerySchema.and(WithTvlQuerySchema)
 		.and(SortByQuerySchema)
+		.and(SearchByTextQuerySchema)
 		.safeParse(req.query)
 	if (!queryCheck.success) {
 		return handleAndReturnErrorResponse(req, res, queryCheck.error)
@@ -442,7 +468,9 @@ export async function getAVSOperators(req: Request, res: Response) {
 
 	try {
 		const { address } = req.params
-		const { skip, take, withTvl, sortOperatorsByTvl } = queryCheck.data
+		const { skip, take, withTvl, sortOperatorsByTvl, searchByText } =
+			queryCheck.data
+		const searchConfig = { contains: searchByText, mode: 'insensitive' }
 
 		const avs = await prisma.avs.findUniqueOrThrow({
 			where: { address: address.toLowerCase(), ...getAvsFilterQuery() },
@@ -454,18 +482,36 @@ export async function getAVSOperators(req: Request, res: Response) {
 		})
 
 		const operatorsRecords = await prisma.operator.findMany({
-			where: {
-				address: { in: avs.operators.map((o) => o.operatorAddress) }
-			},
-			skip,
-			take,
-			orderBy: sortOperatorsByTvl ? { tvlEth: sortOperatorsByTvl } : undefined,
 			include: {
 				shares: {
 					select: { strategyAddress: true, shares: true }
 				},
 				stakers: true
-			}
+			},
+			where: {
+				AND: [
+				  {
+					address: { in: avs.operators.map((o) => o.operatorAddress) }
+				  },
+				  ...(searchByText
+					? [{
+						OR: [
+						  { address: searchConfig },
+						  { metadataName: searchConfig },
+						  { metadataDescription: searchConfig },
+						  { metadataWebsite: searchConfig }
+						]
+					  }]
+					: [])
+				] as Prisma.Prisma.OperatorWhereInput[]
+			  },
+			orderBy: sortOperatorsByTvl
+				? { tvlEth: sortOperatorsByTvl }
+				: searchByText
+				  ? { tvlEth: 'desc' }
+				  : undefined,
+			skip,
+			take
 		})
 
 		const strategyTokenPrices = withTvl ? await fetchStrategyTokenPrices() : {}
@@ -506,7 +552,7 @@ export async function getAVSOperators(req: Request, res: Response) {
 		res.send({
 			data,
 			meta: {
-				total: avs.operators.length,
+				total: searchByText ? operatorsRecords.length : avs.operators.length,
 				skip,
 				take
 			}
