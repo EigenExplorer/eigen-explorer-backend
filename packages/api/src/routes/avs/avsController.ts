@@ -490,21 +490,23 @@ export async function getAVSOperators(req: Request, res: Response) {
 			},
 			where: {
 				AND: [
-				  {
-					address: { in: avs.operators.map((o) => o.operatorAddress) }
-				  },
-				  ...(searchByText
-					? [{
-						OR: [
-						  { address: searchConfig },
-						  { metadataName: searchConfig },
-						  { metadataDescription: searchConfig },
-						  { metadataWebsite: searchConfig }
-						]
-					  }]
-					: [])
+					{
+						address: { in: avs.operators.map((o) => o.operatorAddress) }
+					},
+					...(searchByText
+						? [
+								{
+									OR: [
+										{ address: searchConfig },
+										{ metadataName: searchConfig },
+										{ metadataDescription: searchConfig },
+										{ metadataWebsite: searchConfig }
+									]
+								}
+						  ]
+						: [])
 				] as Prisma.Prisma.OperatorWhereInput[]
-			  },
+			},
 			orderBy: sortOperatorsByTvl
 				? { tvlEth: sortOperatorsByTvl }
 				: searchByText
@@ -513,6 +515,30 @@ export async function getAVSOperators(req: Request, res: Response) {
 			skip,
 			take
 		})
+
+		const total = searchByText
+			? await prisma.operator.count({
+					where: {
+						AND: [
+							{
+								address: { in: avs.operators.map((o) => o.operatorAddress) }
+							},
+							...(searchByText
+								? [
+										{
+											OR: [
+												{ address: searchConfig },
+												{ metadataName: searchConfig },
+												{ metadataDescription: searchConfig },
+												{ metadataWebsite: searchConfig }
+											]
+										}
+								  ]
+								: [])
+						] as Prisma.Prisma.OperatorWhereInput[]
+					}
+			  })
+			: avs.operators.length
 
 		const strategyTokenPrices = withTvl ? await fetchStrategyTokenPrices() : {}
 		const strategiesWithSharesUnderlying = withTvl
@@ -552,7 +578,7 @@ export async function getAVSOperators(req: Request, res: Response) {
 		res.send({
 			data,
 			meta: {
-				total: searchByText ? operatorsRecords.length : avs.operators.length,
+				total,
 				skip,
 				take
 			}
