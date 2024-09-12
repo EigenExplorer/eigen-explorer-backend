@@ -66,15 +66,11 @@ export async function getAllAVS(req: Request, res: Response) {
 					OR: [
 						{ address: searchConfig },
 						{ metadataName: searchConfig },
-						{ metadataDescription: searchConfig },
-						{ metadataWebsite: searchConfig },
 						{
 							curatedMetadata: {
 								is: {
 									OR: [
 										{ metadataName: searchConfig },
-										{ metadataDescription: searchConfig },
-										{ metadataWebsite: searchConfig }
 									]
 								}
 							}
@@ -106,7 +102,26 @@ export async function getAllAVS(req: Request, res: Response) {
 
 		// Fetch count
 		const avsCount = searchByText
-			? avsRecords.length
+			? await prisma.avs.count({
+					where: {
+						...getAvsFilterQuery(true),
+						...(searchByText && {
+							OR: [
+								{ address: searchConfig },
+								{ metadataName: searchConfig },
+								{
+									curatedMetadata: {
+										is: {
+											OR: [
+												{ metadataName: searchConfig },
+											]
+										}
+									}
+								}
+							] as Prisma.Prisma.AvsWhereInput[]
+						})
+					}
+			  })
 			: await prisma.avs.count({
 					where: getAvsFilterQuery(true)
 			  })
