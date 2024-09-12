@@ -69,9 +69,7 @@ export async function getAllAVS(req: Request, res: Response) {
 						{
 							curatedMetadata: {
 								is: {
-									OR: [
-										{ metadataName: searchConfig },
-									]
+									OR: [{ metadataName: searchConfig }]
 								}
 							}
 						}
@@ -112,9 +110,7 @@ export async function getAllAVS(req: Request, res: Response) {
 								{
 									curatedMetadata: {
 										is: {
-											OR: [
-												{ metadataName: searchConfig },
-											]
+											OR: [{ metadataName: searchConfig }]
 										}
 									}
 								}
