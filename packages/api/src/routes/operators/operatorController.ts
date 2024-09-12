@@ -66,9 +66,7 @@ export async function getAllOperators(req: Request, res: Response) {
 				where: {
 					OR: [
 						{ address: searchConfig },
-						{ metadataName: searchConfig },
-						{ metadataDescription: searchConfig },
-						{ metadataWebsite: searchConfig }
+						{ metadataName: searchConfig }
 					] as Prisma.Prisma.OperatorWhereInput[]
 				}
 			}),
@@ -83,7 +81,14 @@ export async function getAllOperators(req: Request, res: Response) {
 
 		// Count records
 		const operatorCount = searchByText
-			? operatorRecords.length
+			? await prisma.operator.count({
+					where: {
+						OR: [
+							{ address: searchConfig },
+							{ metadataName: searchConfig }
+						] as Prisma.Prisma.OperatorWhereInput[]
+					}
+			  })
 			: await prisma.operator.count()
 
 		const strategyTokenPrices = withTvl ? await fetchStrategyTokenPrices() : {}
@@ -270,7 +275,16 @@ export async function getAllOperatorAddresses(req: Request, res: Response) {
 
 		// Determine count
 		const operatorCount = searchByText
-			? operatorRecords.length
+			? await prisma.operator.count({
+					where: {
+						OR: [
+							{ address: searchConfig },
+							{ metadataName: searchConfig },
+							{ metadataDescription: searchConfig },
+							{ metadataWebsite: searchConfig }
+						] as Prisma.Prisma.OperatorWhereInput[]
+					}
+			  })
 			: await prisma.operator.count()
 
 		const data = operatorRecords.map((operator) => ({

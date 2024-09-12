@@ -240,7 +240,28 @@ export async function getAllAVSAddresses(req: Request, res: Response) {
 
 		// Determine count
 		const avsCount = searchByText
-			? avsRecords.length
+			? await prisma.avs.count({
+					where: {
+						...getAvsFilterQuery(true),
+						OR: [
+							{ address: searchConfig },
+							{ metadataName: searchConfig },
+							{ metadataDescription: searchConfig },
+							{ metadataWebsite: searchConfig },
+							{
+								curatedMetadata: {
+									is: {
+										OR: [
+											{ metadataName: searchConfig },
+											{ metadataDescription: searchConfig },
+											{ metadataWebsite: searchConfig }
+										]
+									}
+								}
+							}
+						] as Prisma.Prisma.AvsWhereInput[]
+					}
+			  })
 			: await prisma.avs.count({
 					where: getAvsFilterQuery(true)
 			  })
