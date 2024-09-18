@@ -5,12 +5,12 @@ import {
 	fetchLastSyncTime,
 	IMap,
 	loopThroughDates,
-	setToStartOfHour
+	setToStartOfDay
 } from '../utils/seeder'
 import { chunkArray } from '../utils/array'
 
 const blockSyncKey = 'lastSyncedTimestamp_metrics_restakingHourly'
-const BATCH_DAYS = 7
+const BATCH_DAYS = 30
 
 // Define the type for our log entries
 type ILastOperatorMetric = Omit<prisma.MetricOperatorHourly, 'id'>
@@ -180,8 +180,8 @@ async function processLogsInBatches(
 	)
 
 	for (
-		let currentDate = setToStartOfHour(startDate);
-		currentDate < setToStartOfHour(endDate);
+		let currentDate = setToStartOfDay(startDate);
+		currentDate < setToStartOfDay(endDate);
 		currentDate = new Date(
 			currentDate.getTime() + 24 * 60 * 60 * 1000 * BATCH_DAYS
 		)
@@ -221,7 +221,7 @@ async function processLogsInBatches(
 				hourlyAvsMetrics.push(...hourlyAvsTvlRecords)
 				hourlyAvsStrategyMetrics.push(...hourlyAvsStrategyRecords)
 			},
-			'hourly'
+			'daily'
 		)
 
 		console.log(

@@ -4,12 +4,12 @@ import {
 	bulkUpdateDbTransactions,
 	fetchLastSyncTime,
 	loopThroughDates,
-	setToStartOfHour
+	setToStartOfDay
 } from '../utils/seeder'
 import { dateToEpoch } from '../utils/beaconChain'
 
 const blockSyncKey = 'lastSyncedTimestamp_metrics_eigenPodsHourly'
-const BATCH_DAYS = 10
+const BATCH_DAYS = 30
 
 // Define the type for our log entries
 type LastMetricEigenPodsHourly = Omit<prisma.MetricEigenPodsHourly, 'id'>
@@ -77,8 +77,8 @@ async function processLogsInBatches(
 	let hourlyMetrics: LastMetricEigenPodsHourly[] = []
 
 	for (
-		let currentDate = setToStartOfHour(startDate);
-		currentDate < setToStartOfHour(endDate);
+		let currentDate = setToStartOfDay(startDate);
+		currentDate < setToStartOfDay(endDate);
 		currentDate = new Date(
 			currentDate.getTime() + 24 * 60 * 60 * 1000 * BATCH_DAYS
 		)
@@ -105,7 +105,7 @@ async function processLogsInBatches(
 
 				hourlyMetrics = [...hourlyMetrics, ...hourlyTvlRecords]
 			},
-			'hourly'
+			'daily'
 		)
 
 		console.log(

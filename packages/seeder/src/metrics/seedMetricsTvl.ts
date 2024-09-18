@@ -5,14 +5,14 @@ import {
 	fetchLastSyncTime,
 	IMap,
 	loopThroughDates,
-	setToStartOfHour
+	setToStartOfDay
 } from '../utils/seeder'
 import { getViemClient } from '../utils/viemClient'
 import { strategyAbi } from '../data/abi/strategy'
 import { getEigenContracts } from '../data/address'
 
 const blockSyncKey = 'lastSyncedTimestamp_metrics_tvlHourly'
-const BATCH_DAYS = 7
+const BATCH_DAYS = 30
 
 type ILastStrategyMetric = Omit<prisma.MetricStrategyHourly, 'id'>
 type ILastStrategyMetrics = IMap<string, ILastStrategyMetric>
@@ -76,8 +76,8 @@ async function processLogsInBatches(
 	let hourlyMetrics: ILastStrategyMetric[] = []
 
 	for (
-		let currentDate = setToStartOfHour(startDate);
-		currentDate < setToStartOfHour(endDate);
+		let currentDate = setToStartOfDay(startDate);
+		currentDate < setToStartOfDay(endDate);
 		currentDate = new Date(
 			currentDate.getTime() + 24 * 60 * 60 * 1000 * BATCH_DAYS
 		)
@@ -105,7 +105,7 @@ async function processLogsInBatches(
 
 				hourlyMetrics = [...hourlyMetrics, ...hourlyTvlRecords]
 			},
-			'hourly'
+			'daily'
 		)
 
 		console.log(

@@ -40,6 +40,12 @@ export function setToStartOfHour(date: Date): Date {
 	return hourlyDate
 }
 
+export function setToStartOfDay(date: Date): Date {
+	const dailyDate = new Date(date)
+	dailyDate.setHours(0, 0, 0, 0)
+	return dailyDate
+}
+
 export async function loopThroughDates(
 	startDate: Date,
 	endDate: Date,
@@ -48,8 +54,8 @@ export async function loopThroughDates(
 	frequency: 'hourly' | 'daily' = 'hourly'
 ) {
 
-	let currentDate = setToStartOfHour(startDate)
-	const adjustedEndDate = setToStartOfHour(endDate)
+	let currentDate = frequency === 'hourly' ? setToStartOfHour(startDate) : setToStartOfDay(startDate)
+	const adjustedEndDate = frequency === 'hourly' ? setToStartOfHour(endDate) : setToStartOfDay(endDate)
 
 	const incrementDate = (date: Date): Date => {
 		const nextDate = new Date(date)
