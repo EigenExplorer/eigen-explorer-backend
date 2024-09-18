@@ -37,8 +37,8 @@ import { monitorOperatorMetrics } from './monitors/operatorMetrics'
 
 console.log('Initializing Seeder ...')
 
-const UPDATE_DELAY = 120
-const UPDATE_FREQUENCY_INSTANT = getNetwork().testnet ? 600 : 120
+const UPDATE_DELAY = 240
+const UPDATE_FREQUENCY_INSTANT = getNetwork().testnet ? 600 : 240
 const UPDATE_FREQUENCY_HOURLY = 3600
 const UPDATE_FREQUENCY_DAILY = UPDATE_FREQUENCY_HOURLY * 24
 
