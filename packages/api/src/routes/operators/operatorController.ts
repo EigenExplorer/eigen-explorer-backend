@@ -40,7 +40,11 @@ export async function getAllOperators(req: Request, res: Response) {
 		searchByText
 	} = result.data
 
-	const searchConfig = { contains: searchByText, mode: 'insensitive' }
+	const searchFilterQuery = getOperatorSearchQuery(
+		searchByText,
+		'contains',
+		'partial'
+	)
 
 	try {
 		// Setup sort if applicable
@@ -54,6 +58,9 @@ export async function getAllOperators(req: Request, res: Response) {
 
 		// Fetch records and apply search/sort
 		const operatorRecords = await prisma.operator.findMany({
+			where: {
+				...searchFilterQuery
+			},
 			include: {
 				avs: {
 					select: { avsAddress: true, isActive: true }
@@ -62,14 +69,6 @@ export async function getAllOperators(req: Request, res: Response) {
 					select: { strategyAddress: true, shares: true }
 				}
 			},
-			...(searchByText && {
-				where: {
-					OR: [
-						{ address: searchConfig },
-						{ metadataName: searchConfig }
-					] as Prisma.Prisma.OperatorWhereInput[]
-				}
-			}),
 			orderBy: sortConfig
 				? { [sortConfig.field]: sortConfig.order }
 				: searchByText
@@ -80,16 +79,11 @@ export async function getAllOperators(req: Request, res: Response) {
 		})
 
 		// Count records
-		const operatorCount = searchByText
-			? await prisma.operator.count({
-					where: {
-						OR: [
-							{ address: searchConfig },
-							{ metadataName: searchConfig }
-						] as Prisma.Prisma.OperatorWhereInput[]
-					}
-			  })
-			: await prisma.operator.count()
+		const operatorCount = await prisma.operator.count({
+			where: {
+				...searchFilterQuery
+			}
+		})
 
 		const strategyTokenPrices = withTvl ? await fetchStrategyTokenPrices() : {}
 		const strategiesWithSharesUnderlying = withTvl
@@ -244,8 +238,12 @@ export async function getAllOperatorAddresses(req: Request, res: Response) {
 	}
 
 	try {
-		const { skip, take, searchByText } = result.data
-		const searchConfig = { contains: searchByText, mode: 'insensitive' }
+		const { skip, take, searchByText, searchMode } = result.data
+		const searchFilterQuery = getOperatorSearchQuery(
+			searchByText,
+			searchMode,
+			'full'
+		)
 
 		// Fetch records
 		const operatorRecords = await prisma.operator.findMany({
@@ -255,14 +253,7 @@ export async function getAllOperatorAddresses(req: Request, res: Response) {
 				metadataLogo: true
 			},
 			where: {
-				...(searchByText && {
-					OR: [
-						{ address: searchConfig },
-						{ metadataName: searchConfig },
-						{ metadataDescription: searchConfig },
-						{ metadataWebsite: searchConfig }
-					] as Prisma.Prisma.OperatorWhereInput[]
-				})
+				...searchFilterQuery
 			},
 			...(searchByText && {
 				orderBy: {
@@ -274,18 +265,11 @@ export async function getAllOperatorAddresses(req: Request, res: Response) {
 		})
 
 		// Determine count
-		const operatorCount = searchByText
-			? await prisma.operator.count({
-					where: {
-						OR: [
-							{ address: searchConfig },
-							{ metadataName: searchConfig },
-							{ metadataDescription: searchConfig },
-							{ metadataWebsite: searchConfig }
-						] as Prisma.Prisma.OperatorWhereInput[]
-					}
-			  })
-			: await prisma.operator.count()
+		const operatorCount = await prisma.operator.count({
+			where: {
+				...searchFilterQuery
+			}
+		})
 
 		const data = operatorRecords.map((operator) => ({
 			address: operator.address,
@@ -335,5 +319,33 @@ export async function invalidateMetadata(req: Request, res: Response) {
 		res.send({ message: 'Metadata invalidated successfully.' })
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+export function getOperatorSearchQuery(
+	searchByText: string | undefined,
+	searchMode: 'contains' | 'startsWith',
+	searchScope: 'partial' | 'full'
+) {
+	if (!searchByText) return {}
+
+	const searchConfig = { [searchMode]: searchByText, mode: 'insensitive' }
+
+	if (searchScope === 'partial') {
+		return {
+			OR: [
+				{ address: searchConfig },
+				{ metadataName: searchConfig }
+			] as Prisma.Prisma.OperatorWhereInput[]
+		}
+	}
+
+	return {
+		OR: [
+			{ address: searchConfig },
+			{ metadataName: searchConfig },
+			{ metadataDescription: searchConfig },
+			{ metadataWebsite: searchConfig }
+		] as Prisma.Prisma.OperatorWhereInput[]
 	}
 }
