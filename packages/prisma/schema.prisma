@@ -236,9 +236,9 @@ model AvsRewardSubmissions {
 
   avsAddress      String
   strategyAddress String
-  multiplier      BigInt
+  multiplier      Decimal @default(0) @db.Decimal(36, 8)
   token           String
-  amount          BigInt
+  amount          Decimal @default(0) @db.Decimal(36, 8)
   startTimestamp  BigInt
   duration        Int
 
@@ -254,9 +254,9 @@ model GlobalRewardSubmissions {
 
   submitter       String
   strategyAddress String
-  multiplier      BigInt
+  multiplier      Decimal @default(0) @db.Decimal(36, 8)
   token           String
-  amount          BigInt
+  amount          Decimal @default(0) @db.Decimal(36, 8)
   startTimestamp  BigInt
   duration        Int
 
@@ -621,11 +621,11 @@ model EventLogs_RewardsSubmissions {
   rewardsSubmissionHash String
 
   rewardsSubmission_token              String
-  rewardsSubmission_amount             BigInt
+  rewardsSubmission_amount             Decimal @default(0) @db.Decimal(36, 8)
   rewardsSubmission_startTimestamp     BigInt
   rewardsSubmission_duration           Int
   strategiesAndMultipliers_strategies  String[]
-  strategiesAndMultipliers_multipliers BigInt[]
+  strategiesAndMultipliers_multipliers Decimal[] @db.Decimal(36, 8)
 
   @@id([transactionHash, transactionIndex])
   @@index([address])

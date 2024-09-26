@@ -56,7 +56,7 @@ export async function seedRewardsSubmissions(
 			const log = logs[l]
 
 			const totalAmount = log.rewardsSubmission_amount
-			const multipliers = log.strategiesAndMultipliers_multipliers.map(BigInt)
+			const multipliers = log.strategiesAndMultipliers_multipliers
 			const distributedAmounts = distributeAmount(totalAmount, multipliers)
 
 			for (const [
@@ -141,11 +141,14 @@ export async function seedRewardsSubmissions(
  * @returns
  */
 function distributeAmount(
-	totalAmount: bigint,
-	multipliers: bigint[]
-): bigint[] {
-	const totalMultiplier = multipliers.reduce((sum, m) => sum + m, 0n)
-	return multipliers.map(
-		(multiplier) => (multiplier * totalAmount) / totalMultiplier
+	totalAmount: prisma.Prisma.Decimal,
+	multipliers: prisma.Prisma.Decimal[]
+): prisma.Prisma.Decimal[] {
+	const totalMultiplier = multipliers.reduce(
+		(sum, m) => sum.add(m),
+		new prisma.Prisma.Decimal(0)
+	)
+	return multipliers.map((multiplier) =>
+		multiplier.mul(totalAmount).div(totalMultiplier)
 	)
 }

@@ -4,8 +4,8 @@ import {
 	getAvsRewards,
 	getAvsRewardTokens,
 	getAvsRewardStrategies,
-	getAvsRewardsApy,
-	getOperatorRewardsApy
+	getAvsRewardsApy
+	// getOperatorRewardsApy
 } from './rewardController'
 
 const router = express.Router()
@@ -26,10 +26,12 @@ router.get(
 
 router.get('/avs/:address/apy', routeCache.cacheSeconds(120), getAvsRewardsApy)
 
+/*
 router.get(
 	'/operators/:address/apy',
 	routeCache.cacheSeconds(120),
 	getOperatorRewardsApy
 )
+	*/
 
 export default router

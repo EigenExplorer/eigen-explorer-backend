@@ -8,7 +8,10 @@ import prisma from '../../utils/prismaClient'
 import { handleAndReturnErrorResponse } from '../../schema/errors'
 import { EthereumAddressSchema } from '../../schema/zod/schemas/base/ethereumAddress'
 import { getStrategiesWithShareUnderlying } from '../strategies/strategiesController'
-import { getEigenContracts } from '../../data/address'
+import {
+	type EigenStrategiesContractAddress,
+	getEigenContracts
+} from '../../data/address'
 
 type Submission = {
 	rewardsSubmissionHash: string
@@ -81,18 +84,27 @@ export async function getAvsRewards(req: Request, res: Response) {
 			throw new Error('AVS not found.')
 		}
 
+		const strategyTokenPrices = await fetchStrategyTokenPrices()
+		const eigenContracts = getEigenContracts()
+		const tokenToStrategyMap = tokenToStrategyAddressMap(
+			eigenContracts.Strategies
+		)
+
 		const result: {
 			avsAddress: string
 			submissions: Submission[]
-			total: number
+			totalRewards: number
+			totalSubmissions: number
 		} = {
 			avsAddress: address,
 			submissions: [],
-			total: 0
+			totalRewards: 0,
+			totalSubmissions: 0
 		}
 
 		let currentSubmission: Submission | null = null
-		let currentTotalAmount = 0n
+		let currentTotalAmount = new Prisma.Prisma.Decimal(0)
+		let currentTotalAmountEth = new Prisma.Prisma.Decimal(0)
 
 		for (const data of rewardsData) {
 			if (
@@ -100,8 +112,9 @@ export async function getAvsRewards(req: Request, res: Response) {
 				currentSubmission.rewardsSubmissionHash !== data.rewardsSubmissionHash
 			) {
 				if (currentSubmission) {
-					currentSubmission.totalAmount = roundUpToWhole(currentTotalAmount)
+					currentSubmission.totalAmount = currentTotalAmount.toString()
 					result.submissions.push(currentSubmission)
+					result.totalSubmissions++
 				}
 				currentSubmission = {
 					rewardsSubmissionHash: data.rewardsSubmissionHash,
@@ -115,12 +128,30 @@ export async function getAvsRewards(req: Request, res: Response) {
 						}
 					]
 				}
-				currentTotalAmount = 0n
-				result.total++
+				currentTotalAmount = new Prisma.Prisma.Decimal(0)
+				result.totalRewards += currentTotalAmountEth.toNumber()
+				currentTotalAmountEth = new Prisma.Prisma.Decimal(0)
 			}
 
-			const amount = BigInt(data.amount?.toString() ?? '0')
-			currentTotalAmount += amount
+			const amount = data.amount || new Prisma.Prisma.Decimal(0)
+			currentTotalAmount = currentTotalAmount.add(amount)
+
+			const tokenStrategyAddress = tokenToStrategyMap.get(
+				data.token.toLowerCase()
+			)
+
+			// Calculate ETH value
+			if (tokenStrategyAddress) {
+				const tokenPrice = Object.values(strategyTokenPrices).find(
+					(tp) => tp.strategyAddress.toLowerCase() === tokenStrategyAddress
+				)
+				const amountInEth = amount.mul(
+					new Prisma.Prisma.Decimal(tokenPrice?.eth ?? 1)
+				)
+				currentTotalAmountEth = currentTotalAmountEth.add(amountInEth)
+			} else {
+				currentTotalAmountEth = currentTotalAmountEth.add(amount)
+			}
 
 			currentSubmission.rewards[0].strategies.push({
 				strategyAddress: data.strategyAddress,
@@ -130,8 +161,10 @@ export async function getAvsRewards(req: Request, res: Response) {
 		}
 
 		if (currentSubmission) {
-			currentSubmission.totalAmount = roundUpToWhole(currentTotalAmount)
+			currentSubmission.totalAmount = currentTotalAmount.toString()
 			result.submissions.push(currentSubmission)
+			result.totalSubmissions++
+			result.totalRewards += currentTotalAmountEth.toNumber()
 		}
 
 		res.send(result)
@@ -292,6 +325,10 @@ export async function getAvsRewardsApy(req: Request, res: Response) {
 		}
 
 		const strategyTokenPrices = await fetchStrategyTokenPrices()
+		const eigenContracts = getEigenContracts()
+		const tokenToStrategyMap = tokenToStrategyAddressMap(
+			eigenContracts.Strategies
+		)
 
 		const strategiesWithSharesUnderlying =
 			await getStrategiesWithShareUnderlying()
@@ -314,7 +351,7 @@ export async function getAvsRewardsApy(req: Request, res: Response) {
 			const strategyTvl = tvlStrategiesEth[strategyAddress.toLowerCase()] || 0
 			if (strategyTvl === 0) return { strategyAddress, apy: 0 }
 
-			let totalRewards = BigInt(0)
+			let totalRewardsEth = new Prisma.Prisma.Decimal(0)
 			let totalDuration = 0
 
 			const relevantSubmissions = avs.avsRewardSubmissions.filter(
@@ -324,10 +361,27 @@ export async function getAvsRewardsApy(req: Request, res: Response) {
 			)
 
 			for (const submission of relevantSubmissions) {
-				const rewardIncrement =
-					(BigInt(submission.amount) * BigInt(submission.multiplier)) /
-					BigInt(1e18)
-				totalRewards += rewardIncrement
+				const tokenStrategyAddress = tokenToStrategyMap.get(
+					submission.token.toLowerCase()
+				)
+
+				let rewardIncrementEth = new Prisma.Prisma.Decimal(0)
+				if (tokenStrategyAddress) {
+					const tokenPrice = Object.values(strategyTokenPrices).find(
+						(tp) => tp.strategyAddress.toLowerCase() === tokenStrategyAddress
+					)
+					rewardIncrementEth = submission.amount.mul(
+						new Prisma.Prisma.Decimal(tokenPrice?.eth ?? 1)
+					)
+				} else {
+					rewardIncrementEth = submission.amount
+				}
+
+				rewardIncrementEth = rewardIncrementEth
+					.mul(submission.multiplier)
+					.div(new Prisma.Prisma.Decimal(10).pow(18))
+
+				totalRewardsEth = totalRewardsEth.add(rewardIncrementEth)
 				totalDuration += submission.duration
 			}
 
@@ -335,8 +389,9 @@ export async function getAvsRewardsApy(req: Request, res: Response) {
 				return { strategyAddress, apy: 0 }
 			}
 
-			const totalRewardsEth = Number(totalRewards) / 1e18
-			const rewardRate = totalRewardsEth / strategyTvl
+			const rewardRate =
+				totalRewardsEth.div(new Prisma.Prisma.Decimal(10).pow(18)).toNumber() /
+				strategyTvl
 			const annualizedRate = rewardRate * ((365 * 24 * 60 * 60) / totalDuration)
 			const apy = annualizedRate * 100
 
@@ -359,6 +414,13 @@ export async function getAvsRewardsApy(req: Request, res: Response) {
 	}
 }
 
+/**
+ * Route to return avs-wise, strategy-wise & avg APY for a given Operator
+ * Used by /avs/:address/apy
+ *
+ * @param req
+ * @param res
+ */
 export async function getOperatorRewardsApy(req: Request, res: Response) {
 	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
 	if (!paramCheck.success) {
@@ -367,143 +429,12 @@ export async function getOperatorRewardsApy(req: Request, res: Response) {
 
 	try {
 		const { address: operatorAddress } = req.params
-
-		// Fetch operator data with related AVS and shares
-		const operator = await prisma.operator.findUnique({
-			where: { address: operatorAddress },
-			include: {
-				avs: {
-					include: {
-						avs: {
-							include: {
-								avsRewardSubmissions: true
-							}
-						}
-					}
-				},
-				shares: true
-			}
-		})
-
-		if (!operator) {
-			throw new Error('Operator not found.')
-		}
-
-		const strategyTokenPrices = await fetchStrategyTokenPrices()
-		const strategiesWithSharesUnderlying =
-			await getStrategiesWithShareUnderlying()
-
-		// Calculate operator's TVL per strategy
-		const operatorTvl = sharesToTVL(
-			operator.shares,
-			strategiesWithSharesUnderlying,
-			strategyTokenPrices
-		)
-
-		const strategies = getEigenContracts().Strategies
-		const addressToName = Object.entries(strategies).reduce(
-			(acc, [key, value]) => {
-				acc[value.strategyContract.toLowerCase()] = key
-				return acc
-			},
-			{} as Record<string, string>
-		)
-
-		const avsApyMap: { [avsAddress: string]: number } = {}
-		const strategyApyMap: {
-			[strategyName: string]: {
-				totalRewards: number
-				totalTvl: number
-				duration: number
-			}
-		} = {}
-
-		// Calculate APY for each AVS and strategy
-		for (const avsOperator of operator.avs) {
-			const avs = avsOperator.avs
-			let totalRewards = BigInt(0)
-			let totalDuration = 0
-
-			for (const submission of avs.avsRewardSubmissions) {
-				if (operatorTvl[submission.strategyAddress.toLowerCase()]) {
-					const rewardAmount =
-						(BigInt(submission.amount) * BigInt(submission.multiplier)) /
-						BigInt(1e18)
-					totalRewards += rewardAmount
-					totalDuration += submission.duration
-
-					const strategyName =
-						addressToName[submission.strategyAddress.toLowerCase()] ||
-						submission.strategyAddress
-					if (!strategyApyMap[strategyName]) {
-						strategyApyMap[strategyName] = {
-							totalRewards: 0,
-							totalTvl: 0,
-							duration: 0
-						}
-					}
-					strategyApyMap[strategyName].totalRewards +=
-						Number(rewardAmount) / 1e18
-					strategyApyMap[strategyName].totalTvl +=
-						operatorTvl[submission.strategyAddress.toLowerCase()] || 0
-					strategyApyMap[strategyName].duration += submission.duration
-				}
-			}
-
-			if (totalDuration > 0) {
-				const totalRewardsEth = Number(totalRewards) / 1e18
-				const operatorAvsTvl = Object.values(operatorTvl).reduce(
-					(sum, tvl) => sum + tvl,
-					0
-				)
-				const rewardRate = totalRewardsEth / operatorAvsTvl
-				const annualizedRate =
-					rewardRate * ((365 * 24 * 60 * 60) / totalDuration)
-				avsApyMap[avs.address] = annualizedRate * 100
-			}
-		}
-
-		// Calculate APY for each strategy
-		const strategyApyList = Object.entries(strategyApyMap).map(
-			([strategyName, data]) => {
-				const { totalRewards, totalTvl, duration } = data
-				if (duration > 0 && totalTvl > 0) {
-					const rewardRate = totalRewards / totalTvl
-					const annualizedRate = rewardRate * ((365 * 24 * 60 * 60) / duration)
-					return { strategyName, apy: annualizedRate * 100 }
-				}
-				return { strategyName, apy: 0 }
-			}
-		)
-
-		const avsApyList = Object.entries(avsApyMap).map(([avsAddress, apy]) => ({
-			avsAddress,
-			apy
-		}))
-
-		const averageApy =
-			avsApyList.reduce((sum, avs) => sum + avs.apy, 0) / avsApyList.length
-
-		const result = {
-			operatorAddress,
-			avs: avsApyList,
-			strategies: strategyApyList,
-			average: averageApy
-		}
-
-		res.send(result)
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
 	}
 }
 
 // --- Helper functions ---
-
-function roundUpToWhole(amount: bigint): string {
-	const ten18 = BigInt(10 ** 18)
-	const rounded = ((amount + ten18 - BigInt(1)) / ten18) * ten18
-	return rounded.toString().padStart(19, '0')
-}
 
 export function sharesToTVL(
 	shares: {
@@ -545,10 +476,14 @@ export function sharesToTVL(
 
 		if (sharesUnderlying && strategyTokenPrice) {
 			const strategyShares =
-				Number(
-					(BigInt(share.shares) * BigInt(sharesUnderlying.sharesToUnderlying)) /
-						BigInt(1e18)
-				) / 1e18
+				new Prisma.Prisma.Decimal(share.shares)
+					.mul(
+						new Prisma.Prisma.Decimal(
+							sharesUnderlying.sharesToUnderlying.toString()
+						)
+					)
+					.div(new Prisma.Prisma.Decimal(10).pow(18))
+					.toNumber() / 1e18
 
 			const strategyTvl = strategyShares * strategyTokenPrice.eth
 
@@ -565,4 +500,20 @@ export function sharesToTVL(
 	}
 
 	return tvlStrategiesEth
+}
+
+export function tokenToStrategyAddressMap(
+	strategies: EigenStrategiesContractAddress
+): Map<string, string> {
+	// TODO: Filter out EIGEN
+	const map = new Map<string, string>()
+	for (const [, value] of Object.entries(strategies)) {
+		if (value?.tokenContract && value.strategyContract) {
+			map.set(
+				value.tokenContract.toLowerCase(),
+				value.strategyContract.toLowerCase()
+			)
+		}
+	}
+	return map
 }

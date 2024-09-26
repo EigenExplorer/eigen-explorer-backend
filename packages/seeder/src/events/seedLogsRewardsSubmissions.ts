@@ -14,13 +14,13 @@ const blockSyncKeyLogs = 'lastSyncedBlock_logs_rewardsSubmissions'
 
 type StrategyAndMultiplier = {
 	strategy: `0x${string}`
-	multiplier: bigint
+	multiplier: prisma.Prisma.Decimal
 }
 
 type RewardsSubmission = {
 	strategiesAndMultipliers: StrategyAndMultiplier[]
 	token: `0x${string}`
-	amount: bigint
+	amount: prisma.Prisma.Decimal
 	startTimestamp: bigint
 	duration: number
 }
@@ -109,12 +109,16 @@ export async function seedLogsRewardsSubmissions(
 						  ).toLowerCase()
 
 				const strategies: string[] = []
-				const multipliers: bigint[] = []
+				const multipliers: prisma.Prisma.Decimal[] = []
 
 				for (const strategyAndMultiplier of args.rewardsSubmission
 					.strategiesAndMultipliers) {
 					strategies.push(strategyAndMultiplier.strategy.toLowerCase())
-					multipliers.push(strategyAndMultiplier.multiplier)
+					multipliers.push(
+						new prisma.Prisma.Decimal(
+							strategyAndMultiplier.multiplier.toString()
+						)
+					)
 				}
 
 				logsRewardsSubmissions.push({
@@ -130,7 +134,9 @@ export async function seedLogsRewardsSubmissions(
 					rewardsSubmission_token: String(
 						args.rewardsSubmission.token
 					).toLowerCase(),
-					rewardsSubmission_amount: BigInt(args.rewardsSubmission.amount),
+					rewardsSubmission_amount: new prisma.Prisma.Decimal(
+						args.rewardsSubmission.amount.toString()
+					),
 					rewardsSubmission_startTimestamp: BigInt(
 						args.rewardsSubmission.startTimestamp
 					),
@@ -163,6 +169,8 @@ export async function seedLogsRewardsSubmissions(
 				dbTransactions,
 				`[Logs] Rewards Submissions from: ${fromBlock} to: ${toBlock} size: ${seedLength}`
 			)
-		} catch (error) {}
+		} catch (error) {
+			console.log(error)
+		}
 	})
 }
