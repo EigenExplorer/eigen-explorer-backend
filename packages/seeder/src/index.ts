@@ -1,37 +1,39 @@
 import 'dotenv/config'
 
-import { seedAvs } from './seedAvs'
-import { seedAvsOperators } from './seedAvsOperators'
-import { seedOperators } from './seedOperators'
-import { seedPods } from './seedPods'
-import { seedStakers } from './seedStakers'
 import { getViemClient } from './utils/viemClient'
-import { seedBlockData } from './blocks/seedBlockData'
 import { seedLogsAVSMetadata } from './events/seedLogsAVSMetadata'
 import { seedLogsOperatorMetadata } from './events/seedLogsOperatorMetadata'
 import { seedLogsOperatorAVSRegistrationStatus } from './events/seedLogsOperatorAVSRegistrationStatus'
 import { seedLogsOperatorShares } from './events/seedLogsOperatorShares'
 import { seedLogsStakerDelegation } from './events/seedLogsStakerDelegation'
 import { seedLogsPodDeployed } from './events/seedLogsPodDeployed'
+import { seedLogsWithdrawalQueued } from './events/seedLogsWithdrawalQueued'
+import { seedLogsWithdrawalCompleted } from './events/seedLogsWithdrawalCompleted'
+import { seedLogsDeposit } from './events/seedLogsDeposit'
+import { seedLogsPodSharesUpdated } from './events/seedLogsPodSharesUpdated'
+import { seedLogsRewardsSubmissions } from './events/seedLogsRewardsSubmissions'
+import { seedAvs } from './seedAvs'
+import { seedAvsOperators } from './seedAvsOperators'
+import { seedOperators } from './seedOperators'
+import { seedPods } from './seedPods'
+import { seedStakers } from './seedStakers'
+import { seedBlockData } from './blocks/seedBlockData'
 import { seedOperatorShares } from './seedOperatorShares'
 import { seedValidators } from './seedValidators'
 import { seedQueuedWithdrawals } from './seedWithdrawalsQueued'
 import { seedCompletedWithdrawals } from './seedWithdrawalsCompleted'
-import { seedLogsWithdrawalQueued } from './events/seedLogsWithdrawalQueued'
-import { seedLogsWithdrawalCompleted } from './events/seedLogsWithdrawalCompleted'
-import { seedLogsDeposit } from './events/seedLogsDeposit'
 import { seedDeposits } from './seedDeposits'
-import { seedLogsPodSharesUpdated } from './events/seedLogsPodSharesUpdated'
-import { monitorAvsMetadata } from './monitors/avsMetadata'
-import { monitorOperatorMetadata } from './monitors/operatorMetadata'
+import { seedStrategies } from './seedStrategies'
+import { seedRewardsSubmissions } from './seedRewardsSubmissions'
+import { seedRestakedStrategies } from './seedAvsRestakedStrategies'
+import { seedEthPricesDaily } from './seedEthPricesDaily'
 import { seedMetricsDepositHourly } from './metrics/seedMetricsDeposit'
 import { seedMetricsWithdrawalHourly } from './metrics/seedMetricsWithdrawal'
 import { seedMetricsRestakingHourly } from './metrics/seedMetricsRestaking'
-import { seedStrategies } from './seedStrategies'
-import { seedRestakedStrategies } from './seedAvsRestakedStrategies'
-import { seedEthPricesDaily } from './seedEthPricesDaily'
 import { seedMetricsEigenPodsHourly } from './metrics/seedMetricsEigenPods'
 import { seedMetricsTvlHourly } from './metrics/seedMetricsTvl'
+import { monitorAvsMetadata } from './monitors/avsMetadata'
+import { monitorOperatorMetadata } from './monitors/operatorMetadata'
 import { monitorAvsMetrics } from './monitors/avsMetrics'
 import { monitorOperatorMetrics } from './monitors/operatorMetrics'
 
@@ -67,6 +69,7 @@ async function seedEigenData() {
 			await seedLogsWithdrawalCompleted(targetBlock)
 			await seedLogsDeposit(targetBlock)
 			await seedLogsPodSharesUpdated(targetBlock)
+			await seedLogsRewardsSubmissions(targetBlock)
 
 			await seedAvs()
 			await seedOperators()
@@ -78,6 +81,7 @@ async function seedEigenData() {
 			await seedDeposits()
 			await seedPods()
 			await seedValidators()
+			await seedRewardsSubmissions()
 		} catch (error) {
 			console.log('Failed to seed data at:', Date.now())
 			console.log(error)

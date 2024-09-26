@@ -1,0 +1,151 @@
+import prisma from '@prisma/client'
+import { getPrismaClient } from './utils/prismaClient'
+import {
+	bulkUpdateDbTransactions,
+	fetchLastSyncBlock,
+	loopThroughBlocks,
+	saveLastSyncBlock
+} from './utils/seeder'
+
+const blockSyncKey = 'lastSyncedBlock_rewardsSubmissions'
+const blockSyncKeyLogs = 'lastSyncedBlock_logs_rewardsSubmissions'
+
+export async function seedRewardsSubmissions(
+	toBlock?: bigint,
+	fromBlock?: bigint
+) {
+	const prismaClient = getPrismaClient()
+
+	const avsRewardSubmissionsList: Omit<prisma.AvsRewardSubmissions, 'id'>[] = []
+	const globalRewardSubmissionsList: Omit<
+		prisma.GlobalRewardSubmissions,
+		'id'
+	>[] = []
+
+	const existingAvs = await prismaClient.avs.findMany({
+		select: { address: true }
+	})
+	const existingAvsSet = new Set(
+		existingAvs.map((avs) => avs.address.toLowerCase())
+	)
+
+	const firstBlock = fromBlock
+		? fromBlock
+		: await fetchLastSyncBlock(blockSyncKey)
+	const lastBlock = toBlock
+		? toBlock
+		: await fetchLastSyncBlock(blockSyncKeyLogs)
+
+	// Bail early if there is no block diff to sync
+	if (lastBlock - firstBlock <= 0) {
+		console.log(`[In Sync] [Data] Deposit from: ${firstBlock} to: ${lastBlock}`)
+		return
+	}
+
+	await loopThroughBlocks(firstBlock, lastBlock, async (fromBlock, toBlock) => {
+		const logs = await prismaClient.eventLogs_RewardsSubmissions.findMany({
+			where: {
+				blockNumber: {
+					gt: fromBlock,
+					lte: toBlock
+				}
+			}
+		})
+
+		for (const l in logs) {
+			const log = logs[l]
+
+			const totalAmount = log.rewardsSubmission_amount
+			const multipliers = log.strategiesAndMultipliers_multipliers.map(BigInt)
+			const distributedAmounts = distributeAmount(totalAmount, multipliers)
+
+			for (const [
+				index,
+				strategy
+			] of log.strategiesAndMultipliers_strategies.entries()) {
+				if (log.type === 'avs') {
+					const avsAddress = log.address.toLowerCase()
+					if (existingAvsSet.has(avsAddress)) {
+						avsRewardSubmissionsList.push({
+							submissionNonce: log.submissionNonce,
+							rewardsSubmissionHash: log.rewardsSubmissionHash,
+							avsAddress,
+							strategyAddress: strategy,
+							multiplier: log.strategiesAndMultipliers_multipliers[index],
+							token: log.rewardsSubmission_token,
+							amount: distributedAmounts[index],
+							startTimestamp: log.rewardsSubmission_startTimestamp,
+							duration: log.rewardsSubmission_duration,
+							createdAtBlock: log.blockNumber,
+							createdAt: log.blockTime
+						})
+					}
+				} else {
+					globalRewardSubmissionsList.push({
+						submissionNonce: log.submissionNonce,
+						rewardsSubmissionHash: log.rewardsSubmissionHash,
+						submitter: log.address,
+						strategyAddress: strategy,
+						multiplier: log.strategiesAndMultipliers_multipliers[index],
+						token: log.rewardsSubmission_token,
+						amount: distributedAmounts[index],
+						startTimestamp: log.rewardsSubmission_startTimestamp,
+						duration: log.rewardsSubmission_duration,
+						createdAtBlock: log.blockNumber,
+						createdAt: log.blockTime
+					})
+				}
+			}
+		}
+	})
+
+	// Prepare db transaction object
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+	const dbTransactions: any[] = []
+
+	if (avsRewardSubmissionsList.length > 0) {
+		dbTransactions.push(
+			prismaClient.avsRewardSubmissions.createMany({
+				data: avsRewardSubmissionsList,
+				skipDuplicates: true
+			})
+		)
+	}
+
+	if (globalRewardSubmissionsList.length > 0) {
+		dbTransactions.push(
+			prismaClient.globalRewardSubmissions.createMany({
+				data: globalRewardSubmissionsList,
+				skipDuplicates: true
+			})
+		)
+	}
+
+	await bulkUpdateDbTransactions(
+		dbTransactions,
+		`[Data] Reward Submissions from: ${firstBlock} to: ${lastBlock} size: ${
+			avsRewardSubmissionsList.length + globalRewardSubmissionsList.length
+		}`
+	)
+
+	// Storing last synced block
+	await saveLastSyncBlock(blockSyncKey, lastBlock)
+}
+
+/**
+ * Distributes a certain amount of tokens basis an array of relative weights
+ * Returns an array with token amounts in corresponding indices
+ *
+ * @param totalAmount
+ * @param multipliers
+ * @returns
+ */
+function distributeAmount(
+	totalAmount: bigint,
+	multipliers: bigint[]
+): bigint[] {
+	const totalMultiplier = multipliers.reduce((sum, m) => sum + m, 0n)
+	return multipliers.map(
+		(multiplier) => (multiplier * totalAmount) / totalMultiplier
+	)
+}

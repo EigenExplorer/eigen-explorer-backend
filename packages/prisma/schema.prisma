@@ -25,6 +25,7 @@ model Avs {
   operators             AvsOperator[]
   curatedMetadata       AvsCuratedMetadata?
   restakeableStrategies String[]
+  avsRewardSubmissions  AvsRewardSubmissions[]
 
   totalStakers   Int @default(0)
   totalOperators Int @default(0)
@@ -224,6 +225,43 @@ model WithdrawalCompleted {
   createdAt      DateTime @default(now())
 
   queuedWithdrawal WithdrawalQueued @relation(fields: [withdrawalRoot], references: [withdrawalRoot])
+}
+
+model AvsRewardSubmissions {
+  id       Int        @id @default(autoincrement())
+  avs      Avs        @relation(fields: [avsAddress], references: [address])
+
+  submissionNonce       BigInt
+  rewardsSubmissionHash String
+
+  avsAddress      String
+  strategyAddress String
+  multiplier      BigInt
+  token           String
+  amount          BigInt
+  startTimestamp  BigInt
+  duration        Int
+
+  createdAtBlock BigInt   @default(0)
+  createdAt      DateTime @default(now())
+}
+
+model GlobalRewardSubmissions {
+  id       Int        @id @default(autoincrement())
+
+  submissionNonce       BigInt
+  rewardsSubmissionHash String
+
+  submitter       String
+  strategyAddress String
+  multiplier      BigInt
+  token           String
+  amount          BigInt
+  startTimestamp  BigInt
+  duration        Int
+
+  createdAtBlock BigInt   @default(0)
+  createdAt      DateTime @default(now())
 }
 
 // Collection to store system settings
@@ -566,6 +604,31 @@ model EventLogs_Deposit {
 
   @@id([transactionHash, transactionIndex])
   @@index([staker])
+  @@index([blockNumber])
+}
+
+model EventLogs_RewardsSubmissions {
+  address String
+
+  transactionHash  String
+  transactionIndex Int
+  blockNumber      BigInt
+  blockHash        String
+  blockTime        DateTime
+
+  type                  String
+  submissionNonce       BigInt
+  rewardsSubmissionHash String
+
+  rewardsSubmission_token              String
+  rewardsSubmission_amount             BigInt
+  rewardsSubmission_startTimestamp     BigInt
+  rewardsSubmission_duration           Int
+  strategiesAndMultipliers_strategies  String[]
+  strategiesAndMultipliers_multipliers BigInt[]
+
+  @@id([transactionHash, transactionIndex])
+  @@index([address])
   @@index([blockNumber])
 }
 
