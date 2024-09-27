@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express'
+import type { IMap } from '../../schema/generic'
 import {
 	type TokenPrices,
 	fetchRewardTokenPrices,
@@ -78,7 +79,7 @@ export async function getAvsRewards(req: Request, res: Response) {
 		// Fetch all rewards submissions for a given Avs
 		const rewardsSubmissions = await prisma.avsRewardSubmissions.findMany({
 			where: {
-				avsAddress: address
+				avsAddress: address.toLowerCase()
 			},
 			orderBy: {
 				rewardsSubmissionHash: 'asc'
@@ -216,7 +217,7 @@ export async function getAvsRewardTokens(req: Request, res: Response) {
 
 		const rewardsData = await prisma.avsRewardSubmissions.findMany({
 			where: {
-				avsAddress: address
+				avsAddress: address.toLowerCase()
 			},
 			select: {
 				token: true,
@@ -273,7 +274,7 @@ export async function getAvsRewardStrategies(req: Request, res: Response) {
 
 		const rewardsData = await prisma.avsRewardSubmissions.findMany({
 			where: {
-				avsAddress: address
+				avsAddress: address.toLowerCase()
 			},
 			select: {
 				strategyAddress: true,
@@ -330,7 +331,7 @@ export async function getAvsRewardsApy(req: Request, res: Response) {
 
 		// Fetch AVS data
 		const avs = await prisma.avs.findUnique({
-			where: { address },
+			where: { address: address.toLowerCase() },
 			include: {
 				operators: {
 					where: { isActive: true },
@@ -361,13 +362,11 @@ export async function getAvsRewardsApy(req: Request, res: Response) {
 			await getStrategiesWithShareUnderlying()
 
 		// Get share amounts for each restakeable strategy
-		const shares = avs.operators
-			.flatMap((op) => op.operator.shares)
-			.filter(
-				(s) =>
-					avs.restakeableStrategies.indexOf(s.strategyAddress.toLowerCase()) !==
-					-1
-			)
+		const shares = withOperatorShares(avs.operators).filter(
+			(s) =>
+				avs.restakeableStrategies.indexOf(s.strategyAddress.toLowerCase()) !==
+				-1
+		)
 
 		// Fetch the AVS's tvl for each strategy
 		const tvlStrategiesEth = sharesToTVL(
@@ -487,11 +486,10 @@ export async function getOperatorRewardsApy(req: Request, res: Response) {
 
 		const avsRewardsMap: Map<string, number> = new Map()
 		const strategyRewardsMap: Map<string, number> = new Map()
-		const strategyRewardsDataMap: Map<string, StrategyRewardsData> = new Map()
 
 		// Fetch Operator data
 		const operator = await prisma.operator.findUnique({
-			where: { address },
+			where: { address: address.toLowerCase() },
 			include: {
 				avs: {
 					include: {
@@ -560,14 +558,12 @@ export async function getOperatorRewardsApy(req: Request, res: Response) {
 			let aggregateApy = 0
 
 			// Get share amounts for each restakeable strategy
-			const shares = avs.avs.operators
-				.flatMap((op) => op.operator.shares)
-				.filter(
-					(s) =>
-						avs.avs.restakeableStrategies.indexOf(
-							s.strategyAddress.toLowerCase()
-						) !== -1
-				)
+			const shares = withOperatorShares(avs.avs.operators).filter(
+				(s) =>
+					avs.avs.restakeableStrategies.indexOf(
+						s.strategyAddress.toLowerCase()
+					) !== -1
+			)
 
 			// Fetch the AVS's tvl for each strategy
 			const tvlStrategiesEth = sharesToTVL(
@@ -809,4 +805,33 @@ export function isSpecialToken(tokenAddress: string): boolean {
 			  ]
 
 	return specialTokens.includes(tokenAddress.toLowerCase())
+}
+
+function withOperatorShares(avsOperators) {
+	const sharesMap: IMap<string, string> = new Map()
+
+	avsOperators.map((avsOperator) => {
+		const shares = avsOperator.operator.shares.filter(
+			(s) =>
+				avsOperator.restakedStrategies.indexOf(
+					s.strategyAddress.toLowerCase()
+				) !== -1
+		)
+
+		shares.map((s) => {
+			if (!sharesMap.has(s.strategyAddress)) {
+				sharesMap.set(s.strategyAddress, '0')
+			}
+
+			sharesMap.set(
+				s.strategyAddress,
+				(BigInt(sharesMap.get(s.strategyAddress)) + BigInt(s.shares)).toString()
+			)
+		})
+	})
+
+	return Array.from(sharesMap, ([strategyAddress, shares]) => ({
+		strategyAddress,
+		shares
+	}))
 }
