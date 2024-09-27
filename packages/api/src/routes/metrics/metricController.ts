@@ -1,7 +1,6 @@
 import type { Request, Response } from 'express'
 import type Prisma from '@prisma/client'
 import prisma from '../../utils/prismaClient'
-import { cacheStore } from 'route-cache'
 import {
 	type EigenStrategiesContractAddress,
 	getEigenContracts
@@ -2560,13 +2559,6 @@ async function calculateTvlChange(
 	let tvlEth7dAgo = 0
 
 	if (!isEthDenominated) {
-		const cachedValue = await cacheStore.get(
-			address ? `tvl_change_${address}` : 'tvl_change_restaking'
-		)
-		if (cachedValue) {
-			return cachedValue
-		}
-
 		if (!ethPrices) {
 			throw new Error('ETH prices are required for processing this data')
 		}
@@ -2644,11 +2636,6 @@ async function calculateTvlChange(
 		tvlEth24hAgo = tvl - changeTvlEth24hAgo
 		tvlEth7dAgo = tvl - changeTvlEth7dAgo
 	} else {
-		const cachedValue = await cacheStore.get('tvl_change_beacon')
-		if (cachedValue) {
-			return cachedValue
-		}
-
 		// Get all records since 8d ago
 		const historicalRecords = await prisma.metricEigenPodsHourly.findMany({
 			where: {
@@ -2690,14 +2677,6 @@ async function calculateTvlChange(
 		change24h,
 		change7d
 	}
-
-	const key = isEthDenominated
-		? 'tvl_change_beacon'
-		: address
-		  ? `tvl_change_${address}`
-		  : 'tvl_change_restaking'
-
-	await cacheStore.set(key, tvlWithChange, 24 * 60 * 60) // 24 hours
 
 	return tvlWithChange
 }
