@@ -54,12 +54,6 @@ type AvsRewardStrategies = {
 	total: number
 }
 
-type StrategyRewardsData = {
-	totalRewardsEth: Prisma.Prisma.Decimal
-	totalDuration: number
-	strategyTvl: number
-}
-
 /**
  * Route to get a list of all rewards for a given Avs
  * Used by /avs/:address
@@ -77,7 +71,7 @@ export async function getAvsRewards(req: Request, res: Response) {
 		const { address } = req.params
 
 		// Fetch all rewards submissions for a given Avs
-		const rewardsSubmissions = await prisma.avsRewardSubmissions.findMany({
+		const rewardsSubmissions = await prisma.avsStrategyRewardSubmission.findMany({
 			where: {
 				avsAddress: address.toLowerCase()
 			},
@@ -215,7 +209,7 @@ export async function getAvsRewardTokens(req: Request, res: Response) {
 	try {
 		const { address } = req.params
 
-		const rewardsData = await prisma.avsRewardSubmissions.findMany({
+		const rewardsData = await prisma.avsStrategyRewardSubmission.findMany({
 			where: {
 				avsAddress: address.toLowerCase()
 			},
@@ -272,7 +266,7 @@ export async function getAvsRewardStrategies(req: Request, res: Response) {
 	try {
 		const { address } = req.params
 
-		const rewardsData = await prisma.avsRewardSubmissions.findMany({
+		const rewardsData = await prisma.avsStrategyRewardSubmission.findMany({
 			where: {
 				avsAddress: address.toLowerCase()
 			},
@@ -314,7 +308,7 @@ export async function getAvsRewardStrategies(req: Request, res: Response) {
 }
 
 /**
- * Route to return strategy-wise & avg APY for a given Avs
+ * Route to return strategy-wise, aggregate & avg APY for a given Avs
  * Used by /avs/:address/apy
  *
  * @param req
@@ -343,7 +337,7 @@ export async function getAvsRewardsApy(req: Request, res: Response) {
 						}
 					}
 				},
-				avsRewardSubmissions: true
+				rewardSubmissions: true
 			}
 		})
 
@@ -368,7 +362,7 @@ export async function getAvsRewardsApy(req: Request, res: Response) {
 				-1
 		)
 
-		// Fetch the AVS's tvl for each strategy
+		// Fetch the AVS tvl for each strategy
 		const tvlStrategiesEth = sharesToTVL(
 			shares,
 			strategiesWithSharesUnderlying,
@@ -384,7 +378,7 @@ export async function getAvsRewardsApy(req: Request, res: Response) {
 			let totalDuration = 0
 
 			// Find all reward submissions attributable to the strategy
-			const relevantSubmissions = avs.avsRewardSubmissions.filter(
+			const relevantSubmissions = avs.rewardSubmissions.filter(
 				(submission) =>
 					submission.strategyAddress.toLowerCase() ===
 					strategyAddress.toLowerCase()
@@ -457,9 +451,9 @@ export async function getAvsRewardsApy(req: Request, res: Response) {
 
 		const result = {
 			avsAddress: address,
-			strategies: strategiesApy,
-			aggregate: aggregateApy,
-			average: averageApy
+			strategiesApy,
+			aggregateApy,
+			averageApy
 		}
 
 		res.send(result)
@@ -469,7 +463,7 @@ export async function getAvsRewardsApy(req: Request, res: Response) {
 }
 
 /**
- * Route to return avs-wise, strategy-wise & avg APY for a given Operator
+ * Route to return avs-wise, strategy-wise, aggregate & avg APY for a given Operator
  * Used by /operators/:address/apy
  *
  * @param req
@@ -495,7 +489,7 @@ export async function getOperatorRewardsApy(req: Request, res: Response) {
 					include: {
 						avs: {
 							include: {
-								avsRewardSubmissions: true,
+								rewardSubmissions: true,
 								operators: {
 									where: { isActive: true },
 									include: {
@@ -523,10 +517,10 @@ export async function getOperatorRewardsApy(req: Request, res: Response) {
 			operator?.shares.map((share) => share.strategyAddress.toLowerCase())
 		)
 		const avsWithEligibleRewardSubmissions = operator?.avs
-			.filter((avsOp) => avsOp.avs.avsRewardSubmissions.length > 0)
+			.filter((avsOp) => avsOp.avs.rewardSubmissions.length > 0)
 			.map((avsOp) => ({
 				avs: avsOp.avs,
-				eligibleRewards: avsOp.avs.avsRewardSubmissions.filter((reward) =>
+				eligibleRewards: avsOp.avs.rewardSubmissions.filter((reward) =>
 					optedStrategyAddresses.has(reward.strategyAddress.toLowerCase())
 				)
 			}))
@@ -537,11 +531,14 @@ export async function getOperatorRewardsApy(req: Request, res: Response) {
 				operatorAddress: address,
 				avs: [],
 				strategies: [],
-				aggregate: 0,
-				averageAvs: 0,
-				averageStrategies: 0
+				aggregateApy: 0,
+				averageAvsApy: 0,
+				averageStrategiesApy: 0,
+				operatorEarningsEth: 0
 			}
 		}
+
+		let operatorEarningsEth = new Prisma.Prisma.Decimal(0)
 
 		const strategyTokenPrices = await fetchStrategyTokenPrices()
 		const rewardTokenPrices = await fetchRewardTokenPrices()
@@ -565,7 +562,7 @@ export async function getOperatorRewardsApy(req: Request, res: Response) {
 					) !== -1
 			)
 
-			// Fetch the AVS's tvl for each strategy
+			// Fetch the AVS tvl for each strategy
 			const tvlStrategiesEth = sharesToTVL(
 				shares,
 				strategiesWithSharesUnderlying,
@@ -627,7 +624,11 @@ export async function getOperatorRewardsApy(req: Request, res: Response) {
 						.mul(submission.multiplier)
 						.div(new Prisma.Prisma.Decimal(10).pow(18))
 
-					totalRewardsEth = totalRewardsEth.add(rewardIncrementEth)
+					// Operator takes 10% in commission
+					const operatorFeesEth = rewardIncrementEth.mul(10).div(100)
+					operatorEarningsEth = operatorEarningsEth.add(operatorFeesEth)
+
+					totalRewardsEth = totalRewardsEth.add(rewardIncrementEth).sub(operatorFeesEth)
 					totalDuration += submission.duration
 				}
 
@@ -662,20 +663,22 @@ export async function getOperatorRewardsApy(req: Request, res: Response) {
 				strategyAddress,
 				apy
 			})),
-			aggregate: 0,
-			averageAvs: 0,
-			averageStrategies: 0
+			aggregateApy: 0,
+			averageAvsApy: 0,
+			averageStrategiesApy: 0,
+			operatorEarningsEth: new Prisma.Prisma.Decimal(0)
 		}
 
 		// Calculate aggregate and averages across Avs and strategies
-		response.aggregate = response.avs.reduce((sum, avs) => sum + avs.apy, 0)
-		response.averageAvs =
-			response.avs.length > 0 ? response.aggregate / response.avs.length : 0
-		response.averageStrategies =
+		response.aggregateApy = response.avs.reduce((sum, avs) => sum + avs.apy, 0)
+		response.averageAvsApy =
+			response.avs.length > 0 ? response.aggregateApy / response.avs.length : 0
+		response.averageStrategiesApy =
 			response.strategies.length > 0
 				? response.strategies.reduce((sum, strategy) => sum + strategy.apy, 0) /
 				  response.strategies.length
 				: 0
+		response.operatorEarningsEth = operatorEarningsEth
 
 		res.send(response)
 	} catch (error) {
