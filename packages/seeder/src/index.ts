@@ -11,7 +11,7 @@ import { seedLogsWithdrawalQueued } from './events/seedLogsWithdrawalQueued'
 import { seedLogsWithdrawalCompleted } from './events/seedLogsWithdrawalCompleted'
 import { seedLogsDeposit } from './events/seedLogsDeposit'
 import { seedLogsPodSharesUpdated } from './events/seedLogsPodSharesUpdated'
-import { seedLogsRewardsSubmissions } from './events/seedLogsRewardsSubmissions'
+import { seedLogsAVSRewardsSubmission } from './events/seedLogsRewardsSubmissions'
 import { seedAvs } from './seedAvs'
 import { seedAvsOperators } from './seedAvsOperators'
 import { seedOperators } from './seedOperators'
@@ -24,7 +24,7 @@ import { seedQueuedWithdrawals } from './seedWithdrawalsQueued'
 import { seedCompletedWithdrawals } from './seedWithdrawalsCompleted'
 import { seedDeposits } from './seedDeposits'
 import { seedStrategies } from './seedStrategies'
-import { seedRewardsSubmissions } from './seedRewardsSubmissions'
+import { seedAvsStrategyRewards } from './seedAvsStrategyRewards'
 import { seedRestakedStrategies } from './seedAvsRestakedStrategies'
 import { seedEthPricesDaily } from './seedEthPricesDaily'
 import { seedMetricsDepositHourly } from './metrics/seedMetricsDeposit'
@@ -69,7 +69,7 @@ async function seedEigenData() {
 			await seedLogsWithdrawalCompleted(targetBlock)
 			await seedLogsDeposit(targetBlock)
 			await seedLogsPodSharesUpdated(targetBlock)
-			await seedLogsRewardsSubmissions(targetBlock)
+			await seedLogsAVSRewardsSubmission(targetBlock)
 
 			await seedAvs()
 			await seedOperators()
@@ -81,7 +81,7 @@ async function seedEigenData() {
 			await seedDeposits()
 			await seedPods()
 			await seedValidators()
-			await seedRewardsSubmissions()
+			await seedAvsStrategyRewards()
 		} catch (error) {
 			console.log('Failed to seed data at:', Date.now())
 			console.log(error)

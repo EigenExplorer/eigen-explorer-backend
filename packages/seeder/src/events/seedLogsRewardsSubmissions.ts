@@ -10,44 +10,7 @@ import {
 } from '../utils/seeder'
 import { getPrismaClient } from '../utils/prismaClient'
 
-const blockSyncKeyLogs = 'lastSyncedBlock_logs_rewardsSubmissions'
-
-type StrategyAndMultiplier = {
-	strategy: `0x${string}`
-	multiplier: prisma.Prisma.Decimal
-}
-
-type RewardsSubmission = {
-	strategiesAndMultipliers: StrategyAndMultiplier[]
-	token: `0x${string}`
-	amount: prisma.Prisma.Decimal
-	startTimestamp: bigint
-	duration: number
-}
-
-interface BaseRewardsSubmissionEvent {
-	submissionNonce: bigint
-	rewardsSubmissionHash: `0x${string}`
-	rewardsSubmission: RewardsSubmission
-}
-
-interface AVSRewardsSubmissionCreatedEvent extends BaseRewardsSubmissionEvent {
-	avs: `0x${string}`
-}
-
-interface RewardsSubmissionForAllCreatedEvent
-	extends BaseRewardsSubmissionEvent {
-	submitter: `0x${string}`
-}
-
-type RewardsSubmissionEvent =
-	| AVSRewardsSubmissionCreatedEvent
-	| RewardsSubmissionForAllCreatedEvent
-
-const sharedStructs = [
-	'struct RewardsSubmission { StrategyAndMultiplier[] strategiesAndMultipliers; address token; uint256 amount; uint32 startTimestamp; uint32 duration; }',
-	'struct StrategyAndMultiplier { address strategy; uint96 multiplier; }'
-]
+const blockSyncKeyLogs = 'lastSyncedBlock_logs_avsRewardsSubmission'
 
 /**
  * Utility function to seed event logs
@@ -55,7 +18,7 @@ const sharedStructs = [
  * @param fromBlock
  * @param toBlock
  */
-export async function seedLogsRewardsSubmissions(
+export async function seedLogsAVSRewardsSubmission(
 	toBlock?: bigint,
 	fromBlock?: bigint
 ) {
@@ -74,18 +37,16 @@ export async function seedLogsRewardsSubmissions(
 			// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 			const dbTransactions: any[] = []
 
-			const logsRewardsSubmissions: prisma.EventLogs_RewardsSubmissions[] = []
+			const logsAvsRewardsSubmissions: prisma.EventLogs_AVSRewardsSubmission[] =
+				[]
 
 			const logs = await viemClient.getLogs({
 				address: getEigenContracts().RewardsCoordinator,
 				events: [
 					parseAbiItem([
 						'event AVSRewardsSubmissionCreated(address indexed avs, uint256 indexed submissionNonce, bytes32 indexed rewardsSubmissionHash, RewardsSubmission rewardsSubmission)',
-						...sharedStructs
-					]),
-					parseAbiItem([
-						'event RewardsSubmissionForAllCreated(address indexed submitter, uint256 indexed submissionNonce, bytes32 indexed rewardsSubmissionHash, RewardsSubmission rewardsSubmission)',
-						...sharedStructs
+						'struct RewardsSubmission { StrategyAndMultiplier[] strategiesAndMultipliers; address token; uint256 amount; uint32 startTimestamp; uint32 duration; }',
+						'struct StrategyAndMultiplier { address strategy; uint96 multiplier; }'
 					])
 				],
 				fromBlock,
@@ -95,60 +56,54 @@ export async function seedLogsRewardsSubmissions(
 			// Setup a list containing event data
 			for (const l in logs) {
 				const log = logs[l]
-				const type =
-					log.eventName === 'AVSRewardsSubmissionCreated' ? 'avs' : 'global'
-
-				const args = log.args as RewardsSubmissionEvent
-				const address =
-					type === 'avs'
-						? String(
-								(args as AVSRewardsSubmissionCreatedEvent).avs
-						  ).toLowerCase()
-						: String(
-								(args as RewardsSubmissionForAllCreatedEvent).submitter
-						  ).toLowerCase()
 
 				const strategies: string[] = []
 				const multipliers: prisma.Prisma.Decimal[] = []
 
-				for (const strategyAndMultiplier of args.rewardsSubmission
-					.strategiesAndMultipliers) {
-					strategies.push(strategyAndMultiplier.strategy.toLowerCase())
-					multipliers.push(
-						new prisma.Prisma.Decimal(
-							strategyAndMultiplier.multiplier.toString()
+				if (log.args.rewardsSubmission?.strategiesAndMultipliers) {
+					for (const strategyAndMultiplier of log.args.rewardsSubmission
+						.strategiesAndMultipliers) {
+						strategies.push(strategyAndMultiplier.strategy.toLowerCase())
+						multipliers.push(
+							new prisma.Prisma.Decimal(
+								strategyAndMultiplier.multiplier.toString()
+							)
 						)
-					)
-				}
+					}
 
-				logsRewardsSubmissions.push({
-					address,
-					transactionHash: log.transactionHash,
-					transactionIndex: log.logIndex,
-					blockNumber: BigInt(log.blockNumber),
-					blockHash: log.blockHash,
-					blockTime: blockData.get(log.blockNumber) || new Date(0),
-					type,
-					submissionNonce: BigInt(args.submissionNonce),
-					rewardsSubmissionHash: String(args.rewardsSubmissionHash),
-					rewardsSubmission_token: String(
-						args.rewardsSubmission.token
-					).toLowerCase(),
-					rewardsSubmission_amount: new prisma.Prisma.Decimal(
-						args.rewardsSubmission.amount.toString()
-					),
-					rewardsSubmission_startTimestamp: BigInt(
-						args.rewardsSubmission.startTimestamp
-					),
-					rewardsSubmission_duration: Number(args.rewardsSubmission.duration),
-					strategiesAndMultipliers_strategies: strategies,
-					strategiesAndMultipliers_multipliers: multipliers
-				})
+					logsAvsRewardsSubmissions.push({
+						address: log.address.toLowerCase(),
+						transactionHash: log.transactionHash.toLowerCase(),
+						transactionIndex: log.logIndex,
+						blockNumber: BigInt(log.blockNumber),
+						blockHash: log.blockHash.toLowerCase(),
+						blockTime: blockData.get(log.blockNumber) || new Date(0),
+						avs: String(log.args.avs).toLowerCase(),
+						submissionNonce: BigInt(log.args.submissionNonce || 0),
+						rewardsSubmissionHash: String(
+							log.args.rewardsSubmissionHash
+						).toLowerCase(),
+						rewardsSubmission_token: String(
+							log.args.rewardsSubmission.token
+						).toLowerCase(),
+						rewardsSubmission_amount: new prisma.Prisma.Decimal(
+							log.args.rewardsSubmission.amount.toString()
+						),
+						rewardsSubmission_startTimestamp: BigInt(
+							log.args.rewardsSubmission.startTimestamp
+						),
+						rewardsSubmission_duration: Number(
+							log.args.rewardsSubmission.duration
+						),
+						strategiesAndMultipliers_strategies: strategies,
+						strategiesAndMultipliers_multipliers: multipliers
+					})
+				}
 			}
 
 			dbTransactions.push(
-				prismaClient.eventLogs_RewardsSubmissions.createMany({
-					data: logsRewardsSubmissions,
+				prismaClient.eventLogs_AVSRewardsSubmission.createMany({
+					data: logsAvsRewardsSubmissions,
 					skipDuplicates: true
 				})
 			)
@@ -163,11 +118,11 @@ export async function seedLogsRewardsSubmissions(
 			)
 
 			// Update database
-			const seedLength = logsRewardsSubmissions.length
+			const seedLength = logsAvsRewardsSubmissions.length
 
 			await bulkUpdateDbTransactions(
 				dbTransactions,
-				`[Logs] Rewards Submissions from: ${fromBlock} to: ${toBlock} size: ${seedLength}`
+				`[Logs] AVS Rewards Submission from: ${fromBlock} to: ${toBlock} size: ${seedLength}`
 			)
 		} catch (error) {
 			console.log(error)

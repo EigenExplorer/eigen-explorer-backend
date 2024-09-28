@@ -7,18 +7,17 @@ import {
 	saveLastSyncBlock
 } from './utils/seeder'
 
-const blockSyncKey = 'lastSyncedBlock_rewardsSubmissions'
-const blockSyncKeyLogs = 'lastSyncedBlock_logs_rewardsSubmissions'
+const blockSyncKey = 'lastSyncedBlock_avsStrategyRewards'
+const blockSyncKeyLogs = 'lastSyncedBlock_logs_avsRewardsSubmission'
 
-export async function seedRewardsSubmissions(
+export async function seedAvsStrategyRewards(
 	toBlock?: bigint,
 	fromBlock?: bigint
 ) {
 	const prismaClient = getPrismaClient()
 
-	const avsRewardSubmissionsList: Omit<prisma.AvsRewardSubmissions, 'id'>[] = []
-	const globalRewardSubmissionsList: Omit<
-		prisma.GlobalRewardSubmissions,
+	const avsStrategyRewardSubmissionList: Omit<
+		prisma.AvsStrategyRewardSubmission,
 		'id'
 	>[] = []
 
@@ -38,12 +37,14 @@ export async function seedRewardsSubmissions(
 
 	// Bail early if there is no block diff to sync
 	if (lastBlock - firstBlock <= 0) {
-		console.log(`[In Sync] [Data] Deposit from: ${firstBlock} to: ${lastBlock}`)
+		console.log(
+			`[In Sync] [Data] Avs Strategy Rewards from: ${firstBlock} to: ${lastBlock}`
+		)
 		return
 	}
 
 	await loopThroughBlocks(firstBlock, lastBlock, async (fromBlock, toBlock) => {
-		const logs = await prismaClient.eventLogs_RewardsSubmissions.findMany({
+		const logs = await prismaClient.eventLogs_AVSRewardsSubmission.findMany({
 			where: {
 				blockNumber: {
 					gt: fromBlock,
@@ -63,28 +64,12 @@ export async function seedRewardsSubmissions(
 				index,
 				strategy
 			] of log.strategiesAndMultipliers_strategies.entries()) {
-				if (log.type === 'avs') {
-					const avsAddress = log.address.toLowerCase()
-					if (existingAvsSet.has(avsAddress)) {
-						avsRewardSubmissionsList.push({
-							submissionNonce: log.submissionNonce,
-							rewardsSubmissionHash: log.rewardsSubmissionHash,
-							avsAddress,
-							strategyAddress: strategy,
-							multiplier: log.strategiesAndMultipliers_multipliers[index],
-							token: log.rewardsSubmission_token,
-							amount: distributedAmounts[index],
-							startTimestamp: log.rewardsSubmission_startTimestamp,
-							duration: log.rewardsSubmission_duration,
-							createdAtBlock: log.blockNumber,
-							createdAt: log.blockTime
-						})
-					}
-				} else {
-					globalRewardSubmissionsList.push({
+				const avsAddress = log.avs.toLowerCase()
+				if (existingAvsSet.has(avsAddress)) {
+					avsStrategyRewardSubmissionList.push({
 						submissionNonce: log.submissionNonce,
 						rewardsSubmissionHash: log.rewardsSubmissionHash,
-						submitter: log.address,
+						avsAddress,
 						strategyAddress: strategy,
 						multiplier: log.strategiesAndMultipliers_multipliers[index],
 						token: log.rewardsSubmission_token,
@@ -103,19 +88,10 @@ export async function seedRewardsSubmissions(
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	const dbTransactions: any[] = []
 
-	if (avsRewardSubmissionsList.length > 0) {
+	if (avsStrategyRewardSubmissionList.length > 0) {
 		dbTransactions.push(
-			prismaClient.avsRewardSubmissions.createMany({
-				data: avsRewardSubmissionsList,
-				skipDuplicates: true
-			})
-		)
-	}
-
-	if (globalRewardSubmissionsList.length > 0) {
-		dbTransactions.push(
-			prismaClient.globalRewardSubmissions.createMany({
-				data: globalRewardSubmissionsList,
+			prismaClient.avsStrategyRewardSubmission.createMany({
+				data: avsStrategyRewardSubmissionList,
 				skipDuplicates: true
 			})
 		)
@@ -123,9 +99,7 @@ export async function seedRewardsSubmissions(
 
 	await bulkUpdateDbTransactions(
 		dbTransactions,
-		`[Data] Reward Submissions from: ${firstBlock} to: ${lastBlock} size: ${
-			avsRewardSubmissionsList.length + globalRewardSubmissionsList.length
-		}`
+		`[Data] Avs Strategy Rewards from: ${firstBlock} to: ${lastBlock} size: ${avsStrategyRewardSubmissionList.length}`
 	)
 
 	// Storing last synced block
