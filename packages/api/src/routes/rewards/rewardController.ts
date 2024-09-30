@@ -451,7 +451,7 @@ export async function getAvsRewardsApy(req: Request, res: Response) {
 
 		const result = {
 			avsAddress: address,
-			strategiesApy,
+			strategies: strategiesApy,
 			aggregateApy,
 			averageApy
 		}
@@ -644,13 +644,12 @@ export async function getOperatorRewardsApy(req: Request, res: Response) {
 				const apy = annualizedRate * 100
 				aggregateApy += apy
 
-				// Add aggregate APY to avs rewards store
-				avsRewardsMap.set(avs.avs.address, aggregateApy)
-
-				// Add strategy's APY to strategy rewards store
-				const currentStrategyApy = strategyRewardsMap.get(strategyAddress)
-				strategyRewardsMap.set(strategyAddress, currentStrategyApy || 0 + apy)
+				// Add strategy's APY to common strategy rewards store (across all Avs)
+				const currentStrategyApy = strategyRewardsMap.get(strategyAddress) || 0
+				strategyRewardsMap.set(strategyAddress, currentStrategyApy + apy)
 			}
+			// Add aggregate APY to Avs rewards store
+			avsRewardsMap.set(avs.avs.address, aggregateApy)
 		}
 
 		const response = {
