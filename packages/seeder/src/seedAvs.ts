@@ -132,7 +132,9 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 				createdAtBlock,
 				updatedAtBlock,
 				createdAt,
-				updatedAt
+				updatedAt,
+				registryCoordinatorAddress: null,
+				stakeRegistryAddress: null
 			})
 		}
 

@@ -1,3 +1,4 @@
+import prisma from '@prisma/client';
 import { parseAbiItem } from 'viem'
 import { getPrismaClient } from '../utils/prismaClient'
 import { getViemClient } from '../utils/viemClient'
@@ -44,7 +45,10 @@ export async function seedLogsAVSStakeRegistry(
 				try {
 					// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 					const dbTransactions: any[] = []
-
+					const logsMinimumStakeForQuorumUpdated: prisma.EventLogs_MinimumStakeForQuorumUpdated[] = [];
+					const logsStrategyAddedToQuorum: prisma.EventLogs_StrategyAddedToQuorum[] = [];
+					const logsStrategyRemovedFromQuorum: prisma.EventLogs_StrategyRemovedFromQuorum[] = [];
+					const logsStrategyMultiplierUpdated: prisma.EventLogs_StrategyMultiplierUpdated[] = [];
 					const logs = await viemClient.getLogs({
 						address: avs.stakeRegistryAddress as `0x${string}`,
 						events: [
@@ -65,8 +69,86 @@ export async function seedLogsAVSStakeRegistry(
 						toBlock
 					})
 
-					// @TODO: Store logs in tables
+					// Setup a list containing event data
+					for (const l in logs) {
+						const log = logs[l];
+			
+						if (log.eventName == "MinimumStakeForQuorumUpdated") {
+							logsMinimumStakeForQuorumUpdated.push({
+							address: log.address,
+							transactionHash: log.transactionHash,
+							transactionIndex: log.logIndex,
+							blockNumber: BigInt(log.blockNumber),
+							blockHash: log.blockHash,
+							blockTime: blockData.get(log.blockNumber) || new Date(0),
+							quorumNumber: Number(log.args.quorumNumber),
+							minimumStake: Number(log.args.minimumStake),
+						  });
+						} else if (log.eventName == "StrategyAddedToQuorum") {
+							logsStrategyAddedToQuorum.push({
+							address: log.address,
+							transactionHash: log.transactionHash,
+							transactionIndex: log.logIndex,
+							blockNumber: BigInt(log.blockNumber),
+							blockHash: log.blockHash,
+							blockTime: blockData.get(log.blockNumber) || new Date(0),
+							quorumNumber: Number(log.args.quorumNumber),
+							strategy: String(log.args.strategy),
+						  });
+						} else if (log.eventName == "StrategyRemovedFromQuorum") {
+							logsStrategyRemovedFromQuorum.push({
+								address: log.address,
+								transactionHash: log.transactionHash,
+								transactionIndex: log.logIndex,
+								blockNumber: BigInt(log.blockNumber),
+								blockHash: log.blockHash,
+								blockTime: blockData.get(log.blockNumber) || new Date(0),
+								quorumNumber: Number(log.args.quorumNumber),
+								strategy: String(log.args.strategy),
+							  });
+						} else if (log.eventName == "StrategyMultiplierUpdated") {
+							logsStrategyMultiplierUpdated.push({
+								address: log.address,
+								transactionHash: log.transactionHash,
+								transactionIndex: log.logIndex,
+								blockNumber: BigInt(log.blockNumber),
+								blockHash: log.blockHash,
+								blockTime: blockData.get(log.blockNumber) || new Date(0),
+								quorumNumber: Number(log.args.quorumNumber),
+								strategy: String(log.args.strategy),
+								multiplier: Number(log.args.multiplier)
+							  });
+						}
+					  }
+			
+					  dbTransactions.push(
+						prismaClient.eventLogs_MinimumStakeForQuorumUpdated.createMany({
+						  data: logsMinimumStakeForQuorumUpdated,
+						  skipDuplicates: true,
+						})
+					  );
+			
+					  dbTransactions.push(
+						prismaClient.eventLogs_StrategyAddedToQuorum.createMany({
+						  data: logsStrategyAddedToQuorum,
+						  skipDuplicates: true,
+						})
+					  );
 
+					  dbTransactions.push(
+						prismaClient.eventLogs_StrategyRemovedFromQuorum.createMany({
+						  data: logsStrategyRemovedFromQuorum,
+						  skipDuplicates: true,
+						})
+					  );
+
+					  dbTransactions.push(
+						prismaClient.eventLogs_StrategyMultiplierUpdated.createMany({
+						  data: logsStrategyMultiplierUpdated,
+						  skipDuplicates: true,
+						})
+					  );
+					
 					// Store last synced block
 					dbTransactions.push(
 						prismaClient.settings.upsert({

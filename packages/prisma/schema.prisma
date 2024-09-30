@@ -559,6 +559,40 @@ model EventLogs_OperatorSharesDecreased {
   @@index([blockNumber])
 }
 
+model EventLogs_OperatorRegistered {
+  address String
+
+  transactionHash  String
+  transactionIndex Int
+  blockNumber      BigInt
+  blockHash        String
+  blockTime        DateTime
+
+  operator   String
+  operatorId String
+
+  @@id([transactionHash, transactionIndex])
+  @@index([operator, operatorId])
+  @@index([blockNumber])
+}
+
+model EventLogs_OperatorDeregistered {
+  address String
+
+  transactionHash  String
+  transactionIndex Int
+  blockNumber      BigInt
+  blockHash        String
+  blockTime        DateTime
+
+  operator   String
+  operatorId String
+
+  @@id([transactionHash, transactionIndex])
+  @@index([operator, operatorId])
+  @@index([blockNumber])
+}
+
 model EventLogs_WithdrawalQueued {
   address String
 
@@ -650,6 +684,75 @@ model EthPricesDaily {
   timestamp DateTime
 
   @@index([timestamp])
+}
+
+model EventLogs_MinimumStakeForQuorumUpdated {
+  address String
+
+  transactionHash  String
+  transactionIndex Int
+  blockNumber      BigInt
+  blockHash        String
+  blockTime        DateTime
+
+  quorumNumber Int
+  minimumStake Int
+
+  @@id([transactionHash, transactionIndex])
+  @@index([quorumNumber])
+  @@index([blockNumber])
+}
+
+model EventLogs_StrategyAddedToQuorum {
+  address String
+
+  transactionHash  String
+  transactionIndex Int
+  blockNumber      BigInt
+  blockHash        String
+  blockTime        DateTime
+
+  quorumNumber Int
+  strategy     String
+
+  @@id([transactionHash, transactionIndex])
+  @@index([quorumNumber])
+  @@index([blockNumber])
+}
+
+model EventLogs_StrategyRemovedFromQuorum {
+  address String
+
+  transactionHash  String
+  transactionIndex Int
+  blockNumber      BigInt
+  blockHash        String
+  blockTime        DateTime
+
+  quorumNumber Int
+  strategy     String
+
+  @@id([transactionHash, transactionIndex])
+  @@index([quorumNumber])
+  @@index([blockNumber])
+}
+
+model EventLogs_StrategyMultiplierUpdated {
+  address String
+
+  transactionHash  String
+  transactionIndex Int
+  blockNumber      BigInt
+  blockHash        String
+  blockTime        DateTime
+
+  quorumNumber Int
+  strategy     String
+  multiplier   Int
+
+  @@id([transactionHash, transactionIndex])
+  @@index([quorumNumber])
+  @@index([blockNumber])
 }
 
 // Misc

@@ -38,6 +38,8 @@ import { monitorOperatorMetrics } from './monitors/operatorMetrics'
 import { seedAvsStrategyRewards } from './seedAvsStrategyRewards'
 import { seedLogsAVSRewardsSubmission } from './events/seedLogsRewardsSubmissions'
 
+import { seedLogsAVSRegistryCoordinator } from './events/seedLogsAVSRegistryCoordinator'
+import { seedLogsAVSStakeRegistry } from './events/seedLogsAVSStakeRegistry'
 
 console.log('Initializing Seeder ...')
 
@@ -81,6 +83,8 @@ async function seedEigenData() {
 			await seedLogsDeposit(targetBlock)
 			await seedLogsPodSharesUpdated(targetBlock)
 			await seedLogsAVSRewardsSubmission(targetBlock)
+			await seedLogsAVSRegistryCoordinator(targetBlock);
+			await seedLogsAVSStakeRegistry(targetBlock);
 
 			await seedAvs()
 			await seedOperators()
