@@ -494,8 +494,6 @@ async function calculateOperatorApy(operator: any) {
 				avs: [],
 				strategies: [],
 				aggregateApy: 0,
-				averageAvsApy: 0,
-				averageStrategiesApy: 0,
 				operatorEarningsEth: 0
 			}
 		}
@@ -624,20 +622,11 @@ async function calculateOperatorApy(operator: any) {
 				apy
 			})),
 			aggregateApy: 0,
-			averageAvsApy: 0,
-			averageStrategiesApy: 0,
 			operatorEarningsEth: new Prisma.Prisma.Decimal(0)
 		}
 
-		// Calculate aggregate and averages across Avs and strategies
+		// Calculate aggregates across Avs and strategies
 		response.aggregateApy = response.avs.reduce((sum, avs) => sum + avs.apy, 0)
-		response.averageAvsApy =
-			response.avs.length > 0 ? response.aggregateApy / response.avs.length : 0
-		response.averageStrategiesApy =
-			response.strategies.length > 0
-				? response.strategies.reduce((sum, strategy) => sum + strategy.apy, 0) /
-				  response.strategies.length
-				: 0
 		response.operatorEarningsEth = operatorEarningsEth
 
 		return response

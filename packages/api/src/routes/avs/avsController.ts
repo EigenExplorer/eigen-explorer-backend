@@ -961,7 +961,7 @@ async function calculateAvsApy(avs: any) {
 			return { strategyAddress, apy }
 		})
 
-		// Calculate aggregate and average APYs across strategies
+		// Calculate aggregate APYs across strategies
 		const aggregateApy = strategiesApy.reduce(
 			(sum, strategy) => sum + strategy.apy,
 			0
