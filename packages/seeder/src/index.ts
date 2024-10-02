@@ -59,7 +59,6 @@ async function seedEigenData() {
 			console.log('\nSeeding data ...', targetBlock)
 
 			await seedBlockData(targetBlock)
-			/*
 			await seedLogsAVSMetadata(targetBlock)
 			await seedLogsOperatorMetadata(targetBlock)
 			await seedLogsOperatorAVSRegistrationStatus(targetBlock)
@@ -83,10 +82,6 @@ async function seedEigenData() {
 			await seedPods()
 			await seedValidators()
 			await seedAvsStrategyRewards()
-			*/
-
-			await seedLogsAVSRewardsSubmission(targetBlock, 20481824n)
-			await seedAvsStrategyRewards(targetBlock, 20481824n)
 		} catch (error) {
 			console.log('Failed to seed data at:', Date.now())
 			console.log(error)
@@ -173,10 +168,8 @@ async function seedMetricsData() {
 }
 
 seedEigenData()
-
-/*
 seedMetadata()
 seedEigenStrategiesData()
 seedRestakedData()
 seedMetricsData()
-*/
+
