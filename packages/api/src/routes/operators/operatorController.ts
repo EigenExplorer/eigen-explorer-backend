@@ -366,11 +366,11 @@ export async function getOperatorRewards(req: Request, res: Response) {
 		const result: {
 			address: string
 			rewardTokens: Set<string>
-			strategiesRewarded: Set<string>
+			rewardStrategies: Set<string>
 		} = {
 			address,
 			rewardTokens: new Set<string>(),
-			strategiesRewarded: new Set<string>()
+			rewardStrategies: new Set<string>()
 		}
 
 		// Create a Set of strategies where the operator has positive TVL
@@ -391,7 +391,7 @@ export async function getOperatorRewards(req: Request, res: Response) {
 				if (
 					operatorActiveStrategies.has(submission.strategyAddress.toLowerCase())
 				) {
-					result.strategiesRewarded.add(
+					result.rewardStrategies.add(
 						submission.strategyAddress.toLowerCase()
 					)
 				}
@@ -401,7 +401,7 @@ export async function getOperatorRewards(req: Request, res: Response) {
 		res.send({
 			address: result.address,
 			rewardTokens: Array.from(result.rewardTokens),
-			strategiesRewarded: Array.from(result.strategiesRewarded)
+			rewardStrategies: Array.from(result.rewardStrategies)
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
