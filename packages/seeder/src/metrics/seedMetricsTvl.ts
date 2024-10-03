@@ -17,14 +17,14 @@ const BATCH_DAYS = 30
 type ILastStrategyMetric = Omit<prisma.MetricStrategyUnit, 'id'>
 type ILastStrategyMetrics = IMap<string, ILastStrategyMetric>
 
-export async function seedMetricsTvl() {
+export async function seedMetricsTvl(type: 'full' | 'incremental') {
 	const prismaClient = getPrismaClient()
 
 	// Define start date
 	let startDate: Date | null = await fetchLastSyncTime(blockSyncKey)
 	const endDate: Date = new Date()
 
-	if (!startDate) {
+	if (type === 'full' || !startDate) {
 		const firstLogTimestamp = await getFirstLogTimestamp()
 		if (firstLogTimestamp) {
 			startDate = new Date(firstLogTimestamp)

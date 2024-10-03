@@ -21,14 +21,14 @@ type LogEntry = {
 	type: string
 }
 
-export async function seedMetricsEigenPods() {
+export async function seedMetricsEigenPods(type: 'full' | 'incremental') {
 	const prismaClient = getPrismaClient()
 
 	// Define start date
 	let startDate: Date | null = await fetchLastSyncTime(blockSyncKey)
 	const endDate: Date = new Date()
 
-	if (!startDate) {
+	if (type === 'full' || !startDate) {
 		const firstLogTimestamp = await getFirstLogTimestamp()
 		if (firstLogTimestamp) {
 			startDate = new Date(firstLogTimestamp)
