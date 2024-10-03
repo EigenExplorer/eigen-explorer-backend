@@ -11,6 +11,7 @@ const blockSyncKey = 'lastSyncedBlock_avsOperators'
 const blockSyncKeyLogs = 'lastSyncedBlock_logs_avsOperators'
 
 type AvsOperatorRecord = {
+	operatorId: string
 	status: number
 	createdAtBlock: bigint
 	updatedAtBlock: bigint
@@ -79,6 +80,7 @@ export async function seedAvsOperators(toBlock?: bigint, fromBlock?: bigint) {
 							// AvsOperator has been registered before in this fetch
 							const updatedRecord: AvsOperatorRecord = {
 								status: log.status || 0,
+								operatorId: existingRecord.operatorId,
 								createdAtBlock: existingRecord.createdAtBlock,
 								updatedAtBlock: log.blockNumber,
 								createdAt: existingRecord.createdAt,
@@ -91,6 +93,7 @@ export async function seedAvsOperators(toBlock?: bigint, fromBlock?: bigint) {
 						// createdAt & createdAtBlock will be omitted in upsert if avs<>operator already exists in db
 						const newRecord: AvsOperatorRecord = {
 							status: log.status || 0,
+							operatorId: "",
 							createdAtBlock: log.blockNumber,
 							updatedAtBlock: log.blockNumber,
 							createdAt: log.blockTime,
@@ -114,6 +117,7 @@ export async function seedAvsOperators(toBlock?: bigint, fromBlock?: bigint) {
 		const newAvsOperator: {
 			avsAddress: string
 			operatorAddress: string
+			operatorId: string
 			isActive: boolean
 			createdAtBlock: bigint
 			updatedAtBlock: bigint
@@ -126,6 +130,7 @@ export async function seedAvsOperators(toBlock?: bigint, fromBlock?: bigint) {
 				newAvsOperator.push({
 					operatorAddress,
 					avsAddress,
+					operatorId: record.operatorId,
 					isActive: record.status === 1,
 					createdAtBlock: record.createdAtBlock,
 					updatedAtBlock: record.updatedAtBlock,
@@ -152,6 +157,7 @@ export async function seedAvsOperators(toBlock?: bigint, fromBlock?: bigint) {
 						create: {
 							operatorAddress,
 							avsAddress,
+							operatorId: record.operatorId,
 							isActive: record.status === 1,
 							createdAtBlock: record.createdAtBlock,
 							updatedAtBlock: record.updatedAtBlock,
