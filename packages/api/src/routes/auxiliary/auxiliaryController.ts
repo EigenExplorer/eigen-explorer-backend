@@ -1,7 +1,8 @@
 import { Request, Response } from 'express';
 import { cacheStore } from 'route-cache';
-import { blockSyncKeys } from '../../../../monitor/src/data/blockSyncKeys'
-import {fetchLastSyncBlockInfo} from '../../../../monitor/src/utils/monitoring'
+import { blockSyncKeys } from '../../../../monitor/src/data/blockSyncKeys';
+import { fetchLastSyncBlockInfo } from '../../../../monitor/src/utils/monitoring';
+import { eigenContracts } from '../../data/address/eigenMainnetContracts';
 
 /**
  * Route to fetch cached prices
@@ -16,12 +17,26 @@ export async function getCachedPrices(req: Request, res: Response) {
             24760, 2396
         ];
         const keysStr = CMC_TOKEN_IDS.join(',');
-        
         const cachedPrices = await cacheStore.get(`price_${keysStr}`);
 
-        return cachedPrices 
-            ? res.json(cachedPrices) 
-            : res.status(404).json({ message: 'No cached prices found.' });
+        if (!cachedPrices) {
+            return res.status(404).json({ message: 'No cached prices found.' });
+        }
+
+        const priceData = Object.values(cachedPrices).map((cachedPrice: {
+            symbol: string;
+            strategyAddress: string;
+            eth: number;
+            tokenAddress?: string;
+        }) => {
+            const strategy = eigenContracts.Strategies[cachedPrice.symbol];
+            return {
+                ...cachedPrice,
+                tokenAddress: strategy?.tokenContract || null,
+            };
+        });
+
+        return res.json(priceData);
     } catch (error) {
         return res.status(500).json({ error: 'Error fetching cached prices.' });
     }
