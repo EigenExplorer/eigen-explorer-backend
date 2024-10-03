@@ -3,6 +3,7 @@ import { cacheStore } from 'route-cache';
 import { blockSyncKeys } from '../../../../monitor/src/data/blockSyncKeys';
 import { fetchLastSyncBlockInfo } from '../../../../monitor/src/utils/monitoring';
 import { eigenContracts } from '../../data/address/eigenMainnetContracts';
+import { handleAndReturnErrorResponse } from '../../schema/errors';
 
 /**
  * Route to fetch cached prices
@@ -20,7 +21,7 @@ export async function getCachedPrices(req: Request, res: Response) {
         const cachedPrices = await cacheStore.get(`price_${keysStr}`);
 
         if (!cachedPrices) {
-            return res.status(404).json({ message: 'No cached prices found.' });
+            return res.status(404).send('No cached prices found.');
         }
 
         const priceData = Object.values(cachedPrices).map((cachedPrice: {
@@ -36,9 +37,9 @@ export async function getCachedPrices(req: Request, res: Response) {
             };
         });
 
-        return res.json(priceData);
+        res.status(200).send(priceData);
     } catch (error) {
-        return res.status(500).json({ error: 'Error fetching cached prices.' });
+        handleAndReturnErrorResponse(req, res, error)
     }
 }
 
@@ -65,9 +66,8 @@ export async function getLastSyncBlocks(req: Request, res: Response) {
             })
         );
 
-        return res.json(syncBlockData);
+        res.status(200).send(syncBlockData);
     } catch (error) {
-        console.error('Error fetching sync block info');
-        return res.status(500).json({ error: 'Error fetching sync block information.' });
+        handleAndReturnErrorResponse(req, res, error)
     }
 }
