@@ -1443,7 +1443,7 @@ async function doGetHistoricalTvlRestaking(
 	]
 
 	// Gather the remaining strategies that might not currently be in the strategyData
-	const remainingunitData = await prisma.metricStrategyUnit.findMany({
+	const remainingUnitData = await prisma.metricStrategyUnit.findMany({
 		where: {
 			AND: [
 				{
@@ -1468,7 +1468,7 @@ async function doGetHistoricalTvlRestaking(
 		}
 	})
 
-	unitData = [...unitData, ...remainingunitData]
+	unitData = [...unitData, ...remainingUnitData]
 	strategyAddresses = [
 		...new Set(unitData.map((data) => data.strategyAddress))
 	]
