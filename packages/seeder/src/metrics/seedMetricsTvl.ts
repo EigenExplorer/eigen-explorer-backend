@@ -11,13 +11,13 @@ import { getViemClient } from '../utils/viemClient'
 import { strategyAbi } from '../data/abi/strategy'
 import { getEigenContracts } from '../data/address'
 
-const blockSyncKey = 'lastSyncedTimestamp_metrics_tvlHourly'
+const blockSyncKey = 'lastSyncedTimestamp_metrics_tvl'
 const BATCH_DAYS = 30
 
-type ILastStrategyMetric = Omit<prisma.MetricStrategyHourly, 'id'>
+type ILastStrategyMetric = Omit<prisma.MetricStrategyUnit, 'id'>
 type ILastStrategyMetrics = IMap<string, ILastStrategyMetric>
 
-export async function seedMetricsTvlHourly() {
+export async function seedMetricsTvl() {
 	const prismaClient = getPrismaClient()
 
 	// Define start date
@@ -39,7 +39,7 @@ export async function seedMetricsTvlHourly() {
 
 	console.log('[Prep] Metric TVL ...')
 
-	const hourlyMetrics = await processLogsInBatches(
+	const metrics = await processLogsInBatches(
 		startDate,
 		endDate,
 		sharesToUnderlyingMap,
@@ -47,8 +47,8 @@ export async function seedMetricsTvlHourly() {
 	)
 
 	const dbTransactions = [
-		prismaClient.metricStrategyHourly.createMany({
-			data: hourlyMetrics,
+		prismaClient.metricStrategyUnit.createMany({
+			data: metrics,
 			skipDuplicates: true
 		}),
 
@@ -62,7 +62,7 @@ export async function seedMetricsTvlHourly() {
 	await bulkUpdateDbTransactions(
 		dbTransactions,
 		`[Data] Metric TVL from: ${startDate.toISOString()} to: ${endDate.toISOString()} size: ${
-			hourlyMetrics.length
+			metrics.length
 		}`
 	)
 }
@@ -73,7 +73,7 @@ async function processLogsInBatches(
 	sharesToUnderlyingMap: Map<string, bigint>,
 	lastStrategyMetrics: ILastStrategyMetrics
 ) {
-	let hourlyMetrics: ILastStrategyMetric[] = []
+	let metrics: ILastStrategyMetric[] = []
 
 	for (
 		let currentDate = setToStartOfDay(startDate);
@@ -94,33 +94,33 @@ async function processLogsInBatches(
 		await loopThroughDates(
 			currentDate,
 			batchEndDate,
-			async (fromHour, toHour) => {
-				const hourlyTvlRecords = await hourlyLoopTick(
-					fromHour,
-					toHour,
+			async (fromDate, toDate) => {
+				const tvlRecords = await loopTick(
+					fromDate,
+					toDate,
 					blockNumbers,
 					sharesToUnderlyingMap,
 					lastStrategyMetrics
 				)
 
-				hourlyMetrics = [...hourlyMetrics, ...hourlyTvlRecords]
+				metrics = [...metrics, ...tvlRecords]
 			},
 			'daily'
 		)
 
 		console.log(
 			`[Batch] Metric TVL from: ${currentDate.toISOString()} to: ${batchEndDate.toISOString()} count: ${
-				hourlyMetrics.length
+				metrics.length
 			}`
 		)
 	}
 
-	return hourlyMetrics
+	return metrics
 }
 
-async function hourlyLoopTick(
-	fromHour: Date,
-	toHour: Date,
+async function loopTick(
+	fromDate: Date,
+	toDate: Date,
 	blockNumbers: { number: bigint; timestamp: Date }[],
 	sharesToUnderlyingMap: Map<string, bigint>,
 	lastStrategyMetrics: ILastStrategyMetrics
@@ -130,7 +130,7 @@ async function hourlyLoopTick(
 
 	// Get current block number
 	const blockNumbersInRange = blockNumbers.filter(
-		(n) => n.timestamp > fromHour && n.timestamp <= toHour
+		(n) => n.timestamp > fromDate && n.timestamp <= toDate
 	)
 	const currentBlockNumber = blockNumbersInRange[blockNumbersInRange.length - 1]
 
@@ -159,7 +159,7 @@ async function hourlyLoopTick(
 			strategyAddress,
 			tvl: new prisma.Prisma.Decimal(0),
 			changeTvl: new prisma.Prisma.Decimal(0),
-			timestamp: toHour
+			timestamp: toDate
 		}
 
 		const foundStrategyIndex = results.findIndex(
@@ -186,7 +186,7 @@ async function hourlyLoopTick(
 				...lastMetric,
 				tvl: new prisma.Prisma.Decimal(tvl),
 				changeTvl: new prisma.Prisma.Decimal(changeTvl),
-				timestamp: toHour
+				timestamp: toDate
 			}
 
 			lastStrategyMetrics.set(strategyAddress, newStrategyMetric)
@@ -245,19 +245,19 @@ async function getLatestMetricsPerStrategy(): Promise<ILastStrategyMetrics> {
 
 	try {
 		const lastMetricsPerStrategy =
-			await prismaClient.metricStrategyHourly.groupBy({
+			await prismaClient.metricStrategyUnit.groupBy({
 				by: ['strategyAddress'],
 				_max: {
 					timestamp: true
 				}
 			})
 
-		const metrics = await prismaClient.metricStrategyHourly.findMany({
+		const metrics = await prismaClient.metricStrategyUnit.findMany({
 			where: {
 				OR: lastMetricsPerStrategy.map((metric) => ({
 					strategyAddress: metric.strategyAddress,
 					timestamp: metric._max.timestamp
-				})) as prisma.Prisma.MetricStrategyHourlyWhereInput[]
+				})) as prisma.Prisma.MetricStrategyUnitWhereInput[]
 			},
 			orderBy: {
 				strategyAddress: 'asc'

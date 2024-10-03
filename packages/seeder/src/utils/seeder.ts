@@ -51,7 +51,7 @@ export async function loopThroughDates(
 	endDate: Date,
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	cb: (from: Date, to: Date) => Promise<any>,
-	frequency: 'hourly' | 'daily' = 'hourly'
+	frequency: 'hourly' | 'daily' = 'daily'
 ) {
 
 	let currentDate = frequency === 'hourly' ? setToStartOfHour(startDate) : setToStartOfDay(startDate)

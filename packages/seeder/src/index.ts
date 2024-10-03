@@ -24,14 +24,14 @@ import { seedDeposits } from './seedDeposits'
 import { seedLogsPodSharesUpdated } from './events/seedLogsPodSharesUpdated'
 import { monitorAvsMetadata } from './monitors/avsMetadata'
 import { monitorOperatorMetadata } from './monitors/operatorMetadata'
-import { seedMetricsDepositHourly } from './metrics/seedMetricsDeposit'
-import { seedMetricsWithdrawalHourly } from './metrics/seedMetricsWithdrawal'
-import { seedMetricsRestakingHourly } from './metrics/seedMetricsRestaking'
+import { seedMetricsDeposit } from './metrics/seedMetricsDeposit'
+import { seedMetricsWithdrawal } from './metrics/seedMetricsWithdrawal'
+import { seedMetricsRestaking } from './metrics/seedMetricsRestaking'
 import { seedStrategies } from './seedStrategies'
 import { seedRestakedStrategies } from './seedAvsRestakedStrategies'
 import { seedEthPricesDaily } from './seedEthPricesDaily'
-import { seedMetricsEigenPodsHourly } from './metrics/seedMetricsEigenPods'
-import { seedMetricsTvlHourly } from './metrics/seedMetricsTvl'
+import { seedMetricsEigenPods } from './metrics/seedMetricsEigenPods'
+import { seedMetricsTvl } from './metrics/seedMetricsTvl'
 import { monitorAvsMetrics } from './monitors/avsMetrics'
 import { monitorOperatorMetrics } from './monitors/operatorMetrics'
 
@@ -100,11 +100,11 @@ async function seedEigenDailyData() {
 			await seedEthPricesDaily()
 			await seedRestakedStrategies()
 
-			await seedMetricsDepositHourly()
-			await seedMetricsWithdrawalHourly()
-			await seedMetricsRestakingHourly()
-			await seedMetricsEigenPodsHourly()
-			await seedMetricsTvlHourly()
+			await seedMetricsDeposit()
+			await seedMetricsWithdrawal()
+			await seedMetricsRestaking()
+			await seedMetricsEigenPods()
+			await seedMetricsTvl()
 		} catch (error) {
 			console.log('Failed to seed metrics data at:', Date.now())
 			console.log(error)

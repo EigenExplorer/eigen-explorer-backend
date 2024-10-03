@@ -9,17 +9,17 @@ import {
 } from '../utils/seeder'
 import { chunkArray } from '../utils/array'
 
-const blockSyncKey = 'lastSyncedTimestamp_metrics_restakingHourly'
+const blockSyncKey = 'lastSyncedTimestamp_metrics_restaking'
 const BATCH_DAYS = 30
 
 // Define the type for our log entries
-type ILastOperatorMetric = Omit<prisma.MetricOperatorHourly, 'id'>
-type ILastAvsMetric = Omit<prisma.MetricAvsHourly, 'id'>
+type ILastOperatorMetric = Omit<prisma.MetricOperatorUnit, 'id'>
+type ILastAvsMetric = Omit<prisma.MetricAvsUnit, 'id'>
 type ILastOperatorStrategyMetric = Omit<
-	prisma.MetricOperatorStrategyHourly,
+	prisma.MetricOperatorStrategyUnit,
 	'id'
 >
-type ILastAvsStrategyMetric = Omit<prisma.MetricAvsStrategyHourly, 'id'>
+type ILastAvsStrategyMetric = Omit<prisma.MetricAvsStrategyUnit, 'id'>
 type ILastOperatorMetrics = IMap<string, ILastOperatorMetric>
 type ILastAvsMetrics = IMap<string, ILastAvsMetric>
 type ILastOperatorStrategyMetrics = IMap<
@@ -44,7 +44,7 @@ type LogEntry = {
 	status: number
 }
 
-export async function seedMetricsRestakingHourly() {
+export async function seedMetricsRestaking() {
 	const prismaClient = getPrismaClient()
 
 	// Define start date
@@ -83,10 +83,10 @@ export async function seedMetricsRestakingHourly() {
 
 	// Process logs in batches
 	const [
-		hourlyOperatorMetrics,
-		hourlyOperatorStrategyMetrics,
-		hourlyAvsMetrics,
-		hourlyAvsStrategyMetrics
+		operatorMetrics,
+		operatorStrategyMetrics,
+		avsMetrics,
+		avsStrategyMetrics
 	] = await processLogsInBatches(
 		startDate,
 		endDate,
@@ -100,29 +100,29 @@ export async function seedMetricsRestakingHourly() {
 
 	// Update data
 	const dbTransactions = [
-		...chunkArray(hourlyOperatorMetrics, 10000).map((data) =>
-			prismaClient.metricOperatorHourly.createMany({
+		...chunkArray(operatorMetrics, 10000).map((data) =>
+			prismaClient.metricOperatorUnit.createMany({
 				data,
 				skipDuplicates: true
 			})
 		),
 
-		...chunkArray(hourlyOperatorStrategyMetrics, 10000).map((data) =>
-			prismaClient.metricOperatorStrategyHourly.createMany({
+		...chunkArray(operatorStrategyMetrics, 10000).map((data) =>
+			prismaClient.metricOperatorStrategyUnit.createMany({
 				data,
 				skipDuplicates: true
 			})
 		),
 
-		...chunkArray(hourlyAvsMetrics, 10000).map((data) =>
-			prismaClient.metricAvsHourly.createMany({
+		...chunkArray(avsMetrics, 10000).map((data) =>
+			prismaClient.metricAvsUnit.createMany({
 				data,
 				skipDuplicates: true
 			})
 		),
 
-		...chunkArray(hourlyAvsStrategyMetrics, 10000).map((data) =>
-			prismaClient.metricAvsStrategyHourly.createMany({
+		...chunkArray(avsStrategyMetrics, 10000).map((data) =>
+			prismaClient.metricAvsStrategyUnit.createMany({
 				data,
 				skipDuplicates: true
 			})
@@ -138,7 +138,7 @@ export async function seedMetricsRestakingHourly() {
 	await bulkUpdateDbTransactions(
 		dbTransactions,
 		`[Metrics] Metric Restaking from: ${startDate.toISOString()} to: ${endDate.toISOString()} size: ${
-			hourlyOperatorMetrics.length
+			operatorMetrics.length
 		}`
 	)
 }
@@ -171,10 +171,10 @@ async function processLogsInBatches(
 		ILastAvsStrategyMetric[]
 	]
 > {
-	const hourlyOperatorMetrics: ILastOperatorMetric[] = []
-	const hourlyOperatorStrategyMetrics: ILastOperatorStrategyMetric[] = []
-	const hourlyAvsMetrics: ILastAvsMetric[] = []
-	const hourlyAvsStrategyMetrics: ILastAvsStrategyMetric[] = []
+	const operatorMetrics: ILastOperatorMetric[] = []
+	const operatorStrategyMetrics: ILastOperatorStrategyMetric[] = []
+	const avsMetrics: ILastAvsMetric[] = []
+	const avsStrategyMetrics: ILastAvsStrategyMetric[] = []
 	const sharesToUnderlyingMap = new Map(
 		sharesToUnderlyingList.map((s) => [s.address, BigInt(s.sharesToUnderlying)])
 	)
@@ -200,11 +200,11 @@ async function processLogsInBatches(
 			batchEndDate,
 			async (fromHour, toHour) => {
 				const [
-					hourlyOperatorTvlRecords,
-					hourlyOperatorStrategyRecords,
-					hourlyAvsTvlRecords,
-					hourlyAvsStrategyRecords
-				] = await hourlyLoopTick(
+					operatorTvlRecords,
+					operatorStrategyRecords,
+					avsTvlRecords,
+					avsStrategyRecords
+				] = await loopTick(
 					fromHour,
 					toHour,
 					batchLogs,
@@ -216,31 +216,31 @@ async function processLogsInBatches(
 					avsOperatorsState
 				)
 
-				hourlyOperatorMetrics.push(...hourlyOperatorTvlRecords)
-				hourlyOperatorStrategyMetrics.push(...hourlyOperatorStrategyRecords)
-				hourlyAvsMetrics.push(...hourlyAvsTvlRecords)
-				hourlyAvsStrategyMetrics.push(...hourlyAvsStrategyRecords)
+				operatorMetrics.push(...operatorTvlRecords)
+				operatorStrategyMetrics.push(...operatorStrategyRecords)
+				avsMetrics.push(...avsTvlRecords)
+				avsStrategyMetrics.push(...avsStrategyRecords)
 			},
 			'daily'
 		)
 
 		console.log(
 			`[Batch] Metric Restaking from: ${currentDate.toISOString()} to: ${batchEndDate.toISOString()} count: ${
-				hourlyOperatorMetrics.length
+				operatorMetrics.length
 			}`
 		)
 	}
 
 	return [
-		hourlyOperatorMetrics,
-		hourlyOperatorStrategyMetrics,
-		hourlyAvsMetrics,
-		hourlyAvsStrategyMetrics
+		operatorMetrics,
+		operatorStrategyMetrics,
+		avsMetrics,
+		avsStrategyMetrics
 	]
 }
 
 /**
- * Function to record hourly tvl data
+ * Loop through each tick
  *
  * @param fromHour
  * @param toHour
@@ -251,9 +251,9 @@ async function processLogsInBatches(
  * @param sharesToUnderlyingMap
  * @returns
  */
-async function hourlyLoopTick(
-	fromHour: Date,
-	toHour: Date,
+async function loopTick(
+	fromDate: Date,
+	toDate: Date,
 	orderedLogs: LogEntry[],
 	lastOperatorMetrics: ILastOperatorMetrics,
 	lastOperatorStrategyMetrics: ILastOperatorStrategyMetrics,
@@ -279,12 +279,12 @@ async function hourlyLoopTick(
 	const operatorStrategyTvlRecords: ILastOperatorStrategyMetric[] = []
 	const avsStrategyTvlRecords: ILastAvsStrategyMetric[] = []
 
-	// Filter hourly logs
-	const hourlyLogs = orderedLogs.filter(
-		(ol) => ol.blockTime > fromHour && ol.blockTime <= toHour
+	// Filter logs
+	const logs = orderedLogs.filter(
+		(ol) => ol.blockTime > fromDate && ol.blockTime <= toDate
 	)
 
-	for (const ol of hourlyLogs) {
+	for (const ol of logs) {
 		const operatorAddress = ol.operator.toLowerCase()
 		operatorAddresses.add(operatorAddress)
 
@@ -347,7 +347,7 @@ async function hourlyLoopTick(
 			changeStakers: 0,
 			totalAvs: 0,
 			changeAvs: 0,
-			timestamp: toHour
+			timestamp: toDate
 		}
 
 		// Update Staker and Avs Change
@@ -367,7 +367,7 @@ async function hourlyLoopTick(
 				changeStakers,
 				totalAvs,
 				changeAvs,
-				timestamp: toHour
+				timestamp: toDate
 			}
 
 			lastOperatorMetrics.set(operatorAddress, newOperatorMetric)
@@ -397,7 +397,7 @@ async function hourlyLoopTick(
 				strategyAddress,
 				tvl: new prisma.Prisma.Decimal(0),
 				changeTvl: new prisma.Prisma.Decimal(0),
-				timestamp: toHour
+				timestamp: toDate
 			}
 
 			const newOperatorStrategyMetric = {
@@ -406,7 +406,7 @@ async function hourlyLoopTick(
 					Number(lastOperatorStrategyMetric.tvl) + changeTvl
 				),
 				changeTvl: new prisma.Prisma.Decimal(changeTvl),
-				timestamp: toHour
+				timestamp: toDate
 			}
 
 			lastOperatorStrategyMetrics
@@ -458,7 +458,7 @@ async function hourlyLoopTick(
 			changeStakers: 0,
 			totalOperators: 0,
 			changeOperators: 0,
-			timestamp: toHour
+			timestamp: toDate
 		}
 
 		if (
@@ -471,7 +471,7 @@ async function hourlyLoopTick(
 				changeStakers: totalStakers - lastMetric.totalStakers,
 				totalOperators,
 				changeOperators: totalOperators - lastMetric.totalOperators,
-				timestamp: toHour
+				timestamp: toDate
 			}
 
 			lastAvsMetrics.set(avsAddress, newAvsMetric)
@@ -490,7 +490,7 @@ async function hourlyLoopTick(
 				strategyAddress,
 				tvl: new prisma.Prisma.Decimal(0),
 				changeTvl: new prisma.Prisma.Decimal(0),
-				timestamp: toHour
+				timestamp: toDate
 			}
 
 			if (Number(lastAvsStrategyMetric.tvl) !== tvl) {
@@ -500,7 +500,7 @@ async function hourlyLoopTick(
 					changeTvl: new prisma.Prisma.Decimal(tvl).minus(
 						lastAvsStrategyMetric.tvl
 					),
-					timestamp: toHour
+					timestamp: toDate
 				}
 
 				lastAvsStrategyMetrics
@@ -627,19 +627,19 @@ async function getLatestMetricsPerAvs(): Promise<ILastAvsMetrics> {
 	const prismaClient = getPrismaClient()
 
 	try {
-		const lastMetricsPerAvs = await prismaClient.metricAvsHourly.groupBy({
+		const lastMetricsPerAvs = await prismaClient.metricAvsUnit.groupBy({
 			by: ['avsAddress'],
 			_max: {
 				timestamp: true
 			}
 		})
 
-		const metrics = await prismaClient.metricAvsHourly.findMany({
+		const metrics = await prismaClient.metricAvsUnit.findMany({
 			where: {
 				OR: lastMetricsPerAvs.map((metric) => ({
 					avsAddress: metric.avsAddress,
 					timestamp: metric._max.timestamp
-				})) as prisma.Prisma.MetricAvsHourlyWhereInput[]
+				})) as prisma.Prisma.MetricAvsUnitWhereInput[]
 			},
 			orderBy: {
 				avsAddress: 'asc'
@@ -665,20 +665,20 @@ async function getLatestMetricsPerAvsStrategy(): Promise<ILastAvsStrategyMetrics
 
 	try {
 		const lastMetricsPerAvsStrategy =
-			await prismaClient.metricAvsStrategyHourly.groupBy({
+			await prismaClient.metricAvsStrategyUnit.groupBy({
 				by: ['avsAddress', 'strategyAddress'],
 				_max: {
 					timestamp: true
 				}
 			})
 
-		const metrics = await prismaClient.metricAvsStrategyHourly.findMany({
+		const metrics = await prismaClient.metricAvsStrategyUnit.findMany({
 			where: {
 				OR: lastMetricsPerAvsStrategy.map((metric) => ({
 					avsAddress: metric.avsAddress,
 					strategyAddress: metric.strategyAddress,
 					timestamp: metric._max.timestamp
-				})) as prisma.Prisma.MetricAvsStrategyHourlyWhereInput[]
+				})) as prisma.Prisma.MetricAvsStrategyUnitWhereInput[]
 			},
 			orderBy: {
 				avsAddress: 'asc'
@@ -719,19 +719,19 @@ async function getLatestMetricsPerOperator(): Promise<ILastOperatorMetrics> {
 
 	try {
 		const lastMetricsPerOperator =
-			await prismaClient.metricOperatorHourly.groupBy({
+			await prismaClient.metricOperatorUnit.groupBy({
 				by: ['operatorAddress'],
 				_max: {
 					timestamp: true
 				}
 			})
 
-		const metrics = await prismaClient.metricOperatorHourly.findMany({
+		const metrics = await prismaClient.metricOperatorUnit.findMany({
 			where: {
 				OR: lastMetricsPerOperator.map((metric) => ({
 					operatorAddress: metric.operatorAddress,
 					timestamp: metric._max.timestamp
-				})) as prisma.Prisma.MetricOperatorHourlyWhereInput[]
+				})) as prisma.Prisma.MetricOperatorUnitWhereInput[]
 			},
 			orderBy: {
 				operatorAddress: 'asc'
@@ -757,20 +757,20 @@ async function getLatestMetricsPerOperatorStrategy(): Promise<ILastOperatorStrat
 
 	try {
 		const lastMetricsPerOperatorStrategy =
-			await prismaClient.metricOperatorStrategyHourly.groupBy({
+			await prismaClient.metricOperatorStrategyUnit.groupBy({
 				by: ['operatorAddress', 'strategyAddress'],
 				_max: {
 					timestamp: true
 				}
 			})
 
-		const metrics = await prismaClient.metricOperatorStrategyHourly.findMany({
+		const metrics = await prismaClient.metricOperatorStrategyUnit.findMany({
 			where: {
 				OR: lastMetricsPerOperatorStrategy.map((metric) => ({
 					operatorAddress: metric.operatorAddress,
 					strategyAddress: metric.strategyAddress,
 					timestamp: metric._max.timestamp
-				})) as prisma.Prisma.MetricOperatorStrategyHourlyWhereInput[]
+				})) as prisma.Prisma.MetricOperatorStrategyUnitWhereInput[]
 			},
 			orderBy: {
 				operatorAddress: 'asc'

@@ -11,11 +11,11 @@ import {
 	saveLastSyncBlock
 } from '../utils/seeder'
 
-const timeSyncKey = 'lastSyncedTime_metrics_depositHourly'
+const timeSyncKey = 'lastSyncedTime_metrics_deposit'
 
-export async function seedMetricsDepositHourly() {
+export async function seedMetricsDeposit() {
 	const prismaClient = getPrismaClient()
-	const depositHourlyList: Omit<prisma.MetricDepositHourly, 'id'>[] = []
+	const depositList: Omit<prisma.MetricDepositUnit, 'id'>[] = []
 	let clearPrev = false
 
 	// Get appropriate startAt
@@ -46,7 +46,7 @@ export async function seedMetricsDepositHourly() {
 
 	// Get latest values of cumulative fields
 	let { tvlEth: tvlEthDecimal, totalDeposits } =
-		(await prismaClient.metricDepositHourly.findFirst({
+		(await prismaClient.metricDepositUnit.findFirst({
 			select: {
 				tvlEth: true,
 				totalDeposits: true
@@ -86,7 +86,7 @@ export async function seedMetricsDepositHourly() {
 			tvlEth += changeTvlEth
 			totalDeposits += changeDeposits
 
-			depositHourlyList.push({
+			depositList.push({
 				timestamp: new Date(currentTimestamp),
 				tvlEth: new prisma.Prisma.Decimal(tvlEth),
 				totalDeposits,
@@ -125,7 +125,7 @@ export async function seedMetricsDepositHourly() {
 		tvlEth += changeTvlEth
 		totalDeposits += changeDeposits
 
-		depositHourlyList.push({
+		depositList.push({
 			timestamp: new Date(currentTimestamp),
 			tvlEth: new prisma.Prisma.Decimal(tvlEth),
 			totalDeposits,
@@ -138,13 +138,13 @@ export async function seedMetricsDepositHourly() {
 	const dbTransactions: any[] = []
 
 	if (clearPrev) {
-		dbTransactions.push(prismaClient.metricDepositHourly.deleteMany())
+		dbTransactions.push(prismaClient.metricDepositUnit.deleteMany())
 	}
 
-	if (depositHourlyList.length > 0) {
+	if (depositList.length > 0) {
 		dbTransactions.push(
-			prismaClient.metricDepositHourly.createMany({
-				data: depositHourlyList,
+			prismaClient.metricDepositUnit.createMany({
+				data: depositList,
 				skipDuplicates: true
 			})
 		)
@@ -152,7 +152,7 @@ export async function seedMetricsDepositHourly() {
 
 	await bulkUpdateDbTransactions(
 		dbTransactions,
-		`[Metrics] Deposit Hourly from: ${startAt} to: ${endAt} size: ${depositHourlyList.length}`
+		`[Metrics] Deposit Hourly from: ${startAt} to: ${endAt} size: ${depositList.length}`
 	)
 
 	// Storing last synced block
