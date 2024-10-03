@@ -17,7 +17,7 @@ const BATCH_DAYS = 30
 type ILastStrategyMetric = Omit<prisma.MetricStrategyUnit, 'id'>
 type ILastStrategyMetrics = IMap<string, ILastStrategyMetric>
 
-export async function seedMetricsTvl(type: 'full' | 'incremental') {
+export async function seedMetricsTvl(type: 'full' | 'incremental' = 'incremental') {
 	const prismaClient = getPrismaClient()
 
 	// Define start date

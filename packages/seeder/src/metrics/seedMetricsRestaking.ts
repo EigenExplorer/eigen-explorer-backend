@@ -44,7 +44,7 @@ type LogEntry = {
 	status: number
 }
 
-export async function seedMetricsRestaking(type: 'full' | 'incremental') {
+export async function seedMetricsRestaking(type: 'full' | 'incremental' = 'incremental') {
 	const prismaClient = getPrismaClient()
 
 	// Define start date

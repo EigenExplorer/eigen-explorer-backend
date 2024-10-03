@@ -21,7 +21,7 @@ type LogEntry = {
 	type: string
 }
 
-export async function seedMetricsEigenPods(type: 'full' | 'incremental') {
+export async function seedMetricsEigenPods(type: 'full' | 'incremental' = 'incremental') {
 	const prismaClient = getPrismaClient()
 
 	// Define start date
