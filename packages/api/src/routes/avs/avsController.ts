@@ -12,7 +12,7 @@ import { WithCuratedMetadata } from '../../schema/zod/schemas/withCuratedMetadat
 import { UpdatedSinceQuerySchema } from '../../schema/zod/schemas/updatedSinceQuery'
 import { SortByQuerySchema } from '../../schema/zod/schemas/sortByQuery'
 import { SearchByTextQuerySchema } from '../../schema/zod/schemas/searchByTextQuery'
-import { RewardsQuerySchema } from '../../schema/zod/schemas/rewardsQuery'
+import { WithRewardsQuerySchema } from '../../schema/zod/schemas/withRewardsQuery'
 import { getOperatorSearchQuery } from '../operators/operatorController'
 import { handleAndReturnErrorResponse } from '../../schema/errors'
 import {
@@ -253,7 +253,7 @@ export async function getAllAVSAddresses(req: Request, res: Response) {
 export async function getAVS(req: Request, res: Response) {
 	// Validate query and params
 	const queryCheck = WithTvlQuerySchema.and(WithCuratedMetadata)
-		.and(RewardsQuerySchema)
+		.and(WithRewardsQuerySchema)
 		.safeParse(req.query)
 	if (!queryCheck.success) {
 		return handleAndReturnErrorResponse(req, res, queryCheck.error)
@@ -266,13 +266,13 @@ export async function getAVS(req: Request, res: Response) {
 
 	try {
 		const { address } = req.params
-		const { withTvl, withCuratedMetadata, apy } = queryCheck.data
+		const { withTvl, withCuratedMetadata, withRewards } = queryCheck.data
 
 		const avs = await prisma.avs.findUniqueOrThrow({
 			where: { address: address.toLowerCase(), ...getAvsFilterQuery() },
 			include: {
 				curatedMetadata: withCuratedMetadata,
-				rewardSubmissions: apy,
+				rewardSubmissions: withRewards,
 				operators: {
 					where: { isActive: true },
 					include: {
@@ -310,7 +310,7 @@ export async function getAVS(req: Request, res: Response) {
 						strategyTokenPrices
 				  )
 				: undefined,
-			rewards: apy ? await calculateAvsApy(avs) : undefined,
+			rewards: withRewards ? await calculateAvsApy(avs) : undefined,
 			operators: undefined,
 			metadataUrl: undefined,
 			isMetadataSynced: undefined,
@@ -612,23 +612,23 @@ export async function getAVSRewards(req: Request, res: Response) {
 		)
 
 		const result: {
-			avsAddress: string
+			address: string
 			submissions: Submission[]
 			totalRewards: number
 			totalSubmissions: number
 			rewardTokens: string[]
-			strategiesRewarded: string[]
+			rewardStrategies: string[]
 		} = {
-			avsAddress: address,
+			address,
 			submissions: [],
 			totalRewards: 0,
 			totalSubmissions: 0,
 			rewardTokens: [],
-			strategiesRewarded: []
+			rewardStrategies: []
 		}
 
 		const rewardTokens: string[] = []
-		const strategiesRewarded: string[] = []
+		const rewardStrategies: string[] = []
 		let currentSubmission: Submission | null = null
 		let currentTotalAmount = new Prisma.Prisma.Decimal(0)
 		let currentTotalAmountEth = new Prisma.Prisma.Decimal(0)
@@ -669,8 +669,8 @@ export async function getAVSRewards(req: Request, res: Response) {
 			if (!rewardTokens.includes(rewardTokenAddress))
 				rewardTokens.push(rewardTokenAddress)
 
-			if (!strategiesRewarded.includes(strategyAddress))
-				strategiesRewarded.push(strategyAddress)
+			if (!rewardStrategies.includes(strategyAddress))
+				rewardStrategies.push(strategyAddress)
 
 			// Normalize reward amount to its ETH price
 			if (tokenStrategyAddress) {
@@ -717,7 +717,7 @@ export async function getAVSRewards(req: Request, res: Response) {
 		}
 
 		result.rewardTokens = rewardTokens
-		result.strategiesRewarded = strategiesRewarded
+		result.rewardStrategies = rewardStrategies
 
 		res.send(result)
 	} catch (error) {

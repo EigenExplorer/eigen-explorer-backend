@@ -1,7 +1,7 @@
 import z from '..'
 
-export const RewardsQuerySchema = z.object({
-	apy: z
+export const WithRewardsQuerySchema = z.object({
+	withRewards: z
 		.enum(['true', 'false'])
 		.default('false')
 		.describe(

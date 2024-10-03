@@ -9,7 +9,7 @@ import { WithTvlQuerySchema } from '../../schema/zod/schemas/withTvlQuery'
 import { WithAdditionalDataQuerySchema } from '../../schema/zod/schemas/withAdditionalDataQuery'
 import { SortByQuerySchema } from '../../schema/zod/schemas/sortByQuery'
 import { SearchByTextQuerySchema } from '../../schema/zod/schemas/searchByTextQuery'
-import { RewardsQuerySchema } from '../../schema/zod/schemas/rewardsQuery'
+import { WithRewardsQuerySchema } from '../../schema/zod/schemas/withRewardsQuery'
 import { handleAndReturnErrorResponse } from '../../schema/errors'
 import {
 	fetchRewardTokenPrices,
@@ -144,7 +144,7 @@ export async function getAllOperators(req: Request, res: Response) {
 export async function getOperator(req: Request, res: Response) {
 	// Validate pagination query
 	const result = WithTvlQuerySchema.and(WithAdditionalDataQuerySchema)
-		.and(RewardsQuerySchema)
+		.and(WithRewardsQuerySchema)
 		.safeParse(req.query)
 	if (!result.success) {
 		return handleAndReturnErrorResponse(req, res, result.error)
@@ -155,7 +155,7 @@ export async function getOperator(req: Request, res: Response) {
 		return handleAndReturnErrorResponse(req, res, paramCheck.error)
 	}
 
-	const { withTvl, withAvsData, apy } = result.data
+	const { withTvl, withAvsData, withRewards } = result.data
 
 	try {
 		const { address } = req.params
@@ -167,7 +167,7 @@ export async function getOperator(req: Request, res: Response) {
 					select: {
 						avsAddress: true,
 						isActive: true,
-						...(withAvsData || apy
+						...(withAvsData || withRewards
 							? {
 									avs: {
 										select: {
@@ -192,7 +192,7 @@ export async function getOperator(req: Request, res: Response) {
 														updatedAt: true
 												  }
 												: {}),
-											...(apy
+											...(withRewards
 												? {
 														address: true,
 														rewardSubmissions: true,
@@ -242,7 +242,7 @@ export async function getOperator(req: Request, res: Response) {
 						strategyTokenPrices
 				  )
 				: undefined,
-			rewards: apy ? await calculateOperatorApy(operator) : undefined,
+			rewards: withRewards ? await calculateOperatorApy(operator) : undefined,
 			stakers: undefined,
 			metadataUrl: undefined,
 			isMetadataSynced: undefined,
@@ -364,11 +364,11 @@ export async function getOperatorRewards(req: Request, res: Response) {
 		}
 
 		const result: {
-			operatorAddress: string
+			address: string
 			rewardTokens: Set<string>
 			strategiesRewarded: Set<string>
 		} = {
-			operatorAddress: address,
+			address,
 			rewardTokens: new Set<string>(),
 			strategiesRewarded: new Set<string>()
 		}
@@ -399,7 +399,7 @@ export async function getOperatorRewards(req: Request, res: Response) {
 		}
 
 		res.send({
-			operatorAddress: result.operatorAddress,
+			address: result.address,
 			rewardTokens: Array.from(result.rewardTokens),
 			strategiesRewarded: Array.from(result.strategiesRewarded)
 		})
