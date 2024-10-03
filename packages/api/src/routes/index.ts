@@ -6,6 +6,7 @@ import stakerRoutes from './stakers/stakerRoutes'
 import metricRoutes from './metrics/metricRoutes'
 import withdrawalRoutes from './withdrawals/withdrawalRoutes'
 import depositRoutes from './deposits/depositRoutes'
+import auxiliaryRoutes from './auxiliary/auxiliaryRoutes'
 
 const apiRouter = express.Router()
 
@@ -25,5 +26,6 @@ apiRouter.use('/stakers', stakerRoutes)
 apiRouter.use('/metrics', metricRoutes)
 apiRouter.use('/withdrawals', withdrawalRoutes)
 apiRouter.use('/deposits', depositRoutes)
+apiRouter.use('/aux', auxiliaryRoutes)
 
 export default apiRouter
