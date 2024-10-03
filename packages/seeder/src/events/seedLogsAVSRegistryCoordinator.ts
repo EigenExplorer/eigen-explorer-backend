@@ -70,43 +70,43 @@ export async function seedLogsAVSRegistryCoordinator(
 						const log = logs[l];
 			
 						if (log.eventName == "OperatorRegistered") {
-						  logsOperatorRegistered.push({
-							address: log.address,
-							transactionHash: log.transactionHash,
-							transactionIndex: log.logIndex,
-							blockNumber: BigInt(log.blockNumber),
-							blockHash: log.blockHash,
-							blockTime: blockData.get(log.blockNumber) || new Date(0),
-							operator: String(log.args.operator),
-							operatorId: String(log.args.operatorId)
-						  });
+							logsOperatorRegistered.push({
+								address: log.address,
+								transactionHash: log.transactionHash,
+								transactionIndex: log.logIndex,
+								blockNumber: BigInt(log.blockNumber),
+								blockHash: log.blockHash,
+								blockTime: blockData.get(log.blockNumber) || new Date(0),
+								operator: String(log.args.operator),
+								operatorId: String(log.args.operatorId)
+							})
 						} else if (log.eventName == "OperatorDeregistered") {
-						  logsOperatorDeregistered.push({
-							address: log.address,
-							transactionHash: log.transactionHash,
-							transactionIndex: log.logIndex,
-							blockNumber: BigInt(log.blockNumber),
-							blockHash: log.blockHash,
-							blockTime: blockData.get(log.blockNumber) || new Date(0),
-							operator: String(log.args.operator),
-							operatorId: String(log.args.operatorId)
-						  });
+								logsOperatorDeregistered.push({
+								address: log.address,
+								transactionHash: log.transactionHash,
+								transactionIndex: log.logIndex,
+								blockNumber: BigInt(log.blockNumber),
+								blockHash: log.blockHash,
+								blockTime: blockData.get(log.blockNumber) || new Date(0),
+								operator: String(log.args.operator),
+								operatorId: String(log.args.operatorId)
+							})
 						}
-					  }
+					}
 			
-					  dbTransactions.push(
+					dbTransactions.push(
 						prismaClient.eventLogs_OperatorRegistered.createMany({
-						  data: logsOperatorRegistered,
-						  skipDuplicates: true,
+							data: logsOperatorRegistered,
+							skipDuplicates: true,
 						})
-					  );
-			
-					  dbTransactions.push(
+					)
+		
+					dbTransactions.push(
 						prismaClient.eventLogs_OperatorDeregistered.createMany({
-						  data: logsOperatorDeregistered,
-						  skipDuplicates: true,
+							data: logsOperatorDeregistered,
+							skipDuplicates: true,
 						})
-					  );
+					)
 
 					// Store last synced block
 					dbTransactions.push(

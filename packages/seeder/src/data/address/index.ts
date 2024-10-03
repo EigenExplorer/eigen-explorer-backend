@@ -28,6 +28,8 @@ export interface EigenContractAddress {
 	StrategyManager: `0x${string}`
 	EigenPodManager: `0x${string}`
 	RewardsCoordinator: `0x${string}`
+	RegistryCoordinator: `0x${string}`
+	StakeRegistry: `0x${string}`
 
 	Strategies: EigenStrategiesContractAddress
 }

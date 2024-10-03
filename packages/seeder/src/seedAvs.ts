@@ -8,11 +8,14 @@ import {
 	loopThroughBlocks,
 	saveLastSyncBlock
 } from './utils/seeder'
+import { getEigenContracts } from './data/address'
 
 const blockSyncKey = 'lastSyncedBlock_avs'
 const blockSyncKeyLogs = 'lastSyncedBlock_logs_avs'
 
 interface AvsEntryRecord {
+	registryCoordinatorAddress: string,
+	stakeRegistryAddress: string,
 	metadataUrl: string
 	metadata: EntityMetadata
 	isMetadataSynced: boolean
@@ -24,6 +27,10 @@ interface AvsEntryRecord {
 
 export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 	const prismaClient = getPrismaClient()
+
+	const registryCoordinatorAddress = getEigenContracts().RegistryCoordinator
+	const stakeRegistryAddress = getEigenContracts().StakeRegistry
+
 	const avsList: Map<string, AvsEntryRecord> = new Map()
 
 	const firstBlock = fromBlock
@@ -66,6 +73,8 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 				if (existingRecord) {
 					// Avs has been registered before in this fetch
 					avsList.set(avsAddress, {
+						registryCoordinatorAddress: registryCoordinatorAddress,
+						stakeRegistryAddress: stakeRegistryAddress,
 						metadataUrl: log.metadataURI,
 						metadata: defaultMetadata,
 						isMetadataSynced: false,
@@ -77,6 +86,8 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 				} else {
 					// Avs being registered for the first time in this fetch
 					avsList.set(avsAddress, {
+						registryCoordinatorAddress: registryCoordinatorAddress,
+						stakeRegistryAddress: stakeRegistryAddress,
 						metadataUrl: log.metadataURI,
 						metadata: defaultMetadata,
 						isMetadataSynced: false,
@@ -104,6 +115,8 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 		for (const [
 			address,
 			{
+				registryCoordinatorAddress,
+				stakeRegistryAddress,
 				metadataUrl,
 				metadata,
 				isMetadataSynced,
@@ -133,8 +146,8 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 				updatedAtBlock,
 				createdAt,
 				updatedAt,
-				registryCoordinatorAddress: null,
-				stakeRegistryAddress: null
+				registryCoordinatorAddress: registryCoordinatorAddress,
+				stakeRegistryAddress: stakeRegistryAddress
 			})
 		}
 
@@ -148,6 +161,8 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 		for (const [
 			address,
 			{
+				registryCoordinatorAddress,
+				stakeRegistryAddress,
 				metadataUrl,
 				metadata,
 				isMetadataSynced,
@@ -175,6 +190,8 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 					},
 					create: {
 						address,
+						registryCoordinatorAddress,
+						stakeRegistryAddress,
 						metadataUrl,
 						metadataName: metadata.name,
 						metadataDescription: metadata.description,

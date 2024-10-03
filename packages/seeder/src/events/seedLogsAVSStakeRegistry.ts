@@ -75,26 +75,26 @@ export async function seedLogsAVSStakeRegistry(
 			
 						if (log.eventName == "MinimumStakeForQuorumUpdated") {
 							logsMinimumStakeForQuorumUpdated.push({
-							address: log.address,
-							transactionHash: log.transactionHash,
-							transactionIndex: log.logIndex,
-							blockNumber: BigInt(log.blockNumber),
-							blockHash: log.blockHash,
-							blockTime: blockData.get(log.blockNumber) || new Date(0),
-							quorumNumber: Number(log.args.quorumNumber),
-							minimumStake: Number(log.args.minimumStake),
-						  });
+								address: log.address,
+								transactionHash: log.transactionHash,
+								transactionIndex: log.logIndex,
+								blockNumber: BigInt(log.blockNumber),
+								blockHash: log.blockHash,
+								blockTime: blockData.get(log.blockNumber) || new Date(0),
+								quorumNumber: Number(log.args.quorumNumber),
+								minimumStake: Number(log.args.minimumStake),
+						  	})
 						} else if (log.eventName == "StrategyAddedToQuorum") {
 							logsStrategyAddedToQuorum.push({
-							address: log.address,
-							transactionHash: log.transactionHash,
-							transactionIndex: log.logIndex,
-							blockNumber: BigInt(log.blockNumber),
-							blockHash: log.blockHash,
-							blockTime: blockData.get(log.blockNumber) || new Date(0),
-							quorumNumber: Number(log.args.quorumNumber),
-							strategy: String(log.args.strategy),
-						  });
+								address: log.address,
+								transactionHash: log.transactionHash,
+								transactionIndex: log.logIndex,
+								blockNumber: BigInt(log.blockNumber),
+								blockHash: log.blockHash,
+								blockTime: blockData.get(log.blockNumber) || new Date(0),
+								quorumNumber: Number(log.args.quorumNumber),
+								strategy: String(log.args.strategy),
+						 	})
 						} else if (log.eventName == "StrategyRemovedFromQuorum") {
 							logsStrategyRemovedFromQuorum.push({
 								address: log.address,
@@ -105,7 +105,7 @@ export async function seedLogsAVSStakeRegistry(
 								blockTime: blockData.get(log.blockNumber) || new Date(0),
 								quorumNumber: Number(log.args.quorumNumber),
 								strategy: String(log.args.strategy),
-							  });
+							})
 						} else if (log.eventName == "StrategyMultiplierUpdated") {
 							logsStrategyMultiplierUpdated.push({
 								address: log.address,
@@ -117,7 +117,7 @@ export async function seedLogsAVSStakeRegistry(
 								quorumNumber: Number(log.args.quorumNumber),
 								strategy: String(log.args.strategy),
 								multiplier: Number(log.args.multiplier)
-							  });
+							})
 						}
 					  }
 			

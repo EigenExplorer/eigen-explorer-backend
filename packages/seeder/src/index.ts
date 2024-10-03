@@ -83,8 +83,8 @@ async function seedEigenData() {
 			await seedLogsDeposit(targetBlock)
 			await seedLogsPodSharesUpdated(targetBlock)
 			await seedLogsAVSRewardsSubmission(targetBlock)
-			await seedLogsAVSRegistryCoordinator(targetBlock);
-			await seedLogsAVSStakeRegistry(targetBlock);
+			await seedLogsAVSRegistryCoordinator(targetBlock)
+			await seedLogsAVSStakeRegistry(targetBlock)
 
 			await seedAvs()
 			await seedOperators()
