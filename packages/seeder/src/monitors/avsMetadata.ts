@@ -1,6 +1,6 @@
 import { getPrismaClient } from '../utils/prismaClient'
 import { fetchWithTimeout, bulkUpdateDbTransactions } from '../utils/seeder'
-import { isValidMetadataUrl, validateMetadata } from '../utils/metadata'
+import { validateMetadata } from '../utils/metadata'
 
 export async function monitorAvsMetadata() {
 	const prismaClient = getPrismaClient()
@@ -29,7 +29,7 @@ export async function monitorAvsMetadata() {
 
 		for (const record of avsEntries) {
 			try {
-				if (record.metadataUrl && isValidMetadataUrl(record.metadataUrl)) {
+				if (record.metadataUrl) {
 					const response = await fetchWithTimeout(record.metadataUrl)
 					const data = response ? await response.text() : ''
 					const avsMetadata = validateMetadata(data)
