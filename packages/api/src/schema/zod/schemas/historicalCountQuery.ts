@@ -10,7 +10,6 @@ const yyyymmddRegex = /^\d{4}-\d{2}-\d{2}$/
  *
  */
 const frequencyConfig = {
-	'1h': { allowance: 7 * dayInMs + gracePeriod, defaultRange: 2 * dayInMs },
 	'1d': { allowance: 365 * dayInMs + gracePeriod, defaultRange: 31 * dayInMs },
 	'7d': { allowance: 720 * dayInMs + gracePeriod, defaultRange: 365 * dayInMs }
 }
@@ -88,8 +87,8 @@ const getDefaultDates = (
 export const HistoricalCountSchema = z
 	.object({
 		frequency: z
-			.enum(['1h', '1d', '7d'])
-			.default('1h')
+			.enum(['1d', '7d'])
+			.default('1d')
 			.describe('Frequency of data points'),
 		variant: z
 			.enum(['discrete', 'cumulative'])

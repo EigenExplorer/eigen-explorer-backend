@@ -1,6 +1,6 @@
 import { getPrismaClient } from '../utils/prismaClient'
 import { fetchWithTimeout, bulkUpdateDbTransactions } from '../utils/seeder'
-import { isValidMetadataUrl, validateMetadata } from '../utils/metadata'
+import { validateMetadata } from '../utils/metadata'
 
 export async function monitorOperatorMetadata() {
 	const prismaClient = getPrismaClient()
@@ -29,7 +29,7 @@ export async function monitorOperatorMetadata() {
 
 		for (const record of operatorEntries) {
 			try {
-				if (record.metadataUrl && isValidMetadataUrl(record.metadataUrl)) {
+				if (record.metadataUrl) {
 					const response = await fetchWithTimeout(record.metadataUrl)
 					const data = response ? await response.text() : ''
 					const operatorMetadata = validateMetadata(data)
