@@ -236,9 +236,9 @@ model AvsStrategyRewardSubmission {
 
   avsAddress      String
   strategyAddress String
-  multiplier      Decimal @default(0) @db.Decimal(36, 8)
+  multiplier      Decimal @default(0) @db.Decimal(78, 0)
   token           String
-  amount          Decimal @default(0) @db.Decimal(36, 8)
+  amount          Decimal @default(0) @db.Decimal(78, 0)
   startTimestamp  BigInt
   duration        Int
 
@@ -603,11 +603,11 @@ model EventLogs_AVSRewardsSubmission {
   rewardsSubmissionHash String
 
   rewardsSubmission_token              String
-  rewardsSubmission_amount             Decimal @default(0) @db.Decimal(36, 8)
+  rewardsSubmission_amount             String
   rewardsSubmission_startTimestamp     BigInt
   rewardsSubmission_duration           Int
   strategiesAndMultipliers_strategies  String[]
-  strategiesAndMultipliers_multipliers Decimal[] @db.Decimal(36, 8)
+  strategiesAndMultipliers_multipliers String[]
 
   @@id([transactionHash, transactionIndex])
   @@index([address])

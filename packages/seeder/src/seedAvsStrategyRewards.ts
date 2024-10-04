@@ -56,7 +56,9 @@ export async function seedAvsStrategyRewards(
 		for (const l in logs) {
 			const log = logs[l]
 
-			const totalAmount = log.rewardsSubmission_amount
+			const totalAmount = new prisma.Prisma.Decimal(
+				log.rewardsSubmission_amount
+			)
 			const multipliers = log.strategiesAndMultipliers_multipliers
 			const distributedAmounts = distributeAmount(totalAmount, multipliers)
 
@@ -71,7 +73,9 @@ export async function seedAvsStrategyRewards(
 						rewardsSubmissionHash: log.rewardsSubmissionHash,
 						avsAddress,
 						strategyAddress: strategy,
-						multiplier: log.strategiesAndMultipliers_multipliers[index],
+						multiplier: new prisma.Prisma.Decimal(
+							log.strategiesAndMultipliers_multipliers[index]
+						),
 						token: log.rewardsSubmission_token,
 						amount: distributedAmounts[index],
 						startTimestamp: log.rewardsSubmission_startTimestamp,
@@ -116,13 +120,13 @@ export async function seedAvsStrategyRewards(
  */
 function distributeAmount(
 	totalAmount: prisma.Prisma.Decimal,
-	multipliers: prisma.Prisma.Decimal[]
+	multipliers: string[]
 ): prisma.Prisma.Decimal[] {
 	const totalMultiplier = multipliers.reduce(
-		(sum, m) => sum.add(m),
+		(sum, m) => sum.add(new prisma.Prisma.Decimal(m)),
 		new prisma.Prisma.Decimal(0)
 	)
 	return multipliers.map((multiplier) =>
-		multiplier.mul(totalAmount).div(totalMultiplier)
+		new prisma.Prisma.Decimal(multiplier).mul(totalAmount).div(totalMultiplier)
 	)
 }
