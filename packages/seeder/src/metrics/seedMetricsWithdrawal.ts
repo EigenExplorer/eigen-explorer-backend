@@ -11,11 +11,11 @@ import {
 	saveLastSyncBlock
 } from '../utils/seeder'
 
-const timeSyncKey = 'lastSyncedTime_metrics_withdrawalHourly'
+const timeSyncKey = 'lastSyncedTime_metrics_withdrawal'
 
-export async function seedMetricsWithdrawalHourly() {
+export async function seedMetricsWithdrawal() {
 	const prismaClient = getPrismaClient()
-	const withdrawalHourlyList: Omit<prisma.MetricWithdrawalHourly, 'id'>[] = []
+	const withdrawalList: Omit<prisma.MetricWithdrawalUnit, 'id'>[] = []
 	let clearPrev = false
 
 	// Get appropriate startAt
@@ -46,7 +46,7 @@ export async function seedMetricsWithdrawalHourly() {
 
 	// Get latest values of cumulative fields
 	let { tvlEth: tvlEthDecimal, totalWithdrawals } =
-		(await prismaClient.metricWithdrawalHourly.findFirst({
+		(await prismaClient.metricWithdrawalUnit.findFirst({
 			select: {
 				tvlEth: true,
 				totalWithdrawals: true
@@ -86,7 +86,7 @@ export async function seedMetricsWithdrawalHourly() {
 			tvlEth += changeTvlEth
 			totalWithdrawals += changeWithdrawals
 
-			withdrawalHourlyList.push({
+			withdrawalList.push({
 				timestamp: new Date(currentTimestamp),
 				tvlEth: new prisma.Prisma.Decimal(tvlEth),
 				totalWithdrawals,
@@ -125,7 +125,7 @@ export async function seedMetricsWithdrawalHourly() {
 		tvlEth += changeTvlEth
 		totalWithdrawals += changeWithdrawals
 
-		withdrawalHourlyList.push({
+		withdrawalList.push({
 			timestamp: new Date(currentTimestamp),
 			tvlEth: new prisma.Prisma.Decimal(tvlEth),
 			totalWithdrawals,
@@ -138,13 +138,13 @@ export async function seedMetricsWithdrawalHourly() {
 	const dbTransactions: any[] = []
 
 	if (clearPrev) {
-		dbTransactions.push(prismaClient.metricWithdrawalHourly.deleteMany())
+		dbTransactions.push(prismaClient.metricWithdrawalUnit.deleteMany())
 	}
 
-	if (withdrawalHourlyList.length > 0) {
+	if (withdrawalList.length > 0) {
 		dbTransactions.push(
-			prismaClient.metricWithdrawalHourly.createMany({
-				data: withdrawalHourlyList,
+			prismaClient.metricWithdrawalUnit.createMany({
+				data: withdrawalList,
 				skipDuplicates: true
 			})
 		)
@@ -152,7 +152,7 @@ export async function seedMetricsWithdrawalHourly() {
 
 	await bulkUpdateDbTransactions(
 		dbTransactions,
-		`[Metrics] Withdrawal Hourly from: ${startAt} to: ${endAt} size: ${withdrawalHourlyList.length}`
+		`[Metrics] Withdrawal Hourly from: ${startAt} to: ${endAt} size: ${withdrawalList.length}`
 	)
 
 	// Storing last synced block
