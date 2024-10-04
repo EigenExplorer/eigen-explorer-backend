@@ -58,16 +58,14 @@ export async function seedLogsAVSRewardsSubmission(
 				const log = logs[l]
 
 				const strategies: string[] = []
-				const multipliers: prisma.Prisma.Decimal[] = []
+				const multipliers: string[] = []
 
 				if (log.args.rewardsSubmission?.strategiesAndMultipliers) {
 					for (const strategyAndMultiplier of log.args.rewardsSubmission
 						.strategiesAndMultipliers) {
 						strategies.push(strategyAndMultiplier.strategy.toLowerCase())
 						multipliers.push(
-							new prisma.Prisma.Decimal(
-								strategyAndMultiplier.multiplier.toString()
-							)
+							String(strategyAndMultiplier.multiplier.toString())
 						)
 					}
 
@@ -86,9 +84,8 @@ export async function seedLogsAVSRewardsSubmission(
 						rewardsSubmission_token: String(
 							log.args.rewardsSubmission.token
 						).toLowerCase(),
-						rewardsSubmission_amount: new prisma.Prisma.Decimal(
-							log.args.rewardsSubmission.amount.toString()
-						),
+						rewardsSubmission_amount:
+							log.args.rewardsSubmission.amount.toString(),
 						rewardsSubmission_startTimestamp: BigInt(
 							log.args.rewardsSubmission.startTimestamp
 						),
