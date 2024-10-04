@@ -1,25 +1,39 @@
 import prisma from '@prisma/client'
+import { createHash } from 'crypto'
 import { getPrismaClient } from '../utils/prismaClient'
 import { bulkUpdateDbTransactions } from '../utils/seeder'
+import { fetchStrategyTokenPrices } from '../utils/tokenPrices'
+import { getStrategiesWithShareUnderlying } from '../metrics/seedMetricsTvl'
+import { sharesToTVL } from './avsMetrics'
 
 export async function monitorOperatorMetrics() {
 	const prismaClient = getPrismaClient()
 
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	const dbTransactions: any[] = []
-	const data: { address: string; totalStakers: number; totalAvs: number }[] = []
+	const data: {
+		address: string
+		totalStakers: number
+		totalAvs: number
+		tvlEth: number
+		sharesHash: string
+	}[] = []
 
 	let skip = 0
 	const take = 1000
+
+	const strategyTokenPrices = await fetchStrategyTokenPrices()
+	const strategiesWithSharesUnderlying =
+		await getStrategiesWithShareUnderlying()
 
 	while (true) {
 		try {
 			// Fetch totalStakers & totalAvs for all operators in this iteration
 			const operatorMetrics = await prismaClient.operator.findMany({
-				select: {
-					address: true,
-					totalAvs: true,
-					totalStakers: true,
+				include: {
+					shares: {
+						select: { strategyAddress: true, shares: true }
+					},
 					_count: {
 						select: {
 							stakers: true,
@@ -40,17 +54,29 @@ export async function monitorOperatorMetrics() {
 
 			// Setup all db transactions for this iteration
 			for (const operator of operatorMetrics) {
+				const sharesHash = createHash('md5')
+					.update(JSON.stringify(operator.shares))
+					.digest('hex')
 				const totalStakers = operator._count.stakers
 				const totalAvs = operator._count.avs
 
 				if (
 					operator.totalAvs !== totalAvs ||
-					operator.totalStakers !== totalStakers
+					operator.totalStakers !== totalStakers ||
+					operator.sharesHash !== sharesHash
 				) {
+					const tvlObject = sharesToTVL(
+						operator.shares,
+						strategiesWithSharesUnderlying,
+						strategyTokenPrices
+					)
+
 					data.push({
 						address: operator.address,
 						totalStakers: operator._count.stakers,
-						totalAvs: operator._count.avs
+						totalAvs: operator._count.avs,
+						tvlEth: tvlObject.tvl,
+						sharesHash
 					})
 				}
 			}
@@ -62,16 +88,19 @@ export async function monitorOperatorMetrics() {
 					UPDATE "Operator" AS o
 					SET
 						"totalStakers" = o2."totalStakers",
-						"totalAvs" = o2."totalAvs"
+						"totalAvs" = o2."totalAvs",
+						"tvlEth" = o2."tvlEth",
+						"sharesHash" = o2."sharesHash"
 					FROM
 						(
 							VALUES
 								${data
 									.map(
-										(d) => `('${d.address}', ${d.totalStakers}, ${d.totalAvs})`
+										(d) =>
+											`('${d.address}', ${d.totalStakers}, ${d.totalAvs}, ${d.tvlEth}, '${d.sharesHash}')`
 									)
 									.join(', ')}
-						) AS o2 (address, "totalStakers", "totalAvs")
+						) AS o2 (address, "totalStakers", "totalAvs", "tvlEth", "sharesHash")
 					WHERE
 						o2.address = o.address;
 				`

@@ -21,12 +21,15 @@ import {
 	getHistoricalTvlWithdrawal,
 	getHistoricalTvlDeposit,
 	getTotalWithdrawals,
-	getTotalDeposits
+	getTotalDeposits,
+	getRestakingRatio,
+	getDeploymentRatio
 } from './metricController'
 
 import routeCache from 'route-cache'
 
 const router = express.Router()
+const dailyCache = Math.floor((new Date ().setHours(24, 0, 0, 0) - Date.now()) / 1000)
 
 // API routes for /metrics
 
@@ -36,12 +39,12 @@ router.get('/', routeCache.cacheSeconds(120), getMetrics)
 
 // --- TVL Routes ---
 
-router.get('/tvl', routeCache.cacheSeconds(120), getTvl)
-router.get('/tvl/beacon-chain', routeCache.cacheSeconds(120), getTvlBeaconChain)
-router.get('/tvl/restaking', routeCache.cacheSeconds(120), getTvlRestaking)
+router.get('/tvl', routeCache.cacheSeconds(dailyCache), getTvl)
+router.get('/tvl/beacon-chain', routeCache.cacheSeconds(dailyCache), getTvlBeaconChain)
+router.get('/tvl/restaking', routeCache.cacheSeconds(dailyCache), getTvlRestaking)
 router.get(
 	'/tvl/restaking/:strategy',
-	routeCache.cacheSeconds(120),
+	routeCache.cacheSeconds(dailyCache),
 	getTvlRestakingByStrategy
 )
 
@@ -120,6 +123,18 @@ router.get(
 	'/historical/count-deposits',
 	routeCache.cacheSeconds(120),
 	getHistoricalDepositCount
+)
+
+router.get(
+	'/restaking-ratio',
+	routeCache.cacheSeconds(120),
+	getRestakingRatio
+)
+
+router.get(
+	'/deployment-ratio',
+	routeCache.cacheSeconds(120),
+	getDeploymentRatio
 )
 
 export default router

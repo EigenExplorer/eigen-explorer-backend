@@ -4,15 +4,15 @@ import {
 	bulkUpdateDbTransactions,
 	fetchLastSyncTime,
 	loopThroughDates,
-	setToStartOfHour
+	setToStartOfDay
 } from '../utils/seeder'
 import { dateToEpoch } from '../utils/beaconChain'
 
-const blockSyncKey = 'lastSyncedTimestamp_metrics_eigenPodsHourly'
-const BATCH_DAYS = 10
+const blockSyncKey = 'lastSyncedTimestamp_metrics_eigenPods'
+const BATCH_DAYS = 30
 
 // Define the type for our log entries
-type LastMetricEigenPodsHourly = Omit<prisma.MetricEigenPodsHourly, 'id'>
+type LastMetricEigenPodsUnit = Omit<prisma.MetricEigenPodsUnit, 'id'>
 type LogEntry = {
 	blockTime: Date
 	eigenPod: string
@@ -21,14 +21,14 @@ type LogEntry = {
 	type: string
 }
 
-export async function seedMetricsEigenPodsHourly() {
+export async function seedMetricsEigenPods(type: 'full' | 'incremental' = 'incremental') {
 	const prismaClient = getPrismaClient()
 
 	// Define start date
 	let startDate: Date | null = await fetchLastSyncTime(blockSyncKey)
 	const endDate: Date = new Date()
 
-	if (!startDate) {
+	if (type === 'full' || !startDate) {
 		const firstLogTimestamp = await getFirstLogTimestamp()
 		if (firstLogTimestamp) {
 			startDate = new Date(firstLogTimestamp)
@@ -42,15 +42,15 @@ export async function seedMetricsEigenPodsHourly() {
 
 	console.log('[Prep] Metric EigenPods ...')
 
-	const hourlyMetrics = await processLogsInBatches(
+	const metrics = await processLogsInBatches(
 		startDate,
 		endDate,
 		lastEigenPodsMetric
 	)
 
 	const dbTransactions = [
-		prismaClient.metricEigenPodsHourly.createMany({
-			data: hourlyMetrics,
+		prismaClient.metricEigenPodsUnit.createMany({
+			data: metrics,
 			skipDuplicates: true
 		}),
 
@@ -64,7 +64,7 @@ export async function seedMetricsEigenPodsHourly() {
 	await bulkUpdateDbTransactions(
 		dbTransactions,
 		`[Data] Metric EigenPods from: ${startDate.toISOString()} to: ${endDate.toISOString()} size: ${
-			hourlyMetrics.length
+			metrics.length
 		}`
 	)
 }
@@ -72,13 +72,13 @@ export async function seedMetricsEigenPodsHourly() {
 async function processLogsInBatches(
 	startDate: Date,
 	endDate: Date,
-	lastEigenPodsMetric: LastMetricEigenPodsHourly
+	lastEigenPodsMetric: LastMetricEigenPodsUnit
 ) {
-	let hourlyMetrics: LastMetricEigenPodsHourly[] = []
+	let metrics: LastMetricEigenPodsUnit[] = []
 
 	for (
-		let currentDate = setToStartOfHour(startDate);
-		currentDate < setToStartOfHour(endDate);
+		let currentDate = setToStartOfDay(startDate);
+		currentDate < setToStartOfDay(endDate);
 		currentDate = new Date(
 			currentDate.getTime() + 24 * 60 * 60 * 1000 * BATCH_DAYS
 		)
@@ -95,42 +95,42 @@ async function processLogsInBatches(
 		await loopThroughDates(
 			currentDate,
 			batchEndDate,
-			async (fromHour, toHour) => {
-				const hourlyTvlRecords = await hourlyLoopTick(
-					fromHour,
-					toHour,
+			async (fromDate, toDate) => {
+				const tvlRecords = await loopTick(
+					fromDate,
+					toDate,
 					batchLogs,
 					lastEigenPodsMetric
 				)
 
-				hourlyMetrics = [...hourlyMetrics, ...hourlyTvlRecords]
+				metrics = [...metrics, ...tvlRecords]
 			},
-			'hourly'
+			'daily'
 		)
 
 		console.log(
 			`[Batch] Metric EigenPods from: ${currentDate.toISOString()} to: ${batchEndDate.toISOString()} count: ${
-				hourlyMetrics.length
+				metrics.length
 			}`
 		)
 	}
 
-	return hourlyMetrics
+	return metrics
 }
 
-async function hourlyLoopTick(
-	fromHour: Date,
-	toHour: Date,
+async function loopTick(
+	fromDate: Date,
+	toDate: Date,
 	orderedLogs: LogEntry[],
-	lastEigenPodsMetric: LastMetricEigenPodsHourly
-): Promise<LastMetricEigenPodsHourly[]> {
+	lastEigenPodsMetric: LastMetricEigenPodsUnit
+): Promise<LastMetricEigenPodsUnit[]> {
 	const prismaClient = getPrismaClient()
 	const podAddresses = new Set<string>()
-	const startEpoch = dateToEpoch(fromHour)
-	const endEpoch = dateToEpoch(toHour)
+	const startEpoch = dateToEpoch(fromDate)
+	const endEpoch = dateToEpoch(toDate)
 
-	const hourlyLogs = orderedLogs.filter(
-		(ol) => ol.blockTime > fromHour && ol.blockTime <= toHour
+	const logs = orderedLogs.filter(
+		(ol) => ol.blockTime > fromDate && ol.blockTime <= toDate
 	)
 
 	let tvl = 0
@@ -142,7 +142,7 @@ async function hourlyLoopTick(
 		totalPods = lastEigenPodsMetric.totalPods
 	}
 
-	for (const ol of hourlyLogs) {
+	for (const ol of logs) {
 		const podAddress = ol.eigenPod.toLowerCase()
 		podAddresses.add(podAddress)
 	}
@@ -167,11 +167,11 @@ async function hourlyLoopTick(
 		const changeTvl = (newValidators - exitedValidators) * 32
 
 		const tvlRecord = {
-			timestamp: toHour,
 			tvlEth: (tvl + changeTvl) as unknown as prisma.Prisma.Decimal,
 			changeTvlEth: changeTvl as unknown as prisma.Prisma.Decimal,
 			totalPods: totalPods + changePods,
-			changePods
+			changePods,
+			timestamp: toDate
 		}
 
 		Object.assign(lastEigenPodsMetric, tvlRecord)
@@ -240,10 +240,10 @@ async function fetchOrderedLogs(from: Date, to: Date): Promise<LogEntry[]> {
  * @returns
  */
 async function getLatestMetrics(): Promise<
-	Omit<prisma.MetricEigenPodsHourly, 'id'>
+	Omit<prisma.MetricEigenPodsUnit, 'id'>
 > {
 	const prismaClient = getPrismaClient()
-	const lastMetric = await prismaClient.metricEigenPodsHourly.findFirst({
+	const lastMetric = await prismaClient.metricEigenPodsUnit.findFirst({
 		orderBy: { timestamp: 'desc' }
 	})
 

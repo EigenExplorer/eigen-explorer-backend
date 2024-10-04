@@ -1,4 +1,5 @@
 import 'dotenv/config'
+import cron from 'node-cron'
 
 import { seedAvs } from './seedAvs'
 import { seedAvsOperators } from './seedAvsOperators'
@@ -24,31 +25,36 @@ import { seedDeposits } from './seedDeposits'
 import { seedLogsPodSharesUpdated } from './events/seedLogsPodSharesUpdated'
 import { monitorAvsMetadata } from './monitors/avsMetadata'
 import { monitorOperatorMetadata } from './monitors/operatorMetadata'
-import { seedMetricsDepositHourly } from './metrics/seedMetricsDeposit'
-import { seedMetricsWithdrawalHourly } from './metrics/seedMetricsWithdrawal'
-import { seedMetricsRestakingHourly } from './metrics/seedMetricsRestaking'
+import { seedMetricsDeposit } from './metrics/seedMetricsDeposit'
+import { seedMetricsWithdrawal } from './metrics/seedMetricsWithdrawal'
+import { seedMetricsRestaking } from './metrics/seedMetricsRestaking'
 import { seedStrategies } from './seedStrategies'
 import { seedRestakedStrategies } from './seedAvsRestakedStrategies'
 import { seedEthPricesDaily } from './seedEthPricesDaily'
-import { seedMetricsEigenPodsHourly } from './metrics/seedMetricsEigenPods'
-import { seedMetricsTvlHourly } from './metrics/seedMetricsTvl'
+import { seedMetricsEigenPods } from './metrics/seedMetricsEigenPods'
+import { seedMetricsTvl } from './metrics/seedMetricsTvl'
 import { monitorAvsMetrics } from './monitors/avsMetrics'
 import { monitorOperatorMetrics } from './monitors/operatorMetrics'
 
 console.log('Initializing Seeder ...')
 
-const UPDATE_DELAY = 120
+// Constants
+const MAX_RETRIES = 3
+const RETRY_DELAY = 15 * 60
+const UPDATE_FREQUENCY = getNetwork().testnet ? 600 : 240
 
-const UPDATE_FREQUENCY_INSTANT = getNetwork().testnet ? 300 : 120
-const UPDATE_FREQUENCY_SLOW = getNetwork().testnet ? 720 : 240
-const UPDATE_FREQUENCY_HOURLY = 3600
-const UPDATE_FREQUENCY_QUARTERLY = UPDATE_FREQUENCY_HOURLY * 4
-const UPDATE_FREQUENCY_DAILY = UPDATE_FREQUENCY_HOURLY * 24
+// Locks
+let isSeedingBlockData = false
 
 function delay(seconds: number) {
 	return new Promise((resolve) => setTimeout(resolve, seconds * 1000))
 }
 
+/**
+ * Seed data
+ * 
+ * @returns
+ */
 async function seedEigenData() {
 	while (true) {
 		try {
@@ -56,7 +62,11 @@ async function seedEigenData() {
 			const targetBlock = await viemClient.getBlockNumber()
 			console.log(`\nSeeding data, every ${UPDATE_FREQUENCY_INSTANT} seconds, till block ${targetBlock}:`)
 
+			// Seed block data with a global lock to prevent block-less updates
+			isSeedingBlockData = true
 			await seedBlockData(targetBlock)
+			isSeedingBlockData = false
+
 			await seedLogsAVSMetadata(targetBlock)
 			await seedLogsOperatorMetadata(targetBlock)
 			await seedLogsOperatorAVSRegistrationStatus(targetBlock)
@@ -78,93 +88,64 @@ async function seedEigenData() {
 			await seedDeposits()
 			await seedPods()
 			await seedValidators()
-		} catch (error) {
-			console.log('Failed to seed data at:', Date.now())
-			console.log(error)
-		}
-
-		await delay(UPDATE_FREQUENCY_INSTANT)
-	}
-}
-
-async function seedMetadata() {
-	await delay(UPDATE_DELAY)
-
-	while (true) {
-		try {
-			console.log(`\nSeeding metadata, every ${UPDATE_FREQUENCY_SLOW} seconds:`)
 
 			await monitorAvsMetadata()
 			await monitorOperatorMetadata()
 			await monitorAvsMetrics()
 			await monitorOperatorMetrics()
 		} catch (error) {
-			console.log('Failed to monitor metadata at:', Date.now())
+			console.log('Failed to seed data at:', Date.now())
 			console.log(error)
+
+			isSeedingBlockData = false
 		}
 
-		await delay(UPDATE_FREQUENCY_SLOW)
+		await delay(UPDATE_FREQUENCY)
 	}
 }
 
-async function seedEigenStrategiesData() {
-	await delay(UPDATE_DELAY * 2)
-
-	while (true) {
-		try {
-			console.log('\nSeeding strategies data ...')
-
-			await seedStrategies()
-			await seedEthPricesDaily()
-		} catch (error) {
-			console.log('Failed to seed strategies at:', Date.now())
-			console.log(error)
+/**
+ * Seed daily data
+ * 
+ * @param retryCount 
+ * @returns 
+ */
+async function seedEigenDailyData(retryCount = 0) {
+	try {
+		console.log('\nSeeding daily data ...')
+		
+		if (isSeedingBlockData) {
+			console.log('Block data is being seeded. Retrying in 15 minutes...')
+			setTimeout(() => seedEigenDailyData(retryCount), RETRY_DELAY * 1000)
+			return
 		}
 
-		await delay(UPDATE_FREQUENCY_DAILY)
+		await seedStrategies()
+		await seedEthPricesDaily()
+		await seedRestakedStrategies()
+
+		await seedMetricsDeposit()
+		await seedMetricsWithdrawal()
+		await seedMetricsRestaking()
+		await seedMetricsEigenPods()
+		await seedMetricsTvl()
+
+		console.log('Daily data seeding completed successfully.')
+	} catch (error) {
+		console.log(`Failed to seed daily data at: ${Date.now()}`)
+		console.log(error)
+
+		if (retryCount < MAX_RETRIES) {
+			console.log(`Retrying in 15 minutes... (Attempt ${retryCount + 1} of ${MAX_RETRIES})`)
+			setTimeout(() => seedEigenDailyData(retryCount + 1), RETRY_DELAY * 1000)
+		} else {
+			console.log('Max retries reached. Daily data seeding failed.')
+		}
 	}
 }
 
-async function seedRestakedData() {
-	await delay(UPDATE_DELAY * 3)
-
-	while (true) {
-		try {
-			console.log('\nSeeding restaked data ...')
-
-			await seedRestakedStrategies()
-		} catch (error) {
-			console.log('Failed to seed restaked data at:', Date.now())
-			console.log(error)
-		}
-
-		await delay(UPDATE_FREQUENCY_QUARTERLY)
-	}
-}
-
-async function seedMetricsData() {
-	await delay(UPDATE_DELAY * 4)
-
-	while (true) {
-		try {
-			console.log('\nSeeding metrics data ...')
-
-			await seedMetricsDepositHourly()
-			await seedMetricsWithdrawalHourly()
-			await seedMetricsRestakingHourly()
-			await seedMetricsEigenPodsHourly()
-			await seedMetricsTvlHourly()
-		} catch (error) {
-			console.log('Failed to seed metrics data at:', Date.now())
-			console.log(error)
-		}
-
-		await delay(UPDATE_FREQUENCY_HOURLY)
-	}
-}
-
+// Start seeding data instantly
 seedEigenData()
-seedMetadata()
-seedEigenStrategiesData()
-seedRestakedData()
-seedMetricsData()
+
+// Schedule seedEigenDailyData to run at 1 minute past midnight every day
+cron.schedule('1 0 * * *', () => seedEigenDailyData())

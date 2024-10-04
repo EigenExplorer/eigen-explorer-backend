@@ -8,13 +8,16 @@
     "start": "tsx ./src/index.ts"
   },
   "devDependencies": {
+    "@types/node-cron": "^3.0.11",
     "@types/node": "^20.12.2",
     "prisma": "^5.11.0",
     "tsx": "^4.7.1",
     "typescript": "^5.4.3"
   },
   "dependencies": {
-    "viem": "^2.9.21",
-    "dotenv": "^16.4.5"
+    "dotenv": "^16.4.5",
+    "node-cache": "^5.1.2",
+    "node-cron": "^3.0.3",
+    "viem": "^2.9.21"
   }
 }

@@ -29,6 +29,9 @@ model Avs {
   totalStakers   Int @default(0)
   totalOperators Int @default(0)
 
+  tvlEth     Decimal @default(0) @db.Decimal(20, 8)
+  sharesHash String?
+
   createdAtBlock BigInt   @default(0)
   updatedAtBlock BigInt   @default(0)
   createdAt      DateTime @default(now())
@@ -105,6 +108,9 @@ model Operator {
 
   totalStakers Int @default(0)
   totalAvs     Int @default(0)
+
+  tvlEth     Decimal @default(0) @db.Decimal(20, 8)
+  sharesHash String?
 
   createdAtBlock BigInt   @default(0)
   updatedAtBlock BigInt   @default(0)
@@ -230,7 +236,7 @@ model Settings {
 
 // Metric routes
 
-model MetricAvsHourly {
+model MetricAvsUnit {
   id         Int    @id @default(autoincrement())
   avsAddress String
 
@@ -246,7 +252,7 @@ model MetricAvsHourly {
   @@index([timestamp])
 }
 
-model MetricAvsStrategyHourly {
+model MetricAvsStrategyUnit {
   id              Int    @id @default(autoincrement())
   avsAddress      String
   strategyAddress String
@@ -261,7 +267,7 @@ model MetricAvsStrategyHourly {
   @@index([timestamp])
 }
 
-model MetricOperatorHourly {
+model MetricOperatorUnit {
   id              Int    @id @default(autoincrement())
   operatorAddress String
 
@@ -277,7 +283,7 @@ model MetricOperatorHourly {
   @@index([timestamp])
 }
 
-model MetricOperatorStrategyHourly {
+model MetricOperatorStrategyUnit {
   id              Int    @id @default(autoincrement())
   operatorAddress String
   strategyAddress String
@@ -292,7 +298,7 @@ model MetricOperatorStrategyHourly {
   @@index([timestamp])
 }
 
-model MetricStrategyHourly {
+model MetricStrategyUnit {
   id Int @id @default(autoincrement())
 
   strategyAddress String
@@ -306,7 +312,7 @@ model MetricStrategyHourly {
   @@index([timestamp])
 }
 
-model MetricEigenPodsHourly {
+model MetricEigenPodsUnit {
   id Int @id @default(autoincrement())
 
   tvlEth       Decimal @db.Decimal(20, 8)
@@ -320,7 +326,7 @@ model MetricEigenPodsHourly {
   @@index([timestamp])
 }
 
-model MetricDepositHourly {
+model MetricDepositUnit {
   id Int @id @default(autoincrement())
 
   tvlEth         Decimal @db.Decimal(20, 8)
@@ -333,7 +339,7 @@ model MetricDepositHourly {
   @@index([timestamp])
 }
 
-model MetricWithdrawalHourly {
+model MetricWithdrawalUnit {
   id Int @id @default(autoincrement())
 
   tvlEth            Decimal @db.Decimal(20, 8)

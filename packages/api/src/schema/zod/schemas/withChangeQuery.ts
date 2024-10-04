@@ -1,10 +1,10 @@
 import z from '..'
 
-export const WithTvlQuerySchema = z.object({
-	withTvl: z
+export const WithChangeQuerySchema = z.object({
+	withChange: z
 		.enum(['true', 'false'])
 		.default('false')
-		.describe('Toggle whether the route should calculate the TVL from shares')
+		.describe('Toggle whether the route should return 24h/7d change for TVL')
 		.transform((val) => val === 'true')
 		.openapi({ example: 'false' })
 })
