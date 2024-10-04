@@ -60,7 +60,7 @@ async function seedEigenData() {
 		try {
 			const viemClient = getViemClient()
 			const targetBlock = await viemClient.getBlockNumber()
-			console.log(`\nSeeding data, every ${UPDATE_FREQUENCY_INSTANT} seconds, till block ${targetBlock}:`)
+			console.log(`\nSeeding data, every ${UPDATE_FREQUENCY} seconds, till block ${targetBlock}:`)
 
 			// Seed block data with a global lock to prevent block-less updates
 			isSeedingBlockData = true

@@ -25,6 +25,7 @@ model Avs {
   operators             AvsOperator[]
   curatedMetadata       AvsCuratedMetadata?
   restakeableStrategies String[]
+  rewardSubmissions     AvsStrategyRewardSubmission[]
 
   totalStakers   Int @default(0)
   totalOperators Int @default(0)
@@ -224,6 +225,25 @@ model WithdrawalCompleted {
   createdAt      DateTime @default(now())
 
   queuedWithdrawal WithdrawalQueued @relation(fields: [withdrawalRoot], references: [withdrawalRoot])
+}
+
+model AvsStrategyRewardSubmission {
+  id  Int @id @default(autoincrement())
+  avs Avs @relation(fields: [avsAddress], references: [address])
+
+  submissionNonce       BigInt
+  rewardsSubmissionHash String
+
+  avsAddress      String
+  strategyAddress String
+  multiplier      Decimal @default(0) @db.Decimal(36, 8)
+  token           String
+  amount          Decimal @default(0) @db.Decimal(36, 8)
+  startTimestamp  BigInt
+  duration        Int
+
+  createdAtBlock BigInt   @default(0)
+  createdAt      DateTime @default(now())
 }
 
 // Collection to store system settings
@@ -566,6 +586,31 @@ model EventLogs_Deposit {
 
   @@id([transactionHash, transactionIndex])
   @@index([staker])
+  @@index([blockNumber])
+}
+
+model EventLogs_AVSRewardsSubmission {
+  address String
+
+  transactionHash  String
+  transactionIndex Int
+  blockNumber      BigInt
+  blockHash        String
+  blockTime        DateTime
+
+  avs                   String  
+  submissionNonce       BigInt
+  rewardsSubmissionHash String
+
+  rewardsSubmission_token              String
+  rewardsSubmission_amount             Decimal @default(0) @db.Decimal(36, 8)
+  rewardsSubmission_startTimestamp     BigInt
+  rewardsSubmission_duration           Int
+  strategiesAndMultipliers_strategies  String[]
+  strategiesAndMultipliers_multipliers Decimal[] @db.Decimal(36, 8)
+
+  @@id([transactionHash, transactionIndex])
+  @@index([address])
   @@index([blockNumber])
 }
 
