@@ -127,6 +127,7 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 				isMetadataSynced,
 				totalStakers: 0,
 				totalOperators: 0,
+				apy: 0,
 				tvlEth: new prisma.Prisma.Decimal(0),
 				sharesHash: '',
 				createdAtBlock,
