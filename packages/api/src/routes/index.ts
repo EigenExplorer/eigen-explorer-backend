@@ -9,7 +9,6 @@ import depositRoutes from './deposits/depositRoutes'
 import auxiliaryRoutes from './auxiliary/auxiliaryRoutes'
 import rewardRoutes from './rewards/rewardRoutes'
 
-
 const apiRouter = express.Router()
 
 // Health route
