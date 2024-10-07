@@ -17,7 +17,7 @@ export async function seedMetricsDeposit() {
 
 	// Define start date
 	let startAt: Date | null = await fetchLastSyncTime(timeSyncKey)
-	const endAt: Date = new Date(new Date().setUTCHours(0, 0, 0, 0))	
+	const endAt: Date = new Date(new Date().setUTCHours(0, 0, 0, 0))
 	let clearPrev = false
 
 	if (!startAt) {
@@ -25,7 +25,7 @@ export async function seedMetricsDeposit() {
 		if (firstLogTimestamp) {
 			startAt = new Date(new Date(firstLogTimestamp).setUTCHours(0, 0, 0, 0))
 		} else {
-			startAt = new Date(new Date(new Date().setUTCHours(0, 0, 0, 0)))
+			startAt = new Date(new Date().setUTCHours(0, 0, 0, 0))
 		}
 		clearPrev = true
 	}

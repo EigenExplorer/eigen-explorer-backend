@@ -25,7 +25,7 @@ export async function seedMetricsWithdrawal() {
 		if (firstLogTimestamp) {
 			startAt = new Date(new Date(firstLogTimestamp).setUTCHours(0, 0, 0, 0))
 		} else {
-			startAt = new Date(new Date(new Date().setUTCHours(0, 0, 0, 0)))
+			startAt = new Date(new Date().setUTCHours(0, 0, 0, 0))
 		}
 		clearPrev = true
 	}

@@ -27,6 +27,7 @@ export async function seedMetricsEigenPods(type: 'full' | 'incremental' = 'incre
 	// Define start date
 	let startDate: Date | null = await fetchLastSyncTime(blockSyncKey)
 	const endDate: Date = new Date()
+	let clearPrev = false
 
 	if (type === 'full' || !startDate) {
 		const firstLogTimestamp = await getFirstLogTimestamp()
@@ -35,12 +36,26 @@ export async function seedMetricsEigenPods(type: 'full' | 'incremental' = 'incre
 		} else {
 			startDate = new Date()
 		}
+		clearPrev = true
+	}
+
+	// Bail early if there is no time diff to sync
+	if (endDate.getTime() - startDate.getTime() <= 0) {
+		console.log(
+			`[In Sync] [Metrics] EigenPods Daily from: ${startDate} to: ${endDate}`
+		)
+		return
+	}
+
+	console.log('[Prep] Metric EigenPods ...')
+
+	// Clear previous data
+	if (clearPrev) {
+		await prismaClient.metricEigenPodsUnit.deleteMany()
 	}
 
 	// Get the last known metrics for eigen pods
 	const lastEigenPodsMetric = await getLatestMetrics()
-
-	console.log('[Prep] Metric EigenPods ...')
 
 	const metrics = await processLogsInBatches(
 		startDate,
