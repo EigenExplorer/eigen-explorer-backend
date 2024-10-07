@@ -4,6 +4,7 @@ import { blockSyncKeys } from '../../../../monitor/src/data/blockSyncKeys'
 import { fetchLastSyncBlockInfo } from '../../../../monitor/src/utils/monitoring'
 import { eigenContracts } from '../../data/address/eigenMainnetContracts'
 import { handleAndReturnErrorResponse } from '../../schema/errors'
+import { fetchStrategyTokenPrices } from '../../utils/tokenPrices'
 
 /**
  * Route to fetch cached prices
@@ -18,10 +19,10 @@ export async function getCachedPrices(req: Request, res: Response) {
 			24760, 2396
 		]
 		const keysStr = CMC_TOKEN_IDS.join(',')
-		const cachedPrices = await cacheStore.get(`price_${keysStr}`)
+		let cachedPrices = await cacheStore.get(`price_${keysStr}`)
 
 		if (!cachedPrices) {
-			return res.status(404).send('No cached prices found.')
+			cachedPrices = await fetchStrategyTokenPrices();
 		}
 
 		const priceData = Object.values(cachedPrices).map(
