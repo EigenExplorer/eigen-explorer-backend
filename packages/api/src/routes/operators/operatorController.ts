@@ -49,6 +49,7 @@ export async function getAllOperators(req: Request, res: Response) {
 		sortByTvl,
 		sortByTotalStakers,
 		sortByTotalAvs,
+		sortByApy,
 		searchByText
 	} = result.data
 
@@ -66,7 +67,9 @@ export async function getAllOperators(req: Request, res: Response) {
 			  ? { field: 'totalAvs', order: sortByTotalAvs }
 			  : sortByTvl
 				  ? { field: 'tvlEth', order: sortByTvl }
-				  : null
+				  : sortByApy
+				  	?{ field: 'apy', order: sortByApy }
+					: null
 
 		// Fetch records and apply search/sort
 		const operatorRecords = await prisma.operator.findMany({
