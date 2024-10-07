@@ -1564,13 +1564,11 @@
             "schema": {
               "type": "string",
               "enum": [
-                "1h",
                 "1d",
                 "7d"
               ],
-              "default": "1h",
-              "description": "Frequency of data points",
-              "example": "1h"
+              "default": "1d",
+              "description": "Frequency of data points"
             }
           },
           {
@@ -1713,13 +1711,11 @@
             "schema": {
               "type": "string",
               "enum": [
-                "1h",
                 "1d",
                 "7d"
               ],
-              "default": "1h",
-              "description": "Frequency of data points",
-              "example": "1h"
+              "default": "1d",
+              "description": "Frequency of data points"
             }
           },
           {
@@ -1850,13 +1846,11 @@
             "schema": {
               "type": "string",
               "enum": [
-                "1h",
                 "1d",
                 "7d"
               ],
-              "default": "1h",
-              "description": "Frequency of data points",
-              "example": "1h"
+              "default": "1d",
+              "description": "Frequency of data points"
             }
           },
           {
@@ -1975,13 +1969,11 @@
             "schema": {
               "type": "string",
               "enum": [
-                "1h",
                 "1d",
                 "7d"
               ],
-              "default": "1h",
-              "description": "Frequency of data points",
-              "example": "1h"
+              "default": "1d",
+              "description": "Frequency of data points"
             }
           },
           {
@@ -2112,13 +2104,11 @@
             "schema": {
               "type": "string",
               "enum": [
-                "1h",
                 "1d",
                 "7d"
               ],
-              "default": "1h",
-              "description": "Frequency of data points",
-              "example": "1h"
+              "default": "1d",
+              "description": "Frequency of data points"
             }
           },
           {
@@ -2237,13 +2227,11 @@
             "schema": {
               "type": "string",
               "enum": [
-                "1h",
                 "1d",
                 "7d"
               ],
-              "default": "1h",
-              "description": "Frequency of data points",
-              "example": "1h"
+              "default": "1d",
+              "description": "Frequency of data points"
             }
           },
           {
@@ -2362,13 +2350,11 @@
             "schema": {
               "type": "string",
               "enum": [
-                "1h",
                 "1d",
                 "7d"
               ],
-              "default": "1h",
-              "description": "Frequency of data points",
-              "example": "1h"
+              "default": "1d",
+              "description": "Frequency of data points"
             }
           },
           {
@@ -2487,13 +2473,11 @@
             "schema": {
               "type": "string",
               "enum": [
-                "1h",
                 "1d",
                 "7d"
               ],
-              "default": "1h",
-              "description": "Frequency of data points",
-              "example": "1h"
+              "default": "1d",
+              "description": "Frequency of data points"
             }
           },
           {
@@ -2612,13 +2596,11 @@
             "schema": {
               "type": "string",
               "enum": [
-                "1h",
                 "1d",
                 "7d"
               ],
-              "default": "1h",
-              "description": "Frequency of data points",
-              "example": "1h"
+              "default": "1d",
+              "description": "Frequency of data points"
             }
           },
           {
@@ -2737,13 +2719,11 @@
             "schema": {
               "type": "string",
               "enum": [
-                "1h",
                 "1d",
                 "7d"
               ],
-              "default": "1h",
-              "description": "Frequency of data points",
-              "example": "1h"
+              "default": "1d",
+              "description": "Frequency of data points"
             }
           },
           {
@@ -2862,13 +2842,11 @@
             "schema": {
               "type": "string",
               "enum": [
-                "1h",
                 "1d",
                 "7d"
               ],
-              "default": "1h",
-              "description": "Frequency of data points",
-              "example": "1h"
+              "default": "1d",
+              "description": "Frequency of data points"
             }
           },
           {
@@ -2987,13 +2965,11 @@
             "schema": {
               "type": "string",
               "enum": [
-                "1h",
                 "1d",
                 "7d"
               ],
-              "default": "1h",
-              "description": "Frequency of data points",
-              "example": "1h"
+              "default": "1d",
+              "description": "Frequency of data points"
             }
           },
           {
