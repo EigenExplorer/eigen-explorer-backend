@@ -27,6 +27,7 @@ export interface EigenContractAddress {
 	Slasher: `0x${string}`
 	StrategyManager: `0x${string}`
 	EigenPodManager: `0x${string}`
+	RewardsCoordinator: `0x${string}`
 
 	Strategies: EigenStrategiesContractAddress
 }

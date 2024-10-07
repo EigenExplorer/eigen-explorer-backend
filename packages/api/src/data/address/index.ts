@@ -21,6 +21,10 @@ export interface EigenStrategiesContractAddress {
 	mETH?: { strategyContract: `0x${string}`; tokenContract: `0x${string}` }
 }
 
+export interface RewardsTokensContractAddress {
+	ARPA?: `0x${string}`
+}
+
 export interface EigenContractAddress {
 	AVSDirectory: `0x${string}`
 	DelegationManager: `0x${string}`
@@ -29,6 +33,7 @@ export interface EigenContractAddress {
 	EigenPodManager: `0x${string}`
 
 	Strategies: EigenStrategiesContractAddress
+	Rewards: RewardsTokensContractAddress
 }
 
 export function getEigenContracts(network?: Chain) {
