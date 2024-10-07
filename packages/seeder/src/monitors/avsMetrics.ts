@@ -24,7 +24,7 @@ export async function monitorAvsMetrics() {
 		address: string
 		totalStakers: number
 		totalOperators: number
-		apy: number
+		apy: prisma.Prisma.Decimal
 		tvlEth: number
 		sharesHash: string
 	}[] = []
@@ -96,7 +96,7 @@ export async function monitorAvsMetrics() {
 						}
 					}
 				})
-				let apy = 0
+				let apy = new prisma.Prisma.Decimal(0)
 
 				if (avs.rewardSubmissions.length > 0) {
 					// Fetch the AVS tvl for each strategy
@@ -185,7 +185,7 @@ export async function monitorAvsMetrics() {
 					)
 
 					// Calculate aggregate APY across strategies
-					apy = strategiesApy.reduce((sum, strategy) => sum + strategy.apy, 0)
+					apy = new prisma.Prisma.Decimal(strategiesApy.reduce((sum, strategy) => sum + strategy.apy, 0))
 				}
 
 				if (

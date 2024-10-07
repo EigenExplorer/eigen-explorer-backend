@@ -27,9 +27,9 @@ model Avs {
   restakeableStrategies String[]
   rewardSubmissions     AvsStrategyRewardSubmission[]
 
-  totalStakers   Int   @default(0)
-  totalOperators Int   @default(0)
-  apy            Float @default(0)
+  totalStakers   Int     @default(0)
+  totalOperators Int     @default(0)
+  apy            Decimal @default(0) @db.Decimal(8, 4)
 
   tvlEth     Decimal @default(0) @db.Decimal(20, 8)
   sharesHash String?
@@ -108,9 +108,9 @@ model Operator {
   shares  OperatorStrategyShares[]
   stakers Staker[]
 
-  totalStakers Int   @default(0)
-  totalAvs     Int   @default(0)
-  apy          Float @default(0)
+  totalStakers Int     @default(0)
+  totalAvs     Int     @default(0)
+  apy          Decimal @default(0) @db.Decimal(8, 4)
 
   tvlEth     Decimal @default(0) @db.Decimal(20, 8)
   sharesHash String?

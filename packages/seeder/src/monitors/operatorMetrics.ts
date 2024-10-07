@@ -25,7 +25,7 @@ export async function monitorOperatorMetrics() {
 		address: string
 		totalStakers: number
 		totalAvs: number
-		apy: number
+		apy: prisma.Prisma.Decimal
 		tvlEth: number
 		sharesHash: string
 	}[] = []
@@ -99,7 +99,7 @@ export async function monitorOperatorMetrics() {
 					.digest('hex')
 				const totalStakers = operator._count.stakers
 				const totalAvs = operator._count.avs
-				let apy = 0
+				let apy = new prisma.Prisma.Decimal(0)
 
 				const avsRewardsMap: Map<string, number> = new Map()
 				const strategyRewardsMap: Map<string, number> = new Map()
@@ -232,7 +232,7 @@ export async function monitorOperatorMetrics() {
 					}))
 
 					// Calculate aggregates across Avs and strategies
-					apy = avs.reduce((sum, avs) => sum + avs.apy, 0)
+					apy = new prisma.Prisma.Decimal(avs.reduce((sum, avs) => sum + avs.apy, 0))
 				}
 
 				if (
