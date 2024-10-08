@@ -38,13 +38,12 @@ import { monitorOperatorMetrics } from './monitors/operatorMetrics'
 import { seedAvsStrategyRewards } from './seedAvsStrategyRewards'
 import { seedLogsAVSRewardsSubmission } from './events/seedLogsRewardsSubmissions'
 
-
 console.log('Initializing Seeder ...')
 
 // Constants
 const MAX_RETRIES = 3
 const RETRY_DELAY = 15 * 60
-const UPDATE_FREQUENCY = getNetwork().testnet ? 600 : 240
+const UPDATE_FREQUENCY = getNetwork().testnet ? 720 : 240
 
 // Locks
 let isSeedingBlockData = false
@@ -94,8 +93,6 @@ async function seedEigenData() {
 			await seedValidators()
 			await seedAvsStrategyRewards()
 
-			await monitorAvsMetadata()
-			await monitorOperatorMetadata()
 			await monitorAvsMetrics()
 			await monitorOperatorMetrics()
 		} catch (error) {
@@ -106,6 +103,23 @@ async function seedEigenData() {
 		}
 
 		await delay(UPDATE_FREQUENCY)
+	}
+}
+
+/**
+ * Seed metadata
+ * 
+ * @returns 
+ */
+async function seedEigenMetaData() {
+	try {
+		console.log('\nSeeding metadata ...')
+
+		await monitorAvsMetadata()
+		await monitorOperatorMetadata()
+	} catch (error) {
+		console.log('Failed to seed metadata at:', Date.now())
+		console.log(error)
 	}
 }
 
@@ -152,5 +166,8 @@ async function seedEigenDailyData(retryCount = 0) {
 // Start seeding data instantly
 seedEigenData()
 
-// Schedule seedEigenDailyData to run at 1 minute past midnight every day
-cron.schedule('1 0 * * *', () => seedEigenDailyData())
+// Schedule seedEigenDailyData to run at 5 minutes past midnight every day
+cron.schedule('5 0 * * *', () => seedEigenDailyData())
+
+// Schedule seedEigenMetaData to run every 6 hours
+cron.schedule('0 */6 * * *', () => seedEigenMetaData())
