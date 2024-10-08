@@ -23,8 +23,6 @@ import { seedLogsWithdrawalCompleted } from './events/seedLogsWithdrawalComplete
 import { seedLogsDeposit } from './events/seedLogsDeposit'
 import { seedDeposits } from './seedDeposits'
 import { seedLogsPodSharesUpdated } from './events/seedLogsPodSharesUpdated'
-import { monitorAvsMetadata } from './monitors/avsMetadata'
-import { monitorOperatorMetadata } from './monitors/operatorMetadata'
 import { seedMetricsDeposit } from './metrics/seedMetricsDeposit'
 import { seedMetricsWithdrawal } from './metrics/seedMetricsWithdrawal'
 import { seedMetricsRestaking } from './metrics/seedMetricsRestaking'
@@ -45,7 +43,7 @@ console.log('Initializing Seeder ...')
 // Constants
 const MAX_RETRIES = 3
 const RETRY_DELAY = 15 * 60
-const UPDATE_FREQUENCY = getNetwork().testnet ? 600 : 240
+const UPDATE_FREQUENCY = getNetwork().testnet ? 720 : 240
 
 // Locks
 let isSeedingBlockData = false
@@ -67,6 +65,8 @@ async function seedEigenData() {
 			console.log(
 				`\nSeeding data, every ${UPDATE_FREQUENCY} seconds, till block ${targetBlock}:`
 			)
+
+			console.time('Seeded data in')
 
 			// Seed block data with a global lock to prevent block-less updates
 			isSeedingBlockData = true
@@ -97,10 +97,10 @@ async function seedEigenData() {
 			await seedValidators()
 			await seedAvsStrategyRewards()
 
-			await monitorAvsMetadata()
-			await monitorOperatorMetadata()
 			await monitorAvsMetrics()
 			await monitorOperatorMetrics()
+
+			console.timeEnd('Seeded data in')
 		} catch (error) {
 			console.log('Failed to seed data at:', Date.now())
 			console.log(error)
@@ -128,6 +128,8 @@ async function seedEigenDailyData(retryCount = 0) {
 			return
 		}
 
+		console.time('Seeded daily data in')
+
 		await seedStrategies()
 		await seedEthPricesDaily()
 		await seedRestakedStrategies()
@@ -138,7 +140,7 @@ async function seedEigenDailyData(retryCount = 0) {
 		await seedMetricsEigenPods()
 		await seedMetricsTvl()
 
-		console.log('Daily data seeding completed successfully.')
+		console.timeEnd('Seeded daily data in')
 	} catch (error) {
 		console.log(`Failed to seed daily data at: ${Date.now()}`)
 		console.log(error)
@@ -165,6 +167,7 @@ async function seedEigenDailyData(retryCount = 0) {
 async function seedApyData(retryCount = 0) {
 	try {
 		console.log('\nSeeding APY data ...')
+		console.time('Seeded APY data in')
 
 		if (isSeedingBlockData) {
 			console.log('Block data is being seeded. Retrying in 15 minutes...')
@@ -175,7 +178,7 @@ async function seedApyData(retryCount = 0) {
 		await monitorAvsApy()
 		await monitorOperatorApy()
 
-		console.log('Avs and Operator APY seeding completed successfully.')
+		console.timeEnd('Seeded APY data in')
 	} catch (error) {
 		console.log(`Failed to seed Avs and Operator APY data at: ${Date.now()}`)
 		console.log(error)
@@ -196,8 +199,8 @@ async function seedApyData(retryCount = 0) {
 // Start seeding data instantly
 seedEigenData()
 
-// Schedule seedEigenDailyData to run at 1 minute past midnight every day
-cron.schedule('1 0 * * *', () => seedEigenDailyData())
+// Schedule seedEigenDailyData to run at 5 minutes past midnight every day
+cron.schedule('5 0 * * *', () => seedEigenDailyData())
 
-// Schedule seedApyData to run at 1 minute past midnight & noon every day
-cron.schedule('1 0,12 * * *', () => seedApyData())
+// Schedule seedApyData to run at 5 minutes past 2am every day
+cron.schedule('5 2 * * *', () => seedApyData())
