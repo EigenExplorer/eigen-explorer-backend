@@ -22,22 +22,36 @@ export async function seedMetricsTvl(type: 'full' | 'incremental' = 'incremental
 
 	// Define start date
 	let startDate: Date | null = await fetchLastSyncTime(blockSyncKey)
-	const endDate: Date = new Date()
+	const endDate: Date = new Date(new Date().setUTCHours(0, 0, 0, 0))
+	let clearPrev = false
 
 	if (type === 'full' || !startDate) {
 		const firstLogTimestamp = await getFirstLogTimestamp()
 		if (firstLogTimestamp) {
-			startDate = new Date(firstLogTimestamp)
+			startDate = new Date(new Date(firstLogTimestamp).setUTCHours(0, 0, 0, 0))
 		} else {
-			startDate = new Date()
+			startDate = new Date(new Date().setUTCHours(0, 0, 0, 0))
 		}
+		clearPrev = true
+	}
+
+	// Bail early if there is no time diff to sync
+	if (endDate.getTime() - startDate.getTime() <= 0) {
+		console.log(
+			`[In Sync] [Metrics] TVL Daily from: ${startDate} to: ${endDate}`
+		)
+		return
+	}
+
+	console.log('[Prep] Metric TVL ...')
+
+	if (clearPrev) {
+		await prismaClient.metricStrategyUnit.deleteMany()
 	}
 
 	// Get the last known metrics for eigen pods
 	const lastStrategyMetrics = await getLatestMetricsPerStrategy()
 	const sharesToUnderlyingMap = await getStrategiesWithShareUnderlying()
-
-	console.log('[Prep] Metric TVL ...')
 
 	const metrics = await processLogsInBatches(
 		startDate,

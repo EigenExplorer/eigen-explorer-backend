@@ -1,4 +1,4 @@
-import prisma from '@prisma/client'
+import { Prisma } from '@prisma/client'
 import { getPrismaClient } from '../utils/prismaClient'
 import {
 	getSharesToUnderlying,
@@ -7,157 +7,214 @@ import {
 } from '../utils/strategies'
 import {
 	bulkUpdateDbTransactions,
-	fetchLastSyncTime,
-	saveLastSyncBlock
+	fetchLastSyncTime
 } from '../utils/seeder'
 
 const timeSyncKey = 'lastSyncedTime_metrics_deposit'
 
 export async function seedMetricsDeposit() {
 	const prismaClient = getPrismaClient()
-	const depositList: Omit<prisma.MetricDepositUnit, 'id'>[] = []
+
+	// Define start date
+	let startAt: Date | null = await fetchLastSyncTime(timeSyncKey)
+	const endAt: Date = new Date(new Date().setUTCHours(0, 0, 0, 0))
 	let clearPrev = false
 
-	// Get appropriate startAt
-	let startAt = Number(await fetchLastSyncTime(timeSyncKey))
 	if (!startAt) {
 		const firstLogTimestamp = await getFirstLogTimestamp()
-		startAt = firstLogTimestamp
-			? firstLogTimestamp.getTime()
-			: new Date().getTime()
+		if (firstLogTimestamp) {
+			startAt = new Date(new Date(firstLogTimestamp).setUTCHours(0, 0, 0, 0))
+		} else {
+			startAt = new Date(new Date().setUTCHours(0, 0, 0, 0))
+		}
 		clearPrev = true
 	}
 
-	// Get appropriate endAt
-	const { timestamp: endAtTimestamp } =
-		await prismaClient.viewHourlyDepositData.findFirstOrThrow({
-			select: { timestamp: true },
-			orderBy: { timestamp: 'desc' }
-		})
-	const endAt = endAtTimestamp.getTime()
-
 	// Bail early if there is no time diff to sync
-	if (endAt - startAt <= 0) {
+	if (endAt.getTime() - startAt.getTime() <= 0) {
 		console.log(
-			`[In Sync] [Metrics] Deposit Hourly from: ${startAt} to: ${endAt}`
+			`[In Sync] [Metrics] Deposit Daily from: ${startAt} to: ${endAt}`
 		)
 		return
 	}
 
-	// Get latest values of cumulative fields
-	let { tvlEth: tvlEthDecimal, totalDeposits } =
-		(await prismaClient.metricDepositUnit.findFirst({
-			select: {
-				tvlEth: true,
-				totalDeposits: true
-			},
-			orderBy: { timestamp: 'desc' }
-		})) || { tvlEth: 0, totalDeposits: 0 }
-	let tvlEth = tvlEthDecimal ? Number(tvlEthDecimal) : 0
+	// Clear previous data
+	if (clearPrev) {
+		await prismaClient.metricDepositUnit.deleteMany()
+	}
 
-	// Get logs from view
-	const logs = await prismaClient.viewHourlyDepositData.findMany({
-		where: {
-			timestamp: {
-				gt: new Date(startAt),
-				lte: new Date(endAt)
-			}
-		},
-		orderBy: { timestamp: 'asc' } // Since we're calculating cumulative metrics
-	})
+	// Fetch required data for processing
+	const [strategyToSymbolMap, sharesToUnderlying, ethPriceData] = await Promise.all([
+		getStrategyToSymbolMap(),
+		getSharesToUnderlying(),
+		getEthPrices(startAt.getTime())
+	])
 
-	let currentTimestamp = logs[0].timestamp.getTime()
-	let changeTvlEth = 0
-	let changeDeposits = 0
+	// Get latest cumulative metrics
+	let { tvlEth, totalDeposits } = await getLatestMetrics(prismaClient)
 
-	// Get strategy and price data
-	const strategyToSymbolMap = await getStrategyToSymbolMap()
-	const sharesToUnderlying = await getSharesToUnderlying()
-	const ethPriceData = await getEthPrices(currentTimestamp)
+	// Process deposits in batches of 30 days
+	const batchSize = 30 * 24 * 60 * 60 * 1000 // 30 days in milliseconds
+	let currentStartAt = new Date(startAt)
+	let allDepositList: any[] = []
 
-	for (const l in logs) {
-		const log = logs[l]
+	// Loop through each batch
+	while (currentStartAt < endAt) {
+		let currentEndAt = new Date(Math.min(currentStartAt.getTime() + batchSize, endAt.getTime()))
 
-		const symbol = strategyToSymbolMap.get(log.strategyAddress)?.toLowerCase()
-		const hour = log.timestamp.getTime()
-
-		if (hour !== currentTimestamp) {
-			// Completed data capture for records for a given hour
-			tvlEth += changeTvlEth
-			totalDeposits += changeDeposits
-
-			depositList.push({
-				timestamp: new Date(currentTimestamp),
-				tvlEth: new prisma.Prisma.Decimal(tvlEth),
-				totalDeposits,
-				changeTvlEth: new prisma.Prisma.Decimal(changeTvlEth),
-				changeDeposits
-			})
-
-			// Reset for next hour
-			changeTvlEth = 0
-			changeDeposits = 0
-			currentTimestamp = hour
-		}
-
-		const sharesMultiplier = Number(
-			sharesToUnderlying.get(log.strategyAddress.toLowerCase())
+		const batchDepositList = await processDeposits(
+			currentStartAt,
+			currentEndAt,
+			tvlEth,
+			totalDeposits,
+			strategyToSymbolMap,
+			sharesToUnderlying,
+			ethPriceData
 		)
 
-		const ethPrice =
-			Number(
-				ethPriceData.find(
-					(price) =>
-						price.symbol.toLowerCase() === symbol &&
-						price.timestamp.getTime() <= currentTimestamp
-				)?.ethPrice
-			) || 1
+		allDepositList = allDepositList.concat(batchDepositList)
 
-		if (sharesMultiplier && ethPrice) {
-			changeTvlEth +=
-				(Number(log.totalShares) / 1e18) * sharesMultiplier * ethPrice
-			changeDeposits += log.totalDeposits
+		// Update cumulative metrics for the next batch
+		if (batchDepositList.length > 0) {
+			const lastMetric = batchDepositList[batchDepositList.length - 1]
+			tvlEth = Number(lastMetric.tvlEth)
+			totalDeposits = lastMetric.totalDeposits
 		}
+
+		currentStartAt = new Date(currentEndAt.getTime() + 1) // Start next batch from the next millisecond
 	}
 
-	// Last hour
-	if (changeTvlEth > 0 || changeDeposits > 0) {
-		tvlEth += changeTvlEth
-		totalDeposits += changeDeposits
+	// Prepare database transactions
+	const dbTransactions: Prisma.PrismaPromise<any>[] = []
 
-		depositList.push({
-			timestamp: new Date(currentTimestamp),
-			tvlEth: new prisma.Prisma.Decimal(tvlEth),
-			totalDeposits,
-			changeTvlEth: new prisma.Prisma.Decimal(changeTvlEth),
-			changeDeposits
-		})
-	}
-
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-	const dbTransactions: any[] = []
-
-	if (clearPrev) {
-		dbTransactions.push(prismaClient.metricDepositUnit.deleteMany())
-	}
-
-	if (depositList.length > 0) {
+	// Insert new deposit metrics
+	if (allDepositList.length > 0) {
 		dbTransactions.push(
 			prismaClient.metricDepositUnit.createMany({
-				data: depositList,
+				data: allDepositList,
 				skipDuplicates: true
 			})
 		)
 	}
 
-	await bulkUpdateDbTransactions(
-		dbTransactions,
-		`[Metrics] Deposit Hourly from: ${startAt} to: ${endAt} size: ${depositList.length}`
+	// Update last synced time
+	dbTransactions.push(
+		prismaClient.settings.upsert({
+			where: { key: timeSyncKey },
+			update: { value: Number(endAt.getTime()) },
+			create: { key: timeSyncKey, value: Number(endAt.getTime()) }
+		})
 	)
 
-	// Storing last synced block
-	await saveLastSyncBlock(timeSyncKey, BigInt(endAt))
+	// Execute all database transactions
+	await bulkUpdateDbTransactions(
+		dbTransactions,
+		`[Metrics] Deposit Daily from: ${startAt} to: ${endAt} size: ${allDepositList.length}`
+	)
 }
+
+/**
+ * Process deposits and calculate metrics
+ *
+ * @param startAt
+ * @param endAt
+ * @param initialTvlEth
+ * @param initialTotalDeposits
+ * @param strategyToSymbolMap
+ * @param sharesToUnderlying
+ * @param ethPriceData 
+ * @returns 
+ */
+async function processDeposits(
+	startAt: Date,
+	endAt: Date,
+	initialTvlEth: number,
+	initialTotalDeposits: number,
+	strategyToSymbolMap: Map<string, string>,
+	sharesToUnderlying: Map<string, string>,
+	ethPriceData: any
+) {
+	const prismaClient = getPrismaClient()
+
+	// Fetch deposits within the specified time range
+	const allDeposits = await prismaClient.deposit.findMany({
+		where: {
+			createdAt: {
+				gt: startAt,
+				lte: endAt
+			}
+		}
+	})
+
+	// Calculate daily deposits
+	const dailyDeposits = allDeposits.reduce((acc, deposit) => {
+		const dayTimestamp = new Date(deposit.createdAt).setUTCHours(0, 0, 0, 0);
+		if (!acc[dayTimestamp]) {
+			acc[dayTimestamp] = {
+				timestamp: new Date(dayTimestamp),
+				tvlEth: 0,
+				totalDeposits: 0,
+				changeTvlEth: 0,
+				changeDeposits: 0
+			};
+		}
+		
+		const symbol = strategyToSymbolMap.get(deposit.strategyAddress)?.toLowerCase();
+		const sharesMultiplier = Number(sharesToUnderlying.get(deposit.strategyAddress.toLowerCase()));
+		const ethPrice = Number(ethPriceData.find((price) => price.symbol.toLowerCase() === symbol)?.ethPrice) || 0;
+
+		if (sharesMultiplier && ethPrice) {
+			const depositValueEth = (Number(deposit.shares) / 1e18) * sharesMultiplier * ethPrice;
+			acc[dayTimestamp].changeTvlEth = Number(acc[dayTimestamp].changeTvlEth) + depositValueEth;
+			acc[dayTimestamp].changeDeposits += 1;
+		}
+
+		return acc;
+	}, {} as Record<number, Omit<Prisma.MetricDepositUnitCreateInput, 'id'>>);
+
+	// Calculate cumulative metrics
+	const cumulativeDeposits = Object.values(dailyDeposits)
+		.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+		.map((dayData, index, array) => {
+			if (index > 0) {
+				dayData.tvlEth = new Prisma.Decimal(
+					Number(array[index - 1].tvlEth) + Number(dayData.changeTvlEth)
+				);
+				dayData.totalDeposits = array[index - 1].totalDeposits + dayData.changeDeposits;
+			} else {
+				dayData.tvlEth = new Prisma.Decimal(initialTvlEth + Number(dayData.changeTvlEth));
+				dayData.totalDeposits = initialTotalDeposits + dayData.changeDeposits;
+			}
+			return {
+				...dayData,
+				tvlEth: dayData.tvlEth,
+				changeTvlEth: dayData.changeTvlEth
+			};
+		});
+
+	return cumulativeDeposits
+}
+
+/**
+ * Get latest metrics
+ *
+ * @param prismaClient
+ * @returns
+ */
+async function getLatestMetrics(prismaClient: Prisma.TransactionClient) {
+	const latestMetric = await prismaClient.metricDepositUnit.findFirst({
+		select: {
+			tvlEth: true,
+			totalDeposits: true
+		},
+		orderBy: { timestamp: 'desc' }
+	})
+	return {
+		tvlEth: latestMetric?.tvlEth ? Number(latestMetric.tvlEth) : 0,
+		totalDeposits: latestMetric?.totalDeposits || 0
+	}
+}
+
 
 /**
  * Get first log timestamp

@@ -632,23 +632,3 @@ model Evm_BlockData {
   number    BigInt   @id
   timestamp DateTime
 }
-
-// Views
-
-view viewHourlyDepositData {
-  strategyAddress String
-  totalDeposits   Int
-  totalShares     Decimal  @db.Decimal(36, 0)
-  timestamp       DateTime
-
-  @@unique([strategyAddress, timestamp])
-}
-
-view viewHourlyWithdrawalData {
-  strategyAddress  String
-  totalWithdrawals Int
-  totalShares      Decimal  @db.Decimal(36, 0)
-  timestamp        DateTime
-
-  @@unique([strategyAddress, timestamp])
-}
