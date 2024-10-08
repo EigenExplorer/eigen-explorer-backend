@@ -65,7 +65,6 @@ async function seedEigenData() {
 			console.log(
 				`\nSeeding data, every ${UPDATE_FREQUENCY} seconds, till block ${targetBlock}:`
 			)
-
 			console.time('Seeded data in')
 
 			// Seed block data with a global lock to prevent block-less updates
@@ -73,33 +72,51 @@ async function seedEigenData() {
 			await seedBlockData(targetBlock)
 			isSeedingBlockData = false
 
-			await seedLogsAVSMetadata(targetBlock)
-			await seedLogsOperatorMetadata(targetBlock)
-			await seedLogsOperatorAVSRegistrationStatus(targetBlock)
-			await seedLogsOperatorShares(targetBlock)
-			await seedLogsStakerDelegation(targetBlock)
-			await seedLogsPodDeployed(targetBlock)
-			await seedLogsWithdrawalQueued(targetBlock)
-			await seedLogsWithdrawalCompleted(targetBlock)
-			await seedLogsDeposit(targetBlock)
-			await seedLogsPodSharesUpdated(targetBlock)
-			await seedLogsAVSRewardsSubmission(targetBlock)
+			await Promise.all([
+				seedLogsAVSMetadata(targetBlock),
+				seedLogsOperatorMetadata(targetBlock),
+				seedLogsOperatorAVSRegistrationStatus(targetBlock),
+				seedLogsOperatorShares(targetBlock),
+				seedLogsStakerDelegation(targetBlock),
+				seedLogsPodDeployed(targetBlock),
+				seedLogsWithdrawalQueued(targetBlock),
+				seedLogsWithdrawalCompleted(targetBlock),
+				seedLogsDeposit(targetBlock),
+				seedLogsPodSharesUpdated(targetBlock),
+				seedLogsAVSRewardsSubmission(targetBlock),
+			])
 
-			await seedAvs()
-			await seedOperators()
-			await seedAvsOperators()
-			await seedStakers()
-			await seedOperatorShares()
-			await seedQueuedWithdrawals()
-			await seedCompletedWithdrawals()
-			await seedDeposits()
-			await seedPods()
-			await seedValidators()
-			await seedAvsStrategyRewards()
+			await Promise.all([
+				// Avs, Operators and Avs Operators
+				(async () => {
+					await seedAvs()
+					await seedOperators()
+					await seedAvsOperators()
+					await seedStakers()
+					await seedOperatorShares()
+				})(),
+				// Deposits
+				seedDeposits(),
+				// Withdrawals
+				(async () => {
+					await seedQueuedWithdrawals()
+					await seedCompletedWithdrawals()
+				})(),
+				// Pods and Validators
+				(async () => {
+					await seedPods()
+					await seedValidators()
+				})()
+			])
 
-			await monitorAvsMetrics()
-			await monitorOperatorMetrics()
-
+			await Promise.all([
+				// Rewards
+				seedAvsStrategyRewards(),
+				
+				// Metrics
+				monitorAvsMetrics(),
+				monitorOperatorMetrics(),
+			])
 			console.timeEnd('Seeded data in')
 		} catch (error) {
 			console.log('Failed to seed data at:', Date.now())
