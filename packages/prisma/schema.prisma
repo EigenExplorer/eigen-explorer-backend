@@ -46,13 +46,15 @@ model AvsCuratedMetadata {
   avs        Avs    @relation(fields: [avsAddress], references: [address])
   avsAddress String @id @unique
 
-  metadataName        String?
-  metadataDescription String?
-  metadataDiscord     String?
-  metadataLogo        String?
-  metadataTelegram    String?
-  metadataWebsite     String?
-  metadataX           String?
+  metadataName         String?
+  metadataDescription  String?
+  metadataDiscord      String?
+  metadataLogo         String?
+  metadataTelegram     String?
+  metadataWebsite      String?
+  metadataX            String?
+  metadataGithub       String?
+  metadataTokenAddress String?
 
   tags       String[]
   isVisible  Boolean  @default(false)
@@ -600,7 +602,7 @@ model EventLogs_AVSRewardsSubmission {
   blockHash        String
   blockTime        DateTime
 
-  avs                   String  
+  avs                   String
   submissionNonce       BigInt
   rewardsSubmissionHash String
 
