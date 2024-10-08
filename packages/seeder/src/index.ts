@@ -23,8 +23,6 @@ import { seedLogsWithdrawalCompleted } from './events/seedLogsWithdrawalComplete
 import { seedLogsDeposit } from './events/seedLogsDeposit'
 import { seedDeposits } from './seedDeposits'
 import { seedLogsPodSharesUpdated } from './events/seedLogsPodSharesUpdated'
-import { monitorAvsMetadata } from './monitors/avsMetadata'
-import { monitorOperatorMetadata } from './monitors/operatorMetadata'
 import { seedMetricsDeposit } from './metrics/seedMetricsDeposit'
 import { seedMetricsWithdrawal } from './metrics/seedMetricsWithdrawal'
 import { seedMetricsRestaking } from './metrics/seedMetricsRestaking'
@@ -107,23 +105,6 @@ async function seedEigenData() {
 }
 
 /**
- * Seed metadata
- * 
- * @returns 
- */
-async function seedEigenMetaData() {
-	try {
-		console.log('\nSeeding metadata ...')
-
-		await monitorAvsMetadata()
-		await monitorOperatorMetadata()
-	} catch (error) {
-		console.log('Failed to seed metadata at:', Date.now())
-		console.log(error)
-	}
-}
-
-/**
  * Seed daily data
  * 
  * @param retryCount 
@@ -168,6 +149,3 @@ seedEigenData()
 
 // Schedule seedEigenDailyData to run at 5 minutes past midnight every day
 cron.schedule('5 0 * * *', () => seedEigenDailyData())
-
-// Schedule seedEigenMetaData to run every 6 hours
-cron.schedule('0 */6 * * *', () => seedEigenMetaData())
