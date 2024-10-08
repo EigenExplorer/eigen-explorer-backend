@@ -19,6 +19,13 @@ export const SortByQuerySchema = z
 				'Sort results in asc or desc order of total AVS (only valid for Operator queries)'
 			)
 			.openapi({ example: 'desc' }),
+		sortByApy: z
+			.enum(['asc', 'desc'])
+			.optional()
+			.describe(
+				'Sort results in asc or desc order of APY'
+			)
+			.openapi({ example: 'desc' }),
 		sortByTotalOperators: z
 			.enum(['asc', 'desc'])
 			.optional()

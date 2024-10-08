@@ -60,6 +60,9 @@ export const eigenContracts: EigenContractAddress = {
 			strategyContract: '0x298aFB19A105D59E74658C4C334Ff360BadE6dd2',
 			tokenContract: '0xd5F7838F5C461fefF7FE49ea5ebaF7728bB0ADfa'
 		}
+	},
+	Rewards: {
+		ARPA: '0xba50933c268f567bdc86e1ac131be072c6b0b71a'
 	}
 }
 

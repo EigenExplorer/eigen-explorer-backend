@@ -57,6 +57,7 @@ export async function getAllAVS(req: Request, res: Response) {
 			sortByTvl,
 			sortByTotalStakers,
 			sortByTotalOperators,
+			sortByApy,
 			searchByText,
 			searchMode
 		} = queryCheck.data
@@ -68,7 +69,9 @@ export async function getAllAVS(req: Request, res: Response) {
 			  ? { field: 'totalOperators', order: sortByTotalOperators }
 			  : sortByTvl
 				  ? { field: 'tvlEth', order: sortByTvl }
-				  : null
+				  : sortByApy
+				  	?{ field: 'apy', order: sortByApy }
+					: null
 
 		// Setup search query
 		const searchFilterQuery = getAvsSearchQuery(

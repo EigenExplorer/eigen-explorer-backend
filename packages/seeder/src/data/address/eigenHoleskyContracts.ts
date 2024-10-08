@@ -52,5 +52,8 @@ export const eigenHoleskyContracts: EigenContractAddress = {
 			strategyContract: '0xaccc5A86732BE85b5012e8614AF237801636F8e5',
 			tokenContract: '0xe3C063B1BEe9de02eb28352b55D49D85514C67FF'
 		}
+	},
+	Rewards: {
+		ARPA: '0x7549F756e3feefCe952637341357Ad90d91AcD3c'
 	}
 }
