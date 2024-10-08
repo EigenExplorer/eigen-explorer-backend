@@ -1011,12 +1011,15 @@ async function doGetTvlBeaconChain(
 	withChange: boolean
 ): Promise<TvlWithoutChange | TvlWithChange> {
 	const totalValidators = await prisma.validator.aggregate({
+		where: {
+			status: { in: ['active_ongoing', 'active_exiting'] }
+		},
 		_sum: {
-			balance: true
+			effectiveBalance: true
 		}
 	})
 
-	const currentTvl = Number(totalValidators._sum.balance) / 1e9
+	const currentTvl = Number(totalValidators._sum.effectiveBalance) / 1e9
 
 	return withChange
 		? ((await calculateTvlChange('metricEigenPodsUnit')) as TvlWithChange)
