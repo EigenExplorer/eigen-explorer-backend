@@ -1,10 +1,9 @@
 import { Request, Response } from 'express'
 import { cacheStore } from 'route-cache'
-import { blockSyncKeys } from '../../../../monitor/src/data/blockSyncKeys'
-import { fetchLastSyncBlockInfo } from '../../../../monitor/src/utils/monitoring'
 import { eigenContracts } from '../../data/address/eigenMainnetContracts'
 import { handleAndReturnErrorResponse } from '../../schema/errors'
 import { fetchStrategyTokenPrices } from '../../utils/tokenPrices'
+import { getPrismaClient } from '../../utils/prismaClient'
 
 /**
  * Route to fetch cached prices
@@ -54,22 +53,17 @@ export async function getCachedPrices(req: Request, res: Response) {
  */
 export async function getLastSyncBlocks(req: Request, res: Response) {
 	try {
-		const syncKeys = Object.values(blockSyncKeys).map((value) =>
-			typeof value === 'string' ? value : value[0]
-		)
+		const prismaClient = getPrismaClient()
 
-		const syncBlockData = await Promise.all(
-			syncKeys.map(async (key) => {
-				const blockInfo = await fetchLastSyncBlockInfo(key)
-				return {
-					key,
-					lastBlock: blockInfo.lastBlock.toString(),
-					updatedAt: blockInfo.updatedAt
-				}
-			})
-		)
+		const ignoredBlockSyncKeys = [
+			'withdrawMinDelayBlocks'
+		]
 
-		res.status(200).send(syncBlockData)
+		const syncKeys = await prismaClient.settings.findMany({
+			where: { key: { notIn: ignoredBlockSyncKeys } }
+		})
+
+		res.status(200).send(syncKeys)
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
 	}
