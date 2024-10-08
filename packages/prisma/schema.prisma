@@ -25,9 +25,11 @@ model Avs {
   operators             AvsOperator[]
   curatedMetadata       AvsCuratedMetadata?
   restakeableStrategies String[]
+  rewardSubmissions     AvsStrategyRewardSubmission[]
 
-  totalStakers   Int @default(0)
-  totalOperators Int @default(0)
+  totalStakers   Int     @default(0)
+  totalOperators Int     @default(0)
+  apy            Decimal @default(0) @db.Decimal(8, 4)
 
   tvlEth     Decimal @default(0) @db.Decimal(20, 8)
   sharesHash String?
@@ -44,13 +46,15 @@ model AvsCuratedMetadata {
   avs        Avs    @relation(fields: [avsAddress], references: [address])
   avsAddress String @id @unique
 
-  metadataName        String?
-  metadataDescription String?
-  metadataDiscord     String?
-  metadataLogo        String?
-  metadataTelegram    String?
-  metadataWebsite     String?
-  metadataX           String?
+  metadataName         String?
+  metadataDescription  String?
+  metadataDiscord      String?
+  metadataLogo         String?
+  metadataTelegram     String?
+  metadataWebsite      String?
+  metadataX            String?
+  metadataGithub       String?
+  metadataTokenAddress String?
 
   tags       String[]
   isVisible  Boolean  @default(false)
@@ -106,8 +110,9 @@ model Operator {
   shares  OperatorStrategyShares[]
   stakers Staker[]
 
-  totalStakers Int @default(0)
-  totalAvs     Int @default(0)
+  totalStakers Int     @default(0)
+  totalAvs     Int     @default(0)
+  apy          Decimal @default(0) @db.Decimal(8, 4)
 
   tvlEth     Decimal @default(0) @db.Decimal(20, 8)
   sharesHash String?
@@ -224,6 +229,25 @@ model WithdrawalCompleted {
   createdAt      DateTime @default(now())
 
   queuedWithdrawal WithdrawalQueued @relation(fields: [withdrawalRoot], references: [withdrawalRoot])
+}
+
+model AvsStrategyRewardSubmission {
+  id  Int @id @default(autoincrement())
+  avs Avs @relation(fields: [avsAddress], references: [address])
+
+  submissionNonce       BigInt
+  rewardsSubmissionHash String
+
+  avsAddress      String
+  strategyAddress String
+  multiplier      Decimal @default(0) @db.Decimal(78, 0)
+  token           String
+  amount          Decimal @default(0) @db.Decimal(78, 0)
+  startTimestamp  BigInt
+  duration        Int
+
+  createdAtBlock BigInt   @default(0)
+  createdAt      DateTime @default(now())
 }
 
 // Collection to store system settings
@@ -569,6 +593,31 @@ model EventLogs_Deposit {
   @@index([blockNumber])
 }
 
+model EventLogs_AVSRewardsSubmission {
+  address String
+
+  transactionHash  String
+  transactionIndex Int
+  blockNumber      BigInt
+  blockHash        String
+  blockTime        DateTime
+
+  avs                   String
+  submissionNonce       BigInt
+  rewardsSubmissionHash String
+
+  rewardsSubmission_token              String
+  rewardsSubmission_amount             String
+  rewardsSubmission_startTimestamp     BigInt
+  rewardsSubmission_duration           Int
+  strategiesAndMultipliers_strategies  String[]
+  strategiesAndMultipliers_multipliers String[]
+
+  @@id([transactionHash, transactionIndex])
+  @@index([address])
+  @@index([blockNumber])
+}
+
 model EthPricesDaily {
   id Int @id @default(autoincrement())
 
@@ -584,24 +633,4 @@ model EthPricesDaily {
 model Evm_BlockData {
   number    BigInt   @id
   timestamp DateTime
-}
-
-// Views
-
-view viewHourlyDepositData {
-  strategyAddress String
-  totalDeposits   Int
-  totalShares     Decimal  @db.Decimal(36, 0)
-  timestamp       DateTime
-
-  @@unique([strategyAddress, timestamp])
-}
-
-view viewHourlyWithdrawalData {
-  strategyAddress  String
-  totalWithdrawals Int
-  totalShares      Decimal  @db.Decimal(36, 0)
-  timestamp        DateTime
-
-  @@unique([strategyAddress, timestamp])
 }

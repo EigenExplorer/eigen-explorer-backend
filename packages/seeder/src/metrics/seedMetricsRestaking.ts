@@ -49,18 +49,38 @@ export async function seedMetricsRestaking(type: 'full' | 'incremental' = 'incre
 
 	// Define start date
 	let startDate: Date | null = await fetchLastSyncTime(blockSyncKey)
-	const endDate: Date = new Date()
-
+	const endDate: Date = new Date(new Date().setUTCHours(0, 0, 0, 0))
+	let clearPrev = false
+	
 	if (type === 'full' || !startDate) {
 		const firstLogTimestamp = await getFirstLogTimestamp()
 		if (firstLogTimestamp) {
-			startDate = new Date(firstLogTimestamp)
+			startDate = new Date(new Date(firstLogTimestamp).setUTCHours(0, 0, 0, 0))
 		} else {
-			startDate = new Date()
+			startDate = new Date(new Date().setUTCHours(0, 0, 0, 0))
 		}
+		clearPrev = true
+	}
+
+	// Bail early if there is no time diff to sync
+	if (endDate.getTime() - startDate.getTime() <= 0) {
+		console.log(
+			`[In Sync] [Metrics] Restaking Daily from: ${startDate} to: ${endDate}`
+		)
+		return
 	}
 
 	console.log('[Prep] Metric Restaking ...')
+
+	// Clear previous data
+	if (clearPrev) {
+		await Promise.all([
+			prismaClient.metricOperatorUnit.deleteMany(),
+			prismaClient.metricOperatorStrategyUnit.deleteMany(),
+			prismaClient.metricAvsUnit.deleteMany(),
+			prismaClient.metricAvsStrategyUnit.deleteMany()
+		])
+	}
 
 	// Fetch constant data and last metrics
 	const [

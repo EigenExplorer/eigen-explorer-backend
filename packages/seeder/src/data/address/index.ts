@@ -5,7 +5,7 @@ import { eigenHoleskyContracts } from './eigenHoleskyContracts'
 import { eigenContracts } from './eigenMainnetContracts'
 
 export interface EigenStrategiesContractAddress {
-	Eigen?: { strategyContract: `0x${string}`; tokenContract: `0x${string}` },
+	Eigen?: { strategyContract: `0x${string}`; tokenContract: `0x${string}` }
 	WETH?: { strategyContract: `0x${string}`; tokenContract: `0x${string}` }
 	cbETH?: { strategyContract: `0x${string}`; tokenContract: `0x${string}` }
 	stETH?: { strategyContract: `0x${string}`; tokenContract: `0x${string}` }
@@ -21,14 +21,20 @@ export interface EigenStrategiesContractAddress {
 	mETH?: { strategyContract: `0x${string}`; tokenContract: `0x${string}` }
 }
 
+export interface RewardsTokensContractAddress {
+	ARPA?: `0x${string}`
+}
+
 export interface EigenContractAddress {
 	AVSDirectory: `0x${string}`
 	DelegationManager: `0x${string}`
 	Slasher: `0x${string}`
 	StrategyManager: `0x${string}`
 	EigenPodManager: `0x${string}`
+	RewardsCoordinator: `0x${string}`
 
 	Strategies: EigenStrategiesContractAddress
+	Rewards: RewardsTokensContractAddress
 }
 
 export function getEigenContracts(network?: Chain) {

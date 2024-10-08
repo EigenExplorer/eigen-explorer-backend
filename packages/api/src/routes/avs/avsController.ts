@@ -1,21 +1,33 @@
-import type Prisma from '@prisma/client'
 import type { Request, Response } from 'express'
 import type { IMap } from '../../schema/generic'
-import prisma from '../../utils/prismaClient'
+import type { Submission } from '../rewards/rewardController'
+import {
+	type EigenStrategiesContractAddress,
+	getEigenContracts
+} from '../../data/address'
 import { PaginationQuerySchema } from '../../schema/zod/schemas/paginationQuery'
-import { handleAndReturnErrorResponse } from '../../schema/errors'
 import { EthereumAddressSchema } from '../../schema/zod/schemas/base/ethereumAddress'
 import { WithTvlQuerySchema } from '../../schema/zod/schemas/withTvlQuery'
-import { fetchStrategyTokenPrices } from '../../utils/tokenPrices'
 import { WithCuratedMetadata } from '../../schema/zod/schemas/withCuratedMetadataQuery'
-import {
-	getStrategiesWithShareUnderlying,
-	sharesToTVL
-} from '../strategies/strategiesController'
 import { UpdatedSinceQuerySchema } from '../../schema/zod/schemas/updatedSinceQuery'
 import { SortByQuerySchema } from '../../schema/zod/schemas/sortByQuery'
 import { SearchByTextQuerySchema } from '../../schema/zod/schemas/searchByTextQuery'
+import { WithRewardsQuerySchema } from '../../schema/zod/schemas/withRewardsQuery'
 import { getOperatorSearchQuery } from '../operators/operatorController'
+import { handleAndReturnErrorResponse } from '../../schema/errors'
+import {
+	fetchRewardTokenPrices,
+	fetchStrategyTokenPrices
+} from '../../utils/tokenPrices'
+import { getNetwork } from '../../viem/viemClient'
+import { holesky } from 'viem/chains'
+import {
+	getStrategiesWithShareUnderlying,
+	sharesToTVL,
+	sharesToTVLEth
+} from '../strategies/strategiesController'
+import Prisma from '@prisma/client'
+import prisma from '../../utils/prismaClient'
 
 /**
  * Function for route /avs
@@ -45,6 +57,7 @@ export async function getAllAVS(req: Request, res: Response) {
 			sortByTvl,
 			sortByTotalStakers,
 			sortByTotalOperators,
+			sortByApy,
 			searchByText,
 			searchMode
 		} = queryCheck.data
@@ -56,7 +69,9 @@ export async function getAllAVS(req: Request, res: Response) {
 			  ? { field: 'totalOperators', order: sortByTotalOperators }
 			  : sortByTvl
 				  ? { field: 'tvlEth', order: sortByTvl }
-				  : null
+				  : sortByApy
+				  	?{ field: 'apy', order: sortByApy }
+					: null
 
 		// Setup search query
 		const searchFilterQuery = getAvsSearchQuery(
@@ -240,9 +255,9 @@ export async function getAllAVSAddresses(req: Request, res: Response) {
  */
 export async function getAVS(req: Request, res: Response) {
 	// Validate query and params
-	const queryCheck = WithTvlQuerySchema.and(WithCuratedMetadata).safeParse(
-		req.query
-	)
+	const queryCheck = WithTvlQuerySchema.and(WithCuratedMetadata)
+		.and(WithRewardsQuerySchema)
+		.safeParse(req.query)
 	if (!queryCheck.success) {
 		return handleAndReturnErrorResponse(req, res, queryCheck.error)
 	}
@@ -254,12 +269,13 @@ export async function getAVS(req: Request, res: Response) {
 
 	try {
 		const { address } = req.params
-		const { withTvl, withCuratedMetadata } = queryCheck.data
+		const { withTvl, withCuratedMetadata, withRewards } = queryCheck.data
 
 		const avs = await prisma.avs.findUniqueOrThrow({
 			where: { address: address.toLowerCase(), ...getAvsFilterQuery() },
 			include: {
 				curatedMetadata: withCuratedMetadata,
+				rewardSubmissions: withRewards,
 				operators: {
 					where: { isActive: true },
 					include: {
@@ -297,12 +313,14 @@ export async function getAVS(req: Request, res: Response) {
 						strategyTokenPrices
 				  )
 				: undefined,
+			rewards: withRewards ? await calculateAvsApy(avs) : undefined,
 			operators: undefined,
 			metadataUrl: undefined,
 			isMetadataSynced: undefined,
 			restakeableStrategies: undefined,
 			tvlEth: undefined,
-			sharesHash: undefined
+			sharesHash: undefined,
+			rewardSubmissions: undefined
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
@@ -558,6 +576,159 @@ export async function getAVSOperators(req: Request, res: Response) {
 }
 
 /**
+ * Function for route /avs/:address/rewards
+ * Route to get a list of all rewards for a given Avs
+ *
+ * @param req
+ * @param res
+ * @returns
+ */
+export async function getAVSRewards(req: Request, res: Response) {
+	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	}
+
+	try {
+		const { address } = req.params
+
+		// Fetch all rewards submissions for a given Avs
+		const rewardsSubmissions =
+			await prisma.avsStrategyRewardSubmission.findMany({
+				where: {
+					avsAddress: address.toLowerCase()
+				},
+				orderBy: {
+					rewardsSubmissionHash: 'asc'
+				}
+			})
+
+		if (!rewardsSubmissions || rewardsSubmissions.length === 0) {
+			throw new Error('AVS not found.')
+		}
+
+		const strategyTokenPrices = await fetchStrategyTokenPrices()
+		const rewardTokenPrices = await fetchRewardTokenPrices()
+		const eigenContracts = getEigenContracts()
+		const tokenToStrategyMap = tokenToStrategyAddressMap(
+			eigenContracts.Strategies
+		)
+
+		const result: {
+			address: string
+			submissions: Submission[]
+			totalRewards: number
+			totalSubmissions: number
+			rewardTokens: string[]
+			rewardStrategies: string[]
+		} = {
+			address,
+			submissions: [],
+			totalRewards: 0,
+			totalSubmissions: 0,
+			rewardTokens: [],
+			rewardStrategies: []
+		}
+
+		const rewardTokens: string[] = []
+		const rewardStrategies: string[] = []
+		let currentSubmission: Submission | null = null
+		let currentTotalAmount = new Prisma.Prisma.Decimal(0)
+		let currentTotalAmountEth = new Prisma.Prisma.Decimal(0)
+
+		// Iterate over each rewards submission by the Avs
+		for (const submission of rewardsSubmissions) {
+			if (
+				!currentSubmission ||
+				currentSubmission.rewardsSubmissionHash !==
+					submission.rewardsSubmissionHash
+			) {
+				if (currentSubmission) {
+					currentSubmission.totalAmount = currentTotalAmount.toString()
+					result.submissions.push(currentSubmission)
+					result.totalSubmissions++
+				}
+				currentSubmission = {
+					rewardsSubmissionHash: submission.rewardsSubmissionHash,
+					startTimestamp: Number(submission.startTimestamp),
+					duration: submission.duration,
+					totalAmount: '0',
+					tokenAddress: submission.token,
+					strategies: []
+				}
+				currentTotalAmount = new Prisma.Prisma.Decimal(0)
+				result.totalRewards += currentTotalAmountEth.toNumber()
+				currentTotalAmountEth = new Prisma.Prisma.Decimal(0)
+			}
+
+			const amount = submission.amount || new Prisma.Prisma.Decimal(0)
+			currentTotalAmount = currentTotalAmount.add(amount)
+
+			const rewardTokenAddress = submission.token.toLowerCase()
+			const strategyAddress = submission.strategyAddress.toLowerCase()
+			const tokenStrategyAddress = tokenToStrategyMap.get(rewardTokenAddress)
+
+			// Document reward token & rewarded strategy addresses
+			if (!rewardTokens.includes(rewardTokenAddress))
+				rewardTokens.push(rewardTokenAddress)
+
+			if (!rewardStrategies.includes(strategyAddress))
+				rewardStrategies.push(strategyAddress)
+
+			// Normalize reward amount to its ETH price
+			if (tokenStrategyAddress) {
+				const tokenPrice = Object.values(strategyTokenPrices).find(
+					(tp) => tp.strategyAddress.toLowerCase() === tokenStrategyAddress
+				)
+				const amountInEth = amount.mul(
+					new Prisma.Prisma.Decimal(tokenPrice?.eth ?? 0)
+				)
+				currentTotalAmountEth = currentTotalAmountEth.add(amountInEth)
+			} else {
+				// Check if it is a reward token which isn't a strategy on EL
+				for (const [, price] of Object.entries(rewardTokenPrices)) {
+					if (
+						price &&
+						price.tokenAddress.toLowerCase() === rewardTokenAddress
+					) {
+						const amountInEth = amount.mul(
+							new Prisma.Prisma.Decimal(price?.eth ?? 0)
+						)
+						currentTotalAmountEth = currentTotalAmountEth.add(amountInEth)
+					} else {
+						// Check for special tokens
+						currentTotalAmountEth = isSpecialToken(rewardTokenAddress)
+							? currentTotalAmountEth.add(amount)
+							: new Prisma.Prisma.Decimal(0)
+					}
+				}
+			}
+
+			currentSubmission.strategies.push({
+				strategyAddress,
+				multiplier: submission.multiplier?.toString() || '0',
+				amount: amount.toString()
+			})
+		}
+
+		// Add final submission
+		if (currentSubmission) {
+			currentSubmission.totalAmount = currentTotalAmount.toString()
+			result.submissions.push(currentSubmission)
+			result.totalSubmissions++
+			result.totalRewards += currentTotalAmountEth.toNumber()
+		}
+
+		result.rewardTokens = rewardTokens
+		result.rewardStrategies = rewardStrategies
+
+		res.send(result)
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+/**
  * Function for route /avs/:address/invalidate-metadata
  * Protected route to invalidate the metadata of a given AVS
  *
@@ -590,7 +761,7 @@ export async function invalidateMetadata(req: Request, res: Response) {
 
 // --- Helper functions ---
 
-function withOperatorShares(avsOperators) {
+export function withOperatorShares(avsOperators) {
 	const sharesMap: IMap<string, string> = new Map()
 
 	avsOperators.map((avsOperator) => {
@@ -693,4 +864,157 @@ export function getAvsSearchQuery(
 			}
 		] as Prisma.Prisma.AvsWhereInput[]
 	}
+}
+
+// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+async function calculateAvsApy(avs: any) {
+	try {
+		const strategyTokenPrices = await fetchStrategyTokenPrices()
+		const rewardTokenPrices = await fetchRewardTokenPrices()
+		const eigenContracts = getEigenContracts()
+		const tokenToStrategyMap = tokenToStrategyAddressMap(
+			eigenContracts.Strategies
+		)
+
+		const strategiesWithSharesUnderlying =
+			await getStrategiesWithShareUnderlying()
+
+		// Get share amounts for each restakeable strategy
+		const shares = withOperatorShares(avs.operators).filter(
+			(s) =>
+				avs.restakeableStrategies.indexOf(s.strategyAddress.toLowerCase()) !==
+				-1
+		)
+
+		// Fetch the AVS tvl for each strategy
+		const tvlStrategiesEth = sharesToTVLEth(
+			shares,
+			strategiesWithSharesUnderlying,
+			strategyTokenPrices
+		)
+
+		// Iterate through each strategy and calculate all its rewards
+		const strategiesApy = avs.restakeableStrategies.map((strategyAddress) => {
+			const strategyTvl = tvlStrategiesEth[strategyAddress.toLowerCase()] || 0
+			if (strategyTvl === 0) return { strategyAddress, apy: 0 }
+
+			let totalRewardsEth = new Prisma.Prisma.Decimal(0)
+			let totalDuration = 0
+
+			// Find all reward submissions attributable to the strategy
+			const relevantSubmissions = avs.rewardSubmissions.filter(
+				(submission) =>
+					submission.strategyAddress.toLowerCase() ===
+					strategyAddress.toLowerCase()
+			)
+
+			// Calculate each reward amount for the strategy
+			for (const submission of relevantSubmissions) {
+				let rewardIncrementEth = new Prisma.Prisma.Decimal(0)
+				const rewardTokenAddress = submission.token.toLowerCase()
+				const tokenStrategyAddress = tokenToStrategyMap.get(rewardTokenAddress)
+
+				// Normalize reward amount to its ETH price
+				if (tokenStrategyAddress) {
+					const tokenPrice = Object.values(strategyTokenPrices).find(
+						(tp) => tp.strategyAddress.toLowerCase() === tokenStrategyAddress
+					)
+					rewardIncrementEth = submission.amount.mul(
+						new Prisma.Prisma.Decimal(tokenPrice?.eth ?? 0)
+					)
+				} else {
+					// Check if it is a reward token which isn't a strategy on EL
+					for (const [, price] of Object.entries(rewardTokenPrices)) {
+						if (
+							price &&
+							price.tokenAddress.toLowerCase() === rewardTokenAddress
+						) {
+							rewardIncrementEth = submission.amount.mul(
+								new Prisma.Prisma.Decimal(price.eth ?? 0)
+							)
+						} else {
+							// Check for special tokens
+							rewardIncrementEth = isSpecialToken(rewardTokenAddress)
+								? submission.amount
+								: new Prisma.Prisma.Decimal(0)
+						}
+					}
+				}
+
+				// Multiply reward amount in ETH by the strategy weight
+				rewardIncrementEth = rewardIncrementEth
+					.mul(submission.multiplier)
+					.div(new Prisma.Prisma.Decimal(10).pow(18))
+
+				totalRewardsEth = totalRewardsEth.add(rewardIncrementEth)
+				totalDuration += submission.duration
+			}
+
+			if (totalDuration === 0) {
+				return { strategyAddress, apy: 0 }
+			}
+
+			// Annualize the reward basis its duration to find yearly APY
+			const rewardRate =
+				totalRewardsEth.div(new Prisma.Prisma.Decimal(10).pow(18)).toNumber() /
+				strategyTvl
+			const annualizedRate = rewardRate * ((365 * 24 * 60 * 60) / totalDuration)
+			const apy = annualizedRate * 100
+
+			return { strategyAddress, apy }
+		})
+
+		// Calculate aggregate APYs across strategies
+		const aggregateApy = strategiesApy.reduce(
+			(sum, strategy) => sum + strategy.apy,
+			0
+		)
+
+		return {
+			strategies: strategiesApy,
+			aggregateApy
+		}
+	} catch {}
+}
+
+/**
+ * Return a map of strategy addresses <> token addresses
+ *
+ * @param strategies
+ * @returns
+ */
+export function tokenToStrategyAddressMap(
+	strategies: EigenStrategiesContractAddress
+): Map<string, string> {
+	const map = new Map<string, string>()
+	for (const [key, value] of Object.entries(strategies)) {
+		if (key !== 'Eigen' && value?.tokenContract && value?.strategyContract) {
+			map.set(
+				value.tokenContract.toLowerCase(),
+				value.strategyContract.toLowerCase()
+			)
+		}
+	}
+	return map
+}
+
+/**
+ * Returns whether a given token address belongs to a list of special tokens
+ *
+ * @param tokenAddress
+ * @returns
+ */
+export function isSpecialToken(tokenAddress: string): boolean {
+	const specialTokens =
+		getNetwork() === holesky
+			? [
+					'0x6Cc9397c3B38739daCbfaA68EaD5F5D77Ba5F455', // WETH
+					'0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0'
+			  ]
+			: [
+					'0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2', // WETH
+					'0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0'
+			  ]
+
+	return specialTokens.includes(tokenAddress.toLowerCase())
 }
