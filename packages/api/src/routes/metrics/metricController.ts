@@ -17,7 +17,10 @@ import { getContract } from 'viem'
 import { strategyAbi } from '../../data/abi/strategy'
 import { getViemClient } from '../../viem/viemClient'
 import { getStrategiesWithShareUnderlying } from '../strategies/strategiesController'
-import { fetchEthCirculatingSupply } from '../../utils/ethCirculatingSupply'
+import {
+	type CirculatingSupplyWithChange,
+	fetchEthCirculatingSupply
+} from '../../utils/ethCirculatingSupply'
 import { WithChangeQuerySchema } from '../../schema/zod/schemas/withChangeQuery'
 
 const beaconAddress = '0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0'
@@ -76,16 +79,16 @@ type HistoricalTvlRecord = {
 }
 
 type EthTvlModelMap = {
-	metricDepositHourly: Prisma.MetricDepositHourly
-	metricWithdrawalHourly: Prisma.MetricWithdrawalHourly
-	metricEigenPodsHourly: Prisma.MetricEigenPodsHourly
+	metricDepositUnit: Prisma.MetricDepositUnit
+	metricWithdrawalUnit: Prisma.MetricWithdrawalUnit
+	metricEigenPodsUnit: Prisma.MetricEigenPodsUnit
 }
 type EthTvlModelName = keyof EthTvlModelMap // Models with TVL denominated in ETH
 
 type NativeTvlModelMap = {
-	metricStrategyHourly: Prisma.MetricStrategyHourly
-	metricAvsStrategyHourly: Prisma.MetricAvsStrategyHourly
-	metricOperatorStrategyHourly: Prisma.MetricOperatorStrategyHourly
+	metricStrategyUnit: Prisma.MetricStrategyUnit
+	metricAvsStrategyUnit: Prisma.MetricAvsStrategyUnit
+	metricOperatorStrategyUnit: Prisma.MetricOperatorStrategyUnit
 }
 type NativeTvlModelName = keyof NativeTvlModelMap // Models with TVL denominated in their own native token
 
@@ -107,10 +110,17 @@ type HistoricalAggregateRecord = {
 	totalAvs?: number
 }
 type AggregateModelMap = {
-	metricAvsHourly: Prisma.MetricAvsHourly
-	metricOperatorHourly: Prisma.MetricOperatorHourly
+	metricAvsUnit: Prisma.MetricAvsUnit
+	metricOperatorUnit: Prisma.MetricOperatorUnit
 }
 type AggregateModelName = keyof AggregateModelMap
+
+type RatioWithoutChange = number
+type RatioWithChange = {
+	ratio: RatioWithoutChange
+	change24h: { value: number; percent: number }
+	change7d: { value: number; percent: number }
+}
 
 /* 
 ========================
@@ -234,8 +244,7 @@ export async function getTvlBeaconChain(req: Request, res: Response) {
 
 /**
  * Function for route /tvl/restaking
- * Returns Liquid Staking TVL with the option of 24h/7d change
- * Note: This TVL value includes Beacon ETH that's restaked (which is different from TVL Beacon Chain)
+ * Returns Liquid Staking TVL with the option of 24h/7d change (excludes restaked Beacon Chain ETH)
  *
  * @param req
  * @param res
@@ -813,126 +822,19 @@ export async function getHistoricalDepositCount(req: Request, res: Response) {
  * @param res
  */
 export async function getDeploymentRatio(req: Request, res: Response) {
+	const queryCheck = WithChangeQuerySchema.safeParse(req.query)
+	if (!queryCheck.success) {
+		return handleAndReturnErrorResponse(req, res, queryCheck.error)
+	}
+
 	try {
-		const tvlRestaking = (await doGetTvl(false)).tvlRestaking as number
-		const tvlBeaconChain = await doGetTvlBeaconChain(false) as number
-
-		const timestampNow = new Date()
-		const timestamp24h = new Date(
-			new Date().setUTCHours(timestampNow.getUTCHours() - 24)
-		)
-		const timestamp7d = new Date(
-			new Date().setUTCDate(timestampNow.getUTCDate() - 7)
-		)
-
-		const historicalData = await doGetHistoricalTvlTotal(
-			timestamp7d.toString(),
-			timestamp24h.toString(),
-			'1d',
-			'cumulative'
-		)
-
-		const tvlEth24hAgo = historicalData[historicalData.length - 1]?.tvlEth || 0
-		const tvlEth7dAgo = historicalData[0]?.tvlEth || 0
-
-		const lastMetricsTimestamps =
-			await prisma.metricOperatorStrategyHourly.groupBy({
-				by: ['operatorAddress', 'strategyAddress'],
-				_max: { timestamp: true }
-			})
-
-		const validMetricsTimestamps = lastMetricsTimestamps.filter(
-			(metric) => metric._max.timestamp !== null
-		)
-
-		const totalDelegationValue =
-			await prisma.metricOperatorStrategyHourly.aggregate({
-				_sum: {
-					tvl: true
-				},
-				where: {
-					OR: validMetricsTimestamps.map((metric) => ({
-						operatorAddress: metric.operatorAddress,
-						strategyAddress: metric.strategyAddress,
-						timestamp: metric._max.timestamp as Date
-					}))
-				}
-			})
-
-		const currentDelegationValue = Number(totalDelegationValue._sum.tvl || 0)
-
-		const change24hMetrics = await prisma.metricOperatorStrategyHourly.findMany(
-			{
-				select: {
-					changeTvl: true
-				},
-				where: {
-					timestamp: {
-						gte: timestamp24h,
-						lt: timestampNow
-					}
-				}
-			}
-		)
-
-		const change24hDelegationValue = change24hMetrics.reduce(
-			(sum, metric) => sum + metric.changeTvl.toNumber(),
-			0
-		)
-
-		const change7dMetrics = await prisma.metricOperatorStrategyHourly.findMany({
-			select: {
-				changeTvl: true
-			},
-			where: {
-				timestamp: {
-					gte: timestamp7d,
-					lt: timestampNow
-				}
-			}
-		})
-
-		const change7dDelegationValue = change7dMetrics.reduce(
-			(sum, metric) => sum + metric.changeTvl.toNumber(),
-			0
-		)
-
-		const currentDeploymentRatio =
-			currentDelegationValue / (tvlRestaking + tvlBeaconChain)
-
-		const deploymentRatio24hAgo =
-			(currentDelegationValue - change24hDelegationValue) / tvlEth24hAgo
-
-		const deploymentRatio7dAgo =
-			(currentDelegationValue - change7dDelegationValue) / tvlEth7dAgo
-
-		const change24hPercent =
-			deploymentRatio24hAgo !== 0
-				? Math.round(
-						((currentDeploymentRatio - deploymentRatio24hAgo) /
-							deploymentRatio24hAgo) *
-							1000
-				  ) / 1000
-				: 0
-		const change7dPercent =
-			deploymentRatio7dAgo !== 0
-				? Math.round(
-						((currentDeploymentRatio - deploymentRatio7dAgo) /
-							deploymentRatio7dAgo) *
-							1000
-				  ) / 1000
-				: 0
+		const { withChange } = queryCheck.data
+		const ratio = await doGetDeploymentRatio(withChange)
 
 		res.send({
-			deploymentRatio: currentDeploymentRatio,
-			change24h: {
-				value: change24hDelegationValue,
-				percent: change24hPercent
-			},
-			change7d: {
-				value: change7dDelegationValue,
-				percent: change7dPercent
-			}
+			...(withChange
+				? { ...(ratio as RatioWithChange) }
+				: { ratio: ratio as RatioWithoutChange })
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
@@ -940,69 +842,26 @@ export async function getDeploymentRatio(req: Request, res: Response) {
 }
 
 /**
- * Function for route /restaking-rataio
+ * Function for route /restaking-ratio
  * Returns the Restaking Ratio
  *
  * @param req
  * @param res
  */
 export async function getRestakingRatio(req: Request, res: Response) {
+	const queryCheck = WithChangeQuerySchema.safeParse(req.query)
+	if (!queryCheck.success) {
+		return handleAndReturnErrorResponse(req, res, queryCheck.error)
+	}
+
 	try {
-		const tvlRestaking = (await doGetTvl(false)).tvlRestaking as number
-		const tvlBeaconChain = await doGetTvlBeaconChain(false) as number
-
-		const ethSupplyData = await fetchEthCirculatingSupply()
-		const currentEthCirculation = ethSupplyData.current_circulating_supply
-		const ethCirculation24hAgo = ethSupplyData.supply_24h_ago
-		const ethCirculation7dAgo = ethSupplyData.supply_7d_ago
-
-		const timestampNow = new Date()
-		const timestamp24h = new Date(
-			new Date().setUTCHours(timestampNow.getUTCHours() - 24)
-		)
-		const timestamp7d = new Date(
-			new Date().setUTCDate(timestampNow.getUTCDate() - 7)
-		)
-
-		const historicalData = await doGetHistoricalTvlTotal(
-			timestamp7d.toString(),
-			timestamp24h.toString(),
-			'1d',
-			'cumulative'
-		)
-
-		const tvlEth24hAgo = historicalData[historicalData.length - 1]?.tvlEth || 0
-		const tvlEth7dAgo = historicalData[0]?.tvlEth || 0
-
-		const currentRestakingRatio =
-			(tvlRestaking + tvlBeaconChain) / currentEthCirculation
-
-		const restakingRatio24hAgo = tvlEth24hAgo / ethCirculation24hAgo
-
-		const restakingRatio7dAgo = tvlEth7dAgo / ethCirculation7dAgo
-
-		const change24hValue = currentRestakingRatio - restakingRatio24hAgo
-		const change24hPercent =
-			restakingRatio24hAgo !== 0
-				? Math.round((change24hValue / restakingRatio24hAgo) * 1000) / 1000
-				: 0
-
-		const change7dValue = currentRestakingRatio - restakingRatio7dAgo
-		const change7dPercent =
-			restakingRatio7dAgo !== 0
-				? Math.round((change7dValue / restakingRatio7dAgo) * 1000) / 1000
-				: 0
+		const { withChange } = queryCheck.data
+		const ratio = await doGetRestakingRatio(withChange)
 
 		res.send({
-			restakingRatio: currentRestakingRatio,
-			change24h: {
-				value: change24hValue,
-				percent: change24hPercent
-			},
-			change7d: {
-				value: change7dValue,
-				percent: change7dPercent
-			}
+			...(withChange
+				? { ...(ratio as RatioWithChange) }
+				: { ratio: ratio as RatioWithoutChange })
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
@@ -1090,11 +949,7 @@ async function doGetTvl(withChange: boolean) {
 
 	return {
 		tvlRestaking: withChange
-			? await calculateTvlChange(
-					tvlRestaking,
-					'metricStrategyHourly',
-					ethPrices
-			  )
+			? await calculateTvlChange('metricStrategyUnit', ethPrices)
 			: tvlRestaking,
 		tvlStrategies,
 		tvlStrategiesEth: Object.fromEntries(tvlStrategiesEth.entries())
@@ -1140,12 +995,7 @@ async function doGetTvlStrategy(strategy: `0x${string}`, withChange: boolean) {
 
 	return {
 		tvl: withChange
-			? await calculateTvlChange(
-					tvl,
-					'metricStrategyHourly',
-					ethPrices,
-					strategy
-			  )
+			? await calculateTvlChange('metricStrategyUnit', ethPrices, strategy)
 			: (tvl as TvlWithoutChange),
 		tvlEth
 	}
@@ -1161,15 +1011,18 @@ async function doGetTvlBeaconChain(
 	withChange: boolean
 ): Promise<TvlWithoutChange | TvlWithChange> {
 	const totalValidators = await prisma.validator.aggregate({
+		where: {
+			status: { in: ['active_ongoing', 'active_exiting'] }
+		},
 		_sum: {
-			balance: true
+			effectiveBalance: true
 		}
 	})
 
-	const currentTvl = Number(totalValidators._sum.balance) / 1e9
+	const currentTvl = Number(totalValidators._sum.effectiveBalance) / 1e9
 
 	return withChange
-		? ((await calculateTvlChange(currentTvl, 'metricEigenPodsHourly')) as TvlWithChange)
+		? ((await calculateTvlChange('metricEigenPodsUnit')) as TvlWithChange)
 		: (currentTvl as TvlWithoutChange)
 }
 
@@ -1467,7 +1320,7 @@ async function doGetHistoricalTvlBeacon(
 	const endTimestamp = resetTime(new Date(endAt))
 
 	// Fetch the timestamp of the first record on or before startTimestamp
-	const initialDataTimestamp = await prisma.metricEigenPodsHourly.findFirst({
+	const initialDataTimestamp = await prisma.metricEigenPodsUnit.findFirst({
 		where: {
 			timestamp: {
 				lte: startTimestamp
@@ -1479,7 +1332,7 @@ async function doGetHistoricalTvlBeacon(
 	})
 
 	// Fetch all records from the initialDataTimestamp
-	const hourlyData = await prisma.metricEigenPodsHourly.findMany({
+	const unitData = await prisma.metricEigenPodsUnit.findMany({
 		where: {
 			timestamp: {
 				gte: initialDataTimestamp?.timestamp || startTimestamp, // Guarantees correct initial data for cumulative queries
@@ -1492,16 +1345,16 @@ async function doGetHistoricalTvlBeacon(
 	})
 
 	const results: HistoricalTvlRecord[] = []
-	const modelName = 'metricEigenPodsHourly' as MetricModelName
+	const modelName = 'metricEigenPodsUnit' as MetricModelName
 
-	let tvlEth = variant === 'cumulative' ? Number(hourlyData[0].tvlEth) : 0
+	let tvlEth = variant === 'cumulative' ? Number(unitData[0].tvlEth) : 0
 
 	const offset = getOffsetInMs(frequency)
 	let currentTimestamp = startTimestamp
 
 	while (currentTimestamp <= endTimestamp) {
 		const nextTimestamp = new Date(currentTimestamp.getTime() + offset)
-		const intervalData = hourlyData.filter(
+		const intervalData = unitData.filter(
 			(data) =>
 				data.timestamp >= currentTimestamp && data.timestamp < nextTimestamp
 		)
@@ -1525,8 +1378,7 @@ async function doGetHistoricalTvlBeacon(
 }
 
 /**
- * Processes restaking TVL in historical format with option
- * Calculates total TVL using restaked Beacon Chain ETH, not total Beacon Chain ETH
+ * Processes restaking TVL in historical format
  *
  * @param startAt
  * @param endAt
@@ -1543,12 +1395,12 @@ async function doGetHistoricalTvlRestaking(
 ) {
 	const startTimestamp = resetTime(new Date(startAt))
 	const endTimestamp = resetTime(new Date(endAt))
-	const modelName = 'metricStrategyHourly' as MetricModelName
+	const modelName = 'metricStrategyUnit' as MetricModelName
 
 	const ethPrices = await fetchCurrentEthPrices()
 
 	// Fetch the timestamp of the first record on or before startTimestamp
-	const initialDataTimestamps = await prisma.metricStrategyHourly.groupBy({
+	const initialDataTimestamps = await prisma.metricStrategyUnit.groupBy({
 		by: ['strategyAddress'],
 		_max: {
 			timestamp: true
@@ -1563,7 +1415,7 @@ async function doGetHistoricalTvlRestaking(
 	})
 
 	// For every strategyAddress, fetch all records from the initialDataTimestamp
-	let hourlyData = await prisma.metricStrategyHourly.findMany({
+	let unitData = await prisma.metricStrategyUnit.findMany({
 		where: {
 			OR: initialDataTimestamps.map((metric) => ({
 				AND: [
@@ -1577,7 +1429,7 @@ async function doGetHistoricalTvlRestaking(
 						}
 					}
 				]
-			})) as Prisma.Prisma.MetricStrategyHourlyWhereInput[]
+			})) as Prisma.Prisma.MetricStrategyUnitWhereInput[]
 		},
 		orderBy: {
 			timestamp: 'asc'
@@ -1586,15 +1438,15 @@ async function doGetHistoricalTvlRestaking(
 
 	let tvlEth =
 		variant === 'cumulative'
-			? await getInitialTvlCumulativeFromNative(hourlyData, ethPrices)
+			? await getInitialTvlCumulativeFromNative(unitData, ethPrices)
 			: 0
 
 	let strategyAddresses = [
-		...new Set(hourlyData.map((data) => data.strategyAddress))
+		...new Set(unitData.map((data) => data.strategyAddress))
 	]
 
 	// Gather the remaining strategies that might not currently be in the strategyData
-	const remaininghourlyData = await prisma.metricStrategyHourly.findMany({
+	const remainingUnitData = await prisma.metricStrategyUnit.findMany({
 		where: {
 			AND: [
 				{
@@ -1619,9 +1471,9 @@ async function doGetHistoricalTvlRestaking(
 		}
 	})
 
-	hourlyData = [...hourlyData, ...remaininghourlyData]
+	unitData = [...unitData, ...remainingUnitData]
 	strategyAddresses = [
-		...new Set(hourlyData.map((data) => data.strategyAddress))
+		...new Set(unitData.map((data) => data.strategyAddress))
 	]
 
 	const results: HistoricalTvlRecord[] = []
@@ -1631,7 +1483,7 @@ async function doGetHistoricalTvlRestaking(
 
 	while (currentTimestamp <= endTimestamp) {
 		const nextTimestamp = new Date(currentTimestamp.getTime() + offset)
-		let intervalData = hourlyData.filter(
+		let intervalData = unitData.filter(
 			(data) =>
 				data.timestamp >= currentTimestamp && data.timestamp < nextTimestamp
 		)
@@ -1643,7 +1495,7 @@ async function doGetHistoricalTvlRestaking(
 		// For each unique strategy address not present in this interval, add its latest record
 		const missingRecords = strategyAddresses.flatMap((address) => {
 			if (!presentAddresses.has(address)) {
-				const latestRecord = hourlyData
+				const latestRecord = unitData
 					.filter(
 						(data) =>
 							data.strategyAddress === address && data.timestamp < nextTimestamp
@@ -1695,7 +1547,7 @@ async function doGetHistoricalTvlWithdrawal(
 	const endTimestamp = resetTime(new Date(endAt))
 
 	// Fetch the timestamp of the first record on or before startTimestamp
-	const initialDataTimestamp = await prisma.metricWithdrawalHourly.findFirst({
+	const initialDataTimestamp = await prisma.metricWithdrawalUnit.findFirst({
 		where: {
 			timestamp: {
 				lte: startTimestamp
@@ -1707,7 +1559,7 @@ async function doGetHistoricalTvlWithdrawal(
 	})
 
 	// Fetch all records from the initialDataTimestamp
-	const hourlyData = await prisma.metricWithdrawalHourly.findMany({
+	const unitData = await prisma.metricWithdrawalUnit.findMany({
 		where: {
 			timestamp: {
 				gte: initialDataTimestamp?.timestamp || startTimestamp, // Guarantees correct initial data for cumulative queries
@@ -1721,15 +1573,15 @@ async function doGetHistoricalTvlWithdrawal(
 
 	const results: HistoricalValueRecord[] = []
 
-	// MetricHourly records are created only when activity is detected, not necessarily for all timestamps. If cumulative, we may need to set initial tvl value
-	let tvlEth = variant === 'cumulative' ? Number(hourlyData[0].tvlEth) : 0
+	// MetricUnit records are created only when activity is detected, not necessarily for all timestamps. If cumulative, we may need to set initial tvl value
+	let tvlEth = variant === 'cumulative' ? Number(unitData[0].tvlEth) : 0
 
 	const offset = getOffsetInMs(frequency)
 	let currentTimestamp = startTimestamp
 
 	while (currentTimestamp <= endTimestamp) {
 		const nextTimestamp = new Date(currentTimestamp.getTime() + offset)
-		const intervalData = hourlyData.filter(
+		const intervalData = unitData.filter(
 			(data) =>
 				data.timestamp >= currentTimestamp && data.timestamp < nextTimestamp
 		)
@@ -1738,7 +1590,7 @@ async function doGetHistoricalTvlWithdrawal(
 			intervalData,
 			variant,
 			tvlEth,
-			'metricWithdrawalHourly' as MetricModelName
+			'metricWithdrawalUnit' as MetricModelName
 		)
 
 		results.push({
@@ -1771,7 +1623,7 @@ async function doGetHistoricalTvlDeposit(
 	const endTimestamp = resetTime(new Date(endAt))
 
 	// Fetch the timestamp of the first record on or before startTimestamp
-	const initialDataTimestamp = await prisma.metricDepositHourly.findFirst({
+	const initialDataTimestamp = await prisma.metricDepositUnit.findFirst({
 		where: {
 			timestamp: {
 				lte: startTimestamp
@@ -1783,7 +1635,7 @@ async function doGetHistoricalTvlDeposit(
 	})
 
 	// Fetch all records from the initialDataTimestamp
-	const hourlyData = await prisma.metricDepositHourly.findMany({
+	const unitData = await prisma.metricDepositUnit.findMany({
 		where: {
 			timestamp: {
 				gte: initialDataTimestamp?.timestamp || startTimestamp, // Guarantees correct initial data for cumulative queries
@@ -1797,15 +1649,15 @@ async function doGetHistoricalTvlDeposit(
 
 	const results: HistoricalValueRecord[] = []
 
-	// MetricHourly records are created only when activity is detected, not necessarily for all timestamps. If cumulative, we may need to set initial tvl value
-	let tvlEth = variant === 'cumulative' ? Number(hourlyData[0].tvlEth) : 0
+	// MetricUnit records are created only when activity is detected, not necessarily for all timestamps. If cumulative, we may need to set initial tvl value
+	let tvlEth = variant === 'cumulative' ? Number(unitData[0].tvlEth) : 0
 
 	const offset = getOffsetInMs(frequency)
 	let currentTimestamp = startTimestamp
 
 	while (currentTimestamp <= endTimestamp) {
 		const nextTimestamp = new Date(currentTimestamp.getTime() + offset)
-		const intervalData = hourlyData.filter(
+		const intervalData = unitData.filter(
 			(data) =>
 				data.timestamp >= currentTimestamp && data.timestamp < nextTimestamp
 		)
@@ -1814,7 +1666,7 @@ async function doGetHistoricalTvlDeposit(
 			intervalData,
 			variant,
 			tvlEth,
-			'metricDepositHourly' as MetricModelName
+			'metricDepositUnit' as MetricModelName
 		)
 
 		results.push({
@@ -1849,14 +1701,14 @@ async function doGetHistoricalAvsAggregate(
 ) {
 	const startTimestamp = resetTime(new Date(startAt))
 	const endTimestamp = resetTime(new Date(endAt))
-	const modelNameTvl = 'metricAvsStrategyHourly' as MetricModelName
+	const modelNameTvl = 'metricAvsStrategyUnit' as MetricModelName
 
 	const ethPrices = await fetchCurrentEthPrices()
 
 	// Fetch initial data for metrics calculation
-	const processMetricHourlyData = async () => {
+	const processMetricUnitData = async () => {
 		// Fetch the timestamp of the first record on or before startTimestamp
-		const initialDataTimestamp = await prisma.metricAvsHourly.groupBy({
+		const initialDataTimestamp = await prisma.metricAvsUnit.groupBy({
 			by: ['avsAddress'],
 			_max: {
 				timestamp: true
@@ -1870,7 +1722,7 @@ async function doGetHistoricalAvsAggregate(
 		})
 
 		// Fetch all records from the initialDataTimestamp
-		const hourlyData = await prisma.metricAvsHourly.findMany({
+		const unitData = await prisma.metricAvsUnit.findMany({
 			where: {
 				avsAddress: address.toLowerCase(),
 				timestamp: {
@@ -1887,17 +1739,17 @@ async function doGetHistoricalAvsAggregate(
 		let totalOperators = 0
 
 		if (variant === 'cumulative' && initialDataTimestamp[0]?._max.timestamp) {
-			totalStakers = hourlyData[0].totalStakers
-			totalOperators = hourlyData[0].totalOperators
+			totalStakers = unitData[0].totalStakers
+			totalOperators = unitData[0].totalOperators
 		}
 
-		return { hourlyData, totalStakers, totalOperators }
+		return { unitData, totalStakers, totalOperators }
 	}
 
 	// Fetch initial data for tvlEth calculation
-	const processMetricStrategyHourlyData = async () => {
+	const processMetricStrategyUnitData = async () => {
 		// Fetch the timestamp of the first record on or before startTimestamp
-		const initialDataTimestamps = await prisma.metricAvsStrategyHourly.groupBy({
+		const initialDataTimestamps = await prisma.metricAvsStrategyUnit.groupBy({
 			by: ['avsAddress', 'strategyAddress'],
 			_max: {
 				timestamp: true
@@ -1911,7 +1763,7 @@ async function doGetHistoricalAvsAggregate(
 		})
 
 		// For every strategyAddress, fetch all records from the initialDataTimestamp
-		const strategyData = await prisma.metricAvsStrategyHourly.findMany({
+		const strategyData = await prisma.metricAvsStrategyUnit.findMany({
 			where: {
 				OR: initialDataTimestamps.map((metric) => ({
 					AND: [
@@ -1926,7 +1778,7 @@ async function doGetHistoricalAvsAggregate(
 							}
 						}
 					]
-				})) as Prisma.Prisma.MetricAvsStrategyHourlyWhereInput[]
+				})) as Prisma.Prisma.MetricAvsStrategyUnitWhereInput[]
 			},
 			orderBy: {
 				timestamp: 'asc'
@@ -1941,10 +1793,10 @@ async function doGetHistoricalAvsAggregate(
 		return { strategyData, tvlEth }
 	}
 
-	let [{ hourlyData, totalOperators, totalStakers }, { strategyData, tvlEth }] =
+	let [{ unitData, totalOperators, totalStakers }, { strategyData, tvlEth }] =
 		await Promise.all([
-			processMetricHourlyData(),
-			processMetricStrategyHourlyData()
+			processMetricUnitData(),
+			processMetricStrategyUnitData()
 		])
 
 	let strategyAddresses = [
@@ -1952,7 +1804,7 @@ async function doGetHistoricalAvsAggregate(
 	]
 
 	// Gather the remaining strategies that might not currently be in the strategyData
-	const remainingStrategyData = await prisma.metricAvsStrategyHourly.findMany({
+	const remainingStrategyData = await prisma.metricAvsStrategyUnit.findMany({
 		where: {
 			AND: [
 				{
@@ -1987,7 +1839,7 @@ async function doGetHistoricalAvsAggregate(
 	while (currentTimestamp <= endTimestamp) {
 		const nextTimestamp = new Date(currentTimestamp.getTime() + offset)
 
-		const intervalHourlyData = hourlyData.filter(
+		const intervalUnitData = unitData.filter(
 			(data) =>
 				data.timestamp >= currentTimestamp && data.timestamp < nextTimestamp
 		)
@@ -1995,7 +1847,7 @@ async function doGetHistoricalAvsAggregate(
 		// Calculate metrics data for the current timestamp
 		const { totalStakers: newStakers, totalOperators: newOperators } =
 			await calculateMetricsForHistoricalRecord(
-				intervalHourlyData,
+				intervalUnitData,
 				variant,
 				totalStakers,
 				totalOperators
@@ -2068,14 +1920,14 @@ async function doGetHistoricalOperatorsAggregate(
 ) {
 	const startTimestamp = resetTime(new Date(startAt))
 	const endTimestamp = resetTime(new Date(endAt))
-	const modelNameTvl = 'metricOperatorStrategyHourly' as MetricModelName
+	const modelNameTvl = 'metricOperatorStrategyUnit' as MetricModelName
 
 	const ethPrices = await fetchCurrentEthPrices()
 
 	// Fetch initial data for metrics calculation
-	const processMetricHourlyData = async () => {
+	const processMetricUnitData = async () => {
 		// Fetch the timestamp of the first record on or before startTimestamp
-		const initialDataTimestamp = await prisma.metricOperatorHourly.groupBy({
+		const initialDataTimestamp = await prisma.metricOperatorUnit.groupBy({
 			by: ['operatorAddress'],
 			_max: {
 				timestamp: true
@@ -2089,7 +1941,7 @@ async function doGetHistoricalOperatorsAggregate(
 		})
 
 		// Fetch all records from the initialDataTimestamp
-		const hourlyData = await prisma.metricOperatorHourly.findMany({
+		const unitData = await prisma.metricOperatorUnit.findMany({
 			where: {
 				operatorAddress: address.toLowerCase(),
 				timestamp: {
@@ -2106,18 +1958,18 @@ async function doGetHistoricalOperatorsAggregate(
 		let totalAvs = 0
 
 		if (variant === 'cumulative' && initialDataTimestamp[0]?._max.timestamp) {
-			totalStakers = hourlyData[0].totalStakers
-			totalAvs = hourlyData[0].totalAvs
+			totalStakers = unitData[0].totalStakers
+			totalAvs = unitData[0].totalAvs
 		}
 
-		return { hourlyData, totalStakers, totalAvs }
+		return { unitData, totalStakers, totalAvs }
 	}
 
 	// Fetch initial data for tvlEth calculation
-	const processMetricStrategyHourlyData = async () => {
+	const processMetricStrategyUnitData = async () => {
 		// Fetch the timestamp of the first record on or before startTimestamp
 		const initialDataTimestamps =
-			await prisma.metricOperatorStrategyHourly.groupBy({
+			await prisma.metricOperatorStrategyUnit.groupBy({
 				by: ['operatorAddress', 'strategyAddress'],
 				_max: {
 					timestamp: true
@@ -2131,7 +1983,7 @@ async function doGetHistoricalOperatorsAggregate(
 			})
 
 		// For every strategyAddress, fetch all records from the initialDataTimestamp
-		const strategyData = await prisma.metricOperatorStrategyHourly.findMany({
+		const strategyData = await prisma.metricOperatorStrategyUnit.findMany({
 			where: {
 				OR: initialDataTimestamps.map((metric) => ({
 					AND: [
@@ -2146,7 +1998,7 @@ async function doGetHistoricalOperatorsAggregate(
 							}
 						}
 					]
-				})) as Prisma.Prisma.MetricOperatorStrategyHourlyWhereInput[]
+				})) as Prisma.Prisma.MetricOperatorStrategyUnitWhereInput[]
 			},
 			orderBy: {
 				timestamp: 'asc'
@@ -2161,10 +2013,10 @@ async function doGetHistoricalOperatorsAggregate(
 		return { strategyData, tvlEth }
 	}
 
-	let [{ hourlyData, totalAvs, totalStakers }, { strategyData, tvlEth }] =
+	let [{ unitData, totalAvs, totalStakers }, { strategyData, tvlEth }] =
 		await Promise.all([
-			processMetricHourlyData(),
-			processMetricStrategyHourlyData()
+			processMetricUnitData(),
+			processMetricStrategyUnitData()
 		])
 
 	let strategyAddresses = [
@@ -2173,7 +2025,7 @@ async function doGetHistoricalOperatorsAggregate(
 
 	// Gather the remaining strategies that might not currently be in the strategyData
 	const remainingStrategyData =
-		await prisma.metricOperatorStrategyHourly.findMany({
+		await prisma.metricOperatorStrategyUnit.findMany({
 			where: {
 				AND: [
 					{
@@ -2208,7 +2060,7 @@ async function doGetHistoricalOperatorsAggregate(
 	while (currentTimestamp <= endTimestamp) {
 		const nextTimestamp = new Date(currentTimestamp.getTime() + offset)
 
-		const intervalHourlyData = hourlyData.filter(
+		const intervalUnitData = unitData.filter(
 			(data) =>
 				data.timestamp >= currentTimestamp && data.timestamp < nextTimestamp
 		)
@@ -2216,7 +2068,7 @@ async function doGetHistoricalOperatorsAggregate(
 		// Calculate metrics data for the current timestamp
 		const { totalStakers: newStakers, totalAvs: newAvs } =
 			await calculateMetricsForHistoricalRecord(
-				intervalHourlyData,
+				intervalUnitData,
 				variant,
 				totalStakers,
 				undefined,
@@ -2358,6 +2210,193 @@ async function doGetHistoricalCount(
 	return results
 }
 
+/**
+ * Calculates the Restaking Ratio and optionally includes 24-hour and 7-day changes.
+ *
+ * @param withChange
+ * @returns
+ */
+async function doGetRestakingRatio(
+	withChange: boolean
+): Promise<RatioWithoutChange | RatioWithChange> {
+	const tvlRestaking = (await doGetTvl(withChange)).tvlRestaking
+	const tvlBeaconChain = await doGetTvlBeaconChain(withChange)
+
+	const restakingTvlValue = extractTvlValue(tvlRestaking)
+	const beaconChainTvlValue = extractTvlValue(tvlBeaconChain)
+
+	const ethSupplyData = await fetchEthCirculatingSupply(withChange)
+	const currentEthCirculation = ethSupplyData.current_circulating_supply
+
+	const totalTvl = restakingTvlValue + beaconChainTvlValue
+
+	const currentRestakingRatio = totalTvl / currentEthCirculation
+	if (!withChange) {
+		return currentRestakingRatio as RatioWithoutChange
+	}
+
+	const ethCirculation24hAgo = (ethSupplyData as CirculatingSupplyWithChange)
+		.supply_24h_ago
+	const ethCirculation7dAgo = (ethSupplyData as CirculatingSupplyWithChange)
+		.supply_7d_ago
+
+	const tvlEth24hChange =
+		(tvlRestaking as TvlWithChange).change24h.value +
+		(tvlBeaconChain as TvlWithChange).change24h.value
+	const tvlEth7dChange =
+		(tvlRestaking as TvlWithChange).change7d.value +
+		(tvlBeaconChain as TvlWithChange).change7d.value
+
+	const tvlEth24hAgo = totalTvl - tvlEth24hChange
+	const tvlEth7dAgo = totalTvl - tvlEth7dChange
+
+	const restakingRatio24hAgo = tvlEth24hAgo / ethCirculation24hAgo
+	const restakingRatio7dAgo = tvlEth7dAgo / ethCirculation7dAgo
+
+	const change24hValue = currentRestakingRatio - restakingRatio24hAgo
+	const change24hPercent =
+		restakingRatio24hAgo !== 0
+			? Math.round((change24hValue / restakingRatio24hAgo) * 1000) / 1000
+			: 0
+
+	const change7dValue = currentRestakingRatio - restakingRatio7dAgo
+	const change7dPercent =
+		restakingRatio7dAgo !== 0
+			? Math.round((change7dValue / restakingRatio7dAgo) * 1000) / 1000
+			: 0
+
+	return {
+		ratio: currentRestakingRatio,
+		change24h: {
+			value: change24hValue,
+			percent: change24hPercent * 100
+		},
+		change7d: {
+			value: change7dValue,
+			percent: change7dPercent * 100
+		}
+	} as RatioWithChange
+}
+
+/**
+ * Calculates the Deployment Ratio and optionally includes 24-hour and 7-day changes.
+ *
+ * @param withChange
+ * @returns
+ */
+async function doGetDeploymentRatio(
+	withChange: boolean
+): Promise<RatioWithoutChange | RatioWithChange> {
+	const tvlRestaking = (await doGetTvl(withChange)).tvlRestaking
+	const tvlBeaconChain = await doGetTvlBeaconChain(withChange)
+
+	const restakingTvlValue = extractTvlValue(tvlRestaking)
+	const beaconChainTvlValue = extractTvlValue(tvlBeaconChain)
+
+	const totalTvl = restakingTvlValue + beaconChainTvlValue
+
+	const ethPrices = await fetchCurrentEthPrices()
+	const lastMetricsTimestamps =
+		await prisma.metricOperatorStrategyUnit.groupBy({
+			by: ['operatorAddress', 'strategyAddress'],
+			_max: { timestamp: true }
+		})
+
+	const validMetricsTimestamps = lastMetricsTimestamps.filter(
+		(metric) => metric._max.timestamp !== null
+	)
+
+	const metrics = await prisma.metricOperatorStrategyUnit.findMany({
+		where: {
+			OR: validMetricsTimestamps.map((metric) => ({
+				operatorAddress: metric.operatorAddress,
+				strategyAddress: metric.strategyAddress,
+				timestamp: metric._max.timestamp as Date
+			}))
+		}
+	})
+
+	let currentDelegationValue = 0
+
+	for (const metric of metrics) {
+		currentDelegationValue +=
+			Number(metric.tvl) * (ethPrices.get(metric.strategyAddress) || 0)
+	}
+
+	const currentDeploymentRatio = currentDelegationValue / totalTvl
+
+	if (!withChange) {
+		return currentDeploymentRatio as RatioWithoutChange
+	}
+
+	const tvlEth24hChange =
+		(tvlRestaking as TvlWithChange).change24h.value +
+		(tvlBeaconChain as TvlWithChange).change24h.value
+	const tvlEth7dChange =
+		(tvlRestaking as TvlWithChange).change7d.value +
+		(tvlBeaconChain as TvlWithChange).change7d.value
+
+	const tvlEth24hAgo = totalTvl - tvlEth24hChange
+	const tvlEth7dAgo = totalTvl - tvlEth7dChange
+
+	let changeDelegation24hAgo = 0
+	let changeDelegationValue7dAgo = 0
+
+	const historicalRecords = await prisma.metricOperatorStrategyUnit.findMany({
+		select: {
+			changeTvl: true,
+			timestamp: true,
+			strategyAddress: true
+		},
+		where: {
+			timestamp: {
+				gte: getTimestamp('7d')
+			}
+		}
+	})
+
+	for (const record of historicalRecords) {
+		const changeTvlEth =
+			Number(record.changeTvl) * (ethPrices.get(record.strategyAddress) || 0)
+
+		changeDelegation24hAgo +=
+			record.timestamp.getTime() >= getTimestamp('24h').getTime()
+				? changeTvlEth
+				: 0
+		changeDelegationValue7dAgo += changeTvlEth
+	}
+
+	const deploymentRatio24hAgo =
+		(currentDelegationValue - changeDelegation24hAgo) / tvlEth24hAgo
+	const deploymentRatio7dAgo =
+		(currentDelegationValue - changeDelegationValue7dAgo) / tvlEth7dAgo
+
+	const change24hValue = currentDeploymentRatio - deploymentRatio24hAgo
+
+	const change24hPercent =
+		deploymentRatio24hAgo !== 0
+			? Math.round((change24hValue / deploymentRatio24hAgo) * 1000) / 1000
+			: 0
+
+	const change7dValue = currentDeploymentRatio - deploymentRatio7dAgo
+	const change7dPercent =
+		deploymentRatio7dAgo !== 0
+			? Math.round((change7dValue / deploymentRatio7dAgo) * 1000) / 1000
+			: 0
+
+	return {
+		ratio: currentDeploymentRatio,
+		change24h: {
+			value: change24hValue,
+			percent: change24hPercent * 100
+		},
+		change7d: {
+			value: change7dValue,
+			percent: change7dPercent * 100
+		}
+	} as RatioWithChange
+}
+
 /*
 =========================
 === Utility Functions ===
@@ -2365,23 +2404,36 @@ async function doGetHistoricalCount(
 */
 
 /**
- * Retrieves a Date object set to now or in the past basis an offset
+ * Retrieves a Date object, set to now or a time in the past, basis a given offset
+ * Note: Timestamp gets reset to the closest day to maintain 1d granularity
  *
  * @param offset
  * @returns
  */
-function getTimestamp(offset?: string) {
+export function getTimestamp(offset?: string) {
 	switch (offset) {
 		case '24h': {
 			const now = new Date()
-			return new Date(new Date().setUTCHours(now.getUTCHours() - 24))
+			return resetTime(new Date(new Date().setUTCHours(now.getUTCHours() - 24)))
+		}
+		case '48h': {
+			const now = new Date()
+			return resetTime(new Date(new Date().setUTCHours(now.getUTCHours() - 48)))
 		}
 		case '7d': {
 			const now = new Date()
-			return new Date(new Date().setUTCDate(now.getUTCDate() - 7))
+			return resetTime(
+				new Date(new Date().setUTCHours(now.getUTCHours() - 168))
+			)
+		}
+		case '8d': {
+			const now = new Date()
+			return resetTime(
+				new Date(new Date().setUTCHours(now.getUTCHours() - 192))
+			)
 		}
 		default:
-			return new Date()
+			return new Date(new Date().setUTCHours(0, 0, 0, 0))
 	}
 }
 
@@ -2393,8 +2445,6 @@ function getTimestamp(offset?: string) {
  */
 function getOffsetInMs(frequency: string) {
 	switch (frequency) {
-		case '1h':
-			return 3600000
 		case '1d':
 			return 86400000
 		case '7d':
@@ -2405,13 +2455,13 @@ function getOffsetInMs(frequency: string) {
 }
 
 /**
- * Sets any date to the beginning of the hour
+ * Sets any date to the beginning of the day
  *
  * @param date
  * @returns
  */
 function resetTime(date: Date) {
-	date.setUTCMinutes(0, 0, 0)
+	date.setUTCHours(0, 0, 0, 0)
 	return date
 }
 
@@ -2446,9 +2496,9 @@ async function fetchCurrentEthPrices(): Promise<Map<string, number>> {
  */
 function checkEthDenomination(modelName: string): modelName is EthTvlModelName {
 	const ethTvlModelNames: EthTvlModelName[] = [
-		'metricDepositHourly',
-		'metricWithdrawalHourly',
-		'metricEigenPodsHourly'
+		'metricDepositUnit',
+		'metricWithdrawalUnit',
+		'metricEigenPodsUnit'
 	]
 	return ethTvlModelNames.includes(modelName as EthTvlModelName)
 }
@@ -2495,20 +2545,19 @@ async function calculateTotalChange(
 /**
  * Processes 24h/7d tvl change
  *
- * @param tvlEth
  * @param modelName
  * @param ethPrices
  * @param address
  * @returns
  */
 async function calculateTvlChange(
-	tvlEth: TvlWithoutChange,
 	modelName: MetricModelName,
 	ethPrices?: Map<string, number>,
 	address?: string
 ): Promise<TvlWithChange> {
 	const isEthDenominated = checkEthDenomination(modelName)
 
+	let tvl = 0
 	let tvlEth24hAgo = 0
 	let tvlEth7dAgo = 0
 
@@ -2517,44 +2566,85 @@ async function calculateTvlChange(
 			throw new Error('ETH prices are required for processing this data')
 		}
 
+		// For each strategy, fetch the timestamp of its latest record
+		const latestTimestamps = await prisma.metricStrategyUnit.groupBy({
+			by: ['strategyAddress'],
+			_max: {
+				timestamp: true
+			},
+			where: {
+				timestamp: {
+					lte: getTimestamp('24h')
+				},
+				strategyAddress: { not: beaconAddress },
+				...(address && { strategyAddress: address.toLowerCase() })
+			}
+		})
+
+		// For each strategy, fetch its latest record
+		const strategyData = await prisma.metricStrategyUnit.findMany({
+			where: {
+				OR: latestTimestamps.map((metric) => ({
+					AND: [
+						{
+							strategyAddress: metric.strategyAddress
+						},
+						{
+							timestamp: {
+								gte: metric._max.timestamp
+							}
+						}
+					]
+				})) as Prisma.Prisma.MetricStrategyUnitWhereInput[]
+			},
+			orderBy: {
+				timestamp: 'asc'
+			}
+		})
+
+		// Find current tvl
+		tvl = await getInitialTvlCumulativeFromNative(strategyData, ethPrices)
+
 		let changeTvlEth24hAgo = 0
 		let changeTvlEth7dAgo = 0
 
-		// Get all records from 7d ago
-		const historicalRecords = await prisma.metricStrategyHourly.findMany({
+		// Get all records since 8d ago
+		const historicalRecords = await prisma.metricStrategyUnit.findMany({
 			where: {
 				timestamp: {
-					gte: getTimestamp('7d')
+					gt: getTimestamp('8d'),
+					lte: getTimestamp('24h')
 				},
-				strategyAddress: address ? address : {}
+				strategyAddress: { not: beaconAddress },
+				...(address && { strategyAddress: address.toLowerCase() })
 			},
 			orderBy: {
 				timestamp: 'desc'
 			}
 		})
 
-		// Calculate the change in TVL
+		// Calculate discrete tvlEth change within 24h/7d time periods
 		for (const record of historicalRecords) {
 			const changeTvlEth =
 				Number(record.changeTvl) * (ethPrices.get(record.strategyAddress) || 0)
 
 			changeTvlEth24hAgo +=
-				record.timestamp.getTime() >= getTimestamp('24h').getTime()
+				record.timestamp.getTime() >= getTimestamp('48h').getTime()
 					? changeTvlEth
 					: 0
 			changeTvlEth7dAgo += changeTvlEth
 		}
 
-		// Find TVL values 24h/7d ago
-		tvlEth24hAgo = tvlEth - changeTvlEth24hAgo
-		tvlEth7dAgo = tvlEth - changeTvlEth7dAgo
+		// Calculate tvl values 24h/7d ago from current tvl
+		tvlEth24hAgo = tvl - changeTvlEth24hAgo
+		tvlEth7dAgo = tvl - changeTvlEth7dAgo
 	} else {
-		// Get all records between 7d & 24h ago
-		const historicalRecords = await prisma.metricEigenPodsHourly.findMany({
+		// Get all records since 8d ago
+		const historicalRecords = await prisma.metricEigenPodsUnit.findMany({
 			where: {
 				timestamp: {
-					lte: getTimestamp('24h'),
-					gte: getTimestamp('7d')
+					gte: getTimestamp('8d'),
+					lte: getTimestamp('24h')
 				}
 			},
 			orderBy: {
@@ -2562,31 +2652,36 @@ async function calculateTvlChange(
 			}
 		})
 
-		// Pick the earliest and latest record
-		const [record24hAgo, ...rest] = historicalRecords
-		const record7dAgo = rest.pop()
+		// Find current, 24h & 7d tvl values
+		const record24hAgo = historicalRecords.find(
+			(record) => record.timestamp < getTimestamp('24h')
+		)
+		const record7dAgo = historicalRecords[historicalRecords.length - 1]
+		const recordCurrent = historicalRecords[0]
 
-		// Find TVL values 24h/7d ago
 		tvlEth24hAgo = Number(record24hAgo?.tvlEth)
 		tvlEth7dAgo = Number(record7dAgo?.tvlEth)
+		tvl = Number(recordCurrent?.tvlEth)
 	}
 
-	// Calculate change values and percentages
+	// Calculate change data
 	const change24h = {
-		value: tvlEth - tvlEth24hAgo,
-		percent: ((tvlEth - tvlEth24hAgo) / tvlEth24hAgo) * 100
+		value: tvl - tvlEth24hAgo,
+		percent: ((tvl - tvlEth24hAgo) / tvlEth24hAgo) * 100
 	}
 
 	const change7d = {
-		value: tvlEth - tvlEth7dAgo,
-		percent: ((tvlEth - tvlEth7dAgo) / tvlEth7dAgo) * 100
+		value: tvl - tvlEth7dAgo,
+		percent: ((tvl - tvlEth7dAgo) / tvlEth7dAgo) * 100
 	}
 
-	return {
-		tvl: tvlEth,
+	const tvlWithChange = {
+		tvl,
 		change24h,
 		change7d
 	}
+
+	return tvlWithChange
 }
 
 /**
@@ -2620,12 +2715,12 @@ async function combineTvlWithChange(
 /**
  * Calculates initial tvlEth for a historical tvl query with variant set to cumulative
  *
- * @param hourlyData
+ * @param unitData
  * @param ethPrices
  * @returns
  */
 async function getInitialTvlCumulativeFromNative(
-	hourlyData: MetricModelMap[MetricModelName][],
+	unitData: MetricModelMap[MetricModelName][],
 	ethPrices: Map<string, number>
 ) {
 	if (!ethPrices) {
@@ -2634,7 +2729,7 @@ async function getInitialTvlCumulativeFromNative(
 
 	// Find the earliest record for each strategy
 	const strategyMap = new Map<string, NativeTvlModelMap[NativeTvlModelName]>()
-	for (const record of hourlyData as NativeTvlModelMap[NativeTvlModelName][]) {
+	for (const record of unitData as NativeTvlModelMap[NativeTvlModelName][]) {
 		const existingRecord = strategyMap.get(record.strategyAddress)
 		if (!existingRecord || record.timestamp < existingRecord.timestamp) {
 			strategyMap.set(record.strategyAddress, record)
@@ -2730,7 +2825,7 @@ function calculateTvlForHistoricalRecord(
 /**
  * Calculates totalStakers, totalOperators/totalAvs for one record of a historical aggregate response
  *
- * @param intervalHourlyData
+ * @param intervalUnitData
  * @param variant
  * @param totalStakers
  * @param totalOperators
@@ -2738,7 +2833,7 @@ function calculateTvlForHistoricalRecord(
  * @returns
  */
 async function calculateMetricsForHistoricalRecord(
-	intervalHourlyData: AggregateModelMap[AggregateModelName][],
+	intervalUnitData: AggregateModelMap[AggregateModelName][],
 	variant: string,
 	totalStakers: number,
 	totalOperators?: number,
@@ -2750,39 +2845,39 @@ async function calculateMetricsForHistoricalRecord(
 
 	if (variant === 'cumulative') {
 		// Grab metrics from the latest record
-		if (intervalHourlyData.length > 0) {
-			const lastRecordIndex = intervalHourlyData.length - 1
+		if (intervalUnitData.length > 0) {
+			const lastRecordIndex = intervalUnitData.length - 1
 
-			newStakers = intervalHourlyData[lastRecordIndex].totalStakers
+			newStakers = intervalUnitData[lastRecordIndex].totalStakers
 
 			newOperators =
 				totalOperators !== undefined && totalOperators !== null
 					? (
-							intervalHourlyData[
+							intervalUnitData[
 								lastRecordIndex
-							] as AggregateModelMap['metricAvsHourly']
+							] as AggregateModelMap['metricAvsUnit']
 					  ).totalOperators
 					: 0
 
 			newAvs =
 				totalAvs !== undefined && totalAvs !== null
 					? (
-							intervalHourlyData[
+							intervalUnitData[
 								lastRecordIndex
-							] as AggregateModelMap['metricOperatorHourly']
+							] as AggregateModelMap['metricOperatorUnit']
 					  ).totalAvs
 					: 0
 		}
 	} else {
 		// Calculate metrics as summation of all change values
-		newStakers = intervalHourlyData.reduce(
+		newStakers = intervalUnitData.reduce(
 			(sum, record) => sum + record.changeStakers,
 			0
 		)
 
 		newOperators =
 			totalOperators !== undefined && totalOperators !== null
-				? (intervalHourlyData as AggregateModelMap['metricAvsHourly'][]).reduce(
+				? (intervalUnitData as AggregateModelMap['metricAvsUnit'][]).reduce(
 						(sum, record) => sum + record.changeOperators,
 						0
 				  )
@@ -2791,7 +2886,7 @@ async function calculateMetricsForHistoricalRecord(
 		newAvs =
 			totalAvs !== undefined && totalAvs !== null
 				? (
-						intervalHourlyData as AggregateModelMap['metricOperatorHourly'][]
+						intervalUnitData as AggregateModelMap['metricOperatorUnit'][]
 				  ).reduce((sum, record) => sum + record.changeAvs, 0)
 				: 0
 	}
@@ -2801,4 +2896,14 @@ async function calculateMetricsForHistoricalRecord(
 		totalOperators: newOperators,
 		totalAvs: newAvs
 	}
+}
+
+/**
+ * Extracts the TVL value from a TvlWithChange object or directly returns the number.
+ *
+ * @param tvl
+ * @returns
+ */
+function extractTvlValue(tvl: number | TvlWithChange): number {
+	return (tvl as TvlWithChange).tvl || (tvl as number)
 }

@@ -58,6 +58,6 @@ export async function seedBlockData(toBlock?: bigint, fromBlock?: bigint) {
 				)}`
 			)
 		},
-		99n
+		79n
 	)
 }

@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE "Avs" ADD COLUMN     "apy" DECIMAL(8,4) NOT NULL DEFAULT 0;
+
+-- AlterTable
+ALTER TABLE "Operator" ADD COLUMN     "apy" DECIMAL(8,4) NOT NULL DEFAULT 0;

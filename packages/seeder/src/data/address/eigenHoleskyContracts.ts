@@ -6,6 +6,7 @@ export const eigenHoleskyContracts: EigenContractAddress = {
 	Slasher: '0xcAe751b75833ef09627549868A04E32679386e7C',
 	StrategyManager: '0xdfB5f6CE42aAA7830E94ECFCcAd411beF4d4D5b6',
 	EigenPodManager: '0x30770d7E3e71112d7A6b7259542D1f680a70e315',
+	RewardsCoordinator: '0xAcc1fb458a1317E886dB376Fc8141540537E68fE',
 	Strategies: {
 		Eigen: {
 			strategyContract: '0x43252609bff8a13dFe5e057097f2f45A24387a84',
@@ -51,5 +52,8 @@ export const eigenHoleskyContracts: EigenContractAddress = {
 			strategyContract: '0xaccc5A86732BE85b5012e8614AF237801636F8e5',
 			tokenContract: '0xe3C063B1BEe9de02eb28352b55D49D85514C67FF'
 		}
+	},
+	Rewards: {
+		ARPA: '0x7549F756e3feefCe952637341357Ad90d91AcD3c'
 	}
 }

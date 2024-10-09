@@ -1,14 +1,15 @@
 import type { Request, Response } from 'express'
+import type { TokenPrices } from '../../utils/tokenPrices'
+import {
+	type EigenStrategiesContractAddress,
+	getEigenContracts
+} from '../../data/address'
 import { formatEther } from 'viem'
 import { eigenLayerMainnetStrategyContracts } from '../../data/address/eigenMainnetContracts'
 import { getViemClient } from '../../viem/viemClient'
-import {
-	EigenStrategiesContractAddress,
-	getEigenContracts
-} from '../../data/address'
-import { TokenPrices } from '../../utils/tokenPrices'
 import { serviceManagerUIAbi } from '../../data/abi/serviceManagerUIAbi'
 import { getPrismaClient } from '../../utils/prismaClient'
+import Prisma from '@prisma/client'
 
 // ABI path for dynamic imports
 const abiPath = {
@@ -254,6 +255,86 @@ export function sharesToTVL(
 		tvlStrategies: Object.fromEntries(tvlStrategies.entries()),
 		tvlStrategiesEth: Object.fromEntries(tvlStrategiesEth.entries())
 	}
+}
+
+/**
+ * Return the Tvl in Eth of a given set of shares across strategies
+ *
+ * @param shares
+ * @param strategiesWithSharesUnderlying
+ * @param strategyTokenPrices
+ * @returns
+ */
+export function sharesToTVLEth(
+	shares: {
+		strategyAddress: string
+		shares: string
+	}[],
+	strategiesWithSharesUnderlying: {
+		strategyAddress: string
+		sharesToUnderlying: number
+	}[],
+	strategyTokenPrices: TokenPrices
+): { [strategyAddress: string]: number } {
+	const beaconAddress = '0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0'
+
+	const beaconStrategy = shares.find(
+		(s) => s.strategyAddress.toLowerCase() === beaconAddress
+	)
+
+	const tvlBeaconChain = beaconStrategy
+		? Number(beaconStrategy.shares) / 1e18
+		: 0
+
+	const strategies = getEigenContracts().Strategies
+	const addressToKey = Object.entries(strategies).reduce(
+		(acc, [key, value]) => {
+			acc[value.strategyContract.toLowerCase()] = key
+			return acc
+		},
+		{} as Record<string, string>
+	)
+
+	const tvlStrategiesEth: { [strategyAddress: string]: number } = {
+		[beaconAddress]: tvlBeaconChain
+	}
+
+	for (const share of shares) {
+		const strategyAddress = share.strategyAddress.toLowerCase()
+		const isBeaconStrategy = strategyAddress.toLowerCase() === beaconAddress
+
+		const sharesUnderlying = strategiesWithSharesUnderlying.find(
+			(su) => su.strategyAddress.toLowerCase() === strategyAddress
+		)
+
+		const strategyTokenPrice = isBeaconStrategy
+			? { eth: 1 }
+			: Object.values(strategyTokenPrices).find(
+					(stp) => stp.strategyAddress.toLowerCase() === strategyAddress
+			  )
+
+		if (sharesUnderlying && strategyTokenPrice) {
+			const strategyShares =
+				new Prisma.Prisma.Decimal(share.shares)
+					.mul(
+						new Prisma.Prisma.Decimal(
+							sharesUnderlying.sharesToUnderlying.toString()
+						)
+					)
+					.div(new Prisma.Prisma.Decimal(10).pow(18))
+					.toNumber() / 1e18
+
+			const strategyTvl = strategyShares * strategyTokenPrice.eth
+
+			const strategyKey = addressToKey[strategyAddress]
+			if (strategyKey) {
+				tvlStrategiesEth[strategyAddress] =
+					(tvlStrategiesEth[strategyAddress] || 0) + strategyTvl
+			}
+		}
+	}
+
+	return tvlStrategiesEth
 }
 
 export async function getRestakeableStrategies(
