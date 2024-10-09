@@ -1,5 +1,4 @@
 import express from 'express'
-import { handleCreditDeduction } from '../../user/auth'
 import {
 	getMetrics,
 	getTotalAvs,
@@ -14,96 +13,128 @@ import {
 	getHistoricalStakerCount,
 	getHistoricalDepositCount,
 	getHistoricalWithdrawalCount,
-	getHistoricalWithdrawalAggregate,
-	getHistoricalDepositAggregate,
+	getHistoricalAvsAggregate,
+	getHistoricalOperatorsAggregate,
+	getHistoricalTvl,
+	getHistoricalTvlBeaconChain,
+	getHistoricalTvlRestaking,
+	getHistoricalTvlWithdrawal,
+	getHistoricalTvlDeposit,
 	getTotalWithdrawals,
-	getTotalDeposits
+	getTotalDeposits,
+	getRestakingRatio,
+	getDeploymentRatio
 } from './metricController'
 
 import routeCache from 'route-cache'
 
 const router = express.Router()
+const dailyCache = Math.floor((new Date ().setHours(24, 0, 0, 0) - Date.now()) / 1000)
 
 // API routes for /metrics
 
-router.get(
-	'/',
-	handleCreditDeduction(5),
-	routeCache.cacheSeconds(120),
-	getMetrics
-)
+// --- Holistic Routes ---
 
-router.get(
-	'/tvl',
-	handleCreditDeduction(5),
-	routeCache.cacheSeconds(120),
-	getTvl
-)
+router.get('/', routeCache.cacheSeconds(120), getMetrics)
 
-router.get('/tvl/beacon-chain', routeCache.cacheSeconds(120), getTvlBeaconChain)
+// --- TVL Routes ---
 
-router.get('/tvl/restaking', routeCache.cacheSeconds(120), getTvlRestaking)
-
+router.get('/tvl', routeCache.cacheSeconds(dailyCache), getTvl)
+router.get('/tvl/beacon-chain', routeCache.cacheSeconds(dailyCache), getTvlBeaconChain)
+router.get('/tvl/restaking', routeCache.cacheSeconds(dailyCache), getTvlRestaking)
 router.get(
 	'/tvl/restaking/:strategy',
-	routeCache.cacheSeconds(120),
+	routeCache.cacheSeconds(dailyCache),
 	getTvlRestakingByStrategy
 )
 
+// --- Total Routes ---
+
 router.get('/total-avs', routeCache.cacheSeconds(120), getTotalAvs)
-
 router.get('/total-operators', routeCache.cacheSeconds(120), getTotalOperators)
-
 router.get('/total-stakers', routeCache.cacheSeconds(120), getTotalStakers)
-
 router.get(
 	'/total-withdrawals',
 	routeCache.cacheSeconds(120),
 	getTotalWithdrawals
 )
-
 router.get('/total-deposits', routeCache.cacheSeconds(120), getTotalDeposits)
 
-router.get(
-	'/historical/avs',
-	routeCache.cacheSeconds(120),
-	getHistoricalAvsCount
-)
+// --- Historical TVL Routes ---
 
+router.get('/historical/tvl', routeCache.cacheSeconds(120), getHistoricalTvl)
 router.get(
-	'/historical/operators',
+	'/historical/tvl/beacon-chain',
 	routeCache.cacheSeconds(120),
-	getHistoricalOperatorCount
+	getHistoricalTvlBeaconChain
 )
-
 router.get(
-	'/historical/stakers',
+	'/historical/tvl/restaking/:address',
 	routeCache.cacheSeconds(120),
-	getHistoricalStakerCount
+	getHistoricalTvlRestaking
 )
-
 router.get(
 	'/historical/withdrawals',
 	routeCache.cacheSeconds(120),
-	getHistoricalWithdrawalAggregate
+	getHistoricalTvlWithdrawal
 )
-
 router.get(
 	'/historical/deposits',
 	routeCache.cacheSeconds(120),
-	getHistoricalDepositAggregate
+	getHistoricalTvlDeposit
 )
 
+// --- Historical Aggregate Routes ---
+
+router.get(
+	'/historical/avs/:address',
+	routeCache.cacheSeconds(120),
+	getHistoricalAvsAggregate
+)
+router.get(
+	'/historical/operators/:address',
+	routeCache.cacheSeconds(120),
+	getHistoricalOperatorsAggregate
+)
+
+// --- Historical Count Routes ---
+
+router.get(
+	'/historical/count-avs',
+	routeCache.cacheSeconds(120),
+	getHistoricalAvsCount
+)
+router.get(
+	'/historical/count-operators',
+	routeCache.cacheSeconds(120),
+	getHistoricalOperatorCount
+)
+router.get(
+	'/historical/count-stakers',
+	routeCache.cacheSeconds(120),
+	getHistoricalStakerCount
+)
 router.get(
 	'/historical/count-withdrawals',
 	routeCache.cacheSeconds(120),
 	getHistoricalWithdrawalCount
 )
-
 router.get(
 	'/historical/count-deposits',
 	routeCache.cacheSeconds(120),
 	getHistoricalDepositCount
+)
+
+router.get(
+	'/restaking-ratio',
+	routeCache.cacheSeconds(120),
+	getRestakingRatio
+)
+
+router.get(
+	'/deployment-ratio',
+	routeCache.cacheSeconds(120),
+	getDeploymentRatio
 )
 
 export default router
