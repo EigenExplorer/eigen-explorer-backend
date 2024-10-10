@@ -8,6 +8,7 @@ import withdrawalRoutes from './withdrawals/withdrawalRoutes'
 import depositRoutes from './deposits/depositRoutes'
 import auxiliaryRoutes from './auxiliary/auxiliaryRoutes'
 import rewardRoutes from './rewards/rewardRoutes'
+import authRoutes from './auth/authRoutes'
 
 const apiRouter = express.Router()
 
@@ -29,5 +30,6 @@ apiRouter.use('/withdrawals', withdrawalRoutes)
 apiRouter.use('/deposits', depositRoutes)
 apiRouter.use('/aux', auxiliaryRoutes)
 apiRouter.use('/rewards', rewardRoutes)
+apiRouter.use('/auth', authRoutes)
 
 export default apiRouter

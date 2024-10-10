@@ -1,0 +1,18 @@
+generator clientDashboard {
+  provider = "prisma-client-js"
+  output   = "../../../prismaAuxClients/dashboard"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL_DASHBOARD")
+  directUrl = env("DIRECT_URL_DASHBOARD")
+}
+
+model User {
+  id String @id @default(uuid())
+
+  apiTokens   String[] @unique
+  credits     Int      @default(0)
+  accessLevel Int      @default(0)
+}

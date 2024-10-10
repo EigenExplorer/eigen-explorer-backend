@@ -11,6 +11,7 @@ import {
     EigenExplorerApiError,
     handleAndReturnErrorResponse,
 } from './schema/errors';
+import { auth } from './utils/auth';
 
 const PORT = process.env.PORT ? Number.parseInt(process.env.PORT) : 3002;
 
@@ -26,7 +27,7 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
 // Routes
-app.use('/', apiRouter);
+app.use('/', auth, apiRouter);
 
 app.get('/favicon.ico', (req, res) => res.sendStatus(204));
 

@@ -1,7 +1,9 @@
 import { PrismaClient } from '@prisma/client'
+import { PrismaClient as PrismaClientDashboard } from '../../../../prismaAuxClients/dashboard'
 
 // Ensure the Prisma client is only instantiated once in your application
 let prisma: PrismaClient
+let prismaDashboard: PrismaClientDashboard
 
 export function getPrismaClient() {
 	if (!prisma) {
@@ -9,6 +11,14 @@ export function getPrismaClient() {
 	}
 
 	return prisma
+}
+
+export function getPrismaClientDashboard() {
+	if (!prismaDashboard) {
+		prismaDashboard = new PrismaClientDashboard({})
+	}
+
+	return prismaDashboard
 }
 
 // ====================== DEPRECATED ======================
