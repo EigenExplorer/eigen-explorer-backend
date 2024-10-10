@@ -38,12 +38,10 @@ export async function getStrategies(req: Request, res: Response) {
 			strategyTokensMap.get(strategyAddress)?.add(tokenAddress)
 		}
 
-		const strategies = Array.from(strategyTokensMap.entries()).map(
-			([strategyAddress, tokens]) => ({
-				strategyAddress,
-				tokens: Array.from(tokens)
-			})
-		)
+		const strategies = Array.from(strategyTokensMap.entries()).map(([strategyAddress, tokens]) => ({
+			strategyAddress,
+			tokens: Array.from(tokens)
+		}))
 
 		const result = {
 			strategies,

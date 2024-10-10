@@ -1,14 +1,8 @@
 import type { Request, Response } from 'express'
 import type Prisma from '@prisma/client'
 import prisma from '../../utils/prismaClient'
-import {
-	type EigenStrategiesContractAddress,
-	getEigenContracts
-} from '../../data/address'
-import {
-	EigenExplorerApiError,
-	handleAndReturnErrorResponse
-} from '../../schema/errors'
+import { type EigenStrategiesContractAddress, getEigenContracts } from '../../data/address'
+import { EigenExplorerApiError, handleAndReturnErrorResponse } from '../../schema/errors'
 import { getAvsFilterQuery } from '../avs/avsController'
 import { HistoricalCountSchema } from '../../schema/zod/schemas/historicalCountQuery'
 import { EthereumAddressSchema } from '../../schema/zod/schemas/base/ethereumAddress'
@@ -139,19 +133,14 @@ type RatioWithChange = {
  */
 export async function getMetrics(req: Request, res: Response) {
 	try {
-		const [
-			tvlRestaking,
-			tvlBeaconChain,
-			totalAvs,
-			totalOperators,
-			totalStakers
-		] = await Promise.all([
-			doGetTvl(false),
-			doGetTvlBeaconChain(false),
-			doGetTotalAvsCount(false),
-			doGetTotalOperatorCount(false),
-			doGetTotalStakerCount(false)
-		])
+		const [tvlRestaking, tvlBeaconChain, totalAvs, totalOperators, totalStakers] =
+			await Promise.all([
+				doGetTvl(false),
+				doGetTvlBeaconChain(false),
+				doGetTotalAvsCount(false),
+				doGetTotalOperatorCount(false),
+				doGetTotalStakerCount(false)
+			])
 
 		const metrics = {
 			tvlRestaking,
@@ -162,9 +151,7 @@ export async function getMetrics(req: Request, res: Response) {
 		}
 
 		res.send({
-			tvl:
-				(tvlRestaking.tvlRestaking as TvlWithoutChange) +
-				(tvlBeaconChain as TvlWithoutChange),
+			tvl: (tvlRestaking.tvlRestaking as TvlWithoutChange) + (tvlBeaconChain as TvlWithoutChange),
 			tvlBeaconChain: tvlBeaconChain as TvlWithoutChange,
 			...tvlRestaking,
 			totalAvs: metrics.totalAvs as TotalWithoutChange,
@@ -205,9 +192,7 @@ export async function getTvl(req: Request, res: Response) {
 						))
 				  }
 				: {
-						tvl:
-							(tvlRestaking as TvlWithoutChange) +
-							(tvlBeaconChain as TvlWithoutChange)
+						tvl: (tvlRestaking as TvlWithoutChange) + (tvlBeaconChain as TvlWithoutChange)
 				  })
 		})
 	} catch (error) {
@@ -289,9 +274,7 @@ export async function getTvlRestakingByStrategy(req: Request, res: Response) {
 		const { withChange } = queryCheck.data
 
 		const strategies = Object.keys(getEigenContracts().Strategies)
-		const foundStrategy = strategies.find(
-			(s) => s.toLowerCase() === strategy.toLowerCase()
-		)
+		const foundStrategy = strategies.find((s) => s.toLowerCase() === strategy.toLowerCase())
 
 		if (!foundStrategy) {
 			throw new EigenExplorerApiError({
@@ -336,9 +319,7 @@ export async function getTotalAvs(req: Request, res: Response) {
 		const total = await doGetTotalAvsCount(withChange)
 
 		res.send({
-			...(withChange
-				? { ...(total as TotalWithChange) }
-				: { total: total as TotalWithoutChange })
+			...(withChange ? { ...(total as TotalWithChange) } : { total: total as TotalWithoutChange })
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
@@ -363,9 +344,7 @@ export async function getTotalOperators(req: Request, res: Response) {
 		const total = await doGetTotalOperatorCount(withChange)
 
 		res.send({
-			...(withChange
-				? { ...(total as TotalWithChange) }
-				: { total: total as TotalWithoutChange })
+			...(withChange ? { ...(total as TotalWithChange) } : { total: total as TotalWithoutChange })
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
@@ -390,9 +369,7 @@ export async function getTotalStakers(req: Request, res: Response) {
 		const total = await doGetTotalStakerCount(withChange)
 
 		res.send({
-			...(withChange
-				? { ...(total as TotalWithChange) }
-				: { total: total as TotalWithoutChange })
+			...(withChange ? { ...(total as TotalWithChange) } : { total: total as TotalWithoutChange })
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
@@ -444,9 +421,7 @@ export async function getTotalDeposits(req: Request, res: Response) {
 		const total = await doGetTotalDeposits(withChange)
 
 		res.send({
-			...(withChange
-				? { ...(total as TotalWithChange) }
-				: { total: total as TotalWithoutChange })
+			...(withChange ? { ...(total as TotalWithChange) } : { total: total as TotalWithoutChange })
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
@@ -470,12 +445,7 @@ export async function getHistoricalTvl(req: Request, res: Response) {
 
 	try {
 		const { frequency, variant, startAt, endAt } = queryCheck.data
-		const data = await doGetHistoricalTvlTotal(
-			startAt,
-			endAt,
-			frequency,
-			variant
-		)
+		const data = await doGetHistoricalTvlTotal(startAt, endAt, frequency, variant)
 		res.status(200).send({ data })
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
@@ -497,12 +467,7 @@ export async function getHistoricalTvlBeaconChain(req: Request, res: Response) {
 
 	try {
 		const { frequency, variant, startAt, endAt } = queryCheck.data
-		const data = await doGetHistoricalTvlBeacon(
-			startAt,
-			endAt,
-			frequency,
-			variant
-		)
+		const data = await doGetHistoricalTvlBeacon(startAt, endAt, frequency, variant)
 		res.status(200).send({ data })
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
@@ -529,13 +494,7 @@ export async function getHistoricalTvlRestaking(req: Request, res: Response) {
 	try {
 		const { address } = req.params
 		const { frequency, variant, startAt, endAt } = queryCheck.data
-		const data = await doGetHistoricalTvlRestaking(
-			startAt,
-			endAt,
-			frequency,
-			variant,
-			address
-		)
+		const data = await doGetHistoricalTvlRestaking(startAt, endAt, frequency, variant, address)
 		res.status(200).send({ data })
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
@@ -557,12 +516,7 @@ export async function getHistoricalTvlWithdrawal(req: Request, res: Response) {
 
 	try {
 		const { frequency, variant, startAt, endAt } = queryCheck.data
-		const data = await doGetHistoricalTvlWithdrawal(
-			startAt,
-			endAt,
-			frequency,
-			variant
-		)
+		const data = await doGetHistoricalTvlWithdrawal(startAt, endAt, frequency, variant)
 		res.status(200).send({ data })
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
@@ -584,12 +538,7 @@ export async function getHistoricalTvlDeposit(req: Request, res: Response) {
 
 	try {
 		const { frequency, variant, startAt, endAt } = queryCheck.data
-		const data = await doGetHistoricalTvlDeposit(
-			startAt,
-			endAt,
-			frequency,
-			variant
-		)
+		const data = await doGetHistoricalTvlDeposit(startAt, endAt, frequency, variant)
 		res.status(200).send({ data })
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
@@ -619,13 +568,7 @@ export async function getHistoricalAvsAggregate(req: Request, res: Response) {
 	try {
 		const { address } = req.params
 		const { frequency, variant, startAt, endAt } = queryCheck.data
-		const data = await doGetHistoricalAvsAggregate(
-			address,
-			startAt,
-			endAt,
-			frequency,
-			variant
-		)
+		const data = await doGetHistoricalAvsAggregate(address, startAt, endAt, frequency, variant)
 		res.status(200).send({ data })
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
@@ -639,10 +582,7 @@ export async function getHistoricalAvsAggregate(req: Request, res: Response) {
  * @param req
  * @param res
  */
-export async function getHistoricalOperatorsAggregate(
-	req: Request,
-	res: Response
-) {
+export async function getHistoricalOperatorsAggregate(req: Request, res: Response) {
 	const queryCheck = HistoricalCountSchema.safeParse(req.query)
 	if (!queryCheck.success) {
 		return handleAndReturnErrorResponse(req, res, queryCheck.error)
@@ -686,13 +626,7 @@ export async function getHistoricalAvsCount(req: Request, res: Response) {
 
 	try {
 		const { frequency, variant, startAt, endAt } = paramCheck.data
-		const data = await doGetHistoricalCount(
-			'avs',
-			startAt,
-			endAt,
-			frequency,
-			variant
-		)
+		const data = await doGetHistoricalCount('avs', startAt, endAt, frequency, variant)
 		res.status(200).send({ data })
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
@@ -714,13 +648,7 @@ export async function getHistoricalOperatorCount(req: Request, res: Response) {
 
 	try {
 		const { frequency, variant, startAt, endAt } = paramCheck.data
-		const data = await doGetHistoricalCount(
-			'operator',
-			startAt,
-			endAt,
-			frequency,
-			variant
-		)
+		const data = await doGetHistoricalCount('operator', startAt, endAt, frequency, variant)
 		res.status(200).send({ data })
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
@@ -742,13 +670,7 @@ export async function getHistoricalStakerCount(req: Request, res: Response) {
 
 	try {
 		const { frequency, variant, startAt, endAt } = paramCheck.data
-		const data = await doGetHistoricalCount(
-			'staker',
-			startAt,
-			endAt,
-			frequency,
-			variant
-		)
+		const data = await doGetHistoricalCount('staker', startAt, endAt, frequency, variant)
 		res.status(200).send({ data })
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
@@ -762,10 +684,7 @@ export async function getHistoricalStakerCount(req: Request, res: Response) {
  * @param req
  * @param res
  */
-export async function getHistoricalWithdrawalCount(
-	req: Request,
-	res: Response
-) {
+export async function getHistoricalWithdrawalCount(req: Request, res: Response) {
 	const queryCheck = HistoricalCountSchema.safeParse(req.query)
 	if (!queryCheck.success) {
 		return handleAndReturnErrorResponse(req, res, queryCheck.error)
@@ -773,13 +692,7 @@ export async function getHistoricalWithdrawalCount(
 
 	try {
 		const { frequency, variant, startAt, endAt } = queryCheck.data
-		const data = await doGetHistoricalCount(
-			'withdrawalQueued',
-			startAt,
-			endAt,
-			frequency,
-			variant
-		)
+		const data = await doGetHistoricalCount('withdrawalQueued', startAt, endAt, frequency, variant)
 		res.status(200).send({ data })
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
@@ -801,13 +714,7 @@ export async function getHistoricalDepositCount(req: Request, res: Response) {
 
 	try {
 		const { frequency, variant, startAt, endAt } = queryCheck.data
-		const data = await doGetHistoricalCount(
-			'deposit',
-			startAt,
-			endAt,
-			frequency,
-			variant
-		)
+		const data = await doGetHistoricalCount('deposit', startAt, endAt, frequency, variant)
 		res.status(200).send({ data })
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
@@ -832,9 +739,7 @@ export async function getDeploymentRatio(req: Request, res: Response) {
 		const ratio = await doGetDeploymentRatio(withChange)
 
 		res.send({
-			...(withChange
-				? { ...(ratio as RatioWithChange) }
-				: { ratio: ratio as RatioWithoutChange })
+			...(withChange ? { ...(ratio as RatioWithChange) } : { ratio: ratio as RatioWithoutChange })
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
@@ -859,9 +764,7 @@ export async function getRestakingRatio(req: Request, res: Response) {
 		const ratio = await doGetRestakingRatio(withChange)
 
 		res.send({
-			...(withChange
-				? { ...(ratio as RatioWithChange) }
-				: { ratio: ratio as RatioWithoutChange })
+			...(withChange ? { ...(ratio as RatioWithChange) } : { ratio: ratio as RatioWithoutChange })
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
@@ -896,10 +799,9 @@ async function doGetTvl(withChange: boolean) {
 	)
 
 	const tvlStrategies = {}
-	const tvlStrategiesEth: Map<keyof EigenStrategiesContractAddress, number> =
-		new Map(
-			strategyKeys.map((sk) => [sk as keyof EigenStrategiesContractAddress, 0])
-		)
+	const tvlStrategiesEth: Map<keyof EigenStrategiesContractAddress, number> = new Map(
+		strategyKeys.map((sk) => [sk as keyof EigenStrategiesContractAddress, 0])
+	)
 
 	try {
 		const totalShares = await Promise.all(
@@ -910,36 +812,28 @@ async function doGetTvl(withChange: boolean) {
 			}))
 		)
 
-		const strategiesWithSharesUnderlying =
-			await getStrategiesWithShareUnderlying()
+		const strategiesWithSharesUnderlying = await getStrategiesWithShareUnderlying()
 		const strategyTokenPrices = await fetchStrategyTokenPrices()
 
 		totalShares.map((s) => {
 			const strategyTokenPrice = Object.values(strategyTokenPrices).find(
-				(stp) =>
-					stp.strategyAddress.toLowerCase() === s.strategyAddress.toLowerCase()
+				(stp) => stp.strategyAddress.toLowerCase() === s.strategyAddress.toLowerCase()
 			)
 			const sharesUnderlying = strategiesWithSharesUnderlying.find(
-				(su) =>
-					su.strategyAddress.toLowerCase() === s.strategyAddress.toLowerCase()
+				(su) => su.strategyAddress.toLowerCase() === s.strategyAddress.toLowerCase()
 			)
 
 			if (sharesUnderlying) {
 				const strategyShares =
-					Number(
-						(BigInt(s.shares) * BigInt(sharesUnderlying.sharesToUnderlying)) /
-							BigInt(1e18)
-					) / 1e18
+					Number((BigInt(s.shares) * BigInt(sharesUnderlying.sharesToUnderlying)) / BigInt(1e18)) /
+					1e18
 
 				tvlStrategies[s.strategyKey] = strategyShares
 
 				if (strategyTokenPrice) {
 					const strategyTvl = strategyShares * strategyTokenPrice.eth
 
-					tvlStrategiesEth.set(
-						s.strategyKey as keyof EigenStrategiesContractAddress,
-						strategyTvl
-					)
+					tvlStrategiesEth.set(s.strategyKey as keyof EigenStrategiesContractAddress, strategyTvl)
 
 					tvlRestaking += strategyTvl
 				}
@@ -982,11 +876,7 @@ async function doGetTvlStrategy(strategy: `0x${string}`, withChange: boolean) {
 		})
 
 		tvl =
-			Number(
-				await contract.read.sharesToUnderlyingView([
-					await contract.read.totalShares()
-				])
-			) / 1e18
+			Number(await contract.read.sharesToUnderlyingView([await contract.read.totalShares()])) / 1e18
 
 		if (strategyTokenPrice) {
 			tvlEth = tvl * strategyTokenPrice.eth
@@ -1007,9 +897,7 @@ async function doGetTvlStrategy(strategy: `0x${string}`, withChange: boolean) {
  *
  * @returns
  */
-async function doGetTvlBeaconChain(
-	withChange: boolean
-): Promise<TvlWithoutChange | TvlWithChange> {
+async function doGetTvlBeaconChain(withChange: boolean): Promise<TvlWithoutChange | TvlWithChange> {
 	const totalValidators = await prisma.validator.aggregate({
 		where: {
 			status: { in: ['active_ongoing', 'active_exiting'] }
@@ -1058,10 +946,7 @@ async function doGetTotalAvsCount(
 		}
 	})
 
-	const [change24hValue, change7dValue] = await Promise.all([
-		getChange24hValue,
-		getChange7dValue
-	])
+	const [change24hValue, change7dValue] = await Promise.all([getChange24hValue, getChange7dValue])
 
 	return calculateTotalChange(totalNow, change24hValue, change7dValue)
 }
@@ -1090,10 +975,7 @@ async function doGetTotalOperatorCount(withChange: boolean) {
 		}
 	})
 
-	const [change24hValue, change7dValue] = await Promise.all([
-		getChange24hValue,
-		getChange7dValue
-	])
+	const [change24hValue, change7dValue] = await Promise.all([getChange24hValue, getChange7dValue])
 
 	return calculateTotalChange(totalNow, change24hValue, change7dValue)
 }
@@ -1126,10 +1008,7 @@ async function doGetTotalStakerCount(withChange: boolean) {
 		}
 	})
 
-	const [change24hValue, change7dValue] = await Promise.all([
-		getChange24hValue,
-		getChange7dValue
-	])
+	const [change24hValue, change7dValue] = await Promise.all([getChange24hValue, getChange7dValue])
 
 	return calculateTotalChange(totalNow, change24hValue, change7dValue)
 }
@@ -1176,13 +1055,12 @@ async function doGetTotalWithdrawals(
 		}
 	})
 
-	const [total24hAgo, completed24hAgo, total7dAgo, completed7dAgo] =
-		await Promise.all([
-			getTotal24hAgo,
-			getCompleted24hAgo,
-			getTotal7dAgo,
-			getCompleted7dAgo
-		])
+	const [total24hAgo, completed24hAgo, total7dAgo, completed7dAgo] = await Promise.all([
+		getTotal24hAgo,
+		getCompleted24hAgo,
+		getTotal7dAgo,
+		getCompleted7dAgo
+	])
 
 	const pending24hAgo = total24hAgo - completed24hAgo
 	const pending7dAgo = total7dAgo - completed7dAgo
@@ -1248,10 +1126,7 @@ async function doGetTotalDeposits(withChange: boolean) {
 		}
 	})
 
-	const [change24hValue, change7dValue] = await Promise.all([
-		getChange24hValue,
-		getChange7dValue
-	])
+	const [change24hValue, change7dValue] = await Promise.all([getChange24hValue, getChange7dValue])
 
 	return calculateTotalChange(totalNow, change24hValue, change7dValue)
 }
@@ -1276,14 +1151,7 @@ async function doGetHistoricalTvlTotal(
 	// Get historical tvl data for Beacon Chain ETH and LSTs (excluding restaked Beacon Chain ETH)
 	const [beaconTvl, restakingTvl] = await Promise.all([
 		doGetHistoricalTvlBeacon(startAt, endAt, frequency, variant),
-		doGetHistoricalTvlRestaking(
-			startAt,
-			endAt,
-			frequency,
-			variant,
-			undefined,
-			false
-		)
+		doGetHistoricalTvlRestaking(startAt, endAt, frequency, variant, undefined, false)
 	])
 
 	// Combine the results
@@ -1355,16 +1223,10 @@ async function doGetHistoricalTvlBeacon(
 	while (currentTimestamp <= endTimestamp) {
 		const nextTimestamp = new Date(currentTimestamp.getTime() + offset)
 		const intervalData = unitData.filter(
-			(data) =>
-				data.timestamp >= currentTimestamp && data.timestamp < nextTimestamp
+			(data) => data.timestamp >= currentTimestamp && data.timestamp < nextTimestamp
 		)
 
-		tvlEth = calculateTvlForHistoricalRecord(
-			intervalData,
-			variant,
-			tvlEth,
-			modelName
-		)
+		tvlEth = calculateTvlForHistoricalRecord(intervalData, variant, tvlEth, modelName)
 
 		results.push({
 			timestamp: new Date(Number(currentTimestamp)).toISOString(),
@@ -1437,13 +1299,9 @@ async function doGetHistoricalTvlRestaking(
 	})
 
 	let tvlEth =
-		variant === 'cumulative'
-			? await getInitialTvlCumulativeFromNative(unitData, ethPrices)
-			: 0
+		variant === 'cumulative' ? await getInitialTvlCumulativeFromNative(unitData, ethPrices) : 0
 
-	let strategyAddresses = [
-		...new Set(unitData.map((data) => data.strategyAddress))
-	]
+	let strategyAddresses = [...new Set(unitData.map((data) => data.strategyAddress))]
 
 	// Gather the remaining strategies that might not currently be in the strategyData
 	const remainingUnitData = await prisma.metricStrategyUnit.findMany({
@@ -1472,9 +1330,7 @@ async function doGetHistoricalTvlRestaking(
 	})
 
 	unitData = [...unitData, ...remainingUnitData]
-	strategyAddresses = [
-		...new Set(unitData.map((data) => data.strategyAddress))
-	]
+	strategyAddresses = [...new Set(unitData.map((data) => data.strategyAddress))]
 
 	const results: HistoricalTvlRecord[] = []
 
@@ -1484,22 +1340,16 @@ async function doGetHistoricalTvlRestaking(
 	while (currentTimestamp <= endTimestamp) {
 		const nextTimestamp = new Date(currentTimestamp.getTime() + offset)
 		let intervalData = unitData.filter(
-			(data) =>
-				data.timestamp >= currentTimestamp && data.timestamp < nextTimestamp
+			(data) => data.timestamp >= currentTimestamp && data.timestamp < nextTimestamp
 		)
 
-		const presentAddresses = new Set(
-			intervalData.map((data) => data.strategyAddress)
-		)
+		const presentAddresses = new Set(intervalData.map((data) => data.strategyAddress))
 
 		// For each unique strategy address not present in this interval, add its latest record
 		const missingRecords = strategyAddresses.flatMap((address) => {
 			if (!presentAddresses.has(address)) {
 				const latestRecord = unitData
-					.filter(
-						(data) =>
-							data.strategyAddress === address && data.timestamp < nextTimestamp
-					)
+					.filter((data) => data.strategyAddress === address && data.timestamp < nextTimestamp)
 					.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0]
 
 				return latestRecord ? [latestRecord] : []
@@ -1509,13 +1359,7 @@ async function doGetHistoricalTvlRestaking(
 
 		intervalData = [...intervalData, ...missingRecords]
 
-		tvlEth = calculateTvlForHistoricalRecord(
-			intervalData,
-			variant,
-			tvlEth,
-			modelName,
-			ethPrices
-		)
+		tvlEth = calculateTvlForHistoricalRecord(intervalData, variant, tvlEth, modelName, ethPrices)
 
 		results.push({
 			timestamp: new Date(Number(currentTimestamp)).toISOString(),
@@ -1582,8 +1426,7 @@ async function doGetHistoricalTvlWithdrawal(
 	while (currentTimestamp <= endTimestamp) {
 		const nextTimestamp = new Date(currentTimestamp.getTime() + offset)
 		const intervalData = unitData.filter(
-			(data) =>
-				data.timestamp >= currentTimestamp && data.timestamp < nextTimestamp
+			(data) => data.timestamp >= currentTimestamp && data.timestamp < nextTimestamp
 		)
 
 		tvlEth = calculateTvlForHistoricalRecord(
@@ -1658,8 +1501,7 @@ async function doGetHistoricalTvlDeposit(
 	while (currentTimestamp <= endTimestamp) {
 		const nextTimestamp = new Date(currentTimestamp.getTime() + offset)
 		const intervalData = unitData.filter(
-			(data) =>
-				data.timestamp >= currentTimestamp && data.timestamp < nextTimestamp
+			(data) => data.timestamp >= currentTimestamp && data.timestamp < nextTimestamp
 		)
 
 		tvlEth = calculateTvlForHistoricalRecord(
@@ -1793,15 +1635,12 @@ async function doGetHistoricalAvsAggregate(
 		return { strategyData, tvlEth }
 	}
 
-	let [{ unitData, totalOperators, totalStakers }, { strategyData, tvlEth }] =
-		await Promise.all([
-			processMetricUnitData(),
-			processMetricStrategyUnitData()
-		])
+	let [{ unitData, totalOperators, totalStakers }, { strategyData, tvlEth }] = await Promise.all([
+		processMetricUnitData(),
+		processMetricStrategyUnitData()
+	])
 
-	let strategyAddresses = [
-		...new Set(strategyData.map((data) => data.strategyAddress))
-	]
+	let strategyAddresses = [...new Set(strategyData.map((data) => data.strategyAddress))]
 
 	// Gather the remaining strategies that might not currently be in the strategyData
 	const remainingStrategyData = await prisma.metricAvsStrategyUnit.findMany({
@@ -1827,9 +1666,7 @@ async function doGetHistoricalAvsAggregate(
 	})
 
 	strategyData = [...strategyData, ...remainingStrategyData]
-	strategyAddresses = [
-		...new Set(strategyData.map((data) => data.strategyAddress))
-	]
+	strategyAddresses = [...new Set(strategyData.map((data) => data.strategyAddress))]
 
 	const results: HistoricalAggregateRecord[] = []
 	let currentTimestamp = startTimestamp
@@ -1840,8 +1677,7 @@ async function doGetHistoricalAvsAggregate(
 		const nextTimestamp = new Date(currentTimestamp.getTime() + offset)
 
 		const intervalUnitData = unitData.filter(
-			(data) =>
-				data.timestamp >= currentTimestamp && data.timestamp < nextTimestamp
+			(data) => data.timestamp >= currentTimestamp && data.timestamp < nextTimestamp
 		)
 
 		// Calculate metrics data for the current timestamp
@@ -1857,21 +1693,15 @@ async function doGetHistoricalAvsAggregate(
 		totalOperators = newOperators
 
 		let intervalStrategyData = strategyData.filter(
-			(data) =>
-				data.timestamp >= currentTimestamp && data.timestamp < nextTimestamp
+			(data) => data.timestamp >= currentTimestamp && data.timestamp < nextTimestamp
 		)
 
 		// For each unique strategy address not present in this interval, add its latest record
-		const presentAddresses = new Set(
-			intervalStrategyData.map((data) => data.strategyAddress)
-		)
+		const presentAddresses = new Set(intervalStrategyData.map((data) => data.strategyAddress))
 		const missingRecords = strategyAddresses.flatMap((address) => {
 			if (!presentAddresses.has(address)) {
 				const latestRecord = strategyData
-					.filter(
-						(data) =>
-							data.strategyAddress === address && data.timestamp < nextTimestamp
-					)
+					.filter((data) => data.strategyAddress === address && data.timestamp < nextTimestamp)
 					.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0]
 
 				return latestRecord ? [latestRecord] : []
@@ -1968,19 +1798,18 @@ async function doGetHistoricalOperatorsAggregate(
 	// Fetch initial data for tvlEth calculation
 	const processMetricStrategyUnitData = async () => {
 		// Fetch the timestamp of the first record on or before startTimestamp
-		const initialDataTimestamps =
-			await prisma.metricOperatorStrategyUnit.groupBy({
-				by: ['operatorAddress', 'strategyAddress'],
-				_max: {
-					timestamp: true
+		const initialDataTimestamps = await prisma.metricOperatorStrategyUnit.groupBy({
+			by: ['operatorAddress', 'strategyAddress'],
+			_max: {
+				timestamp: true
+			},
+			where: {
+				timestamp: {
+					lte: startTimestamp
 				},
-				where: {
-					timestamp: {
-						lte: startTimestamp
-					},
-					operatorAddress: address.toLowerCase()
-				}
-			})
+				operatorAddress: address.toLowerCase()
+			}
+		})
 
 		// For every strategyAddress, fetch all records from the initialDataTimestamp
 		const strategyData = await prisma.metricOperatorStrategyUnit.findMany({
@@ -2013,44 +1842,38 @@ async function doGetHistoricalOperatorsAggregate(
 		return { strategyData, tvlEth }
 	}
 
-	let [{ unitData, totalAvs, totalStakers }, { strategyData, tvlEth }] =
-		await Promise.all([
-			processMetricUnitData(),
-			processMetricStrategyUnitData()
-		])
+	let [{ unitData, totalAvs, totalStakers }, { strategyData, tvlEth }] = await Promise.all([
+		processMetricUnitData(),
+		processMetricStrategyUnitData()
+	])
 
-	let strategyAddresses = [
-		...new Set(strategyData.map((data) => data.strategyAddress))
-	]
+	let strategyAddresses = [...new Set(strategyData.map((data) => data.strategyAddress))]
 
 	// Gather the remaining strategies that might not currently be in the strategyData
-	const remainingStrategyData =
-		await prisma.metricOperatorStrategyUnit.findMany({
-			where: {
-				AND: [
-					{
-						operatorAddress: address.toLowerCase(),
-						strategyAddress: {
-							notIn: strategyAddresses
-						}
-					},
-					{
-						timestamp: {
-							gt: startTimestamp,
-							lte: endTimestamp
-						}
+	const remainingStrategyData = await prisma.metricOperatorStrategyUnit.findMany({
+		where: {
+			AND: [
+				{
+					operatorAddress: address.toLowerCase(),
+					strategyAddress: {
+						notIn: strategyAddresses
 					}
-				]
-			},
-			orderBy: {
-				timestamp: 'asc'
-			}
-		})
+				},
+				{
+					timestamp: {
+						gt: startTimestamp,
+						lte: endTimestamp
+					}
+				}
+			]
+		},
+		orderBy: {
+			timestamp: 'asc'
+		}
+	})
 
 	strategyData = [...strategyData, ...remainingStrategyData]
-	strategyAddresses = [
-		...new Set(strategyData.map((data) => data.strategyAddress))
-	]
+	strategyAddresses = [...new Set(strategyData.map((data) => data.strategyAddress))]
 
 	const results: HistoricalAggregateRecord[] = []
 	let currentTimestamp = startTimestamp
@@ -2061,8 +1884,7 @@ async function doGetHistoricalOperatorsAggregate(
 		const nextTimestamp = new Date(currentTimestamp.getTime() + offset)
 
 		const intervalUnitData = unitData.filter(
-			(data) =>
-				data.timestamp >= currentTimestamp && data.timestamp < nextTimestamp
+			(data) => data.timestamp >= currentTimestamp && data.timestamp < nextTimestamp
 		)
 
 		// Calculate metrics data for the current timestamp
@@ -2079,21 +1901,15 @@ async function doGetHistoricalOperatorsAggregate(
 		totalAvs = newAvs
 
 		let intervalStrategyData = strategyData.filter(
-			(data) =>
-				data.timestamp >= currentTimestamp && data.timestamp < nextTimestamp
+			(data) => data.timestamp >= currentTimestamp && data.timestamp < nextTimestamp
 		)
 
 		// For each unique strategy address not present in this interval, add its latest record
-		const presentAddresses = new Set(
-			intervalStrategyData.map((data) => data.strategyAddress)
-		)
+		const presentAddresses = new Set(intervalStrategyData.map((data) => data.strategyAddress))
 		const missingRecords = strategyAddresses.flatMap((address) => {
 			if (!presentAddresses.has(address)) {
 				const latestRecord = strategyData
-					.filter(
-						(data) =>
-							data.strategyAddress === address && data.timestamp < nextTimestamp
-					)
+					.filter((data) => data.strategyAddress === address && data.timestamp < nextTimestamp)
 					.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0]
 
 				return latestRecord ? [latestRecord] : []
@@ -2171,10 +1987,7 @@ async function doGetHistoricalCount(
 		}
 	})
 
-	const [initialTally, modelData] = await Promise.all([
-		getInitialTally,
-		getModelData
-	])
+	const [initialTally, modelData] = await Promise.all([getInitialTally, getModelData])
 
 	const results: { timestamp: string; value: number }[] = []
 	const offset = getOffsetInMs(frequency)
@@ -2187,8 +2000,7 @@ async function doGetHistoricalCount(
 
 		const intervalData = modelData.filter(
 			(data: { createdAt: number }) =>
-				data.createdAt >= currentDate.getTime() &&
-				data.createdAt < nextDate.getTime()
+				data.createdAt >= currentDate.getTime() && data.createdAt < nextDate.getTime()
 		)
 
 		if (variant === 'discrete') {
@@ -2235,10 +2047,8 @@ async function doGetRestakingRatio(
 		return currentRestakingRatio as RatioWithoutChange
 	}
 
-	const ethCirculation24hAgo = (ethSupplyData as CirculatingSupplyWithChange)
-		.supply_24h_ago
-	const ethCirculation7dAgo = (ethSupplyData as CirculatingSupplyWithChange)
-		.supply_7d_ago
+	const ethCirculation24hAgo = (ethSupplyData as CirculatingSupplyWithChange).supply_24h_ago
+	const ethCirculation7dAgo = (ethSupplyData as CirculatingSupplyWithChange).supply_7d_ago
 
 	const tvlEth24hChange =
 		(tvlRestaking as TvlWithChange).change24h.value +
@@ -2261,9 +2071,7 @@ async function doGetRestakingRatio(
 
 	const change7dValue = currentRestakingRatio - restakingRatio7dAgo
 	const change7dPercent =
-		restakingRatio7dAgo !== 0
-			? Math.round((change7dValue / restakingRatio7dAgo) * 1000) / 1000
-			: 0
+		restakingRatio7dAgo !== 0 ? Math.round((change7dValue / restakingRatio7dAgo) * 1000) / 1000 : 0
 
 	return {
 		ratio: currentRestakingRatio,
@@ -2296,11 +2104,10 @@ async function doGetDeploymentRatio(
 	const totalTvl = restakingTvlValue + beaconChainTvlValue
 
 	const ethPrices = await fetchCurrentEthPrices()
-	const lastMetricsTimestamps =
-		await prisma.metricOperatorStrategyUnit.groupBy({
-			by: ['operatorAddress', 'strategyAddress'],
-			_max: { timestamp: true }
-		})
+	const lastMetricsTimestamps = await prisma.metricOperatorStrategyUnit.groupBy({
+		by: ['operatorAddress', 'strategyAddress'],
+		_max: { timestamp: true }
+	})
 
 	const validMetricsTimestamps = lastMetricsTimestamps.filter(
 		(metric) => metric._max.timestamp !== null
@@ -2319,8 +2126,7 @@ async function doGetDeploymentRatio(
 	let currentDelegationValue = 0
 
 	for (const metric of metrics) {
-		currentDelegationValue +=
-			Number(metric.tvl) * (ethPrices.get(metric.strategyAddress) || 0)
+		currentDelegationValue += Number(metric.tvl) * (ethPrices.get(metric.strategyAddress) || 0)
 	}
 
 	const currentDeploymentRatio = currentDelegationValue / totalTvl
@@ -2356,20 +2162,15 @@ async function doGetDeploymentRatio(
 	})
 
 	for (const record of historicalRecords) {
-		const changeTvlEth =
-			Number(record.changeTvl) * (ethPrices.get(record.strategyAddress) || 0)
+		const changeTvlEth = Number(record.changeTvl) * (ethPrices.get(record.strategyAddress) || 0)
 
 		changeDelegation24hAgo +=
-			record.timestamp.getTime() >= getTimestamp('24h').getTime()
-				? changeTvlEth
-				: 0
+			record.timestamp.getTime() >= getTimestamp('24h').getTime() ? changeTvlEth : 0
 		changeDelegationValue7dAgo += changeTvlEth
 	}
 
-	const deploymentRatio24hAgo =
-		(currentDelegationValue - changeDelegation24hAgo) / tvlEth24hAgo
-	const deploymentRatio7dAgo =
-		(currentDelegationValue - changeDelegationValue7dAgo) / tvlEth7dAgo
+	const deploymentRatio24hAgo = (currentDelegationValue - changeDelegation24hAgo) / tvlEth24hAgo
+	const deploymentRatio7dAgo = (currentDelegationValue - changeDelegationValue7dAgo) / tvlEth7dAgo
 
 	const change24hValue = currentDeploymentRatio - deploymentRatio24hAgo
 
@@ -2422,15 +2223,11 @@ export function getTimestamp(offset?: string) {
 		}
 		case '7d': {
 			const now = new Date()
-			return resetTime(
-				new Date(new Date().setUTCHours(now.getUTCHours() - 168))
-			)
+			return resetTime(new Date(new Date().setUTCHours(now.getUTCHours() - 168)))
 		}
 		case '8d': {
 			const now = new Date()
-			return resetTime(
-				new Date(new Date().setUTCHours(now.getUTCHours() - 192))
-			)
+			return resetTime(new Date(new Date().setUTCHours(now.getUTCHours() - 192)))
 		}
 		default:
 			return new Date(new Date().setUTCHours(0, 0, 0, 0))
@@ -2476,10 +2273,7 @@ async function fetchCurrentEthPrices(): Promise<Map<string, number>> {
 
 	for (const [_, tokenPrice] of Object.entries(ethPrices)) {
 		if (tokenPrice) {
-			strategyPriceMap.set(
-				tokenPrice.strategyAddress.toLowerCase(),
-				tokenPrice.eth
-			)
+			strategyPriceMap.set(tokenPrice.strategyAddress.toLowerCase(), tokenPrice.eth)
 		}
 	}
 
@@ -2519,14 +2313,12 @@ async function calculateTotalChange(
 ): Promise<TotalWithChange> {
 	const change24hPercent =
 		change24hValue !== 0
-			? Math.round((change24hValue / (total - change24hValue)) * precision) /
-			  precision
+			? Math.round((change24hValue / (total - change24hValue)) * precision) / precision
 			: 0
 
 	const change7dPercent =
 		change7dValue !== 0
-			? Math.round((change7dValue / (total - change7dValue)) * precision) /
-			  precision
+			? Math.round((change7dValue / (total - change7dValue)) * precision) / precision
 			: 0
 
 	return {
@@ -2625,13 +2417,10 @@ async function calculateTvlChange(
 
 		// Calculate discrete tvlEth change within 24h/7d time periods
 		for (const record of historicalRecords) {
-			const changeTvlEth =
-				Number(record.changeTvl) * (ethPrices.get(record.strategyAddress) || 0)
+			const changeTvlEth = Number(record.changeTvl) * (ethPrices.get(record.strategyAddress) || 0)
 
 			changeTvlEth24hAgo +=
-				record.timestamp.getTime() >= getTimestamp('48h').getTime()
-					? changeTvlEth
-					: 0
+				record.timestamp.getTime() >= getTimestamp('48h').getTime() ? changeTvlEth : 0
 			changeTvlEth7dAgo += changeTvlEth
 		}
 
@@ -2653,9 +2442,7 @@ async function calculateTvlChange(
 		})
 
 		// Find current, 24h & 7d tvl values
-		const record24hAgo = historicalRecords.find(
-			(record) => record.timestamp < getTimestamp('24h')
-		)
+		const record24hAgo = historicalRecords.find((record) => record.timestamp < getTimestamp('24h'))
 		const record7dAgo = historicalRecords[historicalRecords.length - 1]
 		const recordCurrent = historicalRecords[0]
 
@@ -2774,36 +2561,23 @@ function calculateTvlForHistoricalRecord(
 		// Calculate tvlEth as the summation of tvlEth values for the latest record of each strategy
 		if (intervalData.length > 0) {
 			if (isEthDenominated) {
-				const lastRecord = intervalData[
-					intervalData.length - 1
-				] as EthTvlModelMap[EthTvlModelName]
+				const lastRecord = intervalData[intervalData.length - 1] as EthTvlModelMap[EthTvlModelName]
 				return Number(lastRecord.tvlEth)
 			}
 
 			// Get the last records of each distinct strategy
-			const lastRecordsByStrategy = new Map<
-				string,
-				NativeTvlModelMap[NativeTvlModelName]
-			>()
+			const lastRecordsByStrategy = new Map<string, NativeTvlModelMap[NativeTvlModelName]>()
 			for (const record of intervalData) {
 				const strategyRecord = record as NativeTvlModelMap[NativeTvlModelName]
-				lastRecordsByStrategy.set(
-					strategyRecord.strategyAddress,
-					strategyRecord
-				)
+				lastRecordsByStrategy.set(strategyRecord.strategyAddress, strategyRecord)
 			}
 
 			// Calculate tvl in ETH
-			return Array.from(lastRecordsByStrategy.values()).reduce(
-				(total, strategyRecord) => {
-					return (
-						total +
-						Number(strategyRecord.tvl) *
-							(ethPrices?.get(strategyRecord.strategyAddress) || 0)
-					)
-				},
-				0
-			)
+			return Array.from(lastRecordsByStrategy.values()).reduce((total, strategyRecord) => {
+				return (
+					total + Number(strategyRecord.tvl) * (ethPrices?.get(strategyRecord.strategyAddress) || 0)
+				)
+			}, 0)
 		}
 
 		return previousTvl // If no records exist in the time period, previous tvl value is returned
@@ -2852,28 +2626,17 @@ async function calculateMetricsForHistoricalRecord(
 
 			newOperators =
 				totalOperators !== undefined && totalOperators !== null
-					? (
-							intervalUnitData[
-								lastRecordIndex
-							] as AggregateModelMap['metricAvsUnit']
-					  ).totalOperators
+					? (intervalUnitData[lastRecordIndex] as AggregateModelMap['metricAvsUnit']).totalOperators
 					: 0
 
 			newAvs =
 				totalAvs !== undefined && totalAvs !== null
-					? (
-							intervalUnitData[
-								lastRecordIndex
-							] as AggregateModelMap['metricOperatorUnit']
-					  ).totalAvs
+					? (intervalUnitData[lastRecordIndex] as AggregateModelMap['metricOperatorUnit']).totalAvs
 					: 0
 		}
 	} else {
 		// Calculate metrics as summation of all change values
-		newStakers = intervalUnitData.reduce(
-			(sum, record) => sum + record.changeStakers,
-			0
-		)
+		newStakers = intervalUnitData.reduce((sum, record) => sum + record.changeStakers, 0)
 
 		newOperators =
 			totalOperators !== undefined && totalOperators !== null
@@ -2885,9 +2648,10 @@ async function calculateMetricsForHistoricalRecord(
 
 		newAvs =
 			totalAvs !== undefined && totalAvs !== null
-				? (
-						intervalUnitData as AggregateModelMap['metricOperatorUnit'][]
-				  ).reduce((sum, record) => sum + record.changeAvs, 0)
+				? (intervalUnitData as AggregateModelMap['metricOperatorUnit'][]).reduce(
+						(sum, record) => sum + record.changeAvs,
+						0
+				  )
 				: 0
 	}
 

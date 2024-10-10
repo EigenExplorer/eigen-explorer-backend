@@ -20,23 +20,14 @@ type AvsOperatorRecord = {
 
 export async function seedAvsOperators(toBlock?: bigint, fromBlock?: bigint) {
 	const prismaClient = getPrismaClient()
-	const avsOperatorsList: Map<
-		string,
-		Map<string, AvsOperatorRecord>
-	> = new Map()
+	const avsOperatorsList: Map<string, Map<string, AvsOperatorRecord>> = new Map()
 
-	const firstBlock = fromBlock
-		? fromBlock
-		: await fetchLastSyncBlock(blockSyncKey)
-	const lastBlock = toBlock
-		? toBlock
-		: await fetchLastSyncBlock(blockSyncKeyLogs)
+	const firstBlock = fromBlock ? fromBlock : await fetchLastSyncBlock(blockSyncKey)
+	const lastBlock = toBlock ? toBlock : await fetchLastSyncBlock(blockSyncKeyLogs)
 
 	// Bail early if there is no block diff to sync
 	if (lastBlock - firstBlock <= 0) {
-		console.log(
-			`[In Sync] [Data] AVS Operators from: ${firstBlock} to: ${lastBlock}`
-		)
+		console.log(`[In Sync] [Data] AVS Operators from: ${firstBlock} to: ${lastBlock}`)
 		return
 	}
 
@@ -51,17 +42,14 @@ export async function seedAvsOperators(toBlock?: bigint, fromBlock?: bigint) {
 		firstBlock,
 		lastBlock,
 		async (fromBlock, toBlock) => {
-			const logs =
-				await prismaClient.eventLogs_OperatorAVSRegistrationStatusUpdated.findMany(
-					{
-						where: {
-							blockNumber: {
-								gt: fromBlock,
-								lte: toBlock
-							}
-						}
+			const logs = await prismaClient.eventLogs_OperatorAVSRegistrationStatusUpdated.findMany({
+				where: {
+					blockNumber: {
+						gt: fromBlock,
+						lte: toBlock
 					}
-				)
+				}
+			})
 
 			for (const l in logs) {
 				const log = logs[l]

@@ -29,7 +29,7 @@ import {
 import routeCache from 'route-cache'
 
 const router = express.Router()
-const dailyCache = Math.floor((new Date ().setHours(24, 0, 0, 0) - Date.now()) / 1000)
+const dailyCache = Math.floor((new Date().setHours(24, 0, 0, 0) - Date.now()) / 1000)
 
 // API routes for /metrics
 
@@ -53,11 +53,7 @@ router.get(
 router.get('/total-avs', routeCache.cacheSeconds(120), getTotalAvs)
 router.get('/total-operators', routeCache.cacheSeconds(120), getTotalOperators)
 router.get('/total-stakers', routeCache.cacheSeconds(120), getTotalStakers)
-router.get(
-	'/total-withdrawals',
-	routeCache.cacheSeconds(120),
-	getTotalWithdrawals
-)
+router.get('/total-withdrawals', routeCache.cacheSeconds(120), getTotalWithdrawals)
 router.get('/total-deposits', routeCache.cacheSeconds(120), getTotalDeposits)
 
 // --- Historical TVL Routes ---
@@ -73,24 +69,12 @@ router.get(
 	routeCache.cacheSeconds(120),
 	getHistoricalTvlRestaking
 )
-router.get(
-	'/historical/withdrawals',
-	routeCache.cacheSeconds(120),
-	getHistoricalTvlWithdrawal
-)
-router.get(
-	'/historical/deposits',
-	routeCache.cacheSeconds(120),
-	getHistoricalTvlDeposit
-)
+router.get('/historical/withdrawals', routeCache.cacheSeconds(120), getHistoricalTvlWithdrawal)
+router.get('/historical/deposits', routeCache.cacheSeconds(120), getHistoricalTvlDeposit)
 
 // --- Historical Aggregate Routes ---
 
-router.get(
-	'/historical/avs/:address',
-	routeCache.cacheSeconds(120),
-	getHistoricalAvsAggregate
-)
+router.get('/historical/avs/:address', routeCache.cacheSeconds(120), getHistoricalAvsAggregate)
 router.get(
 	'/historical/operators/:address',
 	routeCache.cacheSeconds(120),
@@ -99,42 +83,18 @@ router.get(
 
 // --- Historical Count Routes ---
 
-router.get(
-	'/historical/count-avs',
-	routeCache.cacheSeconds(120),
-	getHistoricalAvsCount
-)
-router.get(
-	'/historical/count-operators',
-	routeCache.cacheSeconds(120),
-	getHistoricalOperatorCount
-)
-router.get(
-	'/historical/count-stakers',
-	routeCache.cacheSeconds(120),
-	getHistoricalStakerCount
-)
+router.get('/historical/count-avs', routeCache.cacheSeconds(120), getHistoricalAvsCount)
+router.get('/historical/count-operators', routeCache.cacheSeconds(120), getHistoricalOperatorCount)
+router.get('/historical/count-stakers', routeCache.cacheSeconds(120), getHistoricalStakerCount)
 router.get(
 	'/historical/count-withdrawals',
 	routeCache.cacheSeconds(120),
 	getHistoricalWithdrawalCount
 )
-router.get(
-	'/historical/count-deposits',
-	routeCache.cacheSeconds(120),
-	getHistoricalDepositCount
-)
+router.get('/historical/count-deposits', routeCache.cacheSeconds(120), getHistoricalDepositCount)
 
-router.get(
-	'/restaking-ratio',
-	routeCache.cacheSeconds(120),
-	getRestakingRatio
-)
+router.get('/restaking-ratio', routeCache.cacheSeconds(120), getRestakingRatio)
 
-router.get(
-	'/deployment-ratio',
-	routeCache.cacheSeconds(120),
-	getDeploymentRatio
-)
+router.get('/deployment-ratio', routeCache.cacheSeconds(120), getDeploymentRatio)
 
 export default router

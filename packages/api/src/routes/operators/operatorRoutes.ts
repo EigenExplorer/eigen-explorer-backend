@@ -106,11 +106,7 @@ router.get('/', routeCache.cacheSeconds(120), getAllOperators)
  */
 router.get('/:address', routeCache.cacheSeconds(120), getOperator)
 
-router.get(
-	'/:address/rewards',
-	routeCache.cacheSeconds(120),
-	getOperatorRewards
-)
+router.get('/:address/rewards', routeCache.cacheSeconds(120), getOperatorRewards)
 
 // Protected routes
 router.get(

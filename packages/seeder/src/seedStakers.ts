@@ -25,12 +25,8 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 	const prismaClient = getPrismaClient()
 	const stakers: IMap<string, StakerEntryRecord> = new Map()
 
-	const firstBlock = fromBlock
-		? fromBlock
-		: await fetchLastSyncBlock(blockSyncKey)
-	const lastBlock = toBlock
-		? toBlock
-		: await fetchLastSyncBlock(blockSyncKeyLogs)
+	const firstBlock = fromBlock ? fromBlock : await fetchLastSyncBlock(blockSyncKey)
+	const lastBlock = toBlock ? toBlock : await fetchLastSyncBlock(blockSyncKeyLogs)
 
 	// Bail early if there is no block diff to sync
 	if (lastBlock - firstBlock <= 0) {
@@ -52,19 +48,13 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 			await prismaClient.eventLogs_StakerDelegated
 				.findMany({ where: { blockNumber: { gt: fromBlock, lte: toBlock } } })
 				.then((logs) => {
-					allLogs = [
-						...allLogs,
-						...logs.map((log) => ({ ...log, eventName: 'StakerDelegated' }))
-					]
+					allLogs = [...allLogs, ...logs.map((log) => ({ ...log, eventName: 'StakerDelegated' }))]
 				})
 
 			await prismaClient.eventLogs_StakerUndelegated
 				.findMany({ where: { blockNumber: { gt: fromBlock, lte: toBlock } } })
 				.then((logs) => {
-					allLogs = [
-						...allLogs,
-						...logs.map((log) => ({ ...log, eventName: 'StakerUndelegated' }))
-					]
+					allLogs = [...allLogs, ...logs.map((log) => ({ ...log, eventName: 'StakerUndelegated' }))]
 				})
 
 			await prismaClient.eventLogs_OperatorSharesIncreased
@@ -171,33 +161,25 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 					let foundSharesIndex = stakers
 						.get(stakerAddress)
 						.shares.findIndex(
-							(ss) =>
-								ss.strategyAddress.toLowerCase() ===
-								strategyAddress.toLowerCase()
+							(ss) => ss.strategyAddress.toLowerCase() === strategyAddress.toLowerCase()
 						)
 
 					if (foundSharesIndex !== undefined && foundSharesIndex === -1) {
-						stakers
-							.get(stakerAddress)
-							.shares.push({ shares: 0n, strategyAddress })
+						stakers.get(stakerAddress).shares.push({ shares: 0n, strategyAddress })
 
 						foundSharesIndex = stakers
 							.get(stakerAddress)
 							.shares.findIndex(
-								(os) =>
-									os.strategyAddress.toLowerCase() ===
-									strategyAddress.toLowerCase()
+								(os) => os.strategyAddress.toLowerCase() === strategyAddress.toLowerCase()
 							)
 					}
 
 					if (log.eventName === 'OperatorSharesIncreased') {
 						stakers.get(stakerAddress).shares[foundSharesIndex].shares =
-							stakers.get(stakerAddress).shares[foundSharesIndex].shares +
-							shares
+							stakers.get(stakerAddress).shares[foundSharesIndex].shares + shares
 					} else if (log.eventName === 'OperatorSharesDecreased') {
 						stakers.get(stakerAddress).shares[foundSharesIndex].shares =
-							stakers.get(stakerAddress).shares[foundSharesIndex].shares -
-							shares
+							stakers.get(stakerAddress).shares[foundSharesIndex].shares - shares
 					}
 				}
 			}

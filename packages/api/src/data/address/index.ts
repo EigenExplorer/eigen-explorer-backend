@@ -5,7 +5,7 @@ import { eigenHoleskyContracts } from './eigenHoleskyContracts'
 import { eigenContracts } from './eigenMainnetContracts'
 
 export interface EigenStrategiesContractAddress {
-	Eigen?: { strategyContract: `0x${string}`; tokenContract: `0x${string}` },
+	Eigen?: { strategyContract: `0x${string}`; tokenContract: `0x${string}` }
 	WETH?: { strategyContract: `0x${string}`; tokenContract: `0x${string}` }
 	cbETH?: { strategyContract: `0x${string}`; tokenContract: `0x${string}` }
 	stETH?: { strategyContract: `0x${string}`; tokenContract: `0x${string}` }

@@ -1,9 +1,6 @@
 import type { Request, Response } from 'express'
 import type { TokenPrices } from '../../utils/tokenPrices'
-import {
-	type EigenStrategiesContractAddress,
-	getEigenContracts
-} from '../../data/address'
+import { type EigenStrategiesContractAddress, getEigenContracts } from '../../data/address'
 import { formatEther } from 'viem'
 import { eigenLayerMainnetStrategyContracts } from '../../data/address/eigenMainnetContracts'
 import { getViemClient } from '../../viem/viemClient'
@@ -74,13 +71,11 @@ export async function getStrategyTvl(req: Request, res: Response) {
 		// Convert the keys in contracts object to lowercase
 		const mainnetStrategyContractsLowerCase = {}
 		for (const key in eigenLayerMainnetStrategyContracts) {
-			mainnetStrategyContractsLowerCase[key.toLowerCase()] =
-				eigenLayerMainnetStrategyContracts[key]
+			mainnetStrategyContractsLowerCase[key.toLowerCase()] = eigenLayerMainnetStrategyContracts[key]
 		}
 
 		// Check if the strategy name is valid and get the strategy contract
-		const strategyContract =
-			mainnetStrategyContractsLowerCase[strategyNameLowerCase]
+		const strategyContract = mainnetStrategyContractsLowerCase[strategyNameLowerCase]
 		if (!strategyContract) {
 			return res.status(404).send('Strategy not found.')
 		}
@@ -179,56 +174,43 @@ export function sharesToTVL(
 ) {
 	const beaconAddress = '0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0'
 
-	const beaconStrategy = shares.find(
-		(s) => s.strategyAddress.toLowerCase() === beaconAddress
-	)
+	const beaconStrategy = shares.find((s) => s.strategyAddress.toLowerCase() === beaconAddress)
 	const restakingStrategies = shares.filter(
 		(s) => s.strategyAddress.toLowerCase() !== beaconAddress
 	)
 
-	const tvlBeaconChain = beaconStrategy
-		? Number(beaconStrategy.shares) / 1e18
-		: 0
+	const tvlBeaconChain = beaconStrategy ? Number(beaconStrategy.shares) / 1e18 : 0
 
 	const strategyKeys = Object.keys(getEigenContracts().Strategies)
 	const strategies = Object.values(getEigenContracts().Strategies)
 
 	let tvlRestaking = 0
-	const tvlStrategies: Map<keyof EigenStrategiesContractAddress, number> =
-		new Map(
-			strategyKeys.map((sk) => [sk as keyof EigenStrategiesContractAddress, 0])
-		)
-	const tvlStrategiesEth: Map<keyof EigenStrategiesContractAddress, number> =
-		new Map(
-			strategyKeys.map((sk) => [sk as keyof EigenStrategiesContractAddress, 0])
-		)
+	const tvlStrategies: Map<keyof EigenStrategiesContractAddress, number> = new Map(
+		strategyKeys.map((sk) => [sk as keyof EigenStrategiesContractAddress, 0])
+	)
+	const tvlStrategiesEth: Map<keyof EigenStrategiesContractAddress, number> = new Map(
+		strategyKeys.map((sk) => [sk as keyof EigenStrategiesContractAddress, 0])
+	)
 
 	restakingStrategies.map((s) => {
 		const foundStrategyIndex = strategies.findIndex(
-			(si) =>
-				si.strategyContract.toLowerCase() === s.strategyAddress.toLowerCase()
+			(si) => si.strategyContract.toLowerCase() === s.strategyAddress.toLowerCase()
 		)
 
 		const strategyTokenPrice = Object.values(strategyTokenPrices).find(
-			(stp) =>
-				stp.strategyAddress.toLowerCase() === s.strategyAddress.toLowerCase()
+			(stp) => stp.strategyAddress.toLowerCase() === s.strategyAddress.toLowerCase()
 		)
 		const sharesUnderlying = strategiesWithSharesUnderlying.find(
-			(su) =>
-				su.strategyAddress.toLowerCase() === s.strategyAddress.toLowerCase()
+			(su) => su.strategyAddress.toLowerCase() === s.strategyAddress.toLowerCase()
 		)
 
 		if (foundStrategyIndex !== -1 && sharesUnderlying) {
 			const strategyShares =
-				Number(
-					(BigInt(s.shares) * BigInt(sharesUnderlying.sharesToUnderlying)) /
-						BigInt(1e18)
-				) / 1e18
+				Number((BigInt(s.shares) * BigInt(sharesUnderlying.sharesToUnderlying)) / BigInt(1e18)) /
+				1e18
 
 			tvlStrategies.set(
-				strategyKeys[
-					foundStrategyIndex
-				] as keyof EigenStrategiesContractAddress,
+				strategyKeys[foundStrategyIndex] as keyof EigenStrategiesContractAddress,
 				strategyShares
 			)
 
@@ -236,9 +218,7 @@ export function sharesToTVL(
 				const strategyTvl = strategyShares * strategyTokenPrice.eth
 
 				tvlStrategiesEth.set(
-					strategyKeys[
-						foundStrategyIndex
-					] as keyof EigenStrategiesContractAddress,
+					strategyKeys[foundStrategyIndex] as keyof EigenStrategiesContractAddress,
 					strategyTvl
 				)
 
@@ -278,22 +258,15 @@ export function sharesToTVLEth(
 ): { [strategyAddress: string]: number } {
 	const beaconAddress = '0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0'
 
-	const beaconStrategy = shares.find(
-		(s) => s.strategyAddress.toLowerCase() === beaconAddress
-	)
+	const beaconStrategy = shares.find((s) => s.strategyAddress.toLowerCase() === beaconAddress)
 
-	const tvlBeaconChain = beaconStrategy
-		? Number(beaconStrategy.shares) / 1e18
-		: 0
+	const tvlBeaconChain = beaconStrategy ? Number(beaconStrategy.shares) / 1e18 : 0
 
 	const strategies = getEigenContracts().Strategies
-	const addressToKey = Object.entries(strategies).reduce(
-		(acc, [key, value]) => {
-			acc[value.strategyContract.toLowerCase()] = key
-			return acc
-		},
-		{} as Record<string, string>
-	)
+	const addressToKey = Object.entries(strategies).reduce((acc, [key, value]) => {
+		acc[value.strategyContract.toLowerCase()] = key
+		return acc
+	}, {} as Record<string, string>)
 
 	const tvlStrategiesEth: { [strategyAddress: string]: number } = {
 		[beaconAddress]: tvlBeaconChain
@@ -316,11 +289,7 @@ export function sharesToTVLEth(
 		if (sharesUnderlying && strategyTokenPrice) {
 			const strategyShares =
 				new Prisma.Prisma.Decimal(share.shares)
-					.mul(
-						new Prisma.Prisma.Decimal(
-							sharesUnderlying.sharesToUnderlying.toString()
-						)
-					)
+					.mul(new Prisma.Prisma.Decimal(sharesUnderlying.sharesToUnderlying.toString()))
 					.div(new Prisma.Prisma.Decimal(10).pow(18))
 					.toNumber() / 1e18
 
@@ -328,8 +297,7 @@ export function sharesToTVLEth(
 
 			const strategyKey = addressToKey[strategyAddress]
 			if (strategyKey) {
-				tvlStrategiesEth[strategyAddress] =
-					(tvlStrategiesEth[strategyAddress] || 0) + strategyTvl
+				tvlStrategiesEth[strategyAddress] = (tvlStrategiesEth[strategyAddress] || 0) + strategyTvl
 			}
 		}
 	}
@@ -337,9 +305,7 @@ export function sharesToTVLEth(
 	return tvlStrategiesEth
 }
 
-export async function getRestakeableStrategies(
-	avsAddress: string
-): Promise<string[]> {
+export async function getRestakeableStrategies(avsAddress: string): Promise<string[]> {
 	try {
 		const viemClient = getViemClient()
 

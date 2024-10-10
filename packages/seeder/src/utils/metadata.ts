@@ -31,9 +31,7 @@ export function validateMetadata(metadata: string): EntityMetadata | null {
 	try {
 		const data = JSON.parse(metadata)
 
-		if (
-			!(typeof data.name === 'string' && typeof data.description === 'string')
-		) {
+		if (!(typeof data.name === 'string' && typeof data.description === 'string')) {
 			return null
 		}
 

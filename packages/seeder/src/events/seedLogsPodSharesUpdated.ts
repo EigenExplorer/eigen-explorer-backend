@@ -18,16 +18,11 @@ const blockSyncKeyLogs = 'lastSyncedBlock_logs_podShares'
  * @param fromBlock
  * @param toBlock
  */
-export async function seedLogsPodSharesUpdated(
-	toBlock?: bigint,
-	fromBlock?: bigint
-) {
+export async function seedLogsPodSharesUpdated(toBlock?: bigint, fromBlock?: bigint) {
 	const viemClient = getViemClient()
 	const prismaClient = getPrismaClient()
 
-	const firstBlock = fromBlock
-		? fromBlock
-		: await fetchLastSyncBlock(blockSyncKeyLogs)
+	const firstBlock = fromBlock ? fromBlock : await fetchLastSyncBlock(blockSyncKeyLogs)
 	const lastBlock = toBlock ? toBlock : await viemClient.getBlockNumber()
 
 	// Loop through evm logs
@@ -41,9 +36,7 @@ export async function seedLogsPodSharesUpdated(
 
 			const logs = await viemClient.getLogs({
 				address: getEigenContracts().EigenPodManager,
-				event: parseAbiItem(
-					'event PodSharesUpdated(address indexed podOwner, int256 sharesDelta)'
-				),
+				event: parseAbiItem('event PodSharesUpdated(address indexed podOwner, int256 sharesDelta)'),
 				fromBlock,
 				toBlock
 			})

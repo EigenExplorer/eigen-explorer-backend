@@ -7,10 +7,7 @@ import logger from 'morgan'
 import helmet from 'helmet'
 import cors from 'cors'
 import apiRouter from './routes'
-import {
-	EigenExplorerApiError,
-	handleAndReturnErrorResponse
-} from './schema/errors'
+import { EigenExplorerApiError, handleAndReturnErrorResponse } from './schema/errors'
 import { rateLimiter } from './utils/auth'
 
 const PORT = process.env.PORT ? Number.parseInt(process.env.PORT) : 3002

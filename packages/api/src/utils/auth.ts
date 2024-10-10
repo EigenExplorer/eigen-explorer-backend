@@ -9,6 +9,5 @@ export const rateLimiter = rateLimit({
 	keyGenerator: (req: Request): string => {
 		return req.ip ?? 'unknown'
 	},
-	message:
-		"You've reached the limit of 30 requests per minute. Contact us for increased limits."
+	message: "You've reached the limit of 30 requests per minute. Contact us for increased limits."
 })

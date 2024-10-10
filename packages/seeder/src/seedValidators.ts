@@ -13,9 +13,7 @@ export async function seedValidators() {
 	// Bail early if there is no time diff to sync
 	if (startAt) {
 		if (endAt.getTime() - startAt.getTime() <= 0) {
-			console.log(
-				`[In Sync] [Data] Validators from: ${startAt.getTime()} to: ${endAt.getTime()}`
-			)
+			console.log(`[In Sync] [Data] Validators from: ${startAt.getTime()} to: ${endAt.getTime()}`)
 			return
 		}
 	}
@@ -76,9 +74,7 @@ export async function seedValidators() {
 				`[Data] Validators updated: ${validatorList.length}`
 			)
 		} else {
-			console.log(
-				`[In Sync] [Data] Validators from: ${startAt?.getTime()} to: ${endAt.getTime()}`
-			)
+			console.log(`[In Sync] [Data] Validators from: ${startAt?.getTime()} to: ${endAt.getTime()}`)
 		}
 	} catch (error) {
 		console.log('Error seeding Validators: ', error)

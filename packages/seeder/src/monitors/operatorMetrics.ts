@@ -23,8 +23,7 @@ export async function monitorOperatorMetrics() {
 	const take = 1000
 
 	const strategyTokenPrices = await fetchStrategyTokenPrices()
-	const strategiesWithSharesUnderlying =
-		await getStrategiesWithShareUnderlying()
+	const strategiesWithSharesUnderlying = await getStrategiesWithShareUnderlying()
 
 	while (true) {
 		try {
@@ -54,9 +53,7 @@ export async function monitorOperatorMetrics() {
 
 			// Setup all db transactions for this iteration
 			for (const operator of operatorMetrics) {
-				const sharesHash = createHash('md5')
-					.update(JSON.stringify(operator.shares))
-					.digest('hex')
+				const sharesHash = createHash('md5').update(JSON.stringify(operator.shares)).digest('hex')
 				const totalStakers = operator._count.stakers
 				const totalAvs = operator._count.avs
 
@@ -105,9 +102,7 @@ export async function monitorOperatorMetrics() {
 						o2.address = o.address;
 				`
 
-				dbTransactions.push(
-					prismaClient.$executeRaw`${prisma.Prisma.raw(query)}`
-				)
+				dbTransactions.push(prismaClient.$executeRaw`${prisma.Prisma.raw(query)}`)
 			}
 		} catch (error) {}
 	}

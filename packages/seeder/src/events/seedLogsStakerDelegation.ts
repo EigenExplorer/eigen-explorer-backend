@@ -18,16 +18,11 @@ const blockSyncKeyLogs = 'lastSyncedBlock_logs_stakers'
  * @param fromBlock
  * @param toBlock
  */
-export async function seedLogsStakerDelegation(
-	toBlock?: bigint,
-	fromBlock?: bigint
-) {
+export async function seedLogsStakerDelegation(toBlock?: bigint, fromBlock?: bigint) {
 	const viemClient = getViemClient()
 	const prismaClient = getPrismaClient()
 
-	const firstBlock = fromBlock
-		? fromBlock
-		: await fetchLastSyncBlock(blockSyncKeyLogs)
+	const firstBlock = fromBlock ? fromBlock : await fetchLastSyncBlock(blockSyncKeyLogs)
 	const lastBlock = toBlock ? toBlock : await viemClient.getBlockNumber()
 
 	// Loop through evm logs
@@ -44,12 +39,8 @@ export async function seedLogsStakerDelegation(
 			const logs = await viemClient.getLogs({
 				address: getEigenContracts().DelegationManager,
 				events: [
-					parseAbiItem(
-						'event StakerDelegated(address indexed staker, address indexed operator)'
-					),
-					parseAbiItem(
-						'event StakerUndelegated(address indexed staker, address indexed operator)'
-					)
+					parseAbiItem('event StakerDelegated(address indexed staker, address indexed operator)'),
+					parseAbiItem('event StakerUndelegated(address indexed staker, address indexed operator)')
 				],
 				fromBlock,
 				toBlock
@@ -108,8 +99,7 @@ export async function seedLogsStakerDelegation(
 			)
 
 			// Update database
-			const seedLength =
-				logsStakerDelegated.length + logsStakerUndelegated.length
+			const seedLength = logsStakerDelegated.length + logsStakerUndelegated.length
 
 			await bulkUpdateDbTransactions(
 				dbTransactions,
