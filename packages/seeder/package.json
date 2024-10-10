@@ -5,14 +5,18 @@
   "type": "module",
   "scripts": {
     "build": "tsc",
-    "start": "tsx ./src/index.ts"
+    "start": "tsx ./src/index.ts",
+    "test:unit": "vitest -c ./vitest.config.unit.ts",
+    "test:unit:ui": "vitest -c ./vitest.config.unit.ts --ui"
   },
   "devDependencies": {
     "@types/node-cron": "^3.0.11",
     "@types/node": "^20.12.2",
     "prisma": "^5.11.0",
     "tsx": "^4.7.1",
-    "typescript": "^5.4.3"
+    "typescript": "^5.4.3",
+    "vitest": "^2.0.5",
+    "vitest-mock-extended": "^2.0.0"
   },
   "dependencies": {
     "dotenv": "^16.4.5",
