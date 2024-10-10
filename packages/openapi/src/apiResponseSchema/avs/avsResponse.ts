@@ -24,6 +24,10 @@ export const AvsSchema = z.object({
 		.number()
 		.describe('The total number of operators operating the AVS')
 		.openapi({ example: 10 }),
+	apy: z
+		.string()
+		.describe('The latest APY recorded for the AVS')
+		.openapi({ example: '1.302' }),
 	// restakeableStrategies: z
 	//     .array(EthereumAddressSchema)
 	//     .describe('The list of supported restaking strategies')

@@ -1564,13 +1564,11 @@
             "schema": {
               "type": "string",
               "enum": [
-                "1h",
                 "1d",
                 "7d"
               ],
-              "default": "1h",
-              "description": "Frequency of data points",
-              "example": "1h"
+              "default": "1d",
+              "description": "Frequency of data points"
             }
           },
           {
@@ -1713,13 +1711,11 @@
             "schema": {
               "type": "string",
               "enum": [
-                "1h",
                 "1d",
                 "7d"
               ],
-              "default": "1h",
-              "description": "Frequency of data points",
-              "example": "1h"
+              "default": "1d",
+              "description": "Frequency of data points"
             }
           },
           {
@@ -1850,13 +1846,11 @@
             "schema": {
               "type": "string",
               "enum": [
-                "1h",
                 "1d",
                 "7d"
               ],
-              "default": "1h",
-              "description": "Frequency of data points",
-              "example": "1h"
+              "default": "1d",
+              "description": "Frequency of data points"
             }
           },
           {
@@ -1975,13 +1969,11 @@
             "schema": {
               "type": "string",
               "enum": [
-                "1h",
                 "1d",
                 "7d"
               ],
-              "default": "1h",
-              "description": "Frequency of data points",
-              "example": "1h"
+              "default": "1d",
+              "description": "Frequency of data points"
             }
           },
           {
@@ -2112,13 +2104,11 @@
             "schema": {
               "type": "string",
               "enum": [
-                "1h",
                 "1d",
                 "7d"
               ],
-              "default": "1h",
-              "description": "Frequency of data points",
-              "example": "1h"
+              "default": "1d",
+              "description": "Frequency of data points"
             }
           },
           {
@@ -2237,13 +2227,11 @@
             "schema": {
               "type": "string",
               "enum": [
-                "1h",
                 "1d",
                 "7d"
               ],
-              "default": "1h",
-              "description": "Frequency of data points",
-              "example": "1h"
+              "default": "1d",
+              "description": "Frequency of data points"
             }
           },
           {
@@ -2362,13 +2350,11 @@
             "schema": {
               "type": "string",
               "enum": [
-                "1h",
                 "1d",
                 "7d"
               ],
-              "default": "1h",
-              "description": "Frequency of data points",
-              "example": "1h"
+              "default": "1d",
+              "description": "Frequency of data points"
             }
           },
           {
@@ -2487,13 +2473,11 @@
             "schema": {
               "type": "string",
               "enum": [
-                "1h",
                 "1d",
                 "7d"
               ],
-              "default": "1h",
-              "description": "Frequency of data points",
-              "example": "1h"
+              "default": "1d",
+              "description": "Frequency of data points"
             }
           },
           {
@@ -2612,13 +2596,11 @@
             "schema": {
               "type": "string",
               "enum": [
-                "1h",
                 "1d",
                 "7d"
               ],
-              "default": "1h",
-              "description": "Frequency of data points",
-              "example": "1h"
+              "default": "1d",
+              "description": "Frequency of data points"
             }
           },
           {
@@ -2737,13 +2719,11 @@
             "schema": {
               "type": "string",
               "enum": [
-                "1h",
                 "1d",
                 "7d"
               ],
-              "default": "1h",
-              "description": "Frequency of data points",
-              "example": "1h"
+              "default": "1d",
+              "description": "Frequency of data points"
             }
           },
           {
@@ -2862,13 +2842,11 @@
             "schema": {
               "type": "string",
               "enum": [
-                "1h",
                 "1d",
                 "7d"
               ],
-              "default": "1h",
-              "description": "Frequency of data points",
-              "example": "1h"
+              "default": "1d",
+              "description": "Frequency of data points"
             }
           },
           {
@@ -2987,13 +2965,11 @@
             "schema": {
               "type": "string",
               "enum": [
-                "1h",
                 "1d",
                 "7d"
               ],
-              "default": "1h",
-              "description": "Frequency of data points",
-              "example": "1h"
+              "default": "1d",
+              "description": "Frequency of data points"
             }
           },
           {
@@ -3137,6 +3113,45 @@
           },
           {
             "in": "query",
+            "name": "searchMode",
+            "description": "Search mode",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "contains",
+                "startsWith"
+              ],
+              "default": "contains",
+              "description": "Search mode",
+              "example": "contains"
+            }
+          },
+          {
+            "in": "query",
+            "name": "searchByText",
+            "description": "Case-insensitive search query",
+            "schema": {
+              "type": "string",
+              "description": "Case-insensitive search query",
+              "example": "blockless"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sortByApy",
+            "description": "Sort results in asc or desc order of APY",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "description": "Sort results in asc or desc order of APY",
+              "example": "desc"
+            }
+          },
+          {
+            "in": "query",
             "name": "sortByTvl",
             "description": "Sort results in asc or desc order of TVL value",
             "schema": {
@@ -3273,6 +3288,11 @@
                             "type": "number",
                             "description": "The total number of operators operating the AVS",
                             "example": 10
+                          },
+                          "apy": {
+                            "type": "string",
+                            "description": "The latest APY recorded for the AVS",
+                            "example": "1.302"
                           },
                           "createdAtBlock": {
                             "type": "string",
@@ -3521,6 +3541,7 @@
                           "metadataX",
                           "totalStakers",
                           "totalOperators",
+                          "apy",
                           "createdAtBlock",
                           "updatedAtBlock",
                           "createdAt",
@@ -3596,6 +3617,31 @@
           "AVS"
         ],
         "parameters": [
+          {
+            "in": "query",
+            "name": "searchMode",
+            "description": "Search mode",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "contains",
+                "startsWith"
+              ],
+              "default": "contains",
+              "description": "Search mode",
+              "example": "contains"
+            }
+          },
+          {
+            "in": "query",
+            "name": "searchByText",
+            "description": "Case-insensitive search query",
+            "schema": {
+              "type": "string",
+              "description": "Case-insensitive search query",
+              "example": "blockless"
+            }
+          },
           {
             "in": "query",
             "name": "skip",
@@ -3828,6 +3874,11 @@
                       "type": "number",
                       "description": "The total number of operators operating the AVS",
                       "example": 10
+                    },
+                    "apy": {
+                      "type": "string",
+                      "description": "The latest APY recorded for the AVS",
+                      "example": "1.302"
                     },
                     "createdAtBlock": {
                       "type": "string",
@@ -4076,6 +4127,7 @@
                     "metadataX",
                     "totalStakers",
                     "totalOperators",
+                    "apy",
                     "createdAtBlock",
                     "updatedAtBlock",
                     "createdAt",
@@ -4411,6 +4463,31 @@
               "example": "0x870679e138bcdf293b7ff14dd44b70fc97e12fc0"
             },
             "required": true
+          },
+          {
+            "in": "query",
+            "name": "searchMode",
+            "description": "Search mode",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "contains",
+                "startsWith"
+              ],
+              "default": "contains",
+              "description": "Search mode",
+              "example": "contains"
+            }
+          },
+          {
+            "in": "query",
+            "name": "searchByText",
+            "description": "Case-insensitive search query",
+            "schema": {
+              "type": "string",
+              "description": "Case-insensitive search query",
+              "example": "blockless"
+            }
           },
           {
             "in": "query",
@@ -4776,6 +4853,30 @@
           },
           {
             "in": "query",
+            "name": "searchByText",
+            "description": "Case-insensitive search query",
+            "schema": {
+              "type": "string",
+              "description": "Case-insensitive search query",
+              "example": "blockless"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sortByApy",
+            "description": "Sort results in asc or desc order of APY",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "description": "Sort results in asc or desc order of APY",
+              "example": "desc"
+            }
+          },
+          {
+            "in": "query",
             "name": "sortByTvl",
             "description": "Sort results in asc or desc order of TVL value",
             "schema": {
@@ -4912,6 +5013,11 @@
                             "type": "number",
                             "description": "The total number of AVS opted by the AVS operator",
                             "example": 10
+                          },
+                          "apy": {
+                            "type": "string",
+                            "description": "The latest APY recorded for the operator",
+                            "example": "1.39"
                           },
                           "createdAtBlock": {
                             "type": "string",
@@ -5087,6 +5193,7 @@
                           "metadataX",
                           "totalStakers",
                           "totalAvs",
+                          "apy",
                           "createdAtBlock",
                           "updatedAtBlock",
                           "createdAt",
@@ -5275,6 +5382,11 @@
                       "description": "The total number of AVS opted by the AVS operator",
                       "example": 10
                     },
+                    "apy": {
+                      "type": "string",
+                      "description": "The latest APY recorded for the operator",
+                      "example": "1.39"
+                    },
                     "createdAtBlock": {
                       "type": "string",
                       "description": "The block number at which the AVS Operator was registered",
@@ -5449,6 +5561,7 @@
                     "metadataX",
                     "totalStakers",
                     "totalAvs",
+                    "apy",
                     "createdAtBlock",
                     "updatedAtBlock",
                     "createdAt",

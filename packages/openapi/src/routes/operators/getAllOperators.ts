@@ -6,10 +6,12 @@ import { PaginationMetaResponsesSchema } from '../../apiResponseSchema/base/pagi
 import { OperatorResponseSchema } from '../../apiResponseSchema/operatorResponse'
 import { WithTvlQuerySchema } from '../../../../api/src/schema/zod/schemas/withTvlQuery'
 import {
+	SortByApy,
 	SortByTotalAvs,
 	SortByTotalStakers,
 	SortByTvl
 } from '../../../../api/src/schema/zod/schemas/separateSortingQueries'
+import { SearchByText } from '../../../../api/src/schema/zod/schemas/separateSearchQueries'
 
 const AllOperatorsResponseSchema = z.object({
 	data: z.array(OperatorResponseSchema),
@@ -19,6 +21,8 @@ const AllOperatorsResponseSchema = z.object({
 const CombinedQuerySchema = z
 	.object({})
 	.merge(WithTvlQuerySchema)
+	.merge(SearchByText)
+	.merge(SortByApy)
 	.merge(SortByTvl)
 	.merge(SortByTotalAvs)
 	.merge(SortByTotalStakers)
@@ -34,6 +38,7 @@ export const getAllOperators: ZodOpenApiOperationObject = {
 		query: CombinedQuerySchema.refine(
 			(data) => {
 				const sortByFields = [
+					data.sortByApy,
 					data.sortByTvl,
 					data.sortByTotalAvs,
 					data.sortByTotalStakers,

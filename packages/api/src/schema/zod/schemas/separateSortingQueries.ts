@@ -45,3 +45,13 @@ export const SortOperatorsByTvl = z.object({
 		)
 		.openapi({ example: 'desc' })
 })
+
+export const SortByApy = z.object({
+	sortByApy : z
+		.enum(['asc', 'desc'])
+		.optional()
+		.describe(
+			'Sort results in asc or desc order of APY'
+		)
+		.openapi({ example: 'desc' }),
+})
