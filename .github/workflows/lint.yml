@@ -1,0 +1,26 @@
+name: Lint
+
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+    branches: [dev, main]
+
+jobs:
+  prettier:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Prettier Check
+        uses: actionsx/prettier@v3
+        with:
+          args: --check .
+
+      - name: Prettier Result
+        if: failure()
+        run: |
+          echo "Prettier check failed. Please run 'npm run format:fix' to format your code."
+          exit 1

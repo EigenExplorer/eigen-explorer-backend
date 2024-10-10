@@ -18,16 +18,11 @@ const blockSyncKeyLogs = 'lastSyncedBlock_logs_avs'
  * @param fromBlock
  * @param toBlock
  */
-export async function seedLogsAVSMetadata(
-	toBlock?: bigint,
-	fromBlock?: bigint
-) {
+export async function seedLogsAVSMetadata(toBlock?: bigint, fromBlock?: bigint) {
 	const viemClient = getViemClient()
 	const prismaClient = getPrismaClient()
 
-	const firstBlock = fromBlock
-		? fromBlock
-		: await fetchLastSyncBlock(blockSyncKeyLogs)
+	const firstBlock = fromBlock ? fromBlock : await fetchLastSyncBlock(blockSyncKeyLogs)
 	const lastBlock = toBlock ? toBlock : await viemClient.getBlockNumber()
 
 	// Loop through evm logs
@@ -37,14 +32,11 @@ export async function seedLogsAVSMetadata(
 		try {
 			// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 			const dbTransactions: any[] = []
-			const logsAVSMetadataURIUpdated: prisma.EventLogs_AVSMetadataURIUpdated[] =
-				[]
+			const logsAVSMetadataURIUpdated: prisma.EventLogs_AVSMetadataURIUpdated[] = []
 
 			const logs = await viemClient.getLogs({
 				address: getEigenContracts().AVSDirectory,
-				event: parseAbiItem(
-					'event AVSMetadataURIUpdated(address indexed avs, string metadataURI)'
-				),
+				event: parseAbiItem('event AVSMetadataURIUpdated(address indexed avs, string metadataURI)'),
 				fromBlock,
 				toBlock
 			})

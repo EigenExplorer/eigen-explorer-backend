@@ -1,6 +1,6 @@
-import * as z from 'zod';
-import { extendZodWithOpenApi } from 'zod-openapi';
+import * as z from 'zod'
+import { extendZodWithOpenApi } from 'zod-openapi'
 
-extendZodWithOpenApi(z);
+extendZodWithOpenApi(z)
 
-export default z;
+export default z

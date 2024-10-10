@@ -2,10 +2,7 @@ import prisma from '@prisma/client'
 import { createHash } from 'crypto'
 import { getPrismaClient } from '../utils/prismaClient'
 import { bulkUpdateDbTransactions, IMap } from '../utils/seeder'
-import {
-	EigenStrategiesContractAddress,
-	getEigenContracts
-} from '../data/address'
+import { EigenStrategiesContractAddress, getEigenContracts } from '../data/address'
 import { fetchStrategyTokenPrices, TokenPrices } from '../utils/tokenPrices'
 import { getStrategiesWithShareUnderlying } from '../metrics/seedMetricsTvl'
 
@@ -26,8 +23,7 @@ export async function monitorAvsMetrics() {
 	const take = 1000
 
 	const strategyTokenPrices = await fetchStrategyTokenPrices()
-	const strategiesWithSharesUnderlying =
-		await getStrategiesWithShareUnderlying()
+	const strategiesWithSharesUnderlying = await getStrategiesWithShareUnderlying()
 
 	while (true) {
 		try {
@@ -56,15 +52,10 @@ export async function monitorAvsMetrics() {
 			// Setup all db transactions for this iteration
 			for (const avs of avsMetrics) {
 				const shares = withOperatorShares(avs.operators).filter(
-					(s) =>
-						avs.restakeableStrategies.indexOf(
-							s.strategyAddress.toLowerCase()
-						) !== -1
+					(s) => avs.restakeableStrategies.indexOf(s.strategyAddress.toLowerCase()) !== -1
 				)
 
-				const sharesHash = createHash('md5')
-					.update(JSON.stringify(shares))
-					.digest('hex')
+				const sharesHash = createHash('md5').update(JSON.stringify(shares)).digest('hex')
 
 				const totalOperators = avs.operators.length
 				const totalStakers = await prismaClient.staker.count({
@@ -88,11 +79,7 @@ export async function monitorAvsMetrics() {
 					avs.totalStakers !== totalStakers ||
 					avs.sharesHash !== sharesHash
 				) {
-					const tvlObject = sharesToTVL(
-						shares,
-						strategiesWithSharesUnderlying,
-						strategyTokenPrices
-					)
+					const tvlObject = sharesToTVL(shares, strategiesWithSharesUnderlying, strategyTokenPrices)
 
 					data.push({
 						address: avs.address,
@@ -127,9 +114,7 @@ export async function monitorAvsMetrics() {
 					WHERE
 						a2.address = a.address;
 				`
-				dbTransactions.push(
-					prismaClient.$executeRaw`${prisma.Prisma.raw(query)}`
-				)
+				dbTransactions.push(prismaClient.$executeRaw`${prisma.Prisma.raw(query)}`)
 			}
 		} catch (error) {}
 	}
@@ -149,10 +134,7 @@ function withOperatorShares(avsOperators) {
 
 	avsOperators.map((avsOperator) => {
 		const shares = avsOperator.operator.shares.filter(
-			(s) =>
-				avsOperator.restakedStrategies.indexOf(
-					s.strategyAddress.toLowerCase()
-				) !== -1
+			(s) => avsOperator.restakedStrategies.indexOf(s.strategyAddress.toLowerCase()) !== -1
 		)
 
 		shares.map((s) => {
@@ -183,53 +165,40 @@ export function sharesToTVL(
 ) {
 	const beaconAddress = '0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0'
 
-	const beaconStrategy = shares.find(
-		(s) => s.strategyAddress.toLowerCase() === beaconAddress
-	)
+	const beaconStrategy = shares.find((s) => s.strategyAddress.toLowerCase() === beaconAddress)
 	const restakingStrategies = shares.filter(
 		(s) => s.strategyAddress.toLowerCase() !== beaconAddress
 	)
 
-	const tvlBeaconChain = beaconStrategy
-		? Number(beaconStrategy.shares) / 1e18
-		: 0
+	const tvlBeaconChain = beaconStrategy ? Number(beaconStrategy.shares) / 1e18 : 0
 
 	const strategyKeys = Object.keys(getEigenContracts().Strategies)
 	const strategies = Object.values(getEigenContracts().Strategies)
 
 	let tvlRestaking = 0
-	const tvlStrategies: Map<keyof EigenStrategiesContractAddress, number> =
-		new Map(
-			strategyKeys.map((sk) => [sk as keyof EigenStrategiesContractAddress, 0])
-		)
-	const tvlStrategiesEth: Map<keyof EigenStrategiesContractAddress, number> =
-		new Map(
-			strategyKeys.map((sk) => [sk as keyof EigenStrategiesContractAddress, 0])
-		)
+	const tvlStrategies: Map<keyof EigenStrategiesContractAddress, number> = new Map(
+		strategyKeys.map((sk) => [sk as keyof EigenStrategiesContractAddress, 0])
+	)
+	const tvlStrategiesEth: Map<keyof EigenStrategiesContractAddress, number> = new Map(
+		strategyKeys.map((sk) => [sk as keyof EigenStrategiesContractAddress, 0])
+	)
 
 	restakingStrategies.map((s) => {
 		const foundStrategyIndex = strategies.findIndex(
-			(si) =>
-				si.strategyContract.toLowerCase() === s.strategyAddress.toLowerCase()
+			(si) => si.strategyContract.toLowerCase() === s.strategyAddress.toLowerCase()
 		)
 
 		const strategyTokenPrice = Object.values(strategyTokenPrices).find(
-			(stp) =>
-				stp.strategyAddress.toLowerCase() === s.strategyAddress.toLowerCase()
+			(stp) => stp.strategyAddress.toLowerCase() === s.strategyAddress.toLowerCase()
 		)
-		const sharesUnderlying = strategiesWithSharesUnderlying.get(
-			s.strategyAddress.toLowerCase()
-		)
+		const sharesUnderlying = strategiesWithSharesUnderlying.get(s.strategyAddress.toLowerCase())
 
 		if (foundStrategyIndex !== -1 && sharesUnderlying) {
 			const strategyShares =
-				Number((BigInt(s.shares) * BigInt(sharesUnderlying)) / BigInt(1e18)) /
-				1e18
+				Number((BigInt(s.shares) * BigInt(sharesUnderlying)) / BigInt(1e18)) / 1e18
 
 			tvlStrategies.set(
-				strategyKeys[
-					foundStrategyIndex
-				] as keyof EigenStrategiesContractAddress,
+				strategyKeys[foundStrategyIndex] as keyof EigenStrategiesContractAddress,
 				strategyShares
 			)
 
@@ -237,9 +206,7 @@ export function sharesToTVL(
 				const strategyTvl = strategyShares * strategyTokenPrice.eth
 
 				tvlStrategiesEth.set(
-					strategyKeys[
-						foundStrategyIndex
-					] as keyof EigenStrategiesContractAddress,
+					strategyKeys[foundStrategyIndex] as keyof EigenStrategiesContractAddress,
 					strategyTvl
 				)
 

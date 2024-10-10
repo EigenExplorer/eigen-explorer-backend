@@ -4,17 +4,11 @@ import type { Request, Response, NextFunction } from 'express'
 
 const JWT_SECRET = process.env.JWT_SECRET || ''
 
-export function authenticateJWT(
-	req: Request,
-	res: Response,
-	next: NextFunction
-) {
+export function authenticateJWT(req: Request, res: Response, next: NextFunction) {
 	const token = req.header('Authorization')?.split(' ')[1]
 
 	if (!token) {
-		return res
-			.status(401)
-			.json({ message: 'Access denied. No token provided.' })
+		return res.status(401).json({ message: 'Access denied. No token provided.' })
 	}
 
 	try {

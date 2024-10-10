@@ -22,9 +22,7 @@ export async function seedLogsDeposit(toBlock?: bigint, fromBlock?: bigint) {
 	const viemClient = getViemClient()
 	const prismaClient = getPrismaClient()
 
-	const firstBlock = fromBlock
-		? fromBlock
-		: await fetchLastSyncBlock(blockSyncKeyLogs)
+	const firstBlock = fromBlock ? fromBlock : await fetchLastSyncBlock(blockSyncKeyLogs)
 	const lastBlock = toBlock ? toBlock : await viemClient.getBlockNumber()
 
 	// Loop through evm logs

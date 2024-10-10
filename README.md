@@ -19,12 +19,14 @@ The project is structured with multiple packages located in the packages directo
   ```
 - Create a .env file by copying the .env.example file and provide the URL of your local PostgreSQL database.
 - Apply migrations with the following command:
+
   ```
   npx prisma migrate dev --name init
   ```
 
-  The above command generates the prisma client as well, if not use: 
-   ```
+  The above command generates the prisma client as well, if not use:
+
+  ```
   npm run prisma:generate
   ```
 
@@ -44,7 +46,7 @@ The project is structured with multiple packages located in the packages directo
 ### 3. Start the API Server
 
 - Navigate to the [api directory](./packages/api/)
-- Install dependencies and 
+- Install dependencies and
   ```
   npm install
   ```
@@ -62,6 +64,7 @@ The project is structured with multiple packages located in the packages directo
   npm start
   ```
 - You can refer to the EigenExplorer Docs repository (https://github.com/EigenExplorer/eigen-explorer-docs) for contributing to the API documentation.
+
 ## Contributing
 
 Feel free to contribute to the project by opening an issue or submitting a pull request.

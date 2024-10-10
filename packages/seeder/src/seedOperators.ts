@@ -26,18 +26,12 @@ export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 	const prismaClient = getPrismaClient()
 	const operatorList: Map<string, OperatorEntryRecord> = new Map()
 
-	const firstBlock = fromBlock
-		? fromBlock
-		: await fetchLastSyncBlock(blockSyncKey)
-	const lastBlock = toBlock
-		? toBlock
-		: await fetchLastSyncBlock(blockSyncKeyLogs)
+	const firstBlock = fromBlock ? fromBlock : await fetchLastSyncBlock(blockSyncKey)
+	const lastBlock = toBlock ? toBlock : await fetchLastSyncBlock(blockSyncKeyLogs)
 
 	// Bail early if there is no block diff to sync
 	if (lastBlock - firstBlock <= 0) {
-		console.log(
-			`[In Sync] [Data] Operator MetadataURI from: ${firstBlock} to: ${lastBlock}`
-		)
+		console.log(`[In Sync] [Data] Operator MetadataURI from: ${firstBlock} to: ${lastBlock}`)
 		return
 	}
 
@@ -45,15 +39,14 @@ export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 		firstBlock,
 		lastBlock,
 		async (fromBlock, toBlock) => {
-			const logs =
-				await prismaClient.eventLogs_OperatorMetadataURIUpdated.findMany({
-					where: {
-						blockNumber: {
-							gt: fromBlock,
-							lte: toBlock
-						}
+			const logs = await prismaClient.eventLogs_OperatorMetadataURIUpdated.findMany({
+				where: {
+					blockNumber: {
+						gt: fromBlock,
+						lte: toBlock
 					}
-				})
+				}
+			})
 
 			for (const l in logs) {
 				const log = logs[l]

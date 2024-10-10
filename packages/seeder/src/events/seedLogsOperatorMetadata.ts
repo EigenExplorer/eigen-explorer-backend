@@ -18,16 +18,11 @@ const blockSyncKeyLogs = 'lastSyncedBlock_logs_operators'
  * @param fromBlock
  * @param toBlock
  */
-export async function seedLogsOperatorMetadata(
-	toBlock?: bigint,
-	fromBlock?: bigint
-) {
+export async function seedLogsOperatorMetadata(toBlock?: bigint, fromBlock?: bigint) {
 	const viemClient = getViemClient()
 	const prismaClient = getPrismaClient()
 
-	const firstBlock = fromBlock
-		? fromBlock
-		: await fetchLastSyncBlock(blockSyncKeyLogs)
+	const firstBlock = fromBlock ? fromBlock : await fetchLastSyncBlock(blockSyncKeyLogs)
 	const lastBlock = toBlock ? toBlock : await viemClient.getBlockNumber()
 
 	// Loop through evm logs
@@ -37,8 +32,7 @@ export async function seedLogsOperatorMetadata(
 		try {
 			// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 			const dbTransactions: any[] = []
-			const logsOperatorMetadataURIUpdated: prisma.EventLogs_OperatorMetadataURIUpdated[] =
-				[]
+			const logsOperatorMetadataURIUpdated: prisma.EventLogs_OperatorMetadataURIUpdated[] = []
 
 			const logs = await viemClient.getLogs({
 				address: getEigenContracts().DelegationManager,

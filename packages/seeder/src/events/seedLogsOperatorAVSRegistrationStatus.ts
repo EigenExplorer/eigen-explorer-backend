@@ -18,16 +18,11 @@ const blockSyncKeyLogs = 'lastSyncedBlock_logs_avsOperators'
  * @param fromBlock
  * @param toBlock
  */
-export async function seedLogsOperatorAVSRegistrationStatus(
-	toBlock?: bigint,
-	fromBlock?: bigint
-) {
+export async function seedLogsOperatorAVSRegistrationStatus(toBlock?: bigint, fromBlock?: bigint) {
 	const viemClient = getViemClient()
 	const prismaClient = getPrismaClient()
 
-	const firstBlock = fromBlock
-		? fromBlock
-		: await fetchLastSyncBlock(blockSyncKeyLogs)
+	const firstBlock = fromBlock ? fromBlock : await fetchLastSyncBlock(blockSyncKeyLogs)
 	const lastBlock = toBlock ? toBlock : await viemClient.getBlockNumber()
 
 	// Loop through evm logs

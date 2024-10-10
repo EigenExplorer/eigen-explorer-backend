@@ -36,12 +36,10 @@ export async function fetchStrategyTokenPrices(): Promise<TokenPrices> {
 	const tokenPrices: TokenPrices = {}
 
 	const CMC_TOKEN_IDS = [
-		8100, 21535, 27566, 23782, 29035, 24277, 28476, 15060, 23177, 8085, 25147,
-		24760, 2396
+		8100, 21535, 27566, 23782, 29035, 24277, 28476, 15060, 23177, 8085, 25147, 24760, 2396
 	]
 
-	const CMC_API =
-		'https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest'
+	const CMC_API = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest'
 
 	const keys = Object.keys(getEigenContracts().Strategies) as Tokens[]
 	const keysStr = CMC_TOKEN_IDS.join(',')
@@ -62,9 +60,7 @@ export async function fetchStrategyTokenPrices(): Promise<TokenPrices> {
 	const quotes = Object.values(payload.data) as any[]
 
 	keys.map((k) => {
-		const quoteKey = quotes.find(
-			(q) => q.symbol.toLowerCase() === k.toLowerCase()
-		)
+		const quoteKey = quotes.find((q) => q.symbol.toLowerCase() === k.toLowerCase())
 		const price = {
 			symbol: k,
 			// biome-ignore lint/style/noNonNullAssertion: <explanation>
@@ -85,8 +81,7 @@ export async function fetchRewardTokenPrices(): Promise<RewardTokenPrices> {
 
 	const CMC_TOKEN_IDS = [4039] // ARPA
 
-	const CMC_API =
-		'https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest'
+	const CMC_API = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest'
 
 	const keys = Object.keys(getEigenContracts().Rewards) as RewardTokens[]
 	const keysStr = CMC_TOKEN_IDS.join(',')
@@ -107,9 +102,7 @@ export async function fetchRewardTokenPrices(): Promise<RewardTokenPrices> {
 	const quotes = Object.values(payload.data) as any[]
 
 	keys.map((k) => {
-		const quoteKey = quotes.find(
-			(q) => q.symbol.toLowerCase() === k.toLowerCase()
-		)
+		const quoteKey = quotes.find((q) => q.symbol.toLowerCase() === k.toLowerCase())
 		const price = {
 			symbol: k,
 			// biome-ignore lint/style/noNonNullAssertion: <explanation>
