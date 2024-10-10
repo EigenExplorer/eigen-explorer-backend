@@ -7,7 +7,7 @@ export const rateLimiter = rateLimit({
 	standardHeaders: true,
 	legacyHeaders: false,
 	keyGenerator: (req: Request): string => {
-		return req.ip ?? req.socket.remoteAddress ?? 'unknown'
+		return req.ip ?? 'unknown'
 	},
 	message:
 		"You've reached the limit of 30 requests per minute. Contact us for increased limits."
