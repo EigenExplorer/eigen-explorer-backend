@@ -6,9 +6,9 @@ import { CuratedMetadataSchema } from '../base/curatedMetadataResponses'
 import { TvlSchema } from '../base/tvlResponses'
 
 export const AvsSchema = z.object({
-	address: EthereumAddressSchema.describe(
-		'AVS service manager contract address'
-	).openapi({ example: '0x35f4f28a8d3ff20eed10e087e8f96ea2641e6aa1' }),
+	address: EthereumAddressSchema.describe('AVS service manager contract address').openapi({
+		example: '0x35f4f28a8d3ff20eed10e087e8f96ea2641e6aa1'
+	}),
 	metadataName: AvsMetaDataSchema.shape.metadataName,
 	metadataDescription: AvsMetaDataSchema.shape.metadataDescription,
 	metadataDiscord: AvsMetaDataSchema.shape.metadataDiscord,
@@ -24,10 +24,7 @@ export const AvsSchema = z.object({
 		.number()
 		.describe('The total number of operators operating the AVS')
 		.openapi({ example: 10 }),
-	apy: z
-		.string()
-		.describe('The latest APY recorded for the AVS')
-		.openapi({ example: '1.302' }),
+	apy: z.string().describe('The latest APY recorded for the AVS').openapi({ example: '1.302' }),
 	// restakeableStrategies: z
 	//     .array(EthereumAddressSchema)
 	//     .describe('The list of supported restaking strategies')
@@ -54,22 +51,22 @@ export const AvsSchema = z.object({
 	//     .describe('The tags associated with the AVS')
 	//     .openapi({ example: ['DA', 'DeFi'] }),
 	curatedMetadata: CuratedMetadataSchema.optional()
-	.describe('To curate visibility and additional information of the AVS ')
-	.openapi({
-		example: {
-			avsAddress: '0x2344c0fe02ccd2b32155ca0ffcb1978a6d96a552',
-			metadataName: 'Example AVS',
-			metadataDescription: 'This is an example AVS',
-			metadataDiscord: 'https://discord.com/invite/abcdefghij',
-			metadataLogo: "The URL of the AVS's logo",
-			metadataTelegram: "The URL of the AVS's Telegram channel",
-			metadataWebsite: 'https://acme.com',
-			metadataX: 'https://twitter.com/acme',
-			tags: ['Example tag 1', 'Example tag 2'],
-			isVisible: true,
-			isVerified: true
-		}
-	}),
+		.describe('To curate visibility and additional information of the AVS ')
+		.openapi({
+			example: {
+				avsAddress: '0x2344c0fe02ccd2b32155ca0ffcb1978a6d96a552',
+				metadataName: 'Example AVS',
+				metadataDescription: 'This is an example AVS',
+				metadataDiscord: 'https://discord.com/invite/abcdefghij',
+				metadataLogo: "The URL of the AVS's logo",
+				metadataTelegram: "The URL of the AVS's Telegram channel",
+				metadataWebsite: 'https://acme.com',
+				metadataX: 'https://twitter.com/acme',
+				tags: ['Example tag 1', 'Example tag 2'],
+				isVisible: true,
+				isVerified: true
+			}
+		}),
 	shares: z
 		.array(StrategySharesSchema)
 		.describe('The strategy shares held in the AVS')

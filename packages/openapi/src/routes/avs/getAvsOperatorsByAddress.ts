@@ -8,12 +8,15 @@ import { PaginationMetaResponsesSchema } from '../../apiResponseSchema/base/pagi
 import { WithTvlQuerySchema } from '../../../../api/src/schema/zod/schemas/withTvlQuery'
 import { AvsOperatorResponseSchema } from '../../apiResponseSchema/avs/avsOperatorResponse'
 import { SortOperatorsByTvl } from '../../../../api/src/schema/zod/schemas/separateSortingQueries'
-import { SearchByText, SearchMode } from '../../../../api/src/schema/zod/schemas/separateSearchQueries'
+import {
+	SearchByText,
+	SearchMode
+} from '../../../../api/src/schema/zod/schemas/separateSearchQueries'
 
 const AvsAddressParam = z.object({
-	address: EthereumAddressSchema.describe(
-		'AVS service manager contract address'
-	).openapi({ example: '0x870679e138bcdf293b7ff14dd44b70fc97e12fc0' })
+	address: EthereumAddressSchema.describe('AVS service manager contract address').openapi({
+		example: '0x870679e138bcdf293b7ff14dd44b70fc97e12fc0'
+	})
 })
 
 const AvsOperatorCombinedResponseSchema = z.object({
@@ -32,8 +35,7 @@ const CombinedQuerySchema = z
 export const getAvsOperatorsByAddress: ZodOpenApiOperationObject = {
 	operationId: 'getAvsOperatorsByAddress',
 	summary: 'Retrieve all operators for a given AVS address',
-	description:
-		'Returns all operators for a given AVS address. This endpoint supports pagination.',
+	description: 'Returns all operators for a given AVS address. This endpoint supports pagination.',
 	tags: ['AVS'],
 	requestParams: {
 		path: AvsAddressParam,

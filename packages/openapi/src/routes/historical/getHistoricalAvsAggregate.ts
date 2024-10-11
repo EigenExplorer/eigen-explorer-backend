@@ -10,9 +10,9 @@ const HistoricalAvsAggregateResponseSchema = z.object({
 })
 
 const AvsAddressParam = z.object({
-	address: EthereumAddressSchema.describe(
-		'AVS service manager contract address'
-	).openapi({ example: '0x870679e138bcdf293b7ff14dd44b70fc97e12fc0' })
+	address: EthereumAddressSchema.describe('AVS service manager contract address').openapi({
+		example: '0x870679e138bcdf293b7ff14dd44b70fc97e12fc0'
+	})
 })
 
 export const getHistoricalAvsAggregate: ZodOpenApiOperationObject = {

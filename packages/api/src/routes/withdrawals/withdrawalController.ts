@@ -14,15 +14,12 @@ import { getViemClient } from '../../viem/viemClient'
  */
 export async function getAllWithdrawals(req: Request, res: Response) {
 	// Validate query
-	const result = WithdrawalListQuerySchema.and(PaginationQuerySchema).safeParse(
-		req.query
-	)
+	const result = WithdrawalListQuerySchema.and(PaginationQuerySchema).safeParse(req.query)
 	if (!result.success) {
 		return handleAndReturnErrorResponse(req, res, result.error)
 	}
 
-	const { stakerAddress, delegatedTo, strategyAddress, status, skip, take } =
-		result.data
+	const { stakerAddress, delegatedTo, strategyAddress, status, skip, take } = result.data
 
 	try {
 		const filterQuery: Prisma.WithdrawalQueuedWhereInput = {}
@@ -50,8 +47,7 @@ export async function getAllWithdrawals(req: Request, res: Response) {
 						where: { key: 'withdrawMinDelayBlocks' }
 					})
 					const minDelayBlock =
-						(await viemClient.getBlockNumber()) -
-						BigInt((minDelayBlocks?.value as string) || 0)
+						(await viemClient.getBlockNumber()) - BigInt((minDelayBlocks?.value as string) || 0)
 
 					filterQuery.completedWithdrawal = null
 					filterQuery.createdAtBlock = { lte: minDelayBlock }
@@ -88,11 +84,8 @@ export async function getAllWithdrawals(req: Request, res: Response) {
 				strategies: undefined,
 				completedWithdrawal: undefined,
 				isCompleted: !!withdrawal.completedWithdrawal,
-				updatedAt:
-					withdrawal.completedWithdrawal?.createdAt || withdrawal.createdAt,
-				updatedAtBlock:
-					withdrawal.completedWithdrawal?.createdAtBlock ||
-					withdrawal.createdAtBlock
+				updatedAt: withdrawal.completedWithdrawal?.createdAt || withdrawal.createdAt,
+				updatedAtBlock: withdrawal.completedWithdrawal?.createdAtBlock || withdrawal.createdAtBlock
 			}
 		})
 
@@ -137,11 +130,8 @@ export async function getWithdrawal(req: Request, res: Response) {
 			strategies: undefined,
 			completedWithdrawal: undefined,
 			isCompleted: !!withdrawal.completedWithdrawal,
-			updatedAt:
-				withdrawal.completedWithdrawal?.createdAt || withdrawal.createdAt,
-			updatedAtBlock:
-				withdrawal.completedWithdrawal?.createdAtBlock ||
-				withdrawal.createdAtBlock
+			updatedAt: withdrawal.completedWithdrawal?.createdAt || withdrawal.createdAt,
+			updatedAtBlock: withdrawal.completedWithdrawal?.createdAtBlock || withdrawal.createdAtBlock
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)

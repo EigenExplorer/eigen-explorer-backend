@@ -5,13 +5,13 @@ import { ZodOpenApiOperationObject } from 'zod-openapi'
 import { PaginationQuerySchema } from '../../../../api/src/schema/zod/schemas/paginationQuery'
 import { PaginationMetaResponsesSchema } from '../../apiResponseSchema/base/paginationMetaResponses'
 import { StakerResponseSchema } from '../../apiResponseSchema/stakerResponse'
-import { UpdatedSinceQuerySchema } from '../../../../api/src/schema/zod/schemas/updatedSinceQuery';
+import { UpdatedSinceQuerySchema } from '../../../../api/src/schema/zod/schemas/updatedSinceQuery'
 import { WithTvlQuerySchema } from '../../../../api/src/schema/zod/schemas/withTvlQuery'
 
 const AvsAddressParam = z.object({
-	address: EthereumAddressSchema.describe(
-		'AVS service manager contract address'
-	).openapi({ example: '0x870679e138bcdf293b7ff14dd44b70fc97e12fc0' })
+	address: EthereumAddressSchema.describe('AVS service manager contract address').openapi({
+		example: '0x870679e138bcdf293b7ff14dd44b70fc97e12fc0'
+	})
 })
 
 const CombinedQuerySchema = z
@@ -28,8 +28,7 @@ const AvsStakerResponseSchema = z.object({
 export const getAvsStakersByAddress: ZodOpenApiOperationObject = {
 	operationId: 'getAvsStakersByAddress',
 	summary: 'Retrieve all stakers for a given AVS address',
-	description:
-		'Returns all stakers for a given AVS address. This endpoint supports pagination.',
+	description: 'Returns all stakers for a given AVS address. This endpoint supports pagination.',
 	tags: ['AVS'],
 	requestParams: {
 		path: AvsAddressParam,

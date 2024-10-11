@@ -4,12 +4,10 @@ import type prisma from '@prisma/client'
 import { getPrismaClient } from './utils/prismaClient'
 import { bulkUpdateDbTransactions } from './utils/seeder'
 
-const CMC_API =
-	'https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/historical'
+const CMC_API = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/historical'
 const apiKey = process.env.CMC_API_KEY
 const CMC_TOKEN_IDS = [
-	8100, 21535, 27566, 23782, 29035, 24277, 28476, 15060, 23177, 8085, 25147,
-	24760, 2396, 4039
+	8100, 21535, 27566, 23782, 29035, 24277, 28476, 15060, 23177, 8085, 25147, 24760, 2396, 4039
 ]
 const keysStr = CMC_TOKEN_IDS.join(',')
 
@@ -25,9 +23,7 @@ export async function seedEthPricesDaily() {
 
 	// Bail early if there is no time diff to sync
 	if (endAt.getTime() - startAt.getTime() <= 0) {
-		console.log(
-			`[In Sync] [Data] Eth Prices from: ${startAt.getTime()} to: ${endAt.getTime()}`
-		)
+		console.log(`[In Sync] [Data] Eth Prices from: ${startAt.getTime()} to: ${endAt.getTime()}`)
 		return
 	}
 
@@ -81,8 +77,7 @@ async function getLastUpdate() {
 		orderBy: { timestamp: 'desc' }
 	})
 
-	return (latestRecord &&
-		latestRecord.timestamp.getTime() <= minimumStartAt.getTime()) ||
+	return (latestRecord && latestRecord.timestamp.getTime() <= minimumStartAt.getTime()) ||
 		!latestRecord
 		? minimumStartAt
 		: latestRecord.timestamp

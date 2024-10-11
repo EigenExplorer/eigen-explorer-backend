@@ -8,9 +8,7 @@ export interface IMap<K, V> extends Map<K, V> {
 
 // Base block
 export const baseBlock =
-	process.env.NETWORK && process.env.NETWORK === 'holesky'
-		? 1159609n
-		: 17000000n
+	process.env.NETWORK && process.env.NETWORK === 'holesky' ? 1159609n : 17000000n
 
 export async function loopThroughBlocks(
 	firstBlock: bigint,
@@ -53,9 +51,10 @@ export async function loopThroughDates(
 	cb: (from: Date, to: Date) => Promise<any>,
 	frequency: 'hourly' | 'daily' = 'daily'
 ) {
-
-	let currentDate = frequency === 'hourly' ? setToStartOfHour(startDate) : setToStartOfDay(startDate)
-	const adjustedEndDate = frequency === 'hourly' ? setToStartOfHour(endDate) : setToStartOfDay(endDate)
+	let currentDate =
+		frequency === 'hourly' ? setToStartOfHour(startDate) : setToStartOfDay(startDate)
+	const adjustedEndDate =
+		frequency === 'hourly' ? setToStartOfHour(endDate) : setToStartOfDay(endDate)
 
 	const incrementDate = (date: Date): Date => {
 		const nextDate = new Date(date)
@@ -103,9 +102,7 @@ export async function fetchLastSyncBlock(key: string): Promise<bigint> {
 		where: { key }
 	})
 
-	return lastSyncedBlockData?.value
-		? BigInt(lastSyncedBlockData.value as number)
-		: baseBlock
+	return lastSyncedBlockData?.value ? BigInt(lastSyncedBlockData.value as number) : baseBlock
 }
 
 export async function fetchLastSyncTime(key: string): Promise<Date | null> {
@@ -115,9 +112,7 @@ export async function fetchLastSyncTime(key: string): Promise<Date | null> {
 		where: { key }
 	})
 
-	return lastSyncedTimeData
-		? new Date(lastSyncedTimeData.value as number)
-		: null
+	return lastSyncedTimeData ? new Date(lastSyncedTimeData.value as number) : null
 }
 
 export async function saveLastSyncBlock(key: string, blockNumber: bigint) {
@@ -152,10 +147,7 @@ export async function getBlockDataFromDb(fromBlock: bigint, toBlock: bigint) {
 	return new Map(blockData.map((block) => [block.number, block.timestamp]))
 }
 
-export async function fetchWithTimeout(
-	url: string,
-	timeout = 5000
-): Promise<Response> {
+export async function fetchWithTimeout(url: string, timeout = 5000): Promise<Response> {
 	const controller = new AbortController()
 	const timeoutId = setTimeout(() => controller.abort(), timeout)
 

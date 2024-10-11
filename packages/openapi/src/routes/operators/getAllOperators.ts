@@ -31,8 +31,7 @@ const CombinedQuerySchema = z
 export const getAllOperators: ZodOpenApiOperationObject = {
 	operationId: 'getAllOperators',
 	summary: 'Retrieve all operators',
-	description:
-		'Returns all operator records. This endpoint supports pagination.',
+	description: 'Returns all operator records. This endpoint supports pagination.',
 	tags: ['Operators'],
 	requestParams: {
 		query: CombinedQuerySchema.refine(
@@ -41,7 +40,7 @@ export const getAllOperators: ZodOpenApiOperationObject = {
 					data.sortByApy,
 					data.sortByTvl,
 					data.sortByTotalAvs,
-					data.sortByTotalStakers,
+					data.sortByTotalStakers
 				].filter((field) => field !== undefined)
 				return sortByFields.length <= 1
 			},

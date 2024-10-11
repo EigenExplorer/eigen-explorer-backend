@@ -6,9 +6,9 @@ import { StrategySharesSchema } from '../../../api/src/schema/zod/schemas/base/s
 import { AvsRegistrationSchema } from '../../../api/src/schema/zod/schemas/base/avsRegistrations'
 
 export const OperatorResponseSchema = z.object({
-	address: EthereumAddressSchema.describe(
-		'The contract address of the AVS operator'
-	).openapi({ example: '0x09e6eb09213bdd3698bd8afb43ec3cb0ecff683a' }),
+	address: EthereumAddressSchema.describe('The contract address of the AVS operator').openapi({
+		example: '0x09e6eb09213bdd3698bd8afb43ec3cb0ecff683a'
+	}),
 	metadataName: OperatorMetaDataSchema.shape.metadataName,
 	metadataDescription: OperatorMetaDataSchema.shape.metadataDescription,
 	metadataDiscord: OperatorMetaDataSchema.shape.metadataDiscord,
@@ -18,27 +18,20 @@ export const OperatorResponseSchema = z.object({
 	metadataX: OperatorMetaDataSchema.shape.metadataX,
 	totalStakers: z
 		.number()
-		.describe(
-			'The total number of stakers who have delegated to this AVS operator'
-		)
+		.describe('The total number of stakers who have delegated to this AVS operator')
 		.openapi({ example: 10 }),
 	totalAvs: z
 		.number()
 		.describe('The total number of AVS opted by the AVS operator')
 		.openapi({ example: 10 }),
-	apy: z
-		.string()
-		.describe('The latest APY recorded for the operator')
-		.openapi({ example: '1.39' }),
+	apy: z.string().describe('The latest APY recorded for the operator').openapi({ example: '1.39' }),
 	createdAtBlock: z
 		.string()
 		.describe('The block number at which the AVS Operator was registered')
 		.openapi({ example: '19631203' }),
 	updatedAtBlock: z
 		.string()
-		.describe(
-			'The block number at which the AVS Operator registration was last updated'
-		)
+		.describe('The block number at which the AVS Operator registration was last updated')
 		.openapi({ example: '19631203' }),
 	createdAt: z
 		.string()
@@ -46,9 +39,7 @@ export const OperatorResponseSchema = z.object({
 		.openapi({ example: '2024-04-11T08:31:11.000Z' }),
 	updatedAt: z
 		.string()
-		.describe(
-			'The time stamp at which the AVS Operator registration was last updated'
-		)
+		.describe('The time stamp at which the AVS Operator registration was last updated')
 		.openapi({ example: '2024-04-11T08:31:11.000Z' }),
 	shares: z
 		.array(StrategySharesSchema)

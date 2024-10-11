@@ -4,20 +4,16 @@ export const SortByTotalAvs = z.object({
 	sortByTotalAvs: z
 		.enum(['asc', 'desc'])
 		.optional()
-		.describe(
-			'Sort results in asc or desc order of total AVS (only valid for Operator queries)'
-		)
-		.openapi({ example: 'desc' }),
+		.describe('Sort results in asc or desc order of total AVS (only valid for Operator queries)')
+		.openapi({ example: 'desc' })
 })
 
 export const SortByTotalOperators = z.object({
 	sortByTotalOperators: z
 		.enum(['asc', 'desc'])
 		.optional()
-		.describe(
-			'Sort results in asc or desc order of total AVS (only valid for AVS queries)'
-		)
-		.openapi({ example: 'desc' }),
+		.describe('Sort results in asc or desc order of total AVS (only valid for AVS queries)')
+		.openapi({ example: 'desc' })
 })
 
 export const SortByTotalStakers = z.object({
@@ -25,7 +21,7 @@ export const SortByTotalStakers = z.object({
 		.enum(['asc', 'desc'])
 		.optional()
 		.describe('Sort results in asc or desc order of total stakers')
-		.openapi({ example: 'desc' }),
+		.openapi({ example: 'desc' })
 })
 
 export const SortByTvl = z.object({
@@ -33,7 +29,7 @@ export const SortByTvl = z.object({
 		.enum(['asc', 'desc'])
 		.optional()
 		.describe('Sort results in asc or desc order of TVL value')
-		.openapi({ example: 'desc' }),
+		.openapi({ example: 'desc' })
 })
 
 export const SortOperatorsByTvl = z.object({
@@ -47,11 +43,9 @@ export const SortOperatorsByTvl = z.object({
 })
 
 export const SortByApy = z.object({
-	sortByApy : z
+	sortByApy: z
 		.enum(['asc', 'desc'])
 		.optional()
-		.describe(
-			'Sort results in asc or desc order of APY'
-		)
-		.openapi({ example: 'desc' }),
+		.describe('Sort results in asc or desc order of APY')
+		.openapi({ example: 'desc' })
 })

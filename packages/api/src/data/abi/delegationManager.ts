@@ -1256,8 +1256,7 @@ export const delegationManagerAbi = [
 								type: 'uint96'
 							}
 						],
-						internalType:
-							'struct IStrategyManager.DeprecatedStruct_WithdrawerAndNonce',
+						internalType: 'struct IStrategyManager.DeprecatedStruct_WithdrawerAndNonce',
 						name: 'withdrawerAndNonce',
 						type: 'tuple'
 					},
@@ -1272,8 +1271,7 @@ export const delegationManagerAbi = [
 						type: 'address'
 					}
 				],
-				internalType:
-					'struct IStrategyManager.DeprecatedStruct_QueuedWithdrawal[]',
+				internalType: 'struct IStrategyManager.DeprecatedStruct_QueuedWithdrawal[]',
 				name: 'withdrawalsToMigrate',
 				type: 'tuple[]'
 			}

@@ -8,7 +8,7 @@ const blockSyncKey = 'lastSyncedBlock_strategies'
 
 /**
  * Seed strategies data
- * 
+ *
  * @param toBlock
  * @param fromBlock
  */

@@ -6,15 +6,12 @@ import { ZodOpenApiOperationObject } from 'zod-openapi'
 import { WithTvlQuerySchema } from '../../../../api/src/schema/zod/schemas/withTvlQuery'
 import { WithCuratedMetadata } from '../../../../api/src/schema/zod/schemas/withCuratedMetadataQuery'
 
-const CombinedQuerySchema = z
-	.object({})
-	.merge(WithTvlQuerySchema)
-	.merge(WithCuratedMetadata)
+const CombinedQuerySchema = z.object({}).merge(WithTvlQuerySchema).merge(WithCuratedMetadata)
 
 const AvsAddressParam = z.object({
-	address: EthereumAddressSchema.describe(
-		'AVS service manager contract address'
-	).openapi({ example: '0x870679e138bcdf293b7ff14dd44b70fc97e12fc0' })
+	address: EthereumAddressSchema.describe('AVS service manager contract address').openapi({
+		example: '0x870679e138bcdf293b7ff14dd44b70fc97e12fc0'
+	})
 })
 
 export const getAvsByAddress: ZodOpenApiOperationObject = {

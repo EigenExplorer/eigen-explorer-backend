@@ -10,36 +10,22 @@ import {
 const blockSyncKey = 'lastSyncedBlock_avsStrategyRewards'
 const blockSyncKeyLogs = 'lastSyncedBlock_logs_avsRewardsSubmission'
 
-export async function seedAvsStrategyRewards(
-	toBlock?: bigint,
-	fromBlock?: bigint
-) {
+export async function seedAvsStrategyRewards(toBlock?: bigint, fromBlock?: bigint) {
 	const prismaClient = getPrismaClient()
 
-	const avsStrategyRewardSubmissionList: Omit<
-		prisma.AvsStrategyRewardSubmission,
-		'id'
-	>[] = []
+	const avsStrategyRewardSubmissionList: Omit<prisma.AvsStrategyRewardSubmission, 'id'>[] = []
 
 	const existingAvs = await prismaClient.avs.findMany({
 		select: { address: true }
 	})
-	const existingAvsSet = new Set(
-		existingAvs.map((avs) => avs.address.toLowerCase())
-	)
+	const existingAvsSet = new Set(existingAvs.map((avs) => avs.address.toLowerCase()))
 
-	const firstBlock = fromBlock
-		? fromBlock
-		: await fetchLastSyncBlock(blockSyncKey)
-	const lastBlock = toBlock
-		? toBlock
-		: await fetchLastSyncBlock(blockSyncKeyLogs)
+	const firstBlock = fromBlock ? fromBlock : await fetchLastSyncBlock(blockSyncKey)
+	const lastBlock = toBlock ? toBlock : await fetchLastSyncBlock(blockSyncKeyLogs)
 
 	// Bail early if there is no block diff to sync
 	if (lastBlock - firstBlock <= 0) {
-		console.log(
-			`[In Sync] [Data] Avs Strategy Rewards from: ${firstBlock} to: ${lastBlock}`
-		)
+		console.log(`[In Sync] [Data] Avs Strategy Rewards from: ${firstBlock} to: ${lastBlock}`)
 		return
 	}
 
@@ -56,16 +42,11 @@ export async function seedAvsStrategyRewards(
 		for (const l in logs) {
 			const log = logs[l]
 
-			const totalAmount = new prisma.Prisma.Decimal(
-				log.rewardsSubmission_amount
-			)
+			const totalAmount = new prisma.Prisma.Decimal(log.rewardsSubmission_amount)
 			const multipliers = log.strategiesAndMultipliers_multipliers
 			const distributedAmounts = distributeAmount(totalAmount, multipliers)
 
-			for (const [
-				index,
-				strategy
-			] of log.strategiesAndMultipliers_strategies.entries()) {
+			for (const [index, strategy] of log.strategiesAndMultipliers_strategies.entries()) {
 				const avsAddress = log.avs.toLowerCase()
 				if (existingAvsSet.has(avsAddress)) {
 					avsStrategyRewardSubmissionList.push({
@@ -73,9 +54,7 @@ export async function seedAvsStrategyRewards(
 						rewardsSubmissionHash: log.rewardsSubmissionHash,
 						avsAddress,
 						strategyAddress: strategy,
-						multiplier: new prisma.Prisma.Decimal(
-							log.strategiesAndMultipliers_multipliers[index]
-						),
+						multiplier: new prisma.Prisma.Decimal(log.strategiesAndMultipliers_multipliers[index]),
 						token: log.rewardsSubmission_token,
 						amount: distributedAmounts[index],
 						startTimestamp: log.rewardsSubmission_startTimestamp,

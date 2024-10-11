@@ -1,8 +1,5 @@
 import type { Request, Response } from 'express'
-import {
-	type EigenStrategiesContractAddress,
-	getEigenContracts
-} from '../../data/address'
+import { type EigenStrategiesContractAddress, getEigenContracts } from '../../data/address'
 import { PaginationQuerySchema } from '../../schema/zod/schemas/paginationQuery'
 import { EthereumAddressSchema } from '../../schema/zod/schemas/base/ethereumAddress'
 import { WithTvlQuerySchema } from '../../schema/zod/schemas/withTvlQuery'
@@ -11,10 +8,7 @@ import { SortByQuerySchema } from '../../schema/zod/schemas/sortByQuery'
 import { SearchByTextQuerySchema } from '../../schema/zod/schemas/searchByTextQuery'
 import { WithRewardsQuerySchema } from '../../schema/zod/schemas/withRewardsQuery'
 import { handleAndReturnErrorResponse } from '../../schema/errors'
-import {
-	fetchRewardTokenPrices,
-	fetchStrategyTokenPrices
-} from '../../utils/tokenPrices'
+import { fetchRewardTokenPrices, fetchStrategyTokenPrices } from '../../utils/tokenPrices'
 import {
 	getStrategiesWithShareUnderlying,
 	sharesToTVL,
@@ -53,23 +47,19 @@ export async function getAllOperators(req: Request, res: Response) {
 		searchByText
 	} = result.data
 
-	const searchFilterQuery = getOperatorSearchQuery(
-		searchByText,
-		'contains',
-		'partial'
-	)
+	const searchFilterQuery = getOperatorSearchQuery(searchByText, 'contains', 'partial')
 
 	try {
 		// Setup sort if applicable
 		const sortConfig = sortByTotalStakers
 			? { field: 'totalStakers', order: sortByTotalStakers }
 			: sortByTotalAvs
-			  ? { field: 'totalAvs', order: sortByTotalAvs }
-			  : sortByTvl
-				  ? { field: 'tvlEth', order: sortByTvl }
-				  : sortByApy
-				  	?{ field: 'apy', order: sortByApy }
-					: null
+			? { field: 'totalAvs', order: sortByTotalAvs }
+			: sortByTvl
+			? { field: 'tvlEth', order: sortByTvl }
+			: sortByApy
+			? { field: 'apy', order: sortByApy }
+			: null
 
 		// Fetch records and apply search/sort
 		const operatorRecords = await prisma.operator.findMany({
@@ -87,8 +77,8 @@ export async function getAllOperators(req: Request, res: Response) {
 			orderBy: sortConfig
 				? { [sortConfig.field]: sortConfig.order }
 				: searchByText
-				  ? { tvlEth: 'desc' }
-				  : undefined,
+				? { tvlEth: 'desc' }
+				: undefined,
 			skip,
 			take
 		})
@@ -101,9 +91,7 @@ export async function getAllOperators(req: Request, res: Response) {
 		})
 
 		const strategyTokenPrices = withTvl ? await fetchStrategyTokenPrices() : {}
-		const strategiesWithSharesUnderlying = withTvl
-			? await getStrategiesWithShareUnderlying()
-			: []
+		const strategiesWithSharesUnderlying = withTvl ? await getStrategiesWithShareUnderlying() : []
 
 		const operators = operatorRecords.map((operator) => ({
 			...operator,
@@ -111,11 +99,7 @@ export async function getAllOperators(req: Request, res: Response) {
 			totalStakers: operator.totalStakers,
 			totalAvs: operator.totalAvs,
 			tvl: withTvl
-				? sharesToTVL(
-						operator.shares,
-						strategiesWithSharesUnderlying,
-						strategyTokenPrices
-				  )
+				? sharesToTVL(operator.shares, strategiesWithSharesUnderlying, strategyTokenPrices)
 				: undefined,
 			metadataUrl: undefined,
 			isMetadataSynced: undefined,
@@ -229,9 +213,7 @@ export async function getOperator(req: Request, res: Response) {
 		}))
 
 		const strategyTokenPrices = withTvl ? await fetchStrategyTokenPrices() : {}
-		const strategiesWithSharesUnderlying = withTvl
-			? await getStrategiesWithShareUnderlying()
-			: []
+		const strategiesWithSharesUnderlying = withTvl ? await getStrategiesWithShareUnderlying() : []
 
 		res.send({
 			...operator,
@@ -239,11 +221,7 @@ export async function getOperator(req: Request, res: Response) {
 			totalStakers: operator.totalStakers,
 			totalAvs: operator.totalAvs,
 			tvl: withTvl
-				? sharesToTVL(
-						operator.shares,
-						strategiesWithSharesUnderlying,
-						strategyTokenPrices
-				  )
+				? sharesToTVL(operator.shares, strategiesWithSharesUnderlying, strategyTokenPrices)
 				: undefined,
 			rewards: withRewards ? await calculateOperatorApy(operator) : undefined,
 			stakers: undefined,
@@ -267,20 +245,14 @@ export async function getOperator(req: Request, res: Response) {
  */
 export async function getAllOperatorAddresses(req: Request, res: Response) {
 	// Validate pagination query
-	const result = PaginationQuerySchema.and(SearchByTextQuerySchema).safeParse(
-		req.query
-	)
+	const result = PaginationQuerySchema.and(SearchByTextQuerySchema).safeParse(req.query)
 	if (!result.success) {
 		return handleAndReturnErrorResponse(req, res, result.error)
 	}
 
 	try {
 		const { skip, take, searchByText, searchMode } = result.data
-		const searchFilterQuery = getOperatorSearchQuery(
-			searchByText,
-			searchMode,
-			'full'
-		)
+		const searchFilterQuery = getOperatorSearchQuery(searchByText, searchMode, 'full')
 
 		// Fetch records
 		const operatorRecords = await prisma.operator.findMany({
@@ -391,12 +363,8 @@ export async function getOperatorRewards(req: Request, res: Response) {
 			for (const submission of avs.rewardSubmissions) {
 				result.rewardTokens.add(submission.token.toLowerCase())
 
-				if (
-					operatorActiveStrategies.has(submission.strategyAddress.toLowerCase())
-				) {
-					result.rewardStrategies.add(
-						submission.strategyAddress.toLowerCase()
-					)
+				if (operatorActiveStrategies.has(submission.strategyAddress.toLowerCase())) {
+					result.rewardStrategies.add(submission.strategyAddress.toLowerCase())
 				}
 			}
 		}
@@ -506,12 +474,9 @@ async function calculateOperatorApy(operator: any) {
 		const strategyTokenPrices = await fetchStrategyTokenPrices()
 		const rewardTokenPrices = await fetchRewardTokenPrices()
 		const eigenContracts = getEigenContracts()
-		const tokenToStrategyMap = tokenToStrategyAddressMap(
-			eigenContracts.Strategies
-		)
+		const tokenToStrategyMap = tokenToStrategyAddressMap(eigenContracts.Strategies)
 
-		const strategiesWithSharesUnderlying =
-			await getStrategiesWithShareUnderlying()
+		const strategiesWithSharesUnderlying = await getStrategiesWithShareUnderlying()
 
 		// Calc aggregate APY for each AVS basis the opted-in strategies
 		for (const avs of avsWithEligibleRewardSubmissions) {
@@ -519,10 +484,7 @@ async function calculateOperatorApy(operator: any) {
 
 			// Get share amounts for each restakeable strategy
 			const shares = withOperatorShares(avs.avs.operators).filter(
-				(s) =>
-					avs.avs.restakeableStrategies.indexOf(
-						s.strategyAddress.toLowerCase()
-					) !== -1
+				(s) => avs.avs.restakeableStrategies.indexOf(s.strategyAddress.toLowerCase()) !== -1
 			)
 
 			// Fetch the AVS tvl for each strategy
@@ -542,16 +504,13 @@ async function calculateOperatorApy(operator: any) {
 
 				// Find all reward submissions attributable to the strategy
 				const relevantSubmissions = avs.eligibleRewards.filter(
-					(submission) =>
-						submission.strategyAddress.toLowerCase() ===
-						strategyAddress.toLowerCase()
+					(submission) => submission.strategyAddress.toLowerCase() === strategyAddress.toLowerCase()
 				)
 
 				for (const submission of relevantSubmissions) {
 					let rewardIncrementEth = new Prisma.Prisma.Decimal(0)
 					const rewardTokenAddress = submission.token.toLowerCase()
-					const tokenStrategyAddress =
-						tokenToStrategyMap.get(rewardTokenAddress)
+					const tokenStrategyAddress = tokenToStrategyMap.get(rewardTokenAddress)
 
 					// Normalize reward amount to its ETH price
 					if (tokenStrategyAddress) {
@@ -564,10 +523,7 @@ async function calculateOperatorApy(operator: any) {
 					} else {
 						// Check if it is a reward token which isn't a strategy on EL
 						for (const [, price] of Object.entries(rewardTokenPrices)) {
-							if (
-								price &&
-								price.tokenAddress.toLowerCase() === rewardTokenAddress
-							) {
+							if (price && price.tokenAddress.toLowerCase() === rewardTokenAddress) {
 								rewardIncrementEth = submission.amount.mul(
 									new Prisma.Prisma.Decimal(price.eth ?? 0)
 								)
@@ -589,9 +545,7 @@ async function calculateOperatorApy(operator: any) {
 					const operatorFeesEth = rewardIncrementEth.mul(10).div(100)
 					operatorEarningsEth = operatorEarningsEth.add(operatorFeesEth)
 
-					totalRewardsEth = totalRewardsEth
-						.add(rewardIncrementEth)
-						.sub(operatorFeesEth)
+					totalRewardsEth = totalRewardsEth.add(rewardIncrementEth).sub(operatorFeesEth)
 					totalDuration += submission.duration
 				}
 
@@ -599,11 +553,8 @@ async function calculateOperatorApy(operator: any) {
 
 				// Annualize the reward basis its duration to find yearly APY
 				const rewardRate =
-					totalRewardsEth
-						.div(new Prisma.Prisma.Decimal(10).pow(18))
-						.toNumber() / strategyTvl
-				const annualizedRate =
-					rewardRate * ((365 * 24 * 60 * 60) / totalDuration)
+					totalRewardsEth.div(new Prisma.Prisma.Decimal(10).pow(18)).toNumber() / strategyTvl
+				const annualizedRate = rewardRate * ((365 * 24 * 60 * 60) / totalDuration)
 				const apy = annualizedRate * 100
 				aggregateApy += apy
 
@@ -648,10 +599,7 @@ export function tokenToStrategyAddressMap(
 	const map = new Map<string, string>()
 	for (const [key, value] of Object.entries(strategies)) {
 		if (key !== 'Eigen' && value?.tokenContract && value?.strategyContract) {
-			map.set(
-				value.tokenContract.toLowerCase(),
-				value.strategyContract.toLowerCase()
-			)
+			map.set(value.tokenContract.toLowerCase(), value.strategyContract.toLowerCase())
 		}
 	}
 	return map

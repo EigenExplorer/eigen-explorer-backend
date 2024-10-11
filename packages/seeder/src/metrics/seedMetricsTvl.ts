@@ -37,9 +37,7 @@ export async function seedMetricsTvl(type: 'full' | 'incremental' = 'incremental
 
 	// Bail early if there is no time diff to sync
 	if (endDate.getTime() - startDate.getTime() <= 0) {
-		console.log(
-			`[In Sync] [Metrics] TVL Daily from: ${startDate} to: ${endDate}`
-		)
+		console.log(`[In Sync] [Metrics] TVL Daily from: ${startDate} to: ${endDate}`)
 		return
 	}
 
@@ -92,15 +90,10 @@ async function processLogsInBatches(
 	for (
 		let currentDate = setToStartOfDay(startDate);
 		currentDate < setToStartOfDay(endDate);
-		currentDate = new Date(
-			currentDate.getTime() + 24 * 60 * 60 * 1000 * BATCH_DAYS
-		)
+		currentDate = new Date(currentDate.getTime() + 24 * 60 * 60 * 1000 * BATCH_DAYS)
 	) {
 		const batchEndDate = new Date(
-			Math.min(
-				currentDate.getTime() + 24 * 60 * 60 * 1000 * BATCH_DAYS,
-				endDate.getTime()
-			)
+			Math.min(currentDate.getTime() + 24 * 60 * 60 * 1000 * BATCH_DAYS, endDate.getTime())
 		)
 
 		const blockNumbers = await getBlockNumbers(currentDate, batchEndDate)
@@ -181,11 +174,7 @@ async function loopTick(
 				r.status === 'fulfilled' &&
 				r.value.strategyAddress.toLowerCase() === strategyAddress.toLowerCase()
 		)
-		if (
-			foundStrategyIndex === -1 ||
-			results[foundStrategyIndex].status !== 'fulfilled'
-		)
-			continue
+		if (foundStrategyIndex === -1 || results[foundStrategyIndex].status !== 'fulfilled') continue
 
 		const shares = results[foundStrategyIndex].value.totalShares as bigint
 		const sharesToUnderlying = sharesToUnderlyingMap.get(strategyAddress)
@@ -233,18 +222,16 @@ async function getBlockNumbers(
 async function getFirstLogTimestamp() {
 	const prismaClient = getPrismaClient()
 
-	const firstLogPodDeployed =
-		await prismaClient.eventLogs_OperatorSharesIncreased.findFirst({
-			select: { blockTime: true },
-			orderBy: { blockTime: 'asc' }
-		})
+	const firstLogPodDeployed = await prismaClient.eventLogs_OperatorSharesIncreased.findFirst({
+		select: { blockTime: true },
+		orderBy: { blockTime: 'asc' }
+	})
 
 	if (!firstLogPodDeployed) {
 		return null
 	}
 
-	const firstLogPodDeployedTs =
-		firstLogPodDeployed?.blockTime?.getTime() ?? Infinity
+	const firstLogPodDeployedTs = firstLogPodDeployed?.blockTime?.getTime() ?? Infinity
 
 	return Math.min(firstLogPodDeployedTs)
 }
@@ -258,13 +245,12 @@ async function getLatestMetricsPerStrategy(): Promise<ILastStrategyMetrics> {
 	const prismaClient = getPrismaClient()
 
 	try {
-		const lastMetricsPerStrategy =
-			await prismaClient.metricStrategyUnit.groupBy({
-				by: ['strategyAddress'],
-				_max: {
-					timestamp: true
-				}
-			})
+		const lastMetricsPerStrategy = await prismaClient.metricStrategyUnit.groupBy({
+			by: ['strategyAddress'],
+			_max: {
+				timestamp: true
+			}
+		})
 
 		const metrics = await prismaClient.metricStrategyUnit.findMany({
 			where: {
@@ -278,24 +264,18 @@ async function getLatestMetricsPerStrategy(): Promise<ILastStrategyMetrics> {
 			}
 		})
 
-		return metrics
-			? new Map(metrics.map((metric) => [metric.strategyAddress, metric]))
-			: new Map()
+		return metrics ? new Map(metrics.map((metric) => [metric.strategyAddress, metric])) : new Map()
 	} catch {}
 
 	return new Map()
 }
 
-export async function getStrategiesWithShareUnderlying(): Promise<
-	Map<string, bigint>
-> {
+export async function getStrategiesWithShareUnderlying(): Promise<Map<string, bigint>> {
 	const prismaClient = getPrismaClient()
 
 	const sharesToUnderlyingList = await prismaClient.strategies.findMany({
 		select: { sharesToUnderlying: true, address: true }
 	})
 
-	return new Map(
-		sharesToUnderlyingList.map((s) => [s.address, BigInt(s.sharesToUnderlying)])
-	)
+	return new Map(sharesToUnderlyingList.map((s) => [s.address, BigInt(s.sharesToUnderlying)]))
 }

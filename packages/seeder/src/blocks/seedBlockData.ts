@@ -1,11 +1,7 @@
 import prisma from '@prisma/client'
 import { getPrismaClient } from '../utils/prismaClient'
 import { getViemClient } from '../utils/viemClient'
-import {
-	baseBlock,
-	bulkUpdateDbTransactions,
-	loopThroughBlocks
-} from '../utils/seeder'
+import { baseBlock, bulkUpdateDbTransactions, loopThroughBlocks } from '../utils/seeder'
 
 export async function seedBlockData(toBlock?: bigint, fromBlock?: bigint) {
 	const viemClient = getViemClient()
@@ -15,11 +11,7 @@ export async function seedBlockData(toBlock?: bigint, fromBlock?: bigint) {
 		orderBy: { number: 'desc' }
 	})
 
-	const firstBlock = fromBlock
-		? fromBlock
-		: lastKnownBlock
-		  ? lastKnownBlock.number
-		  : baseBlock
+	const firstBlock = fromBlock ? fromBlock : lastKnownBlock ? lastKnownBlock.number : baseBlock
 
 	const lastBlock = toBlock ? toBlock : await viemClient.getBlockNumber()
 
@@ -53,9 +45,7 @@ export async function seedBlockData(toBlock?: bigint, fromBlock?: bigint) {
 						skipDuplicates: true
 					})
 				],
-				`[Meta] Block data from: ${fromBlock} to: ${toBlock} size: ${Number(
-					toBlock - fromBlock
-				)}`
+				`[Meta] Block data from: ${fromBlock} to: ${toBlock} size: ${Number(toBlock - fromBlock)}`
 			)
 		},
 		79n

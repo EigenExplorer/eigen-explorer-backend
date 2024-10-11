@@ -58,7 +58,7 @@ export async function monitorOperatorMetadata() {
 				}
 			} catch (error) {}
 		}
- 
+
 		if (dbTransactions.length > 0) {
 			await bulkUpdateDbTransactions(
 				dbTransactions,

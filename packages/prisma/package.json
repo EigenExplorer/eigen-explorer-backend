@@ -1,16 +1,16 @@
 {
-  "name": "eigen-explorer-backend-db",
-  "version": "0.0.1",
-  "private": true,
-  "type": "module",
-  "scripts": {
-    "prisma:generate": "prisma generate --schema=./schema.prisma",
-    "prisma:format": "prisma format --schema=./schema.prisma"
-  },
-  "prisma": {
-    "schema": "./schema.prisma"
-  },
-  "devDependencies": {
-    "prisma": "^5.11.0"
-  }
+	"name": "eigen-explorer-backend-db",
+	"version": "0.0.1",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"prisma:generate": "prisma generate --schema=./schema.prisma",
+		"prisma:format": "prisma format --schema=./schema.prisma"
+	},
+	"prisma": {
+		"schema": "./schema.prisma"
+	},
+	"devDependencies": {
+		"prisma": "^5.11.0"
+	}
 }

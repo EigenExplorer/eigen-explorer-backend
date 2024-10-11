@@ -1,14 +1,7 @@
 import { Prisma } from '@prisma/client'
 import { getPrismaClient } from '../utils/prismaClient'
-import {
-	getSharesToUnderlying,
-	getEthPrices,
-	getStrategyToSymbolMap
-} from '../utils/strategies'
-import {
-	bulkUpdateDbTransactions,
-	fetchLastSyncTime
-} from '../utils/seeder'
+import { getSharesToUnderlying, getEthPrices, getStrategyToSymbolMap } from '../utils/strategies'
+import { bulkUpdateDbTransactions, fetchLastSyncTime } from '../utils/seeder'
 
 const timeSyncKey = 'lastSyncedTime_metrics_deposit'
 
@@ -32,9 +25,7 @@ export async function seedMetricsDeposit() {
 
 	// Bail early if there is no time diff to sync
 	if (endAt.getTime() - startAt.getTime() <= 0) {
-		console.log(
-			`[In Sync] [Metrics] Deposit Daily from: ${startAt} to: ${endAt}`
-		)
+		console.log(`[In Sync] [Metrics] Deposit Daily from: ${startAt} to: ${endAt}`)
 		return
 	}
 
@@ -122,8 +113,8 @@ export async function seedMetricsDeposit() {
  * @param initialTotalDeposits
  * @param strategyToSymbolMap
  * @param sharesToUnderlying
- * @param ethPriceData 
- * @returns 
+ * @param ethPriceData
+ * @returns
  */
 async function processDeposits(
 	startAt: Date,
@@ -148,7 +139,7 @@ async function processDeposits(
 
 	// Calculate daily deposits
 	const dailyDeposits = allDeposits.reduce((acc, deposit) => {
-		const dayTimestamp = new Date(deposit.createdAt).setUTCHours(0, 0, 0, 0);
+		const dayTimestamp = new Date(deposit.createdAt).setUTCHours(0, 0, 0, 0)
 		if (!acc[dayTimestamp]) {
 			acc[dayTimestamp] = {
 				timestamp: new Date(dayTimestamp),
@@ -156,21 +147,22 @@ async function processDeposits(
 				totalDeposits: 0,
 				changeTvlEth: 0,
 				changeDeposits: 0
-			};
+			}
 		}
-		
-		const symbol = strategyToSymbolMap.get(deposit.strategyAddress)?.toLowerCase();
-		const sharesMultiplier = Number(sharesToUnderlying.get(deposit.strategyAddress.toLowerCase()));
-		const ethPrice = Number(ethPriceData.find((price) => price.symbol.toLowerCase() === symbol)?.ethPrice) || 0;
+
+		const symbol = strategyToSymbolMap.get(deposit.strategyAddress)?.toLowerCase()
+		const sharesMultiplier = Number(sharesToUnderlying.get(deposit.strategyAddress.toLowerCase()))
+		const ethPrice =
+			Number(ethPriceData.find((price) => price.symbol.toLowerCase() === symbol)?.ethPrice) || 0
 
 		if (sharesMultiplier && ethPrice) {
-			const depositValueEth = (Number(deposit.shares) / 1e18) * sharesMultiplier * ethPrice;
-			acc[dayTimestamp].changeTvlEth = Number(acc[dayTimestamp].changeTvlEth) + depositValueEth;
-			acc[dayTimestamp].changeDeposits += 1;
+			const depositValueEth = (Number(deposit.shares) / 1e18) * sharesMultiplier * ethPrice
+			acc[dayTimestamp].changeTvlEth = Number(acc[dayTimestamp].changeTvlEth) + depositValueEth
+			acc[dayTimestamp].changeDeposits += 1
 		}
 
-		return acc;
-	}, {} as Record<number, Omit<Prisma.MetricDepositUnitCreateInput, 'id'>>);
+		return acc
+	}, {} as Record<number, Omit<Prisma.MetricDepositUnitCreateInput, 'id'>>)
 
 	// Calculate cumulative metrics
 	const cumulativeDeposits = Object.values(dailyDeposits)
@@ -179,18 +171,18 @@ async function processDeposits(
 			if (index > 0) {
 				dayData.tvlEth = new Prisma.Decimal(
 					Number(array[index - 1].tvlEth) + Number(dayData.changeTvlEth)
-				);
-				dayData.totalDeposits = array[index - 1].totalDeposits + dayData.changeDeposits;
+				)
+				dayData.totalDeposits = array[index - 1].totalDeposits + dayData.changeDeposits
 			} else {
-				dayData.tvlEth = new Prisma.Decimal(initialTvlEth + Number(dayData.changeTvlEth));
-				dayData.totalDeposits = initialTotalDeposits + dayData.changeDeposits;
+				dayData.tvlEth = new Prisma.Decimal(initialTvlEth + Number(dayData.changeTvlEth))
+				dayData.totalDeposits = initialTotalDeposits + dayData.changeDeposits
 			}
 			return {
 				...dayData,
 				tvlEth: dayData.tvlEth,
 				changeTvlEth: dayData.changeTvlEth
-			};
-		});
+			}
+		})
 
 	return cumulativeDeposits
 }
@@ -214,7 +206,6 @@ async function getLatestMetrics(prismaClient: Prisma.TransactionClient) {
 		totalDeposits: latestMetric?.totalDeposits || 0
 	}
 }
-
 
 /**
  * Get first log timestamp

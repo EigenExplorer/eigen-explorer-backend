@@ -12,8 +12,8 @@ import {
 	SortByTotalStakers,
 	SortByTvl
 } from '../../../../api/src/schema/zod/schemas/separateSortingQueries'
-import { 
-	SearchByText, 
+import {
+	SearchByText,
 	SearchMode
 } from '../../../../api/src/schema/zod/schemas/separateSearchQueries'
 

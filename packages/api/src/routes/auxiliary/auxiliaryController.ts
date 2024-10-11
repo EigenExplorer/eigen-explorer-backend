@@ -14,14 +14,13 @@ import { getPrismaClient } from '../../utils/prismaClient'
 export async function getCachedPrices(req: Request, res: Response) {
 	try {
 		const CMC_TOKEN_IDS = [
-			8100, 21535, 27566, 23782, 29035, 24277, 28476, 15060, 23177, 8085, 25147,
-			24760, 2396
+			8100, 21535, 27566, 23782, 29035, 24277, 28476, 15060, 23177, 8085, 25147, 24760, 2396
 		]
 		const keysStr = CMC_TOKEN_IDS.join(',')
 		let cachedPrices = await cacheStore.get(`price_${keysStr}`)
 
 		if (!cachedPrices) {
-			cachedPrices = await fetchStrategyTokenPrices();
+			cachedPrices = await fetchStrategyTokenPrices()
 		}
 
 		const priceData = Object.values(cachedPrices).map(
@@ -55,9 +54,7 @@ export async function getLastSyncBlocks(req: Request, res: Response) {
 	try {
 		const prismaClient = getPrismaClient()
 
-		const ignoredBlockSyncKeys = [
-			'withdrawMinDelayBlocks'
-		]
+		const ignoredBlockSyncKeys = ['withdrawMinDelayBlocks']
 
 		const syncKeys = await prismaClient.settings.findMany({
 			where: { key: { notIn: ignoredBlockSyncKeys } }

@@ -1,10 +1,7 @@
 import type { Request, Response } from 'express'
 import type { IMap } from '../../schema/generic'
 import type { Submission } from '../rewards/rewardController'
-import {
-	type EigenStrategiesContractAddress,
-	getEigenContracts
-} from '../../data/address'
+import { type EigenStrategiesContractAddress, getEigenContracts } from '../../data/address'
 import { PaginationQuerySchema } from '../../schema/zod/schemas/paginationQuery'
 import { EthereumAddressSchema } from '../../schema/zod/schemas/base/ethereumAddress'
 import { WithTvlQuerySchema } from '../../schema/zod/schemas/withTvlQuery'
@@ -15,10 +12,7 @@ import { SearchByTextQuerySchema } from '../../schema/zod/schemas/searchByTextQu
 import { WithRewardsQuerySchema } from '../../schema/zod/schemas/withRewardsQuery'
 import { getOperatorSearchQuery } from '../operators/operatorController'
 import { handleAndReturnErrorResponse } from '../../schema/errors'
-import {
-	fetchRewardTokenPrices,
-	fetchStrategyTokenPrices
-} from '../../utils/tokenPrices'
+import { fetchRewardTokenPrices, fetchStrategyTokenPrices } from '../../utils/tokenPrices'
 import { getNetwork } from '../../viem/viemClient'
 import { holesky } from 'viem/chains'
 import {
@@ -66,19 +60,15 @@ export async function getAllAVS(req: Request, res: Response) {
 		const sortConfig = sortByTotalStakers
 			? { field: 'totalStakers', order: sortByTotalStakers }
 			: sortByTotalOperators
-			  ? { field: 'totalOperators', order: sortByTotalOperators }
-			  : sortByTvl
-				  ? { field: 'tvlEth', order: sortByTvl }
-				  : sortByApy
-				  	?{ field: 'apy', order: sortByApy }
-					: null
+			? { field: 'totalOperators', order: sortByTotalOperators }
+			: sortByTvl
+			? { field: 'tvlEth', order: sortByTvl }
+			: sortByApy
+			? { field: 'apy', order: sortByApy }
+			: null
 
 		// Setup search query
-		const searchFilterQuery = getAvsSearchQuery(
-			searchByText,
-			searchMode,
-			'partial'
-		)
+		const searchFilterQuery = getAvsSearchQuery(searchByText, searchMode, 'partial')
 
 		// Fetch records and apply search/sort
 		const avsRecords = await prisma.avs.findMany({
@@ -102,8 +92,8 @@ export async function getAllAVS(req: Request, res: Response) {
 			orderBy: sortConfig
 				? { [sortConfig.field]: sortConfig.order }
 				: searchByText
-				  ? { tvlEth: 'desc' }
-				  : undefined,
+				? { tvlEth: 'desc' }
+				: undefined,
 			skip,
 			take
 		})
@@ -117,33 +107,22 @@ export async function getAllAVS(req: Request, res: Response) {
 		})
 
 		const strategyTokenPrices = withTvl ? await fetchStrategyTokenPrices() : {}
-		const strategiesWithSharesUnderlying = withTvl
-			? await getStrategiesWithShareUnderlying()
-			: []
+		const strategiesWithSharesUnderlying = withTvl ? await getStrategiesWithShareUnderlying() : []
 
 		const data = await Promise.all(
 			avsRecords.map(async (avs) => {
 				const shares = withOperatorShares(avs.operators).filter(
-					(s) =>
-						avs.restakeableStrategies.indexOf(
-							s.strategyAddress.toLowerCase()
-						) !== -1
+					(s) => avs.restakeableStrategies.indexOf(s.strategyAddress.toLowerCase()) !== -1
 				)
 
 				return {
 					...avs,
-					curatedMetadata: withCuratedMetadata
-						? avs.curatedMetadata
-						: undefined,
+					curatedMetadata: withCuratedMetadata ? avs.curatedMetadata : undefined,
 					totalOperators: avs.totalOperators,
 					totalStakers: avs.totalStakers,
 					shares,
 					tvl: withTvl
-						? sharesToTVL(
-								shares,
-								strategiesWithSharesUnderlying,
-								strategyTokenPrices
-						  )
+						? sharesToTVL(shares, strategiesWithSharesUnderlying, strategyTokenPrices)
 						: undefined,
 					operators: undefined,
 					metadataUrl: undefined,
@@ -177,20 +156,14 @@ export async function getAllAVS(req: Request, res: Response) {
  */
 export async function getAllAVSAddresses(req: Request, res: Response) {
 	// Validate pagination query
-	const queryCheck = PaginationQuerySchema.and(
-		SearchByTextQuerySchema
-	).safeParse(req.query)
+	const queryCheck = PaginationQuerySchema.and(SearchByTextQuerySchema).safeParse(req.query)
 	if (!queryCheck.success) {
 		return handleAndReturnErrorResponse(req, res, queryCheck.error)
 	}
 
 	try {
 		const { skip, take, searchByText, searchMode } = queryCheck.data
-		const searchFilterQuery = getAvsSearchQuery(
-			searchByText,
-			searchMode,
-			'full'
-		)
+		const searchFilterQuery = getAvsSearchQuery(searchByText, searchMode, 'full')
 
 		// Fetch records
 		const avsRecords = await prisma.avs.findMany({
@@ -290,15 +263,11 @@ export async function getAVS(req: Request, res: Response) {
 		})
 
 		const shares = withOperatorShares(avs.operators).filter(
-			(s) =>
-				avs.restakeableStrategies.indexOf(s.strategyAddress.toLowerCase()) !==
-				-1
+			(s) => avs.restakeableStrategies.indexOf(s.strategyAddress.toLowerCase()) !== -1
 		)
 
 		const strategyTokenPrices = withTvl ? await fetchStrategyTokenPrices() : {}
-		const strategiesWithSharesUnderlying = withTvl
-			? await getStrategiesWithShareUnderlying()
-			: []
+		const strategiesWithSharesUnderlying = withTvl ? await getStrategiesWithShareUnderlying() : []
 
 		res.send({
 			...avs,
@@ -307,11 +276,7 @@ export async function getAVS(req: Request, res: Response) {
 			totalOperators: avs.totalOperators,
 			totalStakers: avs.totalStakers,
 			tvl: withTvl
-				? sharesToTVL(
-						shares,
-						strategiesWithSharesUnderlying,
-						strategyTokenPrices
-				  )
+				? sharesToTVL(shares, strategiesWithSharesUnderlying, strategyTokenPrices)
 				: undefined,
 			rewards: withRewards ? await calculateAvsApy(avs) : undefined,
 			operators: undefined,
@@ -359,9 +324,7 @@ export async function getAVSStakers(req: Request, res: Response) {
 			include: { operators: true }
 		})
 
-		const operatorAddresses = avs.operators
-			.filter((o) => o.isActive)
-			.map((o) => o.operatorAddress)
+		const operatorAddresses = avs.operators.filter((o) => o.isActive).map((o) => o.operatorAddress)
 
 		const stakersCount = await prisma.staker.count({
 			where: {
@@ -372,9 +335,7 @@ export async function getAVSStakers(req: Request, res: Response) {
 				shares: {
 					some: {
 						strategyAddress: {
-							in: [
-								...new Set(avs.operators.flatMap((o) => o.restakedStrategies))
-							]
+							in: [...new Set(avs.operators.flatMap((o) => o.restakedStrategies))]
 						},
 						shares: { gt: '0' }
 					}
@@ -389,9 +350,7 @@ export async function getAVSStakers(req: Request, res: Response) {
 				shares: {
 					some: {
 						strategyAddress: {
-							in: [
-								...new Set(avs.operators.flatMap((o) => o.restakedStrategies))
-							]
+							in: [...new Set(avs.operators.flatMap((o) => o.restakedStrategies))]
 						},
 						shares: { gt: '0' }
 					}
@@ -403,9 +362,7 @@ export async function getAVSStakers(req: Request, res: Response) {
 		})
 
 		const strategyTokenPrices = withTvl ? await fetchStrategyTokenPrices() : {}
-		const strategiesWithSharesUnderlying = withTvl
-			? await getStrategiesWithShareUnderlying()
-			: []
+		const strategiesWithSharesUnderlying = withTvl ? await getStrategiesWithShareUnderlying() : []
 
 		const stakers = stakersRecords.map((staker) => {
 			const shares = staker.shares.filter(
@@ -416,11 +373,7 @@ export async function getAVSStakers(req: Request, res: Response) {
 				...staker,
 				shares,
 				tvl: withTvl
-					? sharesToTVL(
-							shares,
-							strategiesWithSharesUnderlying,
-							strategyTokenPrices
-					  )
+					? sharesToTVL(shares, strategiesWithSharesUnderlying, strategyTokenPrices)
 					: undefined
 			}
 		})
@@ -463,19 +416,8 @@ export async function getAVSOperators(req: Request, res: Response) {
 
 	try {
 		const { address } = req.params
-		const {
-			skip,
-			take,
-			withTvl,
-			sortOperatorsByTvl,
-			searchByText,
-			searchMode
-		} = queryCheck.data
-		const searchFilterQuery = getOperatorSearchQuery(
-			searchByText,
-			searchMode,
-			'partial'
-		)
+		const { skip, take, withTvl, sortOperatorsByTvl, searchByText, searchMode } = queryCheck.data
+		const searchFilterQuery = getOperatorSearchQuery(searchByText, searchMode, 'partial')
 
 		const avs = await prisma.avs.findUniqueOrThrow({
 			where: { address: address.toLowerCase(), ...getAvsFilterQuery() },
@@ -506,8 +448,8 @@ export async function getAVSOperators(req: Request, res: Response) {
 			orderBy: sortOperatorsByTvl
 				? { tvlEth: sortOperatorsByTvl }
 				: searchByText
-				  ? { tvlEth: 'desc' }
-				  : undefined,
+				? { tvlEth: 'desc' }
+				: undefined,
 			skip,
 			take
 		})
@@ -528,14 +470,11 @@ export async function getAVSOperators(req: Request, res: Response) {
 			: avs.operators.length
 
 		const strategyTokenPrices = withTvl ? await fetchStrategyTokenPrices() : {}
-		const strategiesWithSharesUnderlying = withTvl
-			? await getStrategiesWithShareUnderlying()
-			: []
+		const strategiesWithSharesUnderlying = withTvl ? await getStrategiesWithShareUnderlying() : []
 
 		const data = operatorsRecords.map((operator) => {
 			const avsOperator = avs.operators.find(
-				(o) =>
-					o.operatorAddress.toLowerCase() === operator.address.toLowerCase()
+				(o) => o.operatorAddress.toLowerCase() === operator.address.toLowerCase()
 			)
 
 			const shares = operator.shares.filter(
@@ -548,11 +487,7 @@ export async function getAVSOperators(req: Request, res: Response) {
 				shares,
 				totalStakers: operator.stakers.length,
 				tvl: withTvl
-					? sharesToTVL(
-							shares,
-							strategiesWithSharesUnderlying,
-							strategyTokenPrices
-					  )
+					? sharesToTVL(shares, strategiesWithSharesUnderlying, strategyTokenPrices)
 					: undefined,
 				stakers: undefined,
 				metadataUrl: undefined,
@@ -593,15 +528,14 @@ export async function getAVSRewards(req: Request, res: Response) {
 		const { address } = req.params
 
 		// Fetch all rewards submissions for a given Avs
-		const rewardsSubmissions =
-			await prisma.avsStrategyRewardSubmission.findMany({
-				where: {
-					avsAddress: address.toLowerCase()
-				},
-				orderBy: {
-					rewardsSubmissionHash: 'asc'
-				}
-			})
+		const rewardsSubmissions = await prisma.avsStrategyRewardSubmission.findMany({
+			where: {
+				avsAddress: address.toLowerCase()
+			},
+			orderBy: {
+				rewardsSubmissionHash: 'asc'
+			}
+		})
 
 		if (!rewardsSubmissions || rewardsSubmissions.length === 0) {
 			throw new Error('AVS not found.')
@@ -610,9 +544,7 @@ export async function getAVSRewards(req: Request, res: Response) {
 		const strategyTokenPrices = await fetchStrategyTokenPrices()
 		const rewardTokenPrices = await fetchRewardTokenPrices()
 		const eigenContracts = getEigenContracts()
-		const tokenToStrategyMap = tokenToStrategyAddressMap(
-			eigenContracts.Strategies
-		)
+		const tokenToStrategyMap = tokenToStrategyAddressMap(eigenContracts.Strategies)
 
 		const result: {
 			address: string
@@ -640,8 +572,7 @@ export async function getAVSRewards(req: Request, res: Response) {
 		for (const submission of rewardsSubmissions) {
 			if (
 				!currentSubmission ||
-				currentSubmission.rewardsSubmissionHash !==
-					submission.rewardsSubmissionHash
+				currentSubmission.rewardsSubmissionHash !== submission.rewardsSubmissionHash
 			) {
 				if (currentSubmission) {
 					currentSubmission.totalAmount = currentTotalAmount.toString()
@@ -669,31 +600,22 @@ export async function getAVSRewards(req: Request, res: Response) {
 			const tokenStrategyAddress = tokenToStrategyMap.get(rewardTokenAddress)
 
 			// Document reward token & rewarded strategy addresses
-			if (!rewardTokens.includes(rewardTokenAddress))
-				rewardTokens.push(rewardTokenAddress)
+			if (!rewardTokens.includes(rewardTokenAddress)) rewardTokens.push(rewardTokenAddress)
 
-			if (!rewardStrategies.includes(strategyAddress))
-				rewardStrategies.push(strategyAddress)
+			if (!rewardStrategies.includes(strategyAddress)) rewardStrategies.push(strategyAddress)
 
 			// Normalize reward amount to its ETH price
 			if (tokenStrategyAddress) {
 				const tokenPrice = Object.values(strategyTokenPrices).find(
 					(tp) => tp.strategyAddress.toLowerCase() === tokenStrategyAddress
 				)
-				const amountInEth = amount.mul(
-					new Prisma.Prisma.Decimal(tokenPrice?.eth ?? 0)
-				)
+				const amountInEth = amount.mul(new Prisma.Prisma.Decimal(tokenPrice?.eth ?? 0))
 				currentTotalAmountEth = currentTotalAmountEth.add(amountInEth)
 			} else {
 				// Check if it is a reward token which isn't a strategy on EL
 				for (const [, price] of Object.entries(rewardTokenPrices)) {
-					if (
-						price &&
-						price.tokenAddress.toLowerCase() === rewardTokenAddress
-					) {
-						const amountInEth = amount.mul(
-							new Prisma.Prisma.Decimal(price?.eth ?? 0)
-						)
+					if (price && price.tokenAddress.toLowerCase() === rewardTokenAddress) {
+						const amountInEth = amount.mul(new Prisma.Prisma.Decimal(price?.eth ?? 0))
 						currentTotalAmountEth = currentTotalAmountEth.add(amountInEth)
 					} else {
 						// Check for special tokens
@@ -766,10 +688,7 @@ export function withOperatorShares(avsOperators) {
 
 	avsOperators.map((avsOperator) => {
 		const shares = avsOperator.operator.shares.filter(
-			(s) =>
-				avsOperator.restakedStrategies.indexOf(
-					s.strategyAddress.toLowerCase()
-				) !== -1
+			(s) => avsOperator.restakedStrategies.indexOf(s.strategyAddress.toLowerCase()) !== -1
 		)
 
 		shares.map((s) => {
@@ -872,18 +791,13 @@ async function calculateAvsApy(avs: any) {
 		const strategyTokenPrices = await fetchStrategyTokenPrices()
 		const rewardTokenPrices = await fetchRewardTokenPrices()
 		const eigenContracts = getEigenContracts()
-		const tokenToStrategyMap = tokenToStrategyAddressMap(
-			eigenContracts.Strategies
-		)
+		const tokenToStrategyMap = tokenToStrategyAddressMap(eigenContracts.Strategies)
 
-		const strategiesWithSharesUnderlying =
-			await getStrategiesWithShareUnderlying()
+		const strategiesWithSharesUnderlying = await getStrategiesWithShareUnderlying()
 
 		// Get share amounts for each restakeable strategy
 		const shares = withOperatorShares(avs.operators).filter(
-			(s) =>
-				avs.restakeableStrategies.indexOf(s.strategyAddress.toLowerCase()) !==
-				-1
+			(s) => avs.restakeableStrategies.indexOf(s.strategyAddress.toLowerCase()) !== -1
 		)
 
 		// Fetch the AVS tvl for each strategy
@@ -903,9 +817,7 @@ async function calculateAvsApy(avs: any) {
 
 			// Find all reward submissions attributable to the strategy
 			const relevantSubmissions = avs.rewardSubmissions.filter(
-				(submission) =>
-					submission.strategyAddress.toLowerCase() ===
-					strategyAddress.toLowerCase()
+				(submission) => submission.strategyAddress.toLowerCase() === strategyAddress.toLowerCase()
 			)
 
 			// Calculate each reward amount for the strategy
@@ -925,13 +837,8 @@ async function calculateAvsApy(avs: any) {
 				} else {
 					// Check if it is a reward token which isn't a strategy on EL
 					for (const [, price] of Object.entries(rewardTokenPrices)) {
-						if (
-							price &&
-							price.tokenAddress.toLowerCase() === rewardTokenAddress
-						) {
-							rewardIncrementEth = submission.amount.mul(
-								new Prisma.Prisma.Decimal(price.eth ?? 0)
-							)
+						if (price && price.tokenAddress.toLowerCase() === rewardTokenAddress) {
+							rewardIncrementEth = submission.amount.mul(new Prisma.Prisma.Decimal(price.eth ?? 0))
 						} else {
 							// Check for special tokens
 							rewardIncrementEth = isSpecialToken(rewardTokenAddress)
@@ -956,8 +863,7 @@ async function calculateAvsApy(avs: any) {
 
 			// Annualize the reward basis its duration to find yearly APY
 			const rewardRate =
-				totalRewardsEth.div(new Prisma.Prisma.Decimal(10).pow(18)).toNumber() /
-				strategyTvl
+				totalRewardsEth.div(new Prisma.Prisma.Decimal(10).pow(18)).toNumber() / strategyTvl
 			const annualizedRate = rewardRate * ((365 * 24 * 60 * 60) / totalDuration)
 			const apy = annualizedRate * 100
 
@@ -965,10 +871,7 @@ async function calculateAvsApy(avs: any) {
 		})
 
 		// Calculate aggregate APYs across strategies
-		const aggregateApy = strategiesApy.reduce(
-			(sum, strategy) => sum + strategy.apy,
-			0
-		)
+		const aggregateApy = strategiesApy.reduce((sum, strategy) => sum + strategy.apy, 0)
 
 		return {
 			strategies: strategiesApy,
@@ -989,10 +892,7 @@ export function tokenToStrategyAddressMap(
 	const map = new Map<string, string>()
 	for (const [key, value] of Object.entries(strategies)) {
 		if (key !== 'Eigen' && value?.tokenContract && value?.strategyContract) {
-			map.set(
-				value.tokenContract.toLowerCase(),
-				value.strategyContract.toLowerCase()
-			)
+			map.set(value.tokenContract.toLowerCase(), value.strategyContract.toLowerCase())
 		}
 	}
 	return map

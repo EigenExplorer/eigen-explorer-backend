@@ -7,7 +7,7 @@ const createWithChangeQuerySchema = (description: string) =>
 			.default('false')
 			.describe(description)
 			.transform((val) => val === 'true')
-			.openapi({ example: 'false' }),
+			.openapi({ example: 'false' })
 	})
 
 export const WithChangeQuerySchema = createWithChangeQuerySchema(

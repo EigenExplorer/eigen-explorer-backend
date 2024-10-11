@@ -27,9 +27,7 @@ export async function seedRestakedStrategies() {
 				prismaClient.avs.updateMany({
 					where: { address: avs.address },
 					data: {
-						restakeableStrategies: avsRestakeableStrategies.map((s) =>
-							s.toLowerCase()
-						)
+						restakeableStrategies: avsRestakeableStrategies.map((s) => s.toLowerCase())
 					}
 				})
 			)

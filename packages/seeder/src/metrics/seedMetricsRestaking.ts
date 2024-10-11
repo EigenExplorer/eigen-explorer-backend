@@ -15,21 +15,12 @@ const BATCH_DAYS = 30
 // Define the type for our log entries
 type ILastOperatorMetric = Omit<prisma.MetricOperatorUnit, 'id'>
 type ILastAvsMetric = Omit<prisma.MetricAvsUnit, 'id'>
-type ILastOperatorStrategyMetric = Omit<
-	prisma.MetricOperatorStrategyUnit,
-	'id'
->
+type ILastOperatorStrategyMetric = Omit<prisma.MetricOperatorStrategyUnit, 'id'>
 type ILastAvsStrategyMetric = Omit<prisma.MetricAvsStrategyUnit, 'id'>
 type ILastOperatorMetrics = IMap<string, ILastOperatorMetric>
 type ILastAvsMetrics = IMap<string, ILastAvsMetric>
-type ILastOperatorStrategyMetrics = IMap<
-	string,
-	IMap<string, ILastOperatorStrategyMetric>
->
-type ILastAvsStrategyMetrics = IMap<
-	string,
-	IMap<string, ILastAvsStrategyMetric>
->
+type ILastOperatorStrategyMetrics = IMap<string, IMap<string, ILastOperatorStrategyMetric>>
+type ILastAvsStrategyMetrics = IMap<string, IMap<string, ILastAvsStrategyMetric>>
 type LogEntry = {
 	blockTime: Date
 	blockNumber: bigint
@@ -51,7 +42,7 @@ export async function seedMetricsRestaking(type: 'full' | 'incremental' = 'incre
 	let startDate: Date | null = await fetchLastSyncTime(blockSyncKey)
 	const endDate: Date = new Date(new Date().setUTCHours(0, 0, 0, 0))
 	let clearPrev = false
-	
+
 	if (type === 'full' || !startDate) {
 		const firstLogTimestamp = await getFirstLogTimestamp()
 		if (firstLogTimestamp) {
@@ -64,9 +55,7 @@ export async function seedMetricsRestaking(type: 'full' | 'incremental' = 'incre
 
 	// Bail early if there is no time diff to sync
 	if (endDate.getTime() - startDate.getTime() <= 0) {
-		console.log(
-			`[In Sync] [Metrics] Restaking Daily from: ${startDate} to: ${endDate}`
-		)
+		console.log(`[In Sync] [Metrics] Restaking Daily from: ${startDate} to: ${endDate}`)
 		return
 	}
 
@@ -102,21 +91,17 @@ export async function seedMetricsRestaking(type: 'full' | 'incremental' = 'incre
 	const avsOperatorsState = await getAvsOperatorsState(startDate)
 
 	// Process logs in batches
-	const [
-		operatorMetrics,
-		operatorStrategyMetrics,
-		avsMetrics,
-		avsStrategyMetrics
-	] = await processLogsInBatches(
-		startDate,
-		endDate,
-		lastOperatorMetrics,
-		lastOperatorStrategyMetrics,
-		lastAvsMetrics,
-		lastAvsStrategyMetrics,
-		sharesToUnderlyingList,
-		avsOperatorsState
-	)
+	const [operatorMetrics, operatorStrategyMetrics, avsMetrics, avsStrategyMetrics] =
+		await processLogsInBatches(
+			startDate,
+			endDate,
+			lastOperatorMetrics,
+			lastOperatorStrategyMetrics,
+			lastAvsMetrics,
+			lastAvsStrategyMetrics,
+			sharesToUnderlyingList,
+			avsOperatorsState
+		)
 
 	// Update data
 	const dbTransactions = [
@@ -184,12 +169,7 @@ async function processLogsInBatches(
 	sharesToUnderlyingList: { sharesToUnderlying: string; address: string }[],
 	avsOperatorsState: IMap<string, Set<string>>
 ): Promise<
-	[
-		ILastOperatorMetric[],
-		ILastOperatorStrategyMetric[],
-		ILastAvsMetric[],
-		ILastAvsStrategyMetric[]
-	]
+	[ILastOperatorMetric[], ILastOperatorStrategyMetric[], ILastAvsMetric[], ILastAvsStrategyMetric[]]
 > {
 	const operatorMetrics: ILastOperatorMetric[] = []
 	const operatorStrategyMetrics: ILastOperatorStrategyMetric[] = []
@@ -202,15 +182,10 @@ async function processLogsInBatches(
 	for (
 		let currentDate = setToStartOfDay(startDate);
 		currentDate < setToStartOfDay(endDate);
-		currentDate = new Date(
-			currentDate.getTime() + 24 * 60 * 60 * 1000 * BATCH_DAYS
-		)
+		currentDate = new Date(currentDate.getTime() + 24 * 60 * 60 * 1000 * BATCH_DAYS)
 	) {
 		const batchEndDate = new Date(
-			Math.min(
-				currentDate.getTime() + 24 * 60 * 60 * 1000 * BATCH_DAYS,
-				endDate.getTime()
-			)
+			Math.min(currentDate.getTime() + 24 * 60 * 60 * 1000 * BATCH_DAYS, endDate.getTime())
 		)
 
 		const batchLogs = await fetchOrderedLogs(currentDate, batchEndDate)
@@ -219,22 +194,18 @@ async function processLogsInBatches(
 			currentDate,
 			batchEndDate,
 			async (fromHour, toHour) => {
-				const [
-					operatorTvlRecords,
-					operatorStrategyRecords,
-					avsTvlRecords,
-					avsStrategyRecords
-				] = await loopTick(
-					fromHour,
-					toHour,
-					batchLogs,
-					lastOperatorMetrics,
-					lastOperatorStrategyMetrics,
-					lastAvsMetrics,
-					lastAvsStrategyMetrics,
-					sharesToUnderlyingMap,
-					avsOperatorsState
-				)
+				const [operatorTvlRecords, operatorStrategyRecords, avsTvlRecords, avsStrategyRecords] =
+					await loopTick(
+						fromHour,
+						toHour,
+						batchLogs,
+						lastOperatorMetrics,
+						lastOperatorStrategyMetrics,
+						lastAvsMetrics,
+						lastAvsStrategyMetrics,
+						sharesToUnderlyingMap,
+						avsOperatorsState
+					)
 
 				operatorMetrics.push(...operatorTvlRecords)
 				operatorStrategyMetrics.push(...operatorStrategyRecords)
@@ -251,12 +222,7 @@ async function processLogsInBatches(
 		)
 	}
 
-	return [
-		operatorMetrics,
-		operatorStrategyMetrics,
-		avsMetrics,
-		avsStrategyMetrics
-	]
+	return [operatorMetrics, operatorStrategyMetrics, avsMetrics, avsStrategyMetrics]
 }
 
 /**
@@ -282,12 +248,7 @@ async function loopTick(
 	sharesToUnderlyingMap: Map<string, bigint>,
 	avsOperatorsState: IMap<string, Set<string>>
 ): Promise<
-	[
-		ILastOperatorMetric[],
-		ILastOperatorStrategyMetric[],
-		ILastAvsMetric[],
-		ILastAvsStrategyMetric[]
-	]
+	[ILastOperatorMetric[], ILastOperatorStrategyMetric[], ILastAvsMetric[], ILastAvsStrategyMetric[]]
 > {
 	const operatorAddresses = new Set<string>()
 	const strategyAddresses = new Set<string>()
@@ -300,31 +261,23 @@ async function loopTick(
 	const avsStrategyTvlRecords: ILastAvsStrategyMetric[] = []
 
 	// Filter logs
-	const logs = orderedLogs.filter(
-		(ol) => ol.blockTime > fromDate && ol.blockTime <= toDate
-	)
+	const logs = orderedLogs.filter((ol) => ol.blockTime > fromDate && ol.blockTime <= toDate)
 
 	for (const ol of logs) {
 		const operatorAddress = ol.operator.toLowerCase()
 		operatorAddresses.add(operatorAddress)
 
-		if (
-			ol.type === 'OperatorSharesIncreased' ||
-			ol.type === 'OperatorSharesDecreased'
-		) {
+		if (ol.type === 'OperatorSharesIncreased' || ol.type === 'OperatorSharesDecreased') {
 			const shares = BigInt(ol.shares)
 			const strategyAddress = ol.strategy.toLowerCase()
 			strategyAddresses.add(strategyAddress)
 
-			const operatorShares =
-				operatorStrategyShares.get(operatorAddress) || new Map()
+			const operatorShares = operatorStrategyShares.get(operatorAddress) || new Map()
 			operatorStrategyShares.set(operatorAddress, operatorShares)
 
 			const currentShares = operatorShares.get(strategyAddress) || 0n
 			const newShares =
-				ol.type === 'OperatorSharesIncreased'
-					? currentShares + shares
-					: currentShares - shares
+				ol.type === 'OperatorSharesIncreased' ? currentShares + shares : currentShares - shares
 			operatorShares.set(strategyAddress, newShares)
 
 			const currentStrategyShares = strategyShares.get(strategyAddress) || 0n
@@ -334,10 +287,7 @@ async function loopTick(
 					? currentStrategyShares + shares
 					: currentStrategyShares - shares
 			)
-		} else if (
-			ol.type === 'StakerDelegated' ||
-			ol.type === 'StakerUndelegated'
-		) {
+		} else if (ol.type === 'StakerDelegated' || ol.type === 'StakerUndelegated') {
 			const currentStakers = operatorStakers.get(operatorAddress) || 0
 			operatorStakers.set(
 				operatorAddress,
@@ -422,9 +372,7 @@ async function loopTick(
 
 			const newOperatorStrategyMetric = {
 				...lastOperatorStrategyMetric,
-				tvl: new prisma.Prisma.Decimal(
-					Number(lastOperatorStrategyMetric.tvl) + changeTvl
-				),
+				tvl: new prisma.Prisma.Decimal(Number(lastOperatorStrategyMetric.tvl) + changeTvl),
 				changeTvl: new prisma.Prisma.Decimal(changeTvl),
 				timestamp: toDate
 			}
@@ -452,22 +400,15 @@ async function loopTick(
 				totalStakers += lastOperatorMetric.totalStakers
 			}
 
-			const lastOperatorStrategyMetric =
-				lastOperatorStrategyMetrics.get(operatorAddress)
+			const lastOperatorStrategyMetric = lastOperatorStrategyMetrics.get(operatorAddress)
 
 			if (lastOperatorStrategyMetric) {
-				for (const [
-					strategyAddress,
-					strategyMetric
-				] of lastOperatorStrategyMetric) {
+				for (const [strategyAddress, strategyMetric] of lastOperatorStrategyMetric) {
 					if (!totalTvl.has(strategyAddress)) {
 						totalTvl.set(strategyAddress, 0)
 					}
 
-					totalTvl.set(
-						strategyAddress,
-						totalTvl.get(strategyAddress) + Number(strategyMetric.tvl)
-					)
+					totalTvl.set(strategyAddress, totalTvl.get(strategyAddress) + Number(strategyMetric.tvl))
 				}
 			}
 		}
@@ -481,10 +422,7 @@ async function loopTick(
 			timestamp: toDate
 		}
 
-		if (
-			lastMetric.totalStakers !== totalStakers ||
-			lastMetric.totalOperators !== totalOperators
-		) {
+		if (lastMetric.totalStakers !== totalStakers || lastMetric.totalOperators !== totalOperators) {
 			const newAvsMetric = {
 				...lastMetric,
 				totalStakers,
@@ -503,9 +441,7 @@ async function loopTick(
 				lastAvsStrategyMetrics.set(avsAddress, new Map())
 			}
 
-			const lastAvsStrategyMetric = lastAvsStrategyMetrics
-				.get(avsAddress)
-				.get(strategyAddress) || {
+			const lastAvsStrategyMetric = lastAvsStrategyMetrics.get(avsAddress).get(strategyAddress) || {
 				avsAddress,
 				strategyAddress,
 				tvl: new prisma.Prisma.Decimal(0),
@@ -517,27 +453,18 @@ async function loopTick(
 				const newAvsStrategyMetric = {
 					...lastAvsStrategyMetric,
 					tvl: new prisma.Prisma.Decimal(tvl),
-					changeTvl: new prisma.Prisma.Decimal(tvl).minus(
-						lastAvsStrategyMetric.tvl
-					),
+					changeTvl: new prisma.Prisma.Decimal(tvl).minus(lastAvsStrategyMetric.tvl),
 					timestamp: toDate
 				}
 
-				lastAvsStrategyMetrics
-					.get(avsAddress)
-					.set(strategyAddress, newAvsStrategyMetric)
+				lastAvsStrategyMetrics.get(avsAddress).set(strategyAddress, newAvsStrategyMetric)
 
 				avsStrategyTvlRecords.push(newAvsStrategyMetric)
 			}
 		}
 	}
 
-	return [
-		operatorTvlRecords,
-		operatorStrategyTvlRecords,
-		avsTvlRecords,
-		avsStrategyTvlRecords
-	]
+	return [operatorTvlRecords, operatorStrategyTvlRecords, avsTvlRecords, avsStrategyTvlRecords]
 }
 
 /**
@@ -551,21 +478,16 @@ async function fetchOrderedLogs(from: Date, to: Date): Promise<LogEntry[]> {
 	const prismaClient = getPrismaClient()
 	const query = { blockTime: { gt: from, lte: to } }
 
-	const [
-		logs_osInc,
-		logs_osDec,
-		logs_stakersInc,
-		logs_stakersDec,
-		logs_operatorRegStatus
-	] = await Promise.all([
-		prismaClient.eventLogs_OperatorSharesIncreased.findMany({ where: query }),
-		prismaClient.eventLogs_OperatorSharesDecreased.findMany({ where: query }),
-		prismaClient.eventLogs_StakerDelegated.findMany({ where: query }),
-		prismaClient.eventLogs_StakerUndelegated.findMany({ where: query }),
-		prismaClient.eventLogs_OperatorAVSRegistrationStatusUpdated.findMany({
-			where: query
-		})
-	])
+	const [logs_osInc, logs_osDec, logs_stakersInc, logs_stakersDec, logs_operatorRegStatus] =
+		await Promise.all([
+			prismaClient.eventLogs_OperatorSharesIncreased.findMany({ where: query }),
+			prismaClient.eventLogs_OperatorSharesDecreased.findMany({ where: query }),
+			prismaClient.eventLogs_StakerDelegated.findMany({ where: query }),
+			prismaClient.eventLogs_StakerUndelegated.findMany({ where: query }),
+			prismaClient.eventLogs_OperatorAVSRegistrationStatusUpdated.findMany({
+				where: query
+			})
+		])
 
 	const orderedLogs = [
 		...logs_osInc.map((l) => ({ ...l, type: 'OperatorSharesIncreased' })),
@@ -576,11 +498,7 @@ async function fetchOrderedLogs(from: Date, to: Date): Promise<LogEntry[]> {
 			...l,
 			type: 'OperatorAVSRegistrationStatusUpdated'
 		}))
-	].sort(
-		(a, b) =>
-			Number(a.blockNumber - b.blockNumber) ||
-			a.transactionIndex - b.transactionIndex
-	)
+	].sort((a, b) => Number(a.blockNumber - b.blockNumber) || a.transactionIndex - b.transactionIndex)
 
 	return orderedLogs as unknown as LogEntry[]
 }
@@ -628,14 +546,9 @@ async function getFirstLogTimestamp() {
 		firstLogStakerInc?.blockTime,
 		firstLogStakerDec?.blockTime,
 		firstLogOperatorRegStatus?.blockTime
-	].filter(
-		(timestamp): timestamp is Date =>
-			timestamp !== null && timestamp !== undefined
-	)
+	].filter((timestamp): timestamp is Date => timestamp !== null && timestamp !== undefined)
 
-	return timestamps.length > 0
-		? new Date(Math.min(...timestamps.map((t) => t.getTime())))
-		: null
+	return timestamps.length > 0 ? new Date(Math.min(...timestamps.map((t) => t.getTime()))) : null
 }
 
 /**
@@ -666,9 +579,7 @@ async function getLatestMetricsPerAvs(): Promise<ILastAvsMetrics> {
 			}
 		})
 
-		return metrics
-			? new Map(metrics.map((metric) => [metric.avsAddress, metric]))
-			: new Map()
+		return metrics ? new Map(metrics.map((metric) => [metric.avsAddress, metric])) : new Map()
 	} catch {}
 
 	return new Map()
@@ -684,13 +595,12 @@ async function getLatestMetricsPerAvsStrategy(): Promise<ILastAvsStrategyMetrics
 	const prismaClient = getPrismaClient()
 
 	try {
-		const lastMetricsPerAvsStrategy =
-			await prismaClient.metricAvsStrategyUnit.groupBy({
-				by: ['avsAddress', 'strategyAddress'],
-				_max: {
-					timestamp: true
-				}
-			})
+		const lastMetricsPerAvsStrategy = await prismaClient.metricAvsStrategyUnit.groupBy({
+			by: ['avsAddress', 'strategyAddress'],
+			_max: {
+				timestamp: true
+			}
+		})
 
 		const metrics = await prismaClient.metricAvsStrategyUnit.findMany({
 			where: {
@@ -738,13 +648,12 @@ async function getLatestMetricsPerOperator(): Promise<ILastOperatorMetrics> {
 	const prismaClient = getPrismaClient()
 
 	try {
-		const lastMetricsPerOperator =
-			await prismaClient.metricOperatorUnit.groupBy({
-				by: ['operatorAddress'],
-				_max: {
-					timestamp: true
-				}
-			})
+		const lastMetricsPerOperator = await prismaClient.metricOperatorUnit.groupBy({
+			by: ['operatorAddress'],
+			_max: {
+				timestamp: true
+			}
+		})
 
 		const metrics = await prismaClient.metricOperatorUnit.findMany({
 			where: {
@@ -758,9 +667,7 @@ async function getLatestMetricsPerOperator(): Promise<ILastOperatorMetrics> {
 			}
 		})
 
-		return metrics
-			? new Map(metrics.map((metric) => [metric.operatorAddress, metric]))
-			: new Map()
+		return metrics ? new Map(metrics.map((metric) => [metric.operatorAddress, metric])) : new Map()
 	} catch {}
 
 	return new Map()
@@ -776,13 +683,12 @@ async function getLatestMetricsPerOperatorStrategy(): Promise<ILastOperatorStrat
 	const prismaClient = getPrismaClient()
 
 	try {
-		const lastMetricsPerOperatorStrategy =
-			await prismaClient.metricOperatorStrategyUnit.groupBy({
-				by: ['operatorAddress', 'strategyAddress'],
-				_max: {
-					timestamp: true
-				}
-			})
+		const lastMetricsPerOperatorStrategy = await prismaClient.metricOperatorStrategyUnit.groupBy({
+			by: ['operatorAddress', 'strategyAddress'],
+			_max: {
+				timestamp: true
+			}
+		})
 
 		const metrics = await prismaClient.metricOperatorStrategyUnit.findMany({
 			where: {
@@ -824,20 +730,16 @@ async function getLatestMetricsPerOperatorStrategy(): Promise<ILastOperatorStrat
 /**
  * Return a set of operators avs
  */
-async function getAvsOperatorsState(
-	to?: Date
-): Promise<IMap<string, Set<string>>> {
+async function getAvsOperatorsState(to?: Date): Promise<IMap<string, Set<string>>> {
 	const prismaClient = getPrismaClient()
 	const avsOperators: IMap<string, Set<string>> = new Map()
 
 	try {
 		const operatorRegStatusLogs =
-			await prismaClient.eventLogs_OperatorAVSRegistrationStatusUpdated.findMany(
-				{
-					where: to ? { blockTime: { lte: to } } : {},
-					orderBy: [{ blockNumber: 'asc' }, { transactionIndex: 'asc' }]
-				}
-			)
+			await prismaClient.eventLogs_OperatorAVSRegistrationStatusUpdated.findMany({
+				where: to ? { blockTime: { lte: to } } : {},
+				orderBy: [{ blockNumber: 'asc' }, { transactionIndex: 'asc' }]
+			})
 
 		for (const log of operatorRegStatusLogs) {
 			const operatorAddress = log.operator.toLowerCase()
