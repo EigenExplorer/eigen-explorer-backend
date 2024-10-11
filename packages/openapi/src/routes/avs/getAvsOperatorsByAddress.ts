@@ -6,17 +6,31 @@ import { PaginationQuerySchema } from '../../../../api/src/schema/zod/schemas/pa
 import { OperatorResponseSchema } from '../../apiResponseSchema/operatorResponse'
 import { PaginationMetaResponsesSchema } from '../../apiResponseSchema/base/paginationMetaResponses'
 import { WithTvlQuerySchema } from '../../../../api/src/schema/zod/schemas/withTvlQuery'
+import { AvsOperatorResponseSchema } from '../../apiResponseSchema/avs/avsOperatorResponse'
+import { SortOperatorsByTvl } from '../../../../api/src/schema/zod/schemas/separateSortingQueries'
+import {
+	SearchByText,
+	SearchMode
+} from '../../../../api/src/schema/zod/schemas/separateSearchQueries'
 
-const EthereumAddressParam = z.object({
-	address: EthereumAddressSchema
+const AvsAddressParam = z.object({
+	address: EthereumAddressSchema.describe('AVS service manager contract address').openapi({
+		example: '0x870679e138bcdf293b7ff14dd44b70fc97e12fc0'
+	})
 })
 
-const AvsOperatorResponseSchema = z.object({
-	data: z.array(OperatorResponseSchema),
+const AvsOperatorCombinedResponseSchema = z.object({
+	data: z.array(AvsOperatorResponseSchema),
 	meta: PaginationMetaResponsesSchema
 })
 
-const CombinedQuerySchema = z.object({}).merge(WithTvlQuerySchema).merge(PaginationQuerySchema)
+const CombinedQuerySchema = z
+	.object({})
+	.merge(SearchMode)
+	.merge(SearchByText)
+	.merge(WithTvlQuerySchema)
+	.merge(SortOperatorsByTvl)
+	.merge(PaginationQuerySchema)
 
 export const getAvsOperatorsByAddress: ZodOpenApiOperationObject = {
 	operationId: 'getAvsOperatorsByAddress',
@@ -24,7 +38,7 @@ export const getAvsOperatorsByAddress: ZodOpenApiOperationObject = {
 	description: 'Returns all operators for a given AVS address. This endpoint supports pagination.',
 	tags: ['AVS'],
 	requestParams: {
-		path: EthereumAddressParam,
+		path: AvsAddressParam,
 		query: CombinedQuerySchema
 	},
 	responses: {
@@ -32,7 +46,7 @@ export const getAvsOperatorsByAddress: ZodOpenApiOperationObject = {
 			description: 'The operators record found for the AVS.',
 			content: {
 				'application/json': {
-					schema: AvsOperatorResponseSchema
+					schema: AvsOperatorCombinedResponseSchema
 				}
 			}
 		},

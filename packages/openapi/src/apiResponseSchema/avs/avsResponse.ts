@@ -2,6 +2,7 @@ import z from '../../../../api/src/schema/zod'
 import { AvsMetaDataSchema } from '../../../../api/src/schema/zod/schemas/base/avsMetaData'
 import { EthereumAddressSchema } from '../../../../api/src/schema/zod/schemas/base/ethereumAddress'
 import { StrategySharesSchema } from '../../../../api/src/schema/zod/schemas/base/strategyShares'
+import { CuratedMetadataSchema } from '../base/curatedMetadataResponses'
 import { TvlSchema } from '../base/tvlResponses'
 
 export const AvsSchema = z.object({
@@ -15,10 +16,15 @@ export const AvsSchema = z.object({
 	metadataTelegram: AvsMetaDataSchema.shape.metadataTelegram,
 	metadataWebsite: AvsMetaDataSchema.shape.metadataWebsite,
 	metadataX: AvsMetaDataSchema.shape.metadataX,
-	restakeableStrategies: z
-		.array(EthereumAddressSchema)
-		.describe('The list of supported restaking strategies')
-		.openapi({ example: ['0x35f4f28a8d3ff20eed10e087e8f96ea2641e6aa1'] }),
+	totalStakers: z
+		.number()
+		.describe('The total number of stakers staking in the AVS')
+		.openapi({ example: 10 }),
+	totalOperators: z
+		.number()
+		.describe('The total number of operators operating the AVS')
+		.openapi({ example: 10 }),
+	apy: z.string().describe('The latest APY recorded for the AVS').openapi({ example: '1.302' }),
 	createdAtBlock: z
 		.string()
 		.describe('The block number at which the AVS was created')
@@ -40,6 +46,23 @@ export const AvsSchema = z.object({
 	//     .optional()
 	//     .describe('The tags associated with the AVS')
 	//     .openapi({ example: ['DA', 'DeFi'] }),
+	curatedMetadata: CuratedMetadataSchema.optional()
+		.describe('To curate visibility and additional information of the AVS ')
+		.openapi({
+			example: {
+				avsAddress: '0x2344c0fe02ccd2b32155ca0ffcb1978a6d96a552',
+				metadataName: 'Example AVS',
+				metadataDescription: 'This is an example AVS',
+				metadataDiscord: 'https://discord.com/invite/abcdefghij',
+				metadataLogo: "The URL of the AVS's logo",
+				metadataTelegram: "The URL of the AVS's Telegram channel",
+				metadataWebsite: 'https://acme.com',
+				metadataX: 'https://twitter.com/acme',
+				tags: ['Example tag 1', 'Example tag 2'],
+				isVisible: true,
+				isVerified: true
+			}
+		}),
 	shares: z
 		.array(StrategySharesSchema)
 		.describe('The strategy shares held in the AVS')
@@ -55,14 +78,6 @@ export const AvsSchema = z.object({
 				}
 			]
 		}),
-	totalOperators: z
-		.number()
-		.describe('The total number of operators operating the AVS')
-		.openapi({ example: 10 }),
-	totalStakers: z
-		.number()
-		.describe('The total number of stakers staking in the AVS')
-		.openapi({ example: 10 }),
 	tvl: TvlSchema.optional()
 		.describe('The total value locked (TVL) in the AVS')
 		.openapi({

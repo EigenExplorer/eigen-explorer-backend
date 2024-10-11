@@ -3,6 +3,7 @@ import z from '../../../../api/src/schema/zod'
 import { PaginationQuerySchema } from '../../../../api/src/schema/zod/schemas/paginationQuery'
 import { openApiErrorResponses } from '../../apiResponseSchema/base/errorResponses'
 import { PaginationMetaResponsesSchema } from '../../apiResponseSchema/base/paginationMetaResponses'
+import { UpdatedSinceQuerySchema } from '../../../../api/src/schema/zod/schemas/updatedSinceQuery'
 import { WithTvlQuerySchema } from '../../../../api/src/schema/zod/schemas/withTvlQuery'
 import { StakerResponseSchema } from '../../apiResponseSchema/stakerResponse'
 
@@ -11,7 +12,11 @@ const AllStakersResponseSchema = z.object({
 	meta: PaginationMetaResponsesSchema
 })
 
-const CombinedQuerySchema = z.object({}).merge(WithTvlQuerySchema).merge(PaginationQuerySchema)
+const CombinedQuerySchema = z
+	.object({})
+	.merge(WithTvlQuerySchema)
+	.merge(UpdatedSinceQuerySchema)
+	.merge(PaginationQuerySchema)
 
 export const getAllStakers: ZodOpenApiOperationObject = {
 	operationId: 'getAllStakers',
