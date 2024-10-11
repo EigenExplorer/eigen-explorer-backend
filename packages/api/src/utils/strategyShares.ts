@@ -1,5 +1,5 @@
-import prisma from '@prisma/client'
-import { getPrismaClient } from './prismaClient'
+import { Prisma } from '@prisma/client'
+import { prismaClient } from './prismaClient'
 import { fetchTokenPrices } from './tokenPrices'
 import { getViemClient } from '../viem/viemClient'
 import { serviceManagerUIAbi } from '../data/abi/serviceManagerUIAbi'
@@ -18,7 +18,6 @@ export interface StrategyWithShareUnderlying {
  * @returns
  */
 export async function getStrategiesWithShareUnderlying(): Promise<StrategyWithShareUnderlying[]> {
-	const prismaClient = getPrismaClient()
 	const strategies = await prismaClient.strategies.findMany()
 	const tokenPrices = await fetchTokenPrices()
 
@@ -122,9 +121,9 @@ export function sharesToTVLStrategies(
 
 		if (sharesUnderlying) {
 			const strategyShares =
-				new prisma.Prisma.Decimal(share.shares)
-					.mul(new prisma.Prisma.Decimal(sharesUnderlying.sharesToUnderlying.toString()))
-					.div(new prisma.Prisma.Decimal(10).pow(18))
+				new Prisma.Decimal(share.shares)
+					.mul(new Prisma.Decimal(sharesUnderlying.sharesToUnderlying.toString()))
+					.div(new Prisma.Decimal(10).pow(18))
 					.toNumber() / 1e18
 
 			const strategyTokenPrice = sharesUnderlying.ethPrice || 0

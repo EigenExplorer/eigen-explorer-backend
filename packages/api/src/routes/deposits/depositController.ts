@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express'
 import { Prisma } from '@prisma/client'
-import prisma from '../../utils/prismaClient'
+import { prismaClient } from '../../utils/prismaClient'
 import { handleAndReturnErrorResponse } from '../../schema/errors'
 import { DepositListQuerySchema } from '../../schema/zod/schemas/deposit'
 import { PaginationQuerySchema } from '../../schema/zod/schemas/paginationQuery'
@@ -36,11 +36,11 @@ export async function getAllDeposits(req: Request, res: Response) {
 			filterQuery.strategyAddress = strategyAddress.toLowerCase()
 		}
 
-		const depositCount = await prisma.deposit.count({
+		const depositCount = await prismaClient.deposit.count({
 			where: filterQuery
 		})
 
-		const depositRecords = await prisma.deposit.findMany({
+		const depositRecords = await prismaClient.deposit.findMany({
 			where: filterQuery,
 			skip,
 			take,

@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express'
-import type Prisma from '@prisma/client'
-import prisma, { getPrismaClient } from '../../utils/prismaClient'
+import prisma, { Prisma } from '@prisma/client'
+import { prismaClient } from '../../utils/prismaClient'
 import { EigenExplorerApiError, handleAndReturnErrorResponse } from '../../schema/errors'
 import { getAvsFilterQuery } from '../avs/avsController'
 import { HistoricalCountSchema } from '../../schema/zod/schemas/historicalCountQuery'
@@ -72,16 +72,16 @@ type HistoricalTvlRecord = {
 }
 
 type EthTvlModelMap = {
-	metricDepositUnit: Prisma.MetricDepositUnit
-	metricWithdrawalUnit: Prisma.MetricWithdrawalUnit
-	metricEigenPodsUnit: Prisma.MetricEigenPodsUnit
+	metricDepositUnit: prisma.MetricDepositUnit
+	metricWithdrawalUnit: prisma.MetricWithdrawalUnit
+	metricEigenPodsUnit: prisma.MetricEigenPodsUnit
 }
 type EthTvlModelName = keyof EthTvlModelMap // Models with TVL denominated in ETH
 
 type NativeTvlModelMap = {
-	metricStrategyUnit: Prisma.MetricStrategyUnit
-	metricAvsStrategyUnit: Prisma.MetricAvsStrategyUnit
-	metricOperatorStrategyUnit: Prisma.MetricOperatorStrategyUnit
+	metricStrategyUnit: prisma.MetricStrategyUnit
+	metricAvsStrategyUnit: prisma.MetricAvsStrategyUnit
+	metricOperatorStrategyUnit: prisma.MetricOperatorStrategyUnit
 }
 type NativeTvlModelName = keyof NativeTvlModelMap // Models with TVL denominated in their own native token
 
@@ -103,8 +103,8 @@ type HistoricalAggregateRecord = {
 	totalAvs?: number
 }
 type AggregateModelMap = {
-	metricAvsUnit: Prisma.MetricAvsUnit
-	metricOperatorUnit: Prisma.MetricOperatorUnit
+	metricAvsUnit: prisma.MetricAvsUnit
+	metricOperatorUnit: prisma.MetricOperatorUnit
 }
 type AggregateModelName = keyof AggregateModelMap
 
@@ -272,7 +272,7 @@ export async function getTvlRestakingByStrategy(req: Request, res: Response) {
 		const { strategy } = req.params
 		const { withChange } = queryCheck.data
 
-		const foundStrategy = await prisma.strategies.findUnique({
+		const foundStrategy = await prismaClient.strategies.findUnique({
 			where: { address: strategy.toLowerCase() }
 		})
 
@@ -902,7 +902,7 @@ async function doGetTvlStrategy(
  * @returns
  */
 async function doGetTvlBeaconChain(withChange: boolean): Promise<TvlWithoutChange | TvlWithChange> {
-	const totalValidators = await prisma.validator.aggregate({
+	const totalValidators = await prismaClient.validator.aggregate({
 		where: {
 			status: { in: ['active_ongoing', 'active_exiting'] }
 		},
@@ -929,7 +929,7 @@ async function doGetTvlBeaconChain(withChange: boolean): Promise<TvlWithoutChang
 async function doGetTotalAvsCount(
 	withChange: boolean
 ): Promise<TotalWithoutChange | TotalWithChange> {
-	const totalNow = await prisma.avs.count({
+	const totalNow = await prismaClient.avs.count({
 		where: getAvsFilterQuery(true)
 	})
 
@@ -937,13 +937,13 @@ async function doGetTotalAvsCount(
 		return totalNow as TotalWithoutChange
 	}
 
-	const getChange24hValue = prisma.avs.count({
+	const getChange24hValue = prismaClient.avs.count({
 		where: {
 			createdAt: { gte: getTimestamp('24h') },
 			...getAvsFilterQuery(true)
 		}
 	})
-	const getChange7dValue = prisma.avs.count({
+	const getChange7dValue = prismaClient.avs.count({
 		where: {
 			createdAt: { gte: getTimestamp('7d') },
 			...getAvsFilterQuery(true)
@@ -962,18 +962,18 @@ async function doGetTotalAvsCount(
  * @returns
  */
 async function doGetTotalOperatorCount(withChange: boolean) {
-	const totalNow = await prisma.operator.count()
+	const totalNow = await prismaClient.operator.count()
 
 	if (!withChange) {
 		return totalNow as TotalWithoutChange
 	}
 
-	const getChange24hValue = prisma.operator.count({
+	const getChange24hValue = prismaClient.operator.count({
 		where: {
 			createdAt: { gte: getTimestamp('24h') }
 		}
 	})
-	const getChange7dValue = prisma.operator.count({
+	const getChange7dValue = prismaClient.operator.count({
 		where: {
 			createdAt: { gte: getTimestamp('7d') }
 		}
@@ -991,7 +991,7 @@ async function doGetTotalOperatorCount(withChange: boolean) {
  * @returns
  */
 async function doGetTotalStakerCount(withChange: boolean) {
-	const totalNow = await prisma.staker.count({
+	const totalNow = await prismaClient.staker.count({
 		where: { operatorAddress: { not: null } }
 	})
 
@@ -999,13 +999,13 @@ async function doGetTotalStakerCount(withChange: boolean) {
 		return totalNow as TotalWithoutChange
 	}
 
-	const getChange24hValue = prisma.staker.count({
+	const getChange24hValue = prismaClient.staker.count({
 		where: {
 			createdAt: { gte: getTimestamp('24h') },
 			operatorAddress: { not: null }
 		}
 	})
-	const getChange7dValue = prisma.staker.count({
+	const getChange7dValue = prismaClient.staker.count({
 		where: {
 			createdAt: { gte: getTimestamp('7d') },
 			operatorAddress: { not: null }
@@ -1026,8 +1026,8 @@ async function doGetTotalStakerCount(withChange: boolean) {
 async function doGetTotalWithdrawals(
 	withChange: boolean
 ): Promise<TotalWithdrawalsWithoutChange | TotalWithdrawalsWithChange> {
-	const totalNow = await prisma.withdrawalQueued.count()
-	const completedNow = await prisma.withdrawalCompleted.count()
+	const totalNow = await prismaClient.withdrawalQueued.count()
+	const completedNow = await prismaClient.withdrawalCompleted.count()
 	const pendingNow = totalNow - completedNow
 
 	if (!withChange) {
@@ -1038,22 +1038,22 @@ async function doGetTotalWithdrawals(
 		}
 	}
 
-	const getTotal24hAgo = prisma.withdrawalQueued.count({
+	const getTotal24hAgo = prismaClient.withdrawalQueued.count({
 		where: {
 			createdAt: { gte: getTimestamp('24h') }
 		}
 	})
-	const getCompleted24hAgo = prisma.withdrawalCompleted.count({
+	const getCompleted24hAgo = prismaClient.withdrawalCompleted.count({
 		where: {
 			createdAt: { gte: getTimestamp('24h') }
 		}
 	})
-	const getTotal7dAgo = prisma.withdrawalQueued.count({
+	const getTotal7dAgo = prismaClient.withdrawalQueued.count({
 		where: {
 			createdAt: { gte: getTimestamp('7d') }
 		}
 	})
-	const getCompleted7dAgo = prisma.withdrawalCompleted.count({
+	const getCompleted7dAgo = prismaClient.withdrawalCompleted.count({
 		where: {
 			createdAt: { gte: getTimestamp('7d') }
 		}
@@ -1113,18 +1113,18 @@ async function doGetTotalWithdrawals(
  * @returns
  */
 async function doGetTotalDeposits(withChange: boolean) {
-	const totalNow = await prisma.deposit.count()
+	const totalNow = await prismaClient.deposit.count()
 
 	if (!withChange) {
 		return totalNow as TotalWithoutChange
 	}
 
-	const getChange24hValue = prisma.deposit.count({
+	const getChange24hValue = prismaClient.deposit.count({
 		where: {
 			createdAt: { gte: getTimestamp('24h') }
 		}
 	})
-	const getChange7dValue = prisma.deposit.count({
+	const getChange7dValue = prismaClient.deposit.count({
 		where: {
 			createdAt: { gte: getTimestamp('7d') }
 		}
@@ -1192,7 +1192,7 @@ async function doGetHistoricalTvlBeacon(
 	const endTimestamp = resetTime(new Date(endAt))
 
 	// Fetch the timestamp of the first record on or before startTimestamp
-	const initialDataTimestamp = await prisma.metricEigenPodsUnit.findFirst({
+	const initialDataTimestamp = await prismaClient.metricEigenPodsUnit.findFirst({
 		where: {
 			timestamp: {
 				lte: startTimestamp
@@ -1204,7 +1204,7 @@ async function doGetHistoricalTvlBeacon(
 	})
 
 	// Fetch all records from the initialDataTimestamp
-	const unitData = await prisma.metricEigenPodsUnit.findMany({
+	const unitData = await prismaClient.metricEigenPodsUnit.findMany({
 		where: {
 			timestamp: {
 				gte: initialDataTimestamp?.timestamp || startTimestamp, // Guarantees correct initial data for cumulative queries
@@ -1266,7 +1266,7 @@ async function doGetHistoricalTvlRestaking(
 	const ethPrices = await fetchCurrentEthPrices()
 
 	// Fetch the timestamp of the first record on or before startTimestamp
-	const initialDataTimestamps = await prisma.metricStrategyUnit.groupBy({
+	const initialDataTimestamps = await prismaClient.metricStrategyUnit.groupBy({
 		by: ['strategyAddress'],
 		_max: {
 			timestamp: true
@@ -1281,7 +1281,7 @@ async function doGetHistoricalTvlRestaking(
 	})
 
 	// For every strategyAddress, fetch all records from the initialDataTimestamp
-	let unitData = await prisma.metricStrategyUnit.findMany({
+	let unitData = await prismaClient.metricStrategyUnit.findMany({
 		where: {
 			OR: initialDataTimestamps.map((metric) => ({
 				AND: [
@@ -1295,7 +1295,7 @@ async function doGetHistoricalTvlRestaking(
 						}
 					}
 				]
-			})) as Prisma.Prisma.MetricStrategyUnitWhereInput[]
+			})) as Prisma.MetricStrategyUnitWhereInput[]
 		},
 		orderBy: {
 			timestamp: 'asc'
@@ -1308,7 +1308,7 @@ async function doGetHistoricalTvlRestaking(
 	let strategyAddresses = [...new Set(unitData.map((data) => data.strategyAddress))]
 
 	// Gather the remaining strategies that might not currently be in the strategyData
-	const remainingUnitData = await prisma.metricStrategyUnit.findMany({
+	const remainingUnitData = await prismaClient.metricStrategyUnit.findMany({
 		where: {
 			AND: [
 				{
@@ -1395,7 +1395,7 @@ async function doGetHistoricalTvlWithdrawal(
 	const endTimestamp = resetTime(new Date(endAt))
 
 	// Fetch the timestamp of the first record on or before startTimestamp
-	const initialDataTimestamp = await prisma.metricWithdrawalUnit.findFirst({
+	const initialDataTimestamp = await prismaClient.metricWithdrawalUnit.findFirst({
 		where: {
 			timestamp: {
 				lte: startTimestamp
@@ -1407,7 +1407,7 @@ async function doGetHistoricalTvlWithdrawal(
 	})
 
 	// Fetch all records from the initialDataTimestamp
-	const unitData = await prisma.metricWithdrawalUnit.findMany({
+	const unitData = await prismaClient.metricWithdrawalUnit.findMany({
 		where: {
 			timestamp: {
 				gte: initialDataTimestamp?.timestamp || startTimestamp, // Guarantees correct initial data for cumulative queries
@@ -1470,7 +1470,7 @@ async function doGetHistoricalTvlDeposit(
 	const endTimestamp = resetTime(new Date(endAt))
 
 	// Fetch the timestamp of the first record on or before startTimestamp
-	const initialDataTimestamp = await prisma.metricDepositUnit.findFirst({
+	const initialDataTimestamp = await prismaClient.metricDepositUnit.findFirst({
 		where: {
 			timestamp: {
 				lte: startTimestamp
@@ -1482,7 +1482,7 @@ async function doGetHistoricalTvlDeposit(
 	})
 
 	// Fetch all records from the initialDataTimestamp
-	const unitData = await prisma.metricDepositUnit.findMany({
+	const unitData = await prismaClient.metricDepositUnit.findMany({
 		where: {
 			timestamp: {
 				gte: initialDataTimestamp?.timestamp || startTimestamp, // Guarantees correct initial data for cumulative queries
@@ -1554,7 +1554,7 @@ async function doGetHistoricalAvsAggregate(
 	// Fetch initial data for metrics calculation
 	const processMetricUnitData = async () => {
 		// Fetch the timestamp of the first record on or before startTimestamp
-		const initialDataTimestamp = await prisma.metricAvsUnit.groupBy({
+		const initialDataTimestamp = await prismaClient.metricAvsUnit.groupBy({
 			by: ['avsAddress'],
 			_max: {
 				timestamp: true
@@ -1568,7 +1568,7 @@ async function doGetHistoricalAvsAggregate(
 		})
 
 		// Fetch all records from the initialDataTimestamp
-		const unitData = await prisma.metricAvsUnit.findMany({
+		const unitData = await prismaClient.metricAvsUnit.findMany({
 			where: {
 				avsAddress: address.toLowerCase(),
 				timestamp: {
@@ -1595,7 +1595,7 @@ async function doGetHistoricalAvsAggregate(
 	// Fetch initial data for tvlEth calculation
 	const processMetricStrategyUnitData = async () => {
 		// Fetch the timestamp of the first record on or before startTimestamp
-		const initialDataTimestamps = await prisma.metricAvsStrategyUnit.groupBy({
+		const initialDataTimestamps = await prismaClient.metricAvsStrategyUnit.groupBy({
 			by: ['avsAddress', 'strategyAddress'],
 			_max: {
 				timestamp: true
@@ -1609,7 +1609,7 @@ async function doGetHistoricalAvsAggregate(
 		})
 
 		// For every strategyAddress, fetch all records from the initialDataTimestamp
-		const strategyData = await prisma.metricAvsStrategyUnit.findMany({
+		const strategyData = await prismaClient.metricAvsStrategyUnit.findMany({
 			where: {
 				OR: initialDataTimestamps.map((metric) => ({
 					AND: [
@@ -1624,7 +1624,7 @@ async function doGetHistoricalAvsAggregate(
 							}
 						}
 					]
-				})) as Prisma.Prisma.MetricAvsStrategyUnitWhereInput[]
+				})) as Prisma.MetricAvsStrategyUnitWhereInput[]
 			},
 			orderBy: {
 				timestamp: 'asc'
@@ -1647,7 +1647,7 @@ async function doGetHistoricalAvsAggregate(
 	let strategyAddresses = [...new Set(strategyData.map((data) => data.strategyAddress))]
 
 	// Gather the remaining strategies that might not currently be in the strategyData
-	const remainingStrategyData = await prisma.metricAvsStrategyUnit.findMany({
+	const remainingStrategyData = await prismaClient.metricAvsStrategyUnit.findMany({
 		where: {
 			AND: [
 				{
@@ -1761,7 +1761,7 @@ async function doGetHistoricalOperatorsAggregate(
 	// Fetch initial data for metrics calculation
 	const processMetricUnitData = async () => {
 		// Fetch the timestamp of the first record on or before startTimestamp
-		const initialDataTimestamp = await prisma.metricOperatorUnit.groupBy({
+		const initialDataTimestamp = await prismaClient.metricOperatorUnit.groupBy({
 			by: ['operatorAddress'],
 			_max: {
 				timestamp: true
@@ -1775,7 +1775,7 @@ async function doGetHistoricalOperatorsAggregate(
 		})
 
 		// Fetch all records from the initialDataTimestamp
-		const unitData = await prisma.metricOperatorUnit.findMany({
+		const unitData = await prismaClient.metricOperatorUnit.findMany({
 			where: {
 				operatorAddress: address.toLowerCase(),
 				timestamp: {
@@ -1802,7 +1802,7 @@ async function doGetHistoricalOperatorsAggregate(
 	// Fetch initial data for tvlEth calculation
 	const processMetricStrategyUnitData = async () => {
 		// Fetch the timestamp of the first record on or before startTimestamp
-		const initialDataTimestamps = await prisma.metricOperatorStrategyUnit.groupBy({
+		const initialDataTimestamps = await prismaClient.metricOperatorStrategyUnit.groupBy({
 			by: ['operatorAddress', 'strategyAddress'],
 			_max: {
 				timestamp: true
@@ -1816,7 +1816,7 @@ async function doGetHistoricalOperatorsAggregate(
 		})
 
 		// For every strategyAddress, fetch all records from the initialDataTimestamp
-		const strategyData = await prisma.metricOperatorStrategyUnit.findMany({
+		const strategyData = await prismaClient.metricOperatorStrategyUnit.findMany({
 			where: {
 				OR: initialDataTimestamps.map((metric) => ({
 					AND: [
@@ -1831,7 +1831,7 @@ async function doGetHistoricalOperatorsAggregate(
 							}
 						}
 					]
-				})) as Prisma.Prisma.MetricOperatorStrategyUnitWhereInput[]
+				})) as Prisma.MetricOperatorStrategyUnitWhereInput[]
 			},
 			orderBy: {
 				timestamp: 'asc'
@@ -1854,7 +1854,7 @@ async function doGetHistoricalOperatorsAggregate(
 	let strategyAddresses = [...new Set(strategyData.map((data) => data.strategyAddress))]
 
 	// Gather the remaining strategies that might not currently be in the strategyData
-	const remainingStrategyData = await prisma.metricOperatorStrategyUnit.findMany({
+	const remainingStrategyData = await prismaClient.metricOperatorStrategyUnit.findMany({
 		where: {
 			AND: [
 				{
@@ -2108,7 +2108,7 @@ async function doGetDeploymentRatio(
 	const totalTvl = restakingTvlValue + beaconChainTvlValue
 
 	const ethPrices = await fetchCurrentEthPrices()
-	const lastMetricsTimestamps = await prisma.metricOperatorStrategyUnit.groupBy({
+	const lastMetricsTimestamps = await prismaClient.metricOperatorStrategyUnit.groupBy({
 		by: ['operatorAddress', 'strategyAddress'],
 		_max: { timestamp: true }
 	})
@@ -2117,7 +2117,7 @@ async function doGetDeploymentRatio(
 		(metric) => metric._max.timestamp !== null
 	)
 
-	const metrics = await prisma.metricOperatorStrategyUnit.findMany({
+	const metrics = await prismaClient.metricOperatorStrategyUnit.findMany({
 		where: {
 			OR: validMetricsTimestamps.map((metric) => ({
 				operatorAddress: metric.operatorAddress,
@@ -2152,7 +2152,7 @@ async function doGetDeploymentRatio(
 	let changeDelegation24hAgo = 0
 	let changeDelegationValue7dAgo = 0
 
-	const historicalRecords = await prisma.metricOperatorStrategyUnit.findMany({
+	const historicalRecords = await prismaClient.metricOperatorStrategyUnit.findMany({
 		select: {
 			changeTvl: true,
 			timestamp: true,
@@ -2272,7 +2272,6 @@ function resetTime(date: Date) {
  * @returns
  */
 async function fetchCurrentEthPrices(): Promise<Map<string, number>> {
-	const prismaClient = getPrismaClient()
 	const strategies = await prismaClient.strategies.findMany()
 	const tokenPrices = await fetchTokenPrices()
 	const strategyPriceMap = new Map<string, number>()
@@ -2367,7 +2366,7 @@ async function calculateTvlChange(
 		}
 
 		// For each strategy, fetch the timestamp of its latest record
-		const latestTimestamps = await prisma.metricStrategyUnit.groupBy({
+		const latestTimestamps = await prismaClient.metricStrategyUnit.groupBy({
 			by: ['strategyAddress'],
 			_max: {
 				timestamp: true
@@ -2382,7 +2381,7 @@ async function calculateTvlChange(
 		})
 
 		// For each strategy, fetch its latest record
-		const strategyData = await prisma.metricStrategyUnit.findMany({
+		const strategyData = await prismaClient.metricStrategyUnit.findMany({
 			where: {
 				OR: latestTimestamps.map((metric) => ({
 					AND: [
@@ -2395,7 +2394,7 @@ async function calculateTvlChange(
 							}
 						}
 					]
-				})) as Prisma.Prisma.MetricStrategyUnitWhereInput[]
+				})) as Prisma.MetricStrategyUnitWhereInput[]
 			},
 			orderBy: {
 				timestamp: 'asc'
@@ -2409,7 +2408,7 @@ async function calculateTvlChange(
 		let changeTvlEth7dAgo = 0
 
 		// Get all records since 8d ago
-		const historicalRecords = await prisma.metricStrategyUnit.findMany({
+		const historicalRecords = await prismaClient.metricStrategyUnit.findMany({
 			where: {
 				timestamp: {
 					gt: getTimestamp('8d'),
@@ -2437,7 +2436,7 @@ async function calculateTvlChange(
 		tvlEth7dAgo = tvl - changeTvlEth7dAgo
 	} else {
 		// Get all records since 8d ago
-		const historicalRecords = await prisma.metricEigenPodsUnit.findMany({
+		const historicalRecords = await prismaClient.metricEigenPodsUnit.findMany({
 			where: {
 				timestamp: {
 					gte: getTimestamp('8d'),

@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express'
-import prisma from '../../utils/prismaClient'
+import { prismaClient } from '../../utils/prismaClient'
 import { handleAndReturnErrorResponse } from '../../schema/errors'
 import { PaginationQuerySchema } from '../../schema/zod/schemas/paginationQuery'
 import { WithTvlQuerySchema } from '../../schema/zod/schemas/withTvlQuery'
@@ -27,11 +27,11 @@ export async function getAllStakers(req: Request, res: Response) {
 
 	try {
 		// Fetch count and record
-		const stakersCount = await prisma.staker.count({
+		const stakersCount = await prismaClient.staker.count({
 			where: updatedSince ? { updatedAt: { gte: new Date(updatedSince) } } : {}
 		})
 
-		const stakersRecords = await prisma.staker.findMany({
+		const stakersRecords = await prismaClient.staker.findMany({
 			skip,
 			take,
 			where: updatedSince ? { updatedAt: { gte: new Date(updatedSince) } } : {},
@@ -85,7 +85,7 @@ export async function getStaker(req: Request, res: Response) {
 	try {
 		const { address } = req.params
 
-		const staker = await prisma.staker.findUniqueOrThrow({
+		const staker = await prismaClient.staker.findUniqueOrThrow({
 			where: { address: address.toLowerCase() },
 			include: {
 				shares: {
@@ -123,10 +123,10 @@ export async function getStakerWithdrawals(req: Request, res: Response) {
 		const { address } = req.params
 		const filterQuery = { stakerAddress: address }
 
-		const withdrawalCount = await prisma.withdrawalQueued.count({
+		const withdrawalCount = await prismaClient.withdrawalQueued.count({
 			where: filterQuery
 		})
-		const withdrawalRecords = await prisma.withdrawalQueued.findMany({
+		const withdrawalRecords = await prismaClient.withdrawalQueued.findMany({
 			where: filterQuery,
 			include: {
 				completedWithdrawal: true
@@ -184,10 +184,10 @@ export async function getStakerWithdrawalsQueued(req: Request, res: Response) {
 		const { address } = req.params
 		const filterQuery = { stakerAddress: address, completedWithdrawal: null }
 
-		const withdrawalCount = await prisma.withdrawalQueued.count({
+		const withdrawalCount = await prismaClient.withdrawalQueued.count({
 			where: filterQuery
 		})
-		const withdrawalRecords = await prisma.withdrawalQueued.findMany({
+		const withdrawalRecords = await prismaClient.withdrawalQueued.findMany({
 			where: filterQuery,
 			skip,
 			take,
@@ -238,7 +238,7 @@ export async function getStakerWithdrawalsWithdrawable(req: Request, res: Respon
 		const { address } = req.params
 
 		const viemClient = getViemClient()
-		const minDelayBlocks = await prisma.settings.findUnique({
+		const minDelayBlocks = await prismaClient.settings.findUnique({
 			where: { key: 'withdrawMinDelayBlocks' }
 		})
 		const minDelayBlock =
@@ -250,10 +250,10 @@ export async function getStakerWithdrawalsWithdrawable(req: Request, res: Respon
 			createdAtBlock: { lte: minDelayBlock }
 		}
 
-		const withdrawalCount = await prisma.withdrawalQueued.count({
+		const withdrawalCount = await prismaClient.withdrawalQueued.count({
 			where: filterQuery
 		})
-		const withdrawalRecords = await prisma.withdrawalQueued.findMany({
+		const withdrawalRecords = await prismaClient.withdrawalQueued.findMany({
 			where: filterQuery,
 			skip,
 			take,
@@ -309,10 +309,10 @@ export async function getStakerWithdrawalsCompleted(req: Request, res: Response)
 			}
 		}
 
-		const withdrawalCount = await prisma.withdrawalQueued.count({
+		const withdrawalCount = await prismaClient.withdrawalQueued.count({
 			where: filterQuery
 		})
-		const withdrawalRecords = await prisma.withdrawalQueued.findMany({
+		const withdrawalRecords = await prismaClient.withdrawalQueued.findMany({
 			where: filterQuery,
 			include: {
 				completedWithdrawal: true
@@ -369,10 +369,10 @@ export async function getStakerDeposits(req: Request, res: Response) {
 		const { address } = req.params
 		const filterQuery = { stakerAddress: address }
 
-		const depositCount = await prisma.deposit.count({
+		const depositCount = await prismaClient.deposit.count({
 			where: filterQuery
 		})
-		const depositRecords = await prisma.deposit.findMany({
+		const depositRecords = await prismaClient.deposit.findMany({
 			where: filterQuery,
 			skip,
 			take,

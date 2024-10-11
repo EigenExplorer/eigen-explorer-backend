@@ -1,5 +1,5 @@
 import { cacheStore } from 'route-cache'
-import { getPrismaClient } from './prismaClient'
+import { prismaClient } from './prismaClient'
 
 type TokenPrice = {
 	id: number
@@ -9,8 +9,6 @@ type TokenPrice = {
 }
 
 export async function fetchTokenPrices(): Promise<TokenPrice[]> {
-	const prismaClient = getPrismaClient()
-
 	const tokenPrices: TokenPrice[] = []
 	const tokens = await prismaClient.tokens.findMany()
 	const cmcTokenIds = tokens.map((t) => t.cmcId)

@@ -15,8 +15,8 @@ import {
 	sharesToTVL,
 	sharesToTVLStrategies
 } from '../../utils/strategyShares'
-import Prisma from '@prisma/client'
-import prisma from '../../utils/prismaClient'
+import { Prisma } from '@prisma/client'
+import { prismaClient } from '../../utils/prismaClient'
 import { fetchTokenPrices } from '../../utils/tokenPrices'
 import { withOperatorShares } from '../../utils/operatorShares'
 
@@ -68,7 +68,7 @@ export async function getAllAVS(req: Request, res: Response) {
 		const searchFilterQuery = getAvsSearchQuery(searchByText, searchMode, 'partial')
 
 		// Fetch records and apply search/sort
-		const avsRecords = await prisma.avs.findMany({
+		const avsRecords = await prismaClient.avs.findMany({
 			where: {
 				...getAvsFilterQuery(true),
 				...searchFilterQuery
@@ -96,7 +96,7 @@ export async function getAllAVS(req: Request, res: Response) {
 		})
 
 		// Fetch count
-		const avsCount = await prisma.avs.count({
+		const avsCount = await prismaClient.avs.count({
 			where: {
 				...getAvsFilterQuery(true),
 				...searchFilterQuery
@@ -160,7 +160,7 @@ export async function getAllAVSAddresses(req: Request, res: Response) {
 		const searchFilterQuery = getAvsSearchQuery(searchByText, searchMode, 'full')
 
 		// Fetch records
-		const avsRecords = await prisma.avs.findMany({
+		const avsRecords = await prismaClient.avs.findMany({
 			select: {
 				address: true,
 				metadataName: true,
@@ -186,7 +186,7 @@ export async function getAllAVSAddresses(req: Request, res: Response) {
 		})
 
 		// Determine count
-		const avsCount = await prisma.avs.count({
+		const avsCount = await prismaClient.avs.count({
 			where: {
 				...getAvsFilterQuery(true),
 				...searchFilterQuery
@@ -238,7 +238,7 @@ export async function getAVS(req: Request, res: Response) {
 		const { address } = req.params
 		const { withTvl, withCuratedMetadata, withRewards } = queryCheck.data
 
-		const avs = await prisma.avs.findUniqueOrThrow({
+		const avs = await prismaClient.avs.findUniqueOrThrow({
 			where: { address: address.toLowerCase(), ...getAvsFilterQuery() },
 			include: {
 				curatedMetadata: withCuratedMetadata,
@@ -310,14 +310,14 @@ export async function getAVSStakers(req: Request, res: Response) {
 		const { address } = req.params
 		const { skip, take, withTvl, updatedSince } = queryCheck.data
 
-		const avs = await prisma.avs.findUniqueOrThrow({
+		const avs = await prismaClient.avs.findUniqueOrThrow({
 			where: { address: address.toLowerCase(), ...getAvsFilterQuery() },
 			include: { operators: true }
 		})
 
 		const operatorAddresses = avs.operators.filter((o) => o.isActive).map((o) => o.operatorAddress)
 
-		const stakersCount = await prisma.staker.count({
+		const stakersCount = await prismaClient.staker.count({
 			where: {
 				...(updatedSince ? { updatedAt: { gte: new Date(updatedSince) } } : {}),
 				operatorAddress: {
@@ -334,7 +334,7 @@ export async function getAVSStakers(req: Request, res: Response) {
 			}
 		})
 
-		const stakersRecords = await prisma.staker.findMany({
+		const stakersRecords = await prismaClient.staker.findMany({
 			where: {
 				...(updatedSince ? { updatedAt: { gte: new Date(updatedSince) } } : {}),
 				operatorAddress: { in: operatorAddresses },
@@ -407,7 +407,7 @@ export async function getAVSOperators(req: Request, res: Response) {
 		const { skip, take, withTvl, sortOperatorsByTvl, searchByText, searchMode } = queryCheck.data
 		const searchFilterQuery = getOperatorSearchQuery(searchByText, searchMode, 'partial')
 
-		const avs = await prisma.avs.findUniqueOrThrow({
+		const avs = await prismaClient.avs.findUniqueOrThrow({
 			where: { address: address.toLowerCase(), ...getAvsFilterQuery() },
 			include: {
 				operators: {
@@ -416,7 +416,7 @@ export async function getAVSOperators(req: Request, res: Response) {
 			}
 		})
 
-		const operatorsRecords = await prisma.operator.findMany({
+		const operatorsRecords = await prismaClient.operator.findMany({
 			include: {
 				shares: {
 					select: { strategyAddress: true, shares: true }
@@ -431,7 +431,7 @@ export async function getAVSOperators(req: Request, res: Response) {
 					{
 						...searchFilterQuery
 					}
-				] as Prisma.Prisma.OperatorWhereInput[]
+				] as Prisma.OperatorWhereInput[]
 			},
 			orderBy: sortOperatorsByTvl
 				? { tvlEth: sortOperatorsByTvl }
@@ -443,7 +443,7 @@ export async function getAVSOperators(req: Request, res: Response) {
 		})
 
 		const total = searchByText
-			? await prisma.operator.count({
+			? await prismaClient.operator.count({
 					where: {
 						AND: [
 							{
@@ -452,7 +452,7 @@ export async function getAVSOperators(req: Request, res: Response) {
 							{
 								...searchFilterQuery
 							}
-						] as Prisma.Prisma.OperatorWhereInput[]
+						] as Prisma.OperatorWhereInput[]
 					}
 			  })
 			: avs.operators.length
@@ -513,7 +513,7 @@ export async function getAVSRewards(req: Request, res: Response) {
 		const { address } = req.params
 
 		// Fetch all rewards submissions for a given Avs
-		const rewardsSubmissions = await prisma.avsStrategyRewardSubmission.findMany({
+		const rewardsSubmissions = await prismaClient.avsStrategyRewardSubmission.findMany({
 			where: {
 				avsAddress: address.toLowerCase()
 			},
@@ -547,8 +547,8 @@ export async function getAVSRewards(req: Request, res: Response) {
 		const rewardTokens: string[] = []
 		const rewardStrategies: string[] = []
 		let currentSubmission: Submission | null = null
-		let currentTotalAmount = new Prisma.Prisma.Decimal(0)
-		let currentTotalAmountEth = new Prisma.Prisma.Decimal(0)
+		let currentTotalAmount = new Prisma.Decimal(0)
+		let currentTotalAmountEth = new Prisma.Decimal(0)
 
 		// Iterate over each rewards submission by the Avs
 		for (const submission of rewardsSubmissions) {
@@ -569,12 +569,12 @@ export async function getAVSRewards(req: Request, res: Response) {
 					tokenAddress: submission.token,
 					strategies: []
 				}
-				currentTotalAmount = new Prisma.Prisma.Decimal(0)
+				currentTotalAmount = new Prisma.Decimal(0)
 				result.totalRewards += currentTotalAmountEth.toNumber()
-				currentTotalAmountEth = new Prisma.Prisma.Decimal(0)
+				currentTotalAmountEth = new Prisma.Decimal(0)
 			}
 
-			const amount = submission.amount || new Prisma.Prisma.Decimal(0)
+			const amount = submission.amount || new Prisma.Decimal(0)
 			currentTotalAmount = currentTotalAmount.add(amount)
 
 			const rewardTokenAddress = submission.token.toLowerCase()
@@ -586,7 +586,7 @@ export async function getAVSRewards(req: Request, res: Response) {
 
 			if (rewardTokenAddress) {
 				const tokenPrice = tokenPrices.find((tp) => tp.address.toLowerCase() === rewardTokenAddress)
-				const amountInEth = amount.mul(new Prisma.Prisma.Decimal(tokenPrice?.ethPrice ?? 0))
+				const amountInEth = amount.mul(new Prisma.Decimal(tokenPrice?.ethPrice ?? 0))
 				currentTotalAmountEth = currentTotalAmountEth.add(amountInEth)
 			}
 
@@ -630,7 +630,7 @@ export async function invalidateMetadata(req: Request, res: Response) {
 	try {
 		const { address } = req.params
 
-		const updateResult = await prisma.avs.updateMany({
+		const updateResult = await prismaClient.avs.updateMany({
 			where: { address: address.toLowerCase() },
 			data: { isMetadataSynced: false }
 		})
@@ -698,7 +698,7 @@ export function getAvsSearchQuery(
 						}
 					}
 				}
-			] as Prisma.Prisma.AvsWhereInput[]
+			] as Prisma.AvsWhereInput[]
 		}
 	}
 
@@ -719,7 +719,7 @@ export function getAvsSearchQuery(
 					}
 				}
 			}
-		] as Prisma.Prisma.AvsWhereInput[]
+		] as Prisma.AvsWhereInput[]
 	}
 }
 
@@ -742,7 +742,7 @@ async function calculateAvsApy(avs: any) {
 			const strategyTvl = tvlStrategiesEth[strategyAddress.toLowerCase()] || 0
 			if (strategyTvl === 0) return { strategyAddress, apy: 0 }
 
-			let totalRewardsEth = new Prisma.Prisma.Decimal(0)
+			let totalRewardsEth = new Prisma.Decimal(0)
 			let totalDuration = 0
 
 			// Find all reward submissions attributable to the strategy
@@ -752,7 +752,7 @@ async function calculateAvsApy(avs: any) {
 
 			// Calculate each reward amount for the strategy
 			for (const submission of relevantSubmissions) {
-				let rewardIncrementEth = new Prisma.Prisma.Decimal(0)
+				let rewardIncrementEth = new Prisma.Decimal(0)
 				const rewardTokenAddress = submission.token.toLowerCase()
 
 				// Normalize reward amount to its ETH price
@@ -761,14 +761,14 @@ async function calculateAvsApy(avs: any) {
 						(tp) => tp.address.toLowerCase() === rewardTokenAddress
 					)
 					rewardIncrementEth = submission.amount.mul(
-						new Prisma.Prisma.Decimal(tokenPrice?.ethPrice ?? 0)
+						new Prisma.Decimal(tokenPrice?.ethPrice ?? 0)
 					)
 				}
 
 				// Multiply reward amount in ETH by the strategy weight
 				rewardIncrementEth = rewardIncrementEth
 					.mul(submission.multiplier)
-					.div(new Prisma.Prisma.Decimal(10).pow(18))
+					.div(new Prisma.Decimal(10).pow(18))
 
 				totalRewardsEth = totalRewardsEth.add(rewardIncrementEth)
 				totalDuration += submission.duration
@@ -780,7 +780,7 @@ async function calculateAvsApy(avs: any) {
 
 			// Annualize the reward basis its duration to find yearly APY
 			const rewardRate =
-				totalRewardsEth.div(new Prisma.Prisma.Decimal(10).pow(18)).toNumber() / strategyTvl
+				totalRewardsEth.div(new Prisma.Decimal(10).pow(18)).toNumber() / strategyTvl
 			const annualizedRate = rewardRate * ((365 * 24 * 60 * 60) / totalDuration)
 			const apy = annualizedRate * 100
 

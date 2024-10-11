@@ -1,7 +1,7 @@
 import { Request, Response } from 'express'
 import { handleAndReturnErrorResponse } from '../../schema/errors'
 import { fetchTokenPrices } from '../../utils/tokenPrices'
-import { getPrismaClient } from '../../utils/prismaClient'
+import { prismaClient } from '../../utils/prismaClient'
 
 /**
  * Route to fetch cached prices
@@ -27,8 +27,6 @@ export async function getCachedPrices(req: Request, res: Response) {
  */
 export async function getLastSyncBlocks(req: Request, res: Response) {
 	try {
-		const prismaClient = getPrismaClient()
-
 		const ignoredBlockSyncKeys = ['withdrawMinDelayBlocks']
 
 		const syncKeys = await prismaClient.settings.findMany({

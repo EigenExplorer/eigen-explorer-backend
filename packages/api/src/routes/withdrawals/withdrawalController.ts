@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express'
 import { Prisma } from '@prisma/client'
-import prisma from '../../utils/prismaClient'
+import { prismaClient } from '../../utils/prismaClient'
 import { handleAndReturnErrorResponse } from '../../schema/errors'
 import { WithdrawalListQuerySchema } from '../../schema/zod/schemas/withdrawal'
 import { PaginationQuerySchema } from '../../schema/zod/schemas/paginationQuery'
@@ -43,7 +43,7 @@ export async function getAllWithdrawals(req: Request, res: Response) {
 					break
 				case 'queued_withdrawable': {
 					const viemClient = getViemClient()
-					const minDelayBlocks = await prisma.settings.findUnique({
+					const minDelayBlocks = await prismaClient.settings.findUnique({
 						where: { key: 'withdrawMinDelayBlocks' }
 					})
 					const minDelayBlock =
@@ -59,10 +59,10 @@ export async function getAllWithdrawals(req: Request, res: Response) {
 			}
 		}
 
-		const withdrawalCount = await prisma.withdrawalQueued.count({
+		const withdrawalCount = await prismaClient.withdrawalQueued.count({
 			where: filterQuery
 		})
-		const withdrawalRecords = await prisma.withdrawalQueued.findMany({
+		const withdrawalRecords = await prismaClient.withdrawalQueued.findMany({
 			where: filterQuery,
 			include: {
 				completedWithdrawal: true
@@ -112,7 +112,7 @@ export async function getWithdrawal(req: Request, res: Response) {
 	try {
 		const { withdrawalRoot } = req.params
 
-		const withdrawal = await prisma.withdrawalQueued.findUniqueOrThrow({
+		const withdrawal = await prismaClient.withdrawalQueued.findUniqueOrThrow({
 			where: { withdrawalRoot },
 			include: {
 				completedWithdrawal: true

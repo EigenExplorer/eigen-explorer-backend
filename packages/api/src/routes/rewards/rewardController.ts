@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express'
 import { handleAndReturnErrorResponse } from '../../schema/errors'
-import prisma from '../../utils/prismaClient'
+import { prismaClient } from '../../utils/prismaClient'
 
 export type Submission = {
 	rewardsSubmissionHash: string
@@ -24,7 +24,7 @@ export type Submission = {
  */
 export async function getStrategies(req: Request, res: Response) {
 	try {
-		const allSubmissions = await prisma.avsStrategyRewardSubmission.findMany()
+		const allSubmissions = await prismaClient.avsStrategyRewardSubmission.findMany()
 		const strategyTokensMap = new Map<string, Set<string>>()
 
 		for (const submission of allSubmissions) {

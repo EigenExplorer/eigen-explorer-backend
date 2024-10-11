@@ -13,8 +13,8 @@ import {
 	sharesToTVLStrategies
 } from '../../utils/strategyShares'
 import { withOperatorShares } from '../../utils/operatorShares'
-import Prisma from '@prisma/client'
-import prisma from '../../utils/prismaClient'
+import { Prisma } from '@prisma/client'
+import { prismaClient } from '../../utils/prismaClient'
 import { fetchTokenPrices } from '../../utils/tokenPrices'
 
 /**
@@ -59,7 +59,7 @@ export async function getAllOperators(req: Request, res: Response) {
 			: null
 
 		// Fetch records and apply search/sort
-		const operatorRecords = await prisma.operator.findMany({
+		const operatorRecords = await prismaClient.operator.findMany({
 			where: {
 				...searchFilterQuery
 			},
@@ -81,7 +81,7 @@ export async function getAllOperators(req: Request, res: Response) {
 		})
 
 		// Count records
-		const operatorCount = await prisma.operator.count({
+		const operatorCount = await prismaClient.operator.count({
 			where: {
 				...searchFilterQuery
 			}
@@ -141,7 +141,7 @@ export async function getOperator(req: Request, res: Response) {
 	try {
 		const { address } = req.params
 
-		const operator = await prisma.operator.findUniqueOrThrow({
+		const operator = await prismaClient.operator.findUniqueOrThrow({
 			where: { address: address.toLowerCase() },
 			include: {
 				avs: {
@@ -246,7 +246,7 @@ export async function getAllOperatorAddresses(req: Request, res: Response) {
 		const searchFilterQuery = getOperatorSearchQuery(searchByText, searchMode, 'full')
 
 		// Fetch records
-		const operatorRecords = await prisma.operator.findMany({
+		const operatorRecords = await prismaClient.operator.findMany({
 			select: {
 				address: true,
 				metadataName: true,
@@ -265,7 +265,7 @@ export async function getAllOperatorAddresses(req: Request, res: Response) {
 		})
 
 		// Determine count
-		const operatorCount = await prisma.operator.count({
+		const operatorCount = await prismaClient.operator.count({
 			where: {
 				...searchFilterQuery
 			}
@@ -309,7 +309,7 @@ export async function getOperatorRewards(req: Request, res: Response) {
 		const { address } = req.params
 
 		// Fetch Operator data
-		const operator = await prisma.operator.findUnique({
+		const operator = await prismaClient.operator.findUnique({
 			where: { address: address.toLowerCase() },
 			include: {
 				avs: {
@@ -342,7 +342,7 @@ export async function getOperatorRewards(req: Request, res: Response) {
 		// Create a Set of strategies where the operator has positive TVL
 		const operatorActiveStrategies = new Set(
 			operator.shares
-				.filter((share) => new Prisma.Prisma.Decimal(share.shares).gt(0))
+				.filter((share) => new Prisma.Decimal(share.shares).gt(0))
 				.map((share) => share.strategyAddress.toLowerCase())
 		)
 
@@ -386,7 +386,7 @@ export async function invalidateMetadata(req: Request, res: Response) {
 	try {
 		const { address } = req.params
 
-		const updateResult = await prisma.operator.updateMany({
+		const updateResult = await prismaClient.operator.updateMany({
 			where: { address: address.toLowerCase() },
 			data: { isMetadataSynced: false }
 		})
@@ -414,10 +414,7 @@ export function getOperatorSearchQuery(
 
 	if (searchScope === 'partial') {
 		return {
-			OR: [
-				{ address: searchConfig },
-				{ metadataName: searchConfig }
-			] as Prisma.Prisma.OperatorWhereInput[]
+			OR: [{ address: searchConfig }, { metadataName: searchConfig }] as Prisma.OperatorWhereInput[]
 		}
 	}
 
@@ -427,7 +424,7 @@ export function getOperatorSearchQuery(
 			{ metadataName: searchConfig },
 			{ metadataDescription: searchConfig },
 			{ metadataWebsite: searchConfig }
-		] as Prisma.Prisma.OperatorWhereInput[]
+		] as Prisma.OperatorWhereInput[]
 	}
 }
 
@@ -460,7 +457,7 @@ async function calculateOperatorApy(operator: any) {
 			}
 		}
 
-		let operatorEarningsEth = new Prisma.Prisma.Decimal(0)
+		let operatorEarningsEth = new Prisma.Decimal(0)
 
 		const tokenPrices = await fetchTokenPrices()
 		const strategiesWithSharesUnderlying = await getStrategiesWithShareUnderlying()
@@ -482,7 +479,7 @@ async function calculateOperatorApy(operator: any) {
 				const strategyTvl = tvlStrategiesEth[strategyAddress.toLowerCase()] || 0
 				if (strategyTvl === 0) continue
 
-				let totalRewardsEth = new Prisma.Prisma.Decimal(0)
+				let totalRewardsEth = new Prisma.Decimal(0)
 				let totalDuration = 0
 
 				// Find all reward submissions attributable to the strategy
@@ -491,7 +488,7 @@ async function calculateOperatorApy(operator: any) {
 				)
 
 				for (const submission of relevantSubmissions) {
-					let rewardIncrementEth = new Prisma.Prisma.Decimal(0)
+					let rewardIncrementEth = new Prisma.Decimal(0)
 					const rewardTokenAddress = submission.token.toLowerCase()
 
 					if (rewardTokenAddress) {
@@ -499,14 +496,14 @@ async function calculateOperatorApy(operator: any) {
 							(tp) => tp.address.toLowerCase() === rewardTokenAddress
 						)
 						rewardIncrementEth = submission.amount.mul(
-							new Prisma.Prisma.Decimal(tokenPrice?.ethPrice ?? 0)
+							new Prisma.Decimal(tokenPrice?.ethPrice ?? 0)
 						)
 					}
 
 					// Multiply reward amount in ETH by the strategy weight
 					rewardIncrementEth = rewardIncrementEth
 						.mul(submission.multiplier)
-						.div(new Prisma.Prisma.Decimal(10).pow(18))
+						.div(new Prisma.Decimal(10).pow(18))
 
 					// Operator takes 10% in commission
 					const operatorFeesEth = rewardIncrementEth.mul(10).div(100)
@@ -520,7 +517,7 @@ async function calculateOperatorApy(operator: any) {
 
 				// Annualize the reward basis its duration to find yearly APY
 				const rewardRate =
-					totalRewardsEth.div(new Prisma.Prisma.Decimal(10).pow(18)).toNumber() / strategyTvl
+					totalRewardsEth.div(new Prisma.Decimal(10).pow(18)).toNumber() / strategyTvl
 				const annualizedRate = rewardRate * ((365 * 24 * 60 * 60) / totalDuration)
 				const apy = annualizedRate * 100
 				aggregateApy += apy
@@ -543,7 +540,7 @@ async function calculateOperatorApy(operator: any) {
 				apy
 			})),
 			aggregateApy: 0,
-			operatorEarningsEth: new Prisma.Prisma.Decimal(0)
+			operatorEarningsEth: new Prisma.Decimal(0)
 		}
 
 		// Calculate aggregates across Avs and strategies
