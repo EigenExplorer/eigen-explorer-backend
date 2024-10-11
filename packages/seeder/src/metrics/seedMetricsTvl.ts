@@ -175,9 +175,11 @@ async function loopTick(
 				r.status === 'fulfilled' &&
 				r.value.strategyAddress.toLowerCase() === strategyAddress.toLowerCase()
 		)
-		if (foundStrategyIndex === -1 || results[foundStrategyIndex].status !== 'fulfilled') continue
 
-		const shares = results[foundStrategyIndex].value.totalShares as bigint
+		const result = results[foundStrategyIndex]
+		if (foundStrategyIndex === -1 || result.status !== 'fulfilled') continue
+
+		const shares = result.value.totalShares as bigint
 		const sharesToUnderlying = sharesToUnderlyingList.find(
 			(s) => s.strategyAddress.toLowerCase() === strategyAddress.toLowerCase()
 		)
