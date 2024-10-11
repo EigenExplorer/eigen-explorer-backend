@@ -1,15 +1,20 @@
 import z from '..'
 
-export const UpdateCacheQuerySchema = z.object({
-	action: z.enum(['write', 'delete']),
-	apiToken: z.string(),
+const RecordSchema = z.object({
+	apiTokens: z.array(z.string()),
 	accessLevel: z.number()
+})
+
+export const UpdateCacheQuerySchema = z.object({
+	type: z.enum(['INSERT', 'UPDATE', 'DELETE']),
+	record: RecordSchema.nullable(),
+	old_record: RecordSchema.nullable()
 })
 
 export const RefreshCacheQuerySchema = z.object({
 	data: z.array(
 		z.object({
-			apiToken: z.string(),
+			apiTokens: z.array(z.string()),
 			accessLevel: z.number()
 		})
 	)
