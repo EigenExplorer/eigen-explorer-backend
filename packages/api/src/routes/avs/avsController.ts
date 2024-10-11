@@ -1,7 +1,5 @@
 import type { Request, Response } from 'express'
-import type { IMap } from '../../schema/generic'
 import type { Submission } from '../rewards/rewardController'
-import { type EigenStrategiesContractAddress, getEigenContracts } from '../../data/address'
 import { PaginationQuerySchema } from '../../schema/zod/schemas/paginationQuery'
 import { EthereumAddressSchema } from '../../schema/zod/schemas/base/ethereumAddress'
 import { WithTvlQuerySchema } from '../../schema/zod/schemas/withTvlQuery'
@@ -12,16 +10,15 @@ import { SearchByTextQuerySchema } from '../../schema/zod/schemas/searchByTextQu
 import { WithRewardsQuerySchema } from '../../schema/zod/schemas/withRewardsQuery'
 import { getOperatorSearchQuery } from '../operators/operatorController'
 import { handleAndReturnErrorResponse } from '../../schema/errors'
-import { fetchRewardTokenPrices, fetchStrategyTokenPrices } from '../../utils/tokenPrices'
-import { getNetwork } from '../../viem/viemClient'
-import { holesky } from 'viem/chains'
 import {
 	getStrategiesWithShareUnderlying,
 	sharesToTVL,
 	sharesToTVLEth
-} from '../strategies/strategiesController'
+} from '../../utils/strategyShares'
 import Prisma from '@prisma/client'
 import prisma from '../../utils/prismaClient'
+import { fetchTokenPrices } from '../../utils/tokenPrices'
+import { isSpecialToken, withOperatorShares } from '../../utils/operatorShares'
 
 /**
  * Function for route /avs
@@ -106,7 +103,6 @@ export async function getAllAVS(req: Request, res: Response) {
 			}
 		})
 
-		const strategyTokenPrices = withTvl ? await fetchStrategyTokenPrices() : {}
 		const strategiesWithSharesUnderlying = withTvl ? await getStrategiesWithShareUnderlying() : []
 
 		const data = await Promise.all(
@@ -121,9 +117,7 @@ export async function getAllAVS(req: Request, res: Response) {
 					totalOperators: avs.totalOperators,
 					totalStakers: avs.totalStakers,
 					shares,
-					tvl: withTvl
-						? sharesToTVL(shares, strategiesWithSharesUnderlying, strategyTokenPrices)
-						: undefined,
+					tvl: withTvl ? sharesToTVL(shares, strategiesWithSharesUnderlying) : undefined,
 					operators: undefined,
 					metadataUrl: undefined,
 					isMetadataSynced: undefined,
@@ -266,7 +260,6 @@ export async function getAVS(req: Request, res: Response) {
 			(s) => avs.restakeableStrategies.indexOf(s.strategyAddress.toLowerCase()) !== -1
 		)
 
-		const strategyTokenPrices = withTvl ? await fetchStrategyTokenPrices() : {}
 		const strategiesWithSharesUnderlying = withTvl ? await getStrategiesWithShareUnderlying() : []
 
 		res.send({
@@ -275,9 +268,7 @@ export async function getAVS(req: Request, res: Response) {
 			shares,
 			totalOperators: avs.totalOperators,
 			totalStakers: avs.totalStakers,
-			tvl: withTvl
-				? sharesToTVL(shares, strategiesWithSharesUnderlying, strategyTokenPrices)
-				: undefined,
+			tvl: withTvl ? sharesToTVL(shares, strategiesWithSharesUnderlying) : undefined,
 			rewards: withRewards ? await calculateAvsApy(avs) : undefined,
 			operators: undefined,
 			metadataUrl: undefined,
@@ -361,7 +352,6 @@ export async function getAVSStakers(req: Request, res: Response) {
 			include: { shares: true }
 		})
 
-		const strategyTokenPrices = withTvl ? await fetchStrategyTokenPrices() : {}
 		const strategiesWithSharesUnderlying = withTvl ? await getStrategiesWithShareUnderlying() : []
 
 		const stakers = stakersRecords.map((staker) => {
@@ -372,9 +362,7 @@ export async function getAVSStakers(req: Request, res: Response) {
 			return {
 				...staker,
 				shares,
-				tvl: withTvl
-					? sharesToTVL(shares, strategiesWithSharesUnderlying, strategyTokenPrices)
-					: undefined
+				tvl: withTvl ? sharesToTVL(shares, strategiesWithSharesUnderlying) : undefined
 			}
 		})
 
@@ -469,7 +457,6 @@ export async function getAVSOperators(req: Request, res: Response) {
 			  })
 			: avs.operators.length
 
-		const strategyTokenPrices = withTvl ? await fetchStrategyTokenPrices() : {}
 		const strategiesWithSharesUnderlying = withTvl ? await getStrategiesWithShareUnderlying() : []
 
 		const data = operatorsRecords.map((operator) => {
@@ -486,9 +473,7 @@ export async function getAVSOperators(req: Request, res: Response) {
 				restakedStrategies: avsOperator?.restakedStrategies,
 				shares,
 				totalStakers: operator.stakers.length,
-				tvl: withTvl
-					? sharesToTVL(shares, strategiesWithSharesUnderlying, strategyTokenPrices)
-					: undefined,
+				tvl: withTvl ? sharesToTVL(shares, strategiesWithSharesUnderlying) : undefined,
 				stakers: undefined,
 				metadataUrl: undefined,
 				isMetadataSynced: undefined,
@@ -541,10 +526,7 @@ export async function getAVSRewards(req: Request, res: Response) {
 			throw new Error('AVS not found.')
 		}
 
-		const strategyTokenPrices = await fetchStrategyTokenPrices()
-		const rewardTokenPrices = await fetchRewardTokenPrices()
-		const eigenContracts = getEigenContracts()
-		const tokenToStrategyMap = tokenToStrategyAddressMap(eigenContracts.Strategies)
+		const tokenPrices = await fetchTokenPrices()
 
 		const result: {
 			address: string
@@ -597,33 +579,18 @@ export async function getAVSRewards(req: Request, res: Response) {
 
 			const rewardTokenAddress = submission.token.toLowerCase()
 			const strategyAddress = submission.strategyAddress.toLowerCase()
-			const tokenStrategyAddress = tokenToStrategyMap.get(rewardTokenAddress)
 
 			// Document reward token & rewarded strategy addresses
 			if (!rewardTokens.includes(rewardTokenAddress)) rewardTokens.push(rewardTokenAddress)
-
 			if (!rewardStrategies.includes(strategyAddress)) rewardStrategies.push(strategyAddress)
 
-			// Normalize reward amount to its ETH price
-			if (tokenStrategyAddress) {
-				const tokenPrice = Object.values(strategyTokenPrices).find(
-					(tp) => tp.strategyAddress.toLowerCase() === tokenStrategyAddress
-				)
-				const amountInEth = amount.mul(new Prisma.Prisma.Decimal(tokenPrice?.eth ?? 0))
+			// TODO: Remove this variable check
+			if (rewardTokenAddress) {
+				const tokenPrice = tokenPrices.find((tp) => tp.address.toLowerCase() === rewardTokenAddress)
+				const amountInEth = isSpecialToken(rewardTokenAddress)
+					? amount
+					: amount.mul(new Prisma.Prisma.Decimal(tokenPrice?.ethPrice ?? 0))
 				currentTotalAmountEth = currentTotalAmountEth.add(amountInEth)
-			} else {
-				// Check if it is a reward token which isn't a strategy on EL
-				for (const [, price] of Object.entries(rewardTokenPrices)) {
-					if (price && price.tokenAddress.toLowerCase() === rewardTokenAddress) {
-						const amountInEth = amount.mul(new Prisma.Prisma.Decimal(price?.eth ?? 0))
-						currentTotalAmountEth = currentTotalAmountEth.add(amountInEth)
-					} else {
-						// Check for special tokens
-						currentTotalAmountEth = isSpecialToken(rewardTokenAddress)
-							? currentTotalAmountEth.add(amount)
-							: new Prisma.Prisma.Decimal(0)
-					}
-				}
 			}
 
 			currentSubmission.strategies.push({
@@ -683,31 +650,31 @@ export async function invalidateMetadata(req: Request, res: Response) {
 
 // --- Helper functions ---
 
-export function withOperatorShares(avsOperators) {
-	const sharesMap: IMap<string, string> = new Map()
+// export function withOperatorShares(avsOperators) {
+// 	const sharesMap: IMap<string, string> = new Map()
 
-	avsOperators.map((avsOperator) => {
-		const shares = avsOperator.operator.shares.filter(
-			(s) => avsOperator.restakedStrategies.indexOf(s.strategyAddress.toLowerCase()) !== -1
-		)
+// 	avsOperators.map((avsOperator) => {
+// 		const shares = avsOperator.operator.shares.filter(
+// 			(s) => avsOperator.restakedStrategies.indexOf(s.strategyAddress.toLowerCase()) !== -1
+// 		)
 
-		shares.map((s) => {
-			if (!sharesMap.has(s.strategyAddress)) {
-				sharesMap.set(s.strategyAddress, '0')
-			}
+// 		shares.map((s) => {
+// 			if (!sharesMap.has(s.strategyAddress)) {
+// 				sharesMap.set(s.strategyAddress, '0')
+// 			}
 
-			sharesMap.set(
-				s.strategyAddress,
-				(BigInt(sharesMap.get(s.strategyAddress)) + BigInt(s.shares)).toString()
-			)
-		})
-	})
+// 			sharesMap.set(
+// 				s.strategyAddress,
+// 				(BigInt(sharesMap.get(s.strategyAddress)) + BigInt(s.shares)).toString()
+// 			)
+// 		})
+// 	})
 
-	return Array.from(sharesMap, ([strategyAddress, shares]) => ({
-		strategyAddress,
-		shares
-	}))
-}
+// 	return Array.from(sharesMap, ([strategyAddress, shares]) => ({
+// 		strategyAddress,
+// 		shares
+// 	}))
+// }
 
 export function getAvsFilterQuery(filterName?: boolean) {
 	const queryWithName = filterName
@@ -788,11 +755,7 @@ export function getAvsSearchQuery(
 // biome-ignore lint/suspicious/noExplicitAny: <explanation>
 async function calculateAvsApy(avs: any) {
 	try {
-		const strategyTokenPrices = await fetchStrategyTokenPrices()
-		const rewardTokenPrices = await fetchRewardTokenPrices()
-		const eigenContracts = getEigenContracts()
-		const tokenToStrategyMap = tokenToStrategyAddressMap(eigenContracts.Strategies)
-
+		const tokenPrices = await fetchTokenPrices()
 		const strategiesWithSharesUnderlying = await getStrategiesWithShareUnderlying()
 
 		// Get share amounts for each restakeable strategy
@@ -801,11 +764,7 @@ async function calculateAvsApy(avs: any) {
 		)
 
 		// Fetch the AVS tvl for each strategy
-		const tvlStrategiesEth = sharesToTVLEth(
-			shares,
-			strategiesWithSharesUnderlying,
-			strategyTokenPrices
-		)
+		const tvlStrategiesEth = sharesToTVLEth(shares, strategiesWithSharesUnderlying)
 
 		// Iterate through each strategy and calculate all its rewards
 		const strategiesApy = avs.restakeableStrategies.map((strategyAddress) => {
@@ -824,28 +783,16 @@ async function calculateAvsApy(avs: any) {
 			for (const submission of relevantSubmissions) {
 				let rewardIncrementEth = new Prisma.Prisma.Decimal(0)
 				const rewardTokenAddress = submission.token.toLowerCase()
-				const tokenStrategyAddress = tokenToStrategyMap.get(rewardTokenAddress)
+				// const tokenStrategyAddress = tokenToStrategyMap.get(rewardTokenAddress)
 
 				// Normalize reward amount to its ETH price
-				if (tokenStrategyAddress) {
-					const tokenPrice = Object.values(strategyTokenPrices).find(
-						(tp) => tp.strategyAddress.toLowerCase() === tokenStrategyAddress
+				if (rewardTokenAddress) {
+					const tokenPrice = tokenPrices.find(
+						(tp) => tp.address.toLowerCase() === rewardTokenAddress
 					)
-					rewardIncrementEth = submission.amount.mul(
-						new Prisma.Prisma.Decimal(tokenPrice?.eth ?? 0)
-					)
-				} else {
-					// Check if it is a reward token which isn't a strategy on EL
-					for (const [, price] of Object.entries(rewardTokenPrices)) {
-						if (price && price.tokenAddress.toLowerCase() === rewardTokenAddress) {
-							rewardIncrementEth = submission.amount.mul(new Prisma.Prisma.Decimal(price.eth ?? 0))
-						} else {
-							// Check for special tokens
-							rewardIncrementEth = isSpecialToken(rewardTokenAddress)
-								? submission.amount
-								: new Prisma.Prisma.Decimal(0)
-						}
-					}
+					rewardIncrementEth = isSpecialToken(rewardTokenAddress)
+						? submission.amount
+						: submission.amount.mul(new Prisma.Prisma.Decimal(tokenPrice?.ethPrice ?? 0))
 				}
 
 				// Multiply reward amount in ETH by the strategy weight
@@ -878,43 +825,4 @@ async function calculateAvsApy(avs: any) {
 			aggregateApy
 		}
 	} catch {}
-}
-
-/**
- * Return a map of strategy addresses <> token addresses
- *
- * @param strategies
- * @returns
- */
-export function tokenToStrategyAddressMap(
-	strategies: EigenStrategiesContractAddress
-): Map<string, string> {
-	const map = new Map<string, string>()
-	for (const [key, value] of Object.entries(strategies)) {
-		if (key !== 'Eigen' && value?.tokenContract && value?.strategyContract) {
-			map.set(value.tokenContract.toLowerCase(), value.strategyContract.toLowerCase())
-		}
-	}
-	return map
-}
-
-/**
- * Returns whether a given token address belongs to a list of special tokens
- *
- * @param tokenAddress
- * @returns
- */
-export function isSpecialToken(tokenAddress: string): boolean {
-	const specialTokens =
-		getNetwork() === holesky
-			? [
-					'0x6Cc9397c3B38739daCbfaA68EaD5F5D77Ba5F455', // WETH
-					'0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0'
-			  ]
-			: [
-					'0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2', // WETH
-					'0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0'
-			  ]
-
-	return specialTokens.includes(tokenAddress.toLowerCase())
 }

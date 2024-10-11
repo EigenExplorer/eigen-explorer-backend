@@ -10,6 +10,10 @@ import {
 import { getViemClient } from '../utils/viemClient'
 import { strategyAbi } from '../data/abi/strategy'
 import { getEigenContracts } from '../data/address'
+import {
+	getStrategiesWithShareUnderlying,
+	StrategyWithShareUnderlying
+} from '../../../api/src/utils/strategyShares'
 
 const blockSyncKey = 'lastSyncedTimestamp_metrics_tvl'
 const BATCH_DAYS = 30
@@ -82,7 +86,7 @@ export async function seedMetricsTvl(type: 'full' | 'incremental' = 'incremental
 async function processLogsInBatches(
 	startDate: Date,
 	endDate: Date,
-	sharesToUnderlyingMap: Map<string, bigint>,
+	sharesToUnderlyingList: StrategyWithShareUnderlying[],
 	lastStrategyMetrics: ILastStrategyMetrics
 ) {
 	let metrics: ILastStrategyMetric[] = []
@@ -106,7 +110,7 @@ async function processLogsInBatches(
 					fromDate,
 					toDate,
 					blockNumbers,
-					sharesToUnderlyingMap,
+					sharesToUnderlyingList,
 					lastStrategyMetrics
 				)
 
@@ -129,7 +133,7 @@ async function loopTick(
 	fromDate: Date,
 	toDate: Date,
 	blockNumbers: { number: bigint; timestamp: Date }[],
-	sharesToUnderlyingMap: Map<string, bigint>,
+	sharesToUnderlyingList: StrategyWithShareUnderlying[],
 	lastStrategyMetrics: ILastStrategyMetrics
 ): Promise<ILastStrategyMetric[]> {
 	const viemClient = getViemClient()
@@ -142,17 +146,14 @@ async function loopTick(
 	const currentBlockNumber = blockNumbersInRange[blockNumbersInRange.length - 1]
 
 	// Startegies
-	const strategyKeys = Object.keys(getEigenContracts().Strategies)
-	const strategyAddresses = strategyKeys.map((s) =>
-		getEigenContracts().Strategies[s].strategyContract.toLowerCase()
-	)
+	const strategyAddresses = sharesToUnderlyingList.map((s) => s.strategyAddress)
 
 	// Total shares
 	const results = await Promise.allSettled(
 		strategyAddresses.map(async (sa) => ({
 			strategyAddress: sa,
 			totalShares: await viemClient.readContract({
-				address: sa,
+				address: sa as `0x${string}`,
 				abi: strategyAbi,
 				functionName: 'totalShares',
 				blockNumber: currentBlockNumber.number
@@ -177,10 +178,12 @@ async function loopTick(
 		if (foundStrategyIndex === -1 || results[foundStrategyIndex].status !== 'fulfilled') continue
 
 		const shares = results[foundStrategyIndex].value.totalShares as bigint
-		const sharesToUnderlying = sharesToUnderlyingMap.get(strategyAddress)
+		const sharesToUnderlying = sharesToUnderlyingList.find(
+			(s) => s.strategyAddress.toLowerCase() === strategyAddress.toLowerCase()
+		)
 		if (!sharesToUnderlying) continue
 
-		const tvl = Number(shares * sharesToUnderlying) / 1e36
+		const tvl = (Number(shares) * sharesToUnderlying.sharesToUnderlying) / 1e36
 
 		if (tvl !== Number(lastMetric.tvl)) {
 			const changeTvl = tvl - Number(lastMetric.tvl)
@@ -268,14 +271,4 @@ async function getLatestMetricsPerStrategy(): Promise<ILastStrategyMetrics> {
 	} catch {}
 
 	return new Map()
-}
-
-export async function getStrategiesWithShareUnderlying(): Promise<Map<string, bigint>> {
-	const prismaClient = getPrismaClient()
-
-	const sharesToUnderlyingList = await prismaClient.strategies.findMany({
-		select: { sharesToUnderlying: true, address: true }
-	})
-
-	return new Map(sharesToUnderlyingList.map((s) => [s.address, BigInt(s.sharesToUnderlying)]))
 }
