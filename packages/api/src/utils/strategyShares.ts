@@ -104,26 +104,17 @@ export function sharesToTVL(
  * @param strategiesWithSharesUnderlying
  * @returns
  */
-export function sharesToTVLEth(
+export function sharesToTVLStrategies(
 	shares: {
 		strategyAddress: string
 		shares: string
 	}[],
 	strategiesWithSharesUnderlying: StrategyWithShareUnderlying[]
 ): { [strategyAddress: string]: number } {
-	const beaconAddress = '0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0'
-
-	const beaconStrategy = shares.find((s) => s.strategyAddress.toLowerCase() === beaconAddress)
-
-	const tvlBeaconChain = beaconStrategy ? Number(beaconStrategy.shares) / 1e18 : 0
-
-	const tvlStrategiesEth: { [strategyAddress: string]: number } = {
-		[beaconAddress]: tvlBeaconChain
-	}
+	const tvlStrategiesEth: { [strategyAddress: string]: number } = {}
 
 	for (const share of shares) {
 		const strategyAddress = share.strategyAddress.toLowerCase()
-		const isBeaconStrategy = strategyAddress.toLowerCase() === beaconAddress
 
 		const sharesUnderlying = strategiesWithSharesUnderlying.find(
 			(su) => su.strategyAddress.toLowerCase() === strategyAddress
@@ -136,7 +127,7 @@ export function sharesToTVLEth(
 					.div(new prisma.Prisma.Decimal(10).pow(18))
 					.toNumber() / 1e18
 
-			const strategyTokenPrice = isBeaconStrategy ? 1 : sharesUnderlying.ethPrice || 0
+			const strategyTokenPrice = sharesUnderlying.ethPrice || 0
 			const strategyTvl = strategyShares * strategyTokenPrice
 			tvlStrategiesEth[strategyAddress] = (tvlStrategiesEth[strategyAddress] || 0) + strategyTvl
 		}

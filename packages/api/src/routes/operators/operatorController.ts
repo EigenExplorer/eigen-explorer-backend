@@ -10,9 +10,9 @@ import { handleAndReturnErrorResponse } from '../../schema/errors'
 import {
 	getStrategiesWithShareUnderlying,
 	sharesToTVL,
-	sharesToTVLEth
+	sharesToTVLStrategies
 } from '../../utils/strategyShares'
-import { isSpecialToken, withOperatorShares } from '../../utils/operatorShares'
+import { withOperatorShares } from '../../utils/operatorShares'
 import Prisma from '@prisma/client'
 import prisma from '../../utils/prismaClient'
 import { fetchTokenPrices } from '../../utils/tokenPrices'
@@ -475,7 +475,7 @@ async function calculateOperatorApy(operator: any) {
 			)
 
 			// Fetch the AVS tvl for each strategy
-			const tvlStrategiesEth = sharesToTVLEth(shares, strategiesWithSharesUnderlying)
+			const tvlStrategiesEth = sharesToTVLStrategies(shares, strategiesWithSharesUnderlying)
 
 			// Iterate through each strategy and calculate all its rewards
 			for (const strategyAddress of optedStrategyAddresses) {
@@ -498,9 +498,9 @@ async function calculateOperatorApy(operator: any) {
 						const tokenPrice = tokenPrices.find(
 							(tp) => tp.address.toLowerCase() === rewardTokenAddress
 						)
-						rewardIncrementEth = isSpecialToken(rewardTokenAddress)
-							? submission.amount
-							: submission.amount.mul(new Prisma.Prisma.Decimal(tokenPrice?.ethPrice ?? 0))
+						rewardIncrementEth = submission.amount.mul(
+							new Prisma.Prisma.Decimal(tokenPrice?.ethPrice ?? 0)
+						)
 					}
 
 					// Multiply reward amount in ETH by the strategy weight

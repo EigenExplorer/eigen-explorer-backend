@@ -2,9 +2,9 @@ import { bulkUpdateDbTransactions } from '../utils/seeder'
 import { getPrismaClient } from '../utils/prismaClient'
 import {
 	getStrategiesWithShareUnderlying,
-	sharesToTVLEth
+	sharesToTVLStrategies
 } from '../../../api/src/utils/strategyShares'
-import { isSpecialToken, withOperatorShares } from '../../../api/src/utils/operatorShares'
+import { withOperatorShares } from '../../../api/src/utils/operatorShares'
 import { fetchTokenPrices } from '../../../api/src/utils/tokenPrices'
 import Prisma from '@prisma/client'
 
@@ -101,7 +101,7 @@ export async function monitorOperatorApy() {
 						)
 
 						// Fetch the AVS tvl for each strategy
-						const tvlStrategiesEth = sharesToTVLEth(shares, strategiesWithSharesUnderlying)
+						const tvlStrategiesEth = sharesToTVLStrategies(shares, strategiesWithSharesUnderlying)
 
 						// Iterate through each strategy and calculate all its rewards
 						for (const strategyAddress of optedStrategyAddresses) {
@@ -120,16 +120,15 @@ export async function monitorOperatorApy() {
 							for (const submission of relevantSubmissions) {
 								let rewardIncrementEth = new Prisma.Prisma.Decimal(0)
 								const rewardTokenAddress = submission.token.toLowerCase()
-								// const tokenStrategyAddress = tokenToStrategyMap.get(rewardTokenAddress)
 
 								// Normalize reward amount to its ETH price
 								if (rewardTokenAddress) {
 									const tokenPrice = tokenPrices.find(
 										(tp) => tp.address.toLowerCase() === rewardTokenAddress
 									)
-									rewardIncrementEth = isSpecialToken(rewardTokenAddress)
-										? submission.amount
-										: submission.amount.mul(new Prisma.Prisma.Decimal(tokenPrice?.ethPrice ?? 0))
+									rewardIncrementEth = submission.amount.mul(
+										new Prisma.Prisma.Decimal(tokenPrice?.ethPrice ?? 0)
+									)
 								}
 
 								// Multiply reward amount in ETH by the strategy weight

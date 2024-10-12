@@ -27,24 +27,3 @@ export function withOperatorShares(avsOperators) {
 		shares
 	}))
 }
-
-/**
- * Returns whether a given token address belongs to a list of special tokens
- *
- * @param tokenAddress
- * @returns
- */
-export function isSpecialToken(tokenAddress: string): boolean {
-	const specialTokens =
-		getNetwork() === holesky
-			? [
-					'0x6Cc9397c3B38739daCbfaA68EaD5F5D77Ba5F455', // WETH
-					'0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0'
-			  ]
-			: [
-					'0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2', // WETH
-					'0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0'
-			  ]
-
-	return specialTokens.includes(tokenAddress.toLowerCase())
-}
