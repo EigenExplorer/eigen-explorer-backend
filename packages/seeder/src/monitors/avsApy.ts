@@ -1,12 +1,9 @@
 import Prisma from '@prisma/client'
 import { bulkUpdateDbTransactions } from '../utils/seeder'
 import { getPrismaClient } from '../utils/prismaClient'
-import {
-	sharesToTVLStrategies,
-	getStrategiesWithShareUnderlying
-} from '../../../api/src/utils/strategyShares'
-import { withOperatorShares } from '../../../api/src/utils/operatorShares'
-import { fetchTokenPrices } from '../../../api/src/utils/tokenPrices'
+import { sharesToTVLStrategies, getStrategiesWithShareUnderlying } from '../utils/strategyShares'
+import { withOperatorShares } from '../utils/operatorShares'
+import { fetchTokenPrices } from '../utils/tokenPrices'
 
 export async function monitorAvsApy() {
 	const prismaClient = getPrismaClient()

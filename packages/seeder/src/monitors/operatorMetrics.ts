@@ -2,10 +2,7 @@ import prisma from '@prisma/client'
 import { createHash } from 'crypto'
 import { getPrismaClient } from '../utils/prismaClient'
 import { bulkUpdateDbTransactions } from '../utils/seeder'
-import {
-	sharesToTVL,
-	getStrategiesWithShareUnderlying
-} from '../../../api/src/utils/strategyShares'
+import { sharesToTVL, getStrategiesWithShareUnderlying } from '../utils/strategyShares'
 
 export async function monitorOperatorMetrics() {
 	const prismaClient = getPrismaClient()

@@ -9,11 +9,10 @@ import {
 } from '../utils/seeder'
 import { getViemClient } from '../utils/viemClient'
 import { strategyAbi } from '../data/abi/strategy'
-import { getEigenContracts } from '../data/address'
 import {
 	getStrategiesWithShareUnderlying,
 	StrategyWithShareUnderlying
-} from '../../../api/src/utils/strategyShares'
+} from '../utils/strategyShares'
 
 const blockSyncKey = 'lastSyncedTimestamp_metrics_tvl'
 const BATCH_DAYS = 30
