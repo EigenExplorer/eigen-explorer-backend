@@ -633,6 +633,38 @@ model EventLogs_AVSRewardsSubmission {
   @@index([blockNumber])
 }
 
+model EventLogs_StrategyAddedToDepositWhitelist {
+  address String
+
+  transactionHash  String
+  transactionIndex Int
+  blockNumber      BigInt
+  blockHash        String
+  blockTime        DateTime
+
+  strategy String
+
+  @@id([transactionHash, transactionIndex])
+  @@index([strategy])
+  @@index([blockNumber])
+}
+
+model EventLogs_StrategyRemovedFromDepositWhitelist {
+  address String
+
+  transactionHash  String
+  transactionIndex Int
+  blockNumber      BigInt
+  blockHash        String
+  blockTime        DateTime
+
+  strategy String
+
+  @@id([transactionHash, transactionIndex])
+  @@index([strategy])
+  @@index([blockNumber])
+}
+
 model EthPricesDaily {
   id Int @id @default(autoincrement())
 
