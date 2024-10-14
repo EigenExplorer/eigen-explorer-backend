@@ -19,7 +19,7 @@ export async function fetchTokenPrices(): Promise<TokenPrice[]> {
 
 	const CMC_API = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest'
 
-	const keysStr = cmcTokenIds.join(',')
+	const keysStr = cmcTokenIds.filter((id) => id !== 0).join(',')
 
 	const cachedValue = await cacheStore.get<TokenPrice[]>(`price_${keysStr}`)
 
@@ -37,14 +37,16 @@ export async function fetchTokenPrices(): Promise<TokenPrice[]> {
 	const quotes = Object.values(payload.data) as any[]
 
 	tokens.map((t) => {
-		const quoteKey = quotes.find((q) => q.id === t.cmcId)
+		const quote = quotes.find((q) => q.id === t.cmcId)
 
-		tokenPrices.push({
-			id: t.cmcId,
-			address: t.address,
-			symbol: quoteKey.symbol,
-			ethPrice: quoteKey ? quoteKey.quote.ETH.price : 0
-		})
+		if (quote) {
+			tokenPrices.push({
+				id: t.cmcId,
+				address: t.address,
+				symbol: quote.symbol,
+				ethPrice: quote ? quote.quote.ETH.price : 0
+			})
+		}
 	})
 
 	cacheStore.set(`price_${keysStr}`, tokenPrices, 120_000)
