@@ -586,7 +586,10 @@ export async function getAVSRewards(req: Request, res: Response) {
 
 			if (rewardTokenAddress) {
 				const tokenPrice = tokenPrices.find((tp) => tp.address.toLowerCase() === rewardTokenAddress)
-				const amountInEth = amount.mul(new Prisma.Prisma.Decimal(tokenPrice?.ethPrice ?? 0))
+				const amountInEth = amount
+					.div(new Prisma.Prisma.Decimal(10).pow(tokenPrice?.decimals ?? 18))
+					.mul(new Prisma.Prisma.Decimal(tokenPrice?.ethPrice ?? 0))
+					.mul(new Prisma.Prisma.Decimal(10).pow(18)) // 18 decimals
 				currentTotalAmountEth = currentTotalAmountEth.add(amountInEth)
 			}
 
@@ -602,7 +605,7 @@ export async function getAVSRewards(req: Request, res: Response) {
 			currentSubmission.totalAmount = currentTotalAmount.toString()
 			result.submissions.push(currentSubmission)
 			result.totalSubmissions++
-			result.totalRewards += currentTotalAmountEth.toNumber()
+			result.totalRewards += currentTotalAmountEth.toNumber() // 18 decimals
 		}
 
 		result.rewardTokens = rewardTokens
@@ -760,9 +763,9 @@ async function calculateAvsApy(avs: any) {
 					const tokenPrice = tokenPrices.find(
 						(tp) => tp.address.toLowerCase() === rewardTokenAddress
 					)
-					rewardIncrementEth = submission.amount.mul(
-						new Prisma.Prisma.Decimal(tokenPrice?.ethPrice ?? 0)
-					)
+					rewardIncrementEth = submission.amount
+						.mul(new Prisma.Prisma.Decimal(tokenPrice?.ethPrice ?? 0))
+						.div(new Prisma.Prisma.Decimal(10).pow(tokenPrice?.decimals ?? 18)) // No decimals
 				}
 
 				// Multiply reward amount in ETH by the strategy weight
@@ -770,7 +773,7 @@ async function calculateAvsApy(avs: any) {
 					.mul(submission.multiplier)
 					.div(new Prisma.Prisma.Decimal(10).pow(18))
 
-				totalRewardsEth = totalRewardsEth.add(rewardIncrementEth)
+				totalRewardsEth = totalRewardsEth.add(rewardIncrementEth) // No decimals
 				totalDuration += submission.duration
 			}
 
@@ -779,8 +782,7 @@ async function calculateAvsApy(avs: any) {
 			}
 
 			// Annualize the reward basis its duration to find yearly APY
-			const rewardRate =
-				totalRewardsEth.div(new Prisma.Prisma.Decimal(10).pow(18)).toNumber() / strategyTvl
+			const rewardRate = totalRewardsEth.toNumber() / strategyTvl
 			const annualizedRate = rewardRate * ((365 * 24 * 60 * 60) / totalDuration)
 			const apy = annualizedRate * 100
 

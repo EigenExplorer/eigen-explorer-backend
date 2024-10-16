@@ -8,6 +8,7 @@ type TokenPrice = {
 	address: string
 	symbol: string
 	ethPrice: number
+	decimals: number
 }
 
 export async function fetchTokenPrices(): Promise<TokenPrice[]> {
@@ -44,7 +45,8 @@ export async function fetchTokenPrices(): Promise<TokenPrice[]> {
 				id: t.cmcId,
 				address: t.address,
 				symbol: quote.symbol,
-				ethPrice: quote ? quote.quote.ETH.price : 0
+				ethPrice: quote ? quote.quote.ETH.price : 0,
+				decimals: t.decimals
 			})
 		}
 	})

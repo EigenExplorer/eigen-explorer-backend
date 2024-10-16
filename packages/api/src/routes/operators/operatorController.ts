@@ -498,9 +498,9 @@ async function calculateOperatorApy(operator: any) {
 						const tokenPrice = tokenPrices.find(
 							(tp) => tp.address.toLowerCase() === rewardTokenAddress
 						)
-						rewardIncrementEth = submission.amount.mul(
-							new Prisma.Prisma.Decimal(tokenPrice?.ethPrice ?? 0)
-						)
+						rewardIncrementEth = submission.amount
+							.mul(new Prisma.Prisma.Decimal(tokenPrice?.ethPrice ?? 0))
+							.div(new Prisma.Prisma.Decimal(10).pow(tokenPrice?.decimals ?? 18)) // No decimals
 					}
 
 					// Multiply reward amount in ETH by the strategy weight
@@ -509,18 +509,20 @@ async function calculateOperatorApy(operator: any) {
 						.div(new Prisma.Prisma.Decimal(10).pow(18))
 
 					// Operator takes 10% in commission
-					const operatorFeesEth = rewardIncrementEth.mul(10).div(100)
-					operatorEarningsEth = operatorEarningsEth.add(operatorFeesEth)
+					const operatorFeesEth = rewardIncrementEth.mul(10).div(100) // No decimals
 
-					totalRewardsEth = totalRewardsEth.add(rewardIncrementEth).sub(operatorFeesEth)
+					operatorEarningsEth = operatorEarningsEth.add(
+						operatorFeesEth.mul(new Prisma.Prisma.Decimal(10).pow(18))
+					) // 18 decimals
+
+					totalRewardsEth = totalRewardsEth.add(rewardIncrementEth).sub(operatorFeesEth) // No decimals
 					totalDuration += submission.duration
 				}
 
 				if (totalDuration === 0) continue
 
 				// Annualize the reward basis its duration to find yearly APY
-				const rewardRate =
-					totalRewardsEth.div(new Prisma.Prisma.Decimal(10).pow(18)).toNumber() / strategyTvl
+				const rewardRate = totalRewardsEth.toNumber() / strategyTvl // No decimals
 				const annualizedRate = rewardRate * ((365 * 24 * 60 * 60) / totalDuration)
 				const apy = annualizedRate * 100
 				aggregateApy += apy
