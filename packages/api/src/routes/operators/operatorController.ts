@@ -7,6 +7,7 @@ import { WithAdditionalDataQuerySchema } from '../../schema/zod/schemas/withAddi
 import { SortByQuerySchema } from '../../schema/zod/schemas/sortByQuery'
 import { SearchByTextQuerySchema } from '../../schema/zod/schemas/searchByTextQuery'
 import { WithRewardsQuerySchema } from '../../schema/zod/schemas/withRewardsQuery'
+import { OperatorEventQuerySchema } from '../../schema/zod/schemas/operatorevents'
 import { handleAndReturnErrorResponse } from '../../schema/errors'
 import { fetchRewardTokenPrices, fetchStrategyTokenPrices } from '../../utils/tokenPrices'
 import {
@@ -19,6 +20,20 @@ import { getNetwork } from '../../viem/viemClient'
 import { holesky } from 'viem/chains'
 import Prisma from '@prisma/client'
 import prisma from '../../utils/prismaClient'
+
+type EventRecordArgs = {
+	staker: string
+	strategy?: string
+	shares?: number
+}
+
+type EventRecord = {
+	type: 'shares increased' | 'shares decreased' | 'delegation' | 'undelegation'
+	tx: string
+	blockNumber: number
+	blockTime: Date
+	args: EventRecordArgs
+}
 
 /**
  * Function for route /operators
