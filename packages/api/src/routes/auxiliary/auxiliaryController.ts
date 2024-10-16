@@ -40,3 +40,22 @@ export async function getLastSyncBlocks(req: Request, res: Response) {
 		handleAndReturnErrorResponse(req, res, error)
 	}
 }
+
+/**
+ * Route to fetch and display all strategies and tokens
+ *
+ * @param req
+ * @param res
+ */
+export async function getStrategies(req: Request, res: Response) {
+	try {
+		const prismaClient = getPrismaClient()
+
+		const strategies = await prismaClient.strategies.findMany()
+		const tokens = await prismaClient.tokens.findMany()
+
+		res.status(200).send({ strategies, tokens })
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
