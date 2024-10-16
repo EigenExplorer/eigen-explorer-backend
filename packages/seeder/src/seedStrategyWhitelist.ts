@@ -74,7 +74,9 @@ export async function seedStrategyWhitelist(toBlock?: bigint, fromBlock?: bigint
 						client: getViemClient()
 					})
 
-					const underlyingToken = await strategyContract.read.underlyingToken()
+					const underlyingToken = String(
+						await strategyContract.read.underlyingToken()
+					).toLowerCase()
 					const sharesToUnderlying = await strategyContract.read.sharesToUnderlyingView([1e18])
 					if (!underlyingToken) continue
 
