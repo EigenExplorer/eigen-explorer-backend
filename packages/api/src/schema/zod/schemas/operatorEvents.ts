@@ -50,17 +50,14 @@ export const OperatorEventQuerySchema = z
 	})
 	.refine(
 		(data) => {
-			if (
-				(data.type === 'delegation' || data.type === 'undelegation') &&
-				(data.strategyAddress || data.stakerAddress)
-			) {
+			if ((data.type === 'delegation' || data.type === 'undelegation') && data.strategyAddress) {
 				return false
 			}
 			return true
 		},
 		{
 			message:
-				'Neither strategyAddress nor stakerAddress should be provided for delegation or undelegation event types.',
-			path: ['strategyAddress', 'stakerAddress']
+				'strategyAddress filter is not supported for delegation or undelegation event types.',
+			path: ['strategyAddress']
 		}
 	)

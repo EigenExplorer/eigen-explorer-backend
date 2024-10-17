@@ -7,7 +7,7 @@ import { WithAdditionalDataQuerySchema } from '../../schema/zod/schemas/withAddi
 import { SortByQuerySchema } from '../../schema/zod/schemas/sortByQuery'
 import { SearchByTextQuerySchema } from '../../schema/zod/schemas/searchByTextQuery'
 import { WithRewardsQuerySchema } from '../../schema/zod/schemas/withRewardsQuery'
-import { OperatorEventQuerySchema } from '../../schema/zod/schemas/operatorevents'
+import { OperatorEventQuerySchema } from '../../schema/zod/schemas/operatorEvents'
 import { handleAndReturnErrorResponse } from '../../schema/errors'
 import { fetchRewardTokenPrices, fetchStrategyTokenPrices } from '../../utils/tokenPrices'
 import {
@@ -395,6 +395,71 @@ export async function getOperatorRewards(req: Request, res: Response) {
 }
 
 /**
+ * Function for route /operators/:address/events
+ * Fetches and returns a list of events for a specific operator with optional filters
+ *
+ * @param req
+ * @param res
+ */
+export async function getOperatorEvents(req: Request, res: Response) {
+	const result = OperatorEventQuerySchema.and(PaginationQuerySchema).safeParse(req.query)
+	if (!result.success) {
+		return handleAndReturnErrorResponse(req, res, result.error)
+	}
+
+	try {
+		const { type, stakerAddress, strategyAddress, txHash, startAt, skip, take } = result.data
+		const { address } = req.params
+
+		const baseFilterQuery = {
+			operator: address,
+			...(stakerAddress && { staker: stakerAddress }),
+			...(strategyAddress && { strategy: strategyAddress }),
+			...(txHash && { transactionHash: txHash }),
+			...(startAt ? { blockTime: { gte: new Date(startAt) } } : {})
+		}
+
+		let eventRecords: EventRecord[] = []
+		let eventCount = 0
+
+		const eventTypesToFetch = type
+			? [type]
+			: strategyAddress
+			? ['shares increased', 'shares decreased']
+			: ['shares increased', 'shares decreased', 'delegation', 'undelegation']
+
+		const fetchEventsForTypes = async (types: string[]) => {
+			const results = await Promise.all(
+				types.map((eventType) => fetchAndMapEvents(eventType, baseFilterQuery, skip, take))
+			)
+			return results
+		}
+
+		const results = await fetchEventsForTypes(eventTypesToFetch)
+
+		eventRecords = results.flatMap((result) => result.eventRecords)
+		eventRecords = eventRecords
+			.sort((a, b) => (b.blockNumber > a.blockNumber ? 1 : -1))
+			.slice(0, take)
+
+		eventCount = results.reduce((acc, result) => acc + result.eventCount, 0)
+
+		const response = {
+			data: eventRecords,
+			meta: {
+				total: eventCount,
+				skip,
+				take
+			}
+		}
+
+		res.send(response)
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+/**
  * Function for route /operators/:address/invalidate-metadata
  * Protected route to invalidate the metadata of a given Operator
  *
@@ -639,4 +704,63 @@ export function isSpecialToken(tokenAddress: string): boolean {
 			  ]
 
 	return specialTokens.includes(tokenAddress.toLowerCase())
+}
+
+/**
+ * Utility function to fetch and map event records from the database.
+ *
+ * @param eventType
+ * @param baseFilterQuery
+ * @param skip
+ * @param take
+ * @returns
+ */
+async function fetchAndMapEvents(
+	eventType: string,
+	baseFilterQuery: any,
+	skip: number,
+	take: number
+): Promise<{ eventRecords: EventRecord[]; eventCount: number }> {
+	const modelName = (() => {
+		switch (eventType) {
+			case 'shares increased':
+				return 'eventLogs_OperatorSharesIncreased'
+			case 'shares decreased':
+				return 'eventLogs_OperatorSharesDecreased'
+			case 'delegation':
+				return 'eventLogs_StakerDelegated'
+			case 'undelegation':
+				return 'eventLogs_StakerUndelegated'
+			default:
+				throw new Error(`Unknown event type: ${eventType}`)
+		}
+	})()
+
+	const model = prisma[modelName] as any
+
+	const eventCount = await model.count({
+		where: baseFilterQuery
+	})
+
+	const eventRecords = await model.findMany({
+		where: baseFilterQuery,
+		skip,
+		take,
+		orderBy: { blockNumber: 'desc' }
+	})
+
+	return {
+		eventRecords: eventRecords.map((event) => ({
+			type: eventType,
+			tx: event.transactionHash,
+			blockNumber: event.blockNumber,
+			blockTime: event.blockTime,
+			args: {
+				staker: event.staker,
+				strategy: event.strategy,
+				shares: event.shares
+			}
+		})),
+		eventCount
+	}
 }
