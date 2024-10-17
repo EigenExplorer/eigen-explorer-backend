@@ -1,21 +1,20 @@
 import type { Request, Response } from 'express'
 import type Prisma from '@prisma/client'
-import prisma from '../../utils/prismaClient'
-import { type EigenStrategiesContractAddress, getEigenContracts } from '../../data/address'
+import prisma, { getPrismaClient } from '../../utils/prismaClient'
 import { EigenExplorerApiError, handleAndReturnErrorResponse } from '../../schema/errors'
 import { getAvsFilterQuery } from '../avs/avsController'
 import { HistoricalCountSchema } from '../../schema/zod/schemas/historicalCountQuery'
 import { EthereumAddressSchema } from '../../schema/zod/schemas/base/ethereumAddress'
-import { fetchStrategyTokenPrices } from '../../utils/tokenPrices'
 import { getContract } from 'viem'
 import { strategyAbi } from '../../data/abi/strategy'
 import { getViemClient } from '../../viem/viemClient'
-import { getStrategiesWithShareUnderlying } from '../strategies/strategiesController'
+import { getStrategiesWithShareUnderlying } from '../../utils/strategyShares'
 import {
 	type CirculatingSupplyWithChange,
 	fetchEthCirculatingSupply
 } from '../../utils/ethCirculatingSupply'
 import { WithChangeQuerySchema } from '../../schema/zod/schemas/withChangeQuery'
+import { fetchTokenPrices } from '../../utils/tokenPrices'
 
 const beaconAddress = '0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0'
 
@@ -273,8 +272,9 @@ export async function getTvlRestakingByStrategy(req: Request, res: Response) {
 		const { strategy } = req.params
 		const { withChange } = queryCheck.data
 
-		const strategies = Object.keys(getEigenContracts().Strategies)
-		const foundStrategy = strategies.find((s) => s.toLowerCase() === strategy.toLowerCase())
+		const foundStrategy = await prisma.strategies.findUnique({
+			where: { address: strategy.toLowerCase() }
+		})
 
 		if (!foundStrategy) {
 			throw new EigenExplorerApiError({
@@ -284,7 +284,8 @@ export async function getTvlRestakingByStrategy(req: Request, res: Response) {
 		}
 
 		const tvlResponse = await doGetTvlStrategy(
-			getEigenContracts().Strategies[foundStrategy].strategyContract,
+			foundStrategy.address as `0x${string}`,
+			foundStrategy.underlyingToken as `0x${string}`,
 			withChange
 		)
 
@@ -789,51 +790,45 @@ async function doGetTvl(withChange: boolean) {
 	let tvlRestaking: TvlWithoutChange = 0
 	const ethPrices = withChange ? await fetchCurrentEthPrices() : undefined
 
-	const strategyKeys = Object.keys(getEigenContracts().Strategies)
-	const strategiesContracts = strategyKeys.map((s) =>
-		getContract({
-			address: getEigenContracts().Strategies[s].strategyContract,
-			abi: strategyAbi,
-			client: getViemClient()
-		})
-	)
-
-	const tvlStrategies = {}
-	const tvlStrategiesEth: Map<keyof EigenStrategiesContractAddress, number> = new Map(
-		strategyKeys.map((sk) => [sk as keyof EigenStrategiesContractAddress, 0])
-	)
+	const tvlStrategies: Map<string, number> = new Map()
+	const tvlStrategiesEth: Map<string, number> = new Map()
 
 	try {
+		const strategiesWithSharesUnderlying = await getStrategiesWithShareUnderlying()
+
 		const totalShares = await Promise.all(
-			strategiesContracts.map(async (sc, i) => ({
-				strategyKey: strategyKeys[i],
-				strategyAddress: sc.address.toLowerCase(),
-				shares: (await sc.read.totalShares()) as string
-			}))
+			strategiesWithSharesUnderlying
+				.filter((s) => s.strategyAddress.toLowerCase() !== beaconAddress.toLowerCase())
+				.map(async (su) => {
+					const strategyContract = getContract({
+						address: su.strategyAddress as `0x${string}`,
+						abi: strategyAbi,
+						client: getViemClient()
+					})
+
+					return {
+						strategyAddress: strategyContract.address,
+						shares: (await strategyContract.read.totalShares()) as string
+					}
+				})
 		)
 
-		const strategiesWithSharesUnderlying = await getStrategiesWithShareUnderlying()
-		const strategyTokenPrices = await fetchStrategyTokenPrices()
-
-		totalShares.map((s) => {
-			const strategyTokenPrice = Object.values(strategyTokenPrices).find(
-				(stp) => stp.strategyAddress.toLowerCase() === s.strategyAddress.toLowerCase()
-			)
-			const sharesUnderlying = strategiesWithSharesUnderlying.find(
-				(su) => su.strategyAddress.toLowerCase() === s.strategyAddress.toLowerCase()
+		strategiesWithSharesUnderlying.map((s) => {
+			const foundTotalShares = totalShares.find(
+				(ts) => ts.strategyAddress.toLowerCase() === s.strategyAddress.toLowerCase()
 			)
 
-			if (sharesUnderlying) {
+			if (foundTotalShares) {
 				const strategyShares =
-					Number((BigInt(s.shares) * BigInt(sharesUnderlying.sharesToUnderlying)) / BigInt(1e18)) /
+					Number((BigInt(foundTotalShares.shares) * BigInt(s.sharesToUnderlying)) / BigInt(1e18)) /
 					1e18
 
-				tvlStrategies[s.strategyKey] = strategyShares
+				tvlStrategies[s.symbol] = strategyShares
 
-				if (strategyTokenPrice) {
-					const strategyTvl = strategyShares * strategyTokenPrice.eth
+				if (s.ethPrice) {
+					const strategyTvl = strategyShares * s.ethPrice
 
-					tvlStrategiesEth.set(s.strategyKey as keyof EigenStrategiesContractAddress, strategyTvl)
+					tvlStrategiesEth.set(s.symbol, strategyTvl)
 
 					tvlRestaking += strategyTvl
 				}
@@ -857,16 +852,20 @@ async function doGetTvl(withChange: boolean) {
  * @param withChange
  * @returns
  */
-async function doGetTvlStrategy(strategy: `0x${string}`, withChange: boolean) {
+async function doGetTvlStrategy(
+	strategy: `0x${string}`,
+	underlyingToken: `0x${string}`,
+	withChange: boolean
+) {
 	let tvl = 0
 	let tvlEth = 0
 
 	const ethPrices = withChange ? await fetchCurrentEthPrices() : undefined
 
 	try {
-		const strategyTokenPrices = await fetchStrategyTokenPrices()
-		const strategyTokenPrice = Object.values(strategyTokenPrices).find(
-			(stp) => stp.strategyAddress.toLowerCase() === strategy.toLowerCase()
+		const tokenPrices = await fetchTokenPrices()
+		const strategyTokenPrice = tokenPrices.find(
+			(tp) => tp.address.toLowerCase() === underlyingToken.toLowerCase()
 		)
 
 		const contract = getContract({
@@ -879,7 +878,7 @@ async function doGetTvlStrategy(strategy: `0x${string}`, withChange: boolean) {
 			Number(await contract.read.sharesToUnderlyingView([await contract.read.totalShares()])) / 1e18
 
 		if (strategyTokenPrice) {
-			tvlEth = tvl * strategyTokenPrice.eth
+			tvlEth = tvl * strategyTokenPrice.ethPrice
 		}
 	} catch (error) {}
 
@@ -2268,13 +2267,17 @@ function resetTime(date: Date) {
  * @returns
  */
 async function fetchCurrentEthPrices(): Promise<Map<string, number>> {
-	const ethPrices = await fetchStrategyTokenPrices()
+	const prismaClient = getPrismaClient()
+	const strategies = await prismaClient.strategies.findMany()
+	const tokenPrices = await fetchTokenPrices()
 	const strategyPriceMap = new Map<string, number>()
 
-	for (const [_, tokenPrice] of Object.entries(ethPrices)) {
-		if (tokenPrice) {
-			strategyPriceMap.set(tokenPrice.strategyAddress.toLowerCase(), tokenPrice.eth)
-		}
+	for (const strategy of strategies) {
+		const foundTokenPrice = tokenPrices.find(
+			(tp) => tp.address.toLowerCase() === strategy.underlyingToken.toLowerCase()
+		)
+
+		strategyPriceMap.set(strategy.address.toLowerCase(), foundTokenPrice?.ethPrice || 0)
 	}
 
 	strategyPriceMap.set('0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0', 1)
