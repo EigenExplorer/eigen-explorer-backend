@@ -797,28 +797,23 @@ async function doGetTvl(withChange: boolean) {
 		const strategiesWithSharesUnderlying = await getStrategiesWithShareUnderlying()
 
 		const totalShares = await Promise.all(
-			strategiesWithSharesUnderlying.map(async (su) => {
-				const strategyContract = getContract({
-					address: su.strategyAddress as `0x${string}`,
-					abi: strategyAbi,
-					client: getViemClient()
-				})
+			strategiesWithSharesUnderlying
+				.filter((s) => s.strategyAddress.toLowerCase() !== beaconAddress.toLowerCase())
+				.map(async (su) => {
+					const strategyContract = getContract({
+						address: su.strategyAddress as `0x${string}`,
+						abi: strategyAbi,
+						client: getViemClient()
+					})
 
-				return {
-					strategyAddress: strategyContract.address,
-					shares: (await strategyContract.read.totalShares()) as string
-				}
-			})
+					return {
+						strategyAddress: strategyContract.address,
+						shares: (await strategyContract.read.totalShares()) as string
+					}
+				})
 		)
 
 		strategiesWithSharesUnderlying.map((s) => {
-			// const strategyTokenPrice = Object.values(strategyTokenPrices).find(
-			// 	(stp) => stp.strategyAddress.toLowerCase() === s.strategyAddress.toLowerCase()
-			// )
-			// const sharesUnderlying = strategiesWithSharesUnderlying.find(
-			// 	(su) => su.strategyAddress.toLowerCase() === s.strategyAddress.toLowerCase()
-			// )
-
 			const foundTotalShares = totalShares.find(
 				(ts) => ts.strategyAddress.toLowerCase() === s.strategyAddress.toLowerCase()
 			)
