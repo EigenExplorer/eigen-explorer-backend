@@ -184,7 +184,7 @@ async function loopTick(
 		)
 		if (!sharesToUnderlying) continue
 
-		const tvl = (Number(shares) * sharesToUnderlying.sharesToUnderlying) / 1e36
+		const tvl = (Number(shares) * Number(sharesToUnderlying.sharesToUnderlying)) / 1e36
 
 		if (tvl !== Number(lastMetric.tvl)) {
 			const changeTvl = tvl - Number(lastMetric.tvl)
