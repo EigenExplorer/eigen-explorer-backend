@@ -37,6 +37,7 @@ import { seedAvsStrategyRewards } from './seedAvsStrategyRewards'
 import { seedLogsAVSRewardsSubmission } from './events/seedLogsRewardsSubmissions'
 import { monitorAvsApy } from './monitors/avsApy'
 import { monitorOperatorApy } from './monitors/operatorApy'
+import { seedLogStrategyWhitelist } from './events/seedLogStrategyWhitelist'
 
 console.log('Initializing Seeder ...')
 
@@ -62,9 +63,7 @@ async function seedEigenData() {
 		try {
 			const viemClient = getViemClient()
 			const targetBlock = await viemClient.getBlockNumber()
-			console.log(
-				`\nSeeding data, every ${UPDATE_FREQUENCY} seconds, till block ${targetBlock}:`
-			)
+			console.log(`\nSeeding data, every ${UPDATE_FREQUENCY} seconds, till block ${targetBlock}:`)
 			console.time('Seeded data in')
 
 			// Seed block data with a global lock to prevent block-less updates
@@ -84,6 +83,7 @@ async function seedEigenData() {
 				seedLogsDeposit(targetBlock),
 				seedLogsPodSharesUpdated(targetBlock),
 				seedLogsAVSRewardsSubmission(targetBlock),
+				seedLogStrategyWhitelist(targetBlock)
 			])
 
 			await Promise.all([
@@ -112,10 +112,10 @@ async function seedEigenData() {
 			await Promise.all([
 				// Rewards
 				seedAvsStrategyRewards(),
-				
+
 				// Metrics
 				monitorAvsMetrics(),
-				monitorOperatorMetrics(),
+				monitorOperatorMetrics()
 			])
 			console.timeEnd('Seeded data in')
 		} catch (error) {
@@ -163,11 +163,7 @@ async function seedEigenDailyData(retryCount = 0) {
 		console.log(error)
 
 		if (retryCount < MAX_RETRIES) {
-			console.log(
-				`Retrying in 15 minutes... (Attempt ${
-					retryCount + 1
-				} of ${MAX_RETRIES})`
-			)
+			console.log(`Retrying in 15 minutes... (Attempt ${retryCount + 1} of ${MAX_RETRIES})`)
 			setTimeout(() => seedEigenDailyData(retryCount + 1), RETRY_DELAY * 1000)
 		} else {
 			console.log('Max retries reached. Daily data seeding failed.')
@@ -201,11 +197,7 @@ async function seedApyData(retryCount = 0) {
 		console.log(error)
 
 		if (retryCount < MAX_RETRIES) {
-			console.log(
-				`Retrying in 15 minutes... (Attempt ${
-					retryCount + 1
-				} of ${MAX_RETRIES})`
-			)
+			console.log(`Retrying in 15 minutes... (Attempt ${retryCount + 1} of ${MAX_RETRIES})`)
 			setTimeout(() => seedEigenDailyData(retryCount + 1), RETRY_DELAY * 1000)
 		} else {
 			console.log('Max retries reached. Avs and Operator APY seeding failed.')

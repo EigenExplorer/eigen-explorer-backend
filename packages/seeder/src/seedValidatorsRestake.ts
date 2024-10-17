@@ -11,10 +11,7 @@ import {
 
 const blockSyncKey = 'lastSyncedBlock_validatorsRestake'
 
-export async function seedValidatorsRestake(
-	toBlock?: bigint,
-	fromBlock?: bigint
-) {
+export async function seedValidatorsRestake(toBlock?: bigint, fromBlock?: bigint) {
 	console.log('Seeding Validator Restake ...')
 
 	const viemClient = getViemClient()
@@ -26,9 +23,7 @@ export async function seedValidatorsRestake(
 	}[] = []
 	const validatorIndicies: number[] = []
 
-	const firstBlock = fromBlock
-		? fromBlock
-		: await fetchLastSyncBlock(blockSyncKey)
+	const firstBlock = fromBlock ? fromBlock : await fetchLastSyncBlock(blockSyncKey)
 	const lastBlock = toBlock ? toBlock : await viemClient.getBlockNumber()
 
 	// Loop through evm logs
@@ -53,9 +48,7 @@ export async function seedValidatorsRestake(
 			}
 		}
 
-		console.log(
-			`Validator restaked between blocks ${fromBlock} ${toBlock}: ${logs.length}`
-		)
+		console.log(`Validator restaked between blocks ${fromBlock} ${toBlock}: ${logs.length}`)
 	})
 
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>

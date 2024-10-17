@@ -18,16 +18,11 @@ const blockSyncKeyLogs = 'lastSyncedBlock_logs_avsRewardsSubmission'
  * @param fromBlock
  * @param toBlock
  */
-export async function seedLogsAVSRewardsSubmission(
-	toBlock?: bigint,
-	fromBlock?: bigint
-) {
+export async function seedLogsAVSRewardsSubmission(toBlock?: bigint, fromBlock?: bigint) {
 	const viemClient = getViemClient()
 	const prismaClient = getPrismaClient()
 
-	const firstBlock = fromBlock
-		? fromBlock
-		: await fetchLastSyncBlock(blockSyncKeyLogs)
+	const firstBlock = fromBlock ? fromBlock : await fetchLastSyncBlock(blockSyncKeyLogs)
 	const lastBlock = toBlock ? toBlock : await viemClient.getBlockNumber()
 
 	// Loop through evm logs
@@ -37,8 +32,7 @@ export async function seedLogsAVSRewardsSubmission(
 			// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 			const dbTransactions: any[] = []
 
-			const logsAvsRewardsSubmissions: prisma.EventLogs_AVSRewardsSubmission[] =
-				[]
+			const logsAvsRewardsSubmissions: prisma.EventLogs_AVSRewardsSubmission[] = []
 
 			const logs = await viemClient.getLogs({
 				address: getEigenContracts().RewardsCoordinator,
@@ -61,12 +55,9 @@ export async function seedLogsAVSRewardsSubmission(
 				const multipliers: string[] = []
 
 				if (log.args.rewardsSubmission?.strategiesAndMultipliers) {
-					for (const strategyAndMultiplier of log.args.rewardsSubmission
-						.strategiesAndMultipliers) {
+					for (const strategyAndMultiplier of log.args.rewardsSubmission.strategiesAndMultipliers) {
 						strategies.push(strategyAndMultiplier.strategy.toLowerCase())
-						multipliers.push(
-							String(strategyAndMultiplier.multiplier.toString())
-						)
+						multipliers.push(String(strategyAndMultiplier.multiplier.toString()))
 					}
 
 					logsAvsRewardsSubmissions.push({
@@ -78,20 +69,11 @@ export async function seedLogsAVSRewardsSubmission(
 						blockTime: blockData.get(log.blockNumber) || new Date(0),
 						avs: String(log.args.avs).toLowerCase(),
 						submissionNonce: BigInt(log.args.submissionNonce || 0),
-						rewardsSubmissionHash: String(
-							log.args.rewardsSubmissionHash
-						).toLowerCase(),
-						rewardsSubmission_token: String(
-							log.args.rewardsSubmission.token
-						).toLowerCase(),
-						rewardsSubmission_amount:
-							log.args.rewardsSubmission.amount.toString(),
-						rewardsSubmission_startTimestamp: BigInt(
-							log.args.rewardsSubmission.startTimestamp
-						),
-						rewardsSubmission_duration: Number(
-							log.args.rewardsSubmission.duration
-						),
+						rewardsSubmissionHash: String(log.args.rewardsSubmissionHash).toLowerCase(),
+						rewardsSubmission_token: String(log.args.rewardsSubmission.token).toLowerCase(),
+						rewardsSubmission_amount: log.args.rewardsSubmission.amount.toString(),
+						rewardsSubmission_startTimestamp: BigInt(log.args.rewardsSubmission.startTimestamp),
+						rewardsSubmission_duration: Number(log.args.rewardsSubmission.duration),
 						strategiesAndMultipliers_strategies: strategies,
 						strategiesAndMultipliers_multipliers: multipliers
 					})

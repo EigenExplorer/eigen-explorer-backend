@@ -62,9 +62,7 @@ const getDefaultDates = (
 		const start = new Date(startAt)
 		return {
 			startAt,
-			endAt: new Date(
-				Math.min(start.getTime() + allowance, now.getTime())
-			).toISOString()
+			endAt: new Date(Math.min(start.getTime() + allowance, now.getTime())).toISOString()
 		}
 	}
 
@@ -86,14 +84,12 @@ const getDefaultDates = (
  */
 export const HistoricalCountSchema = z
 	.object({
-		frequency: z
-			.enum(['1d', '7d'])
-			.default('1d')
-			.describe('Frequency of data points'),
+		frequency: z.enum(['1d', '7d']).default('1d').describe('Frequency of data points'),
 		variant: z
 			.enum(['discrete', 'cumulative'])
 			.default('cumulative')
-			.describe('Type of tally, discrete or cumulative'),
+			.describe('Type of tally, discrete or cumulative')
+			.openapi({ example: 'cumulative' }),
 		startAt: z
 			.string()
 			.optional()
@@ -103,12 +99,12 @@ export const HistoricalCountSchema = z
 					((isoRegex.test(val) || yyyymmddRegex.test(val)) &&
 						!Number.isNaN(new Date(val).getTime())),
 				{
-					message:
-						'Invalid date format for startAt. Use YYYY-MM-DD or ISO 8601 format.'
+					message: 'Invalid date format for startAt. Use YYYY-MM-DD or ISO 8601 format.'
 				}
 			)
 			.default('')
-			.describe('Start date in ISO string format'),
+			.describe('Start date in ISO string format')
+			.openapi({ example: '2024-04-11T08:31:11.000' }),
 		endAt: z
 			.string()
 			.optional()
@@ -118,19 +114,17 @@ export const HistoricalCountSchema = z
 					((isoRegex.test(val) || yyyymmddRegex.test(val)) &&
 						!Number.isNaN(new Date(val).getTime())),
 				{
-					message:
-						'Invalid date format for endAt. Use YYYY-MM-DD or ISO 8601 format.'
+					message: 'Invalid date format for endAt. Use YYYY-MM-DD or ISO 8601 format.'
 				}
 			)
 			.default('')
 			.describe('End date in ISO string format')
+			.openapi({ example: '2024-04-12T08:31:11.000' })
 	})
 	.refine(
 		(data) => {
 			if (data.startAt && data.endAt) {
-				return (
-					new Date(data.endAt).getTime() >= new Date(data.startAt).getTime()
-				)
+				return new Date(data.endAt).getTime() >= new Date(data.startAt).getTime()
 			}
 			return true
 		},

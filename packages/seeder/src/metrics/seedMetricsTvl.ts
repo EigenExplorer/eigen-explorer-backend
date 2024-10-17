@@ -9,7 +9,10 @@ import {
 } from '../utils/seeder'
 import { getViemClient } from '../utils/viemClient'
 import { strategyAbi } from '../data/abi/strategy'
-import { getEigenContracts } from '../data/address'
+import {
+	getStrategiesWithShareUnderlying,
+	StrategyWithShareUnderlying
+} from '../utils/strategyShares'
 
 const blockSyncKey = 'lastSyncedTimestamp_metrics_tvl'
 const BATCH_DAYS = 30
@@ -37,9 +40,7 @@ export async function seedMetricsTvl(type: 'full' | 'incremental' = 'incremental
 
 	// Bail early if there is no time diff to sync
 	if (endDate.getTime() - startDate.getTime() <= 0) {
-		console.log(
-			`[In Sync] [Metrics] TVL Daily from: ${startDate} to: ${endDate}`
-		)
+		console.log(`[In Sync] [Metrics] TVL Daily from: ${startDate} to: ${endDate}`)
 		return
 	}
 
@@ -84,7 +85,7 @@ export async function seedMetricsTvl(type: 'full' | 'incremental' = 'incremental
 async function processLogsInBatches(
 	startDate: Date,
 	endDate: Date,
-	sharesToUnderlyingMap: Map<string, bigint>,
+	sharesToUnderlyingList: StrategyWithShareUnderlying[],
 	lastStrategyMetrics: ILastStrategyMetrics
 ) {
 	let metrics: ILastStrategyMetric[] = []
@@ -92,15 +93,10 @@ async function processLogsInBatches(
 	for (
 		let currentDate = setToStartOfDay(startDate);
 		currentDate < setToStartOfDay(endDate);
-		currentDate = new Date(
-			currentDate.getTime() + 24 * 60 * 60 * 1000 * BATCH_DAYS
-		)
+		currentDate = new Date(currentDate.getTime() + 24 * 60 * 60 * 1000 * BATCH_DAYS)
 	) {
 		const batchEndDate = new Date(
-			Math.min(
-				currentDate.getTime() + 24 * 60 * 60 * 1000 * BATCH_DAYS,
-				endDate.getTime()
-			)
+			Math.min(currentDate.getTime() + 24 * 60 * 60 * 1000 * BATCH_DAYS, endDate.getTime())
 		)
 
 		const blockNumbers = await getBlockNumbers(currentDate, batchEndDate)
@@ -113,7 +109,7 @@ async function processLogsInBatches(
 					fromDate,
 					toDate,
 					blockNumbers,
-					sharesToUnderlyingMap,
+					sharesToUnderlyingList,
 					lastStrategyMetrics
 				)
 
@@ -136,7 +132,7 @@ async function loopTick(
 	fromDate: Date,
 	toDate: Date,
 	blockNumbers: { number: bigint; timestamp: Date }[],
-	sharesToUnderlyingMap: Map<string, bigint>,
+	sharesToUnderlyingList: StrategyWithShareUnderlying[],
 	lastStrategyMetrics: ILastStrategyMetrics
 ): Promise<ILastStrategyMetric[]> {
 	const viemClient = getViemClient()
@@ -149,17 +145,14 @@ async function loopTick(
 	const currentBlockNumber = blockNumbersInRange[blockNumbersInRange.length - 1]
 
 	// Startegies
-	const strategyKeys = Object.keys(getEigenContracts().Strategies)
-	const strategyAddresses = strategyKeys.map((s) =>
-		getEigenContracts().Strategies[s].strategyContract.toLowerCase()
-	)
+	const strategyAddresses = sharesToUnderlyingList.map((s) => s.strategyAddress)
 
 	// Total shares
 	const results = await Promise.allSettled(
 		strategyAddresses.map(async (sa) => ({
 			strategyAddress: sa,
 			totalShares: await viemClient.readContract({
-				address: sa,
+				address: sa as `0x${string}`,
 				abi: strategyAbi,
 				functionName: 'totalShares',
 				blockNumber: currentBlockNumber.number
@@ -181,17 +174,17 @@ async function loopTick(
 				r.status === 'fulfilled' &&
 				r.value.strategyAddress.toLowerCase() === strategyAddress.toLowerCase()
 		)
-		if (
-			foundStrategyIndex === -1 ||
-			results[foundStrategyIndex].status !== 'fulfilled'
-		)
-			continue
 
-		const shares = results[foundStrategyIndex].value.totalShares as bigint
-		const sharesToUnderlying = sharesToUnderlyingMap.get(strategyAddress)
+		const result = results[foundStrategyIndex]
+		if (foundStrategyIndex === -1 || result.status !== 'fulfilled') continue
+
+		const shares = result.value.totalShares as bigint
+		const sharesToUnderlying = sharesToUnderlyingList.find(
+			(s) => s.strategyAddress.toLowerCase() === strategyAddress.toLowerCase()
+		)
 		if (!sharesToUnderlying) continue
 
-		const tvl = Number(shares * sharesToUnderlying) / 1e36
+		const tvl = (Number(shares) * Number(sharesToUnderlying.sharesToUnderlying)) / 1e36
 
 		if (tvl !== Number(lastMetric.tvl)) {
 			const changeTvl = tvl - Number(lastMetric.tvl)
@@ -233,18 +226,16 @@ async function getBlockNumbers(
 async function getFirstLogTimestamp() {
 	const prismaClient = getPrismaClient()
 
-	const firstLogPodDeployed =
-		await prismaClient.eventLogs_OperatorSharesIncreased.findFirst({
-			select: { blockTime: true },
-			orderBy: { blockTime: 'asc' }
-		})
+	const firstLogPodDeployed = await prismaClient.eventLogs_OperatorSharesIncreased.findFirst({
+		select: { blockTime: true },
+		orderBy: { blockTime: 'asc' }
+	})
 
 	if (!firstLogPodDeployed) {
 		return null
 	}
 
-	const firstLogPodDeployedTs =
-		firstLogPodDeployed?.blockTime?.getTime() ?? Infinity
+	const firstLogPodDeployedTs = firstLogPodDeployed?.blockTime?.getTime() ?? Infinity
 
 	return Math.min(firstLogPodDeployedTs)
 }
@@ -258,13 +249,12 @@ async function getLatestMetricsPerStrategy(): Promise<ILastStrategyMetrics> {
 	const prismaClient = getPrismaClient()
 
 	try {
-		const lastMetricsPerStrategy =
-			await prismaClient.metricStrategyUnit.groupBy({
-				by: ['strategyAddress'],
-				_max: {
-					timestamp: true
-				}
-			})
+		const lastMetricsPerStrategy = await prismaClient.metricStrategyUnit.groupBy({
+			by: ['strategyAddress'],
+			_max: {
+				timestamp: true
+			}
+		})
 
 		const metrics = await prismaClient.metricStrategyUnit.findMany({
 			where: {
@@ -278,24 +268,8 @@ async function getLatestMetricsPerStrategy(): Promise<ILastStrategyMetrics> {
 			}
 		})
 
-		return metrics
-			? new Map(metrics.map((metric) => [metric.strategyAddress, metric]))
-			: new Map()
+		return metrics ? new Map(metrics.map((metric) => [metric.strategyAddress, metric])) : new Map()
 	} catch {}
 
 	return new Map()
-}
-
-export async function getStrategiesWithShareUnderlying(): Promise<
-	Map<string, bigint>
-> {
-	const prismaClient = getPrismaClient()
-
-	const sharesToUnderlyingList = await prismaClient.strategies.findMany({
-		select: { sharesToUnderlying: true, address: true }
-	})
-
-	return new Map(
-		sharesToUnderlyingList.map((s) => [s.address, BigInt(s.sharesToUnderlying)])
-	)
 }

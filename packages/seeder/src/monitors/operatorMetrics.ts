@@ -2,9 +2,7 @@ import prisma from '@prisma/client'
 import { createHash } from 'crypto'
 import { getPrismaClient } from '../utils/prismaClient'
 import { bulkUpdateDbTransactions } from '../utils/seeder'
-import { fetchStrategyTokenPrices } from '../utils/tokenPrices'
-import { getStrategiesWithShareUnderlying } from '../metrics/seedMetricsTvl'
-import { sharesToTVL } from './avsMetrics'
+import { sharesToTVL, getStrategiesWithShareUnderlying } from '../utils/strategyShares'
 
 export async function monitorOperatorMetrics() {
 	const prismaClient = getPrismaClient()
@@ -22,9 +20,7 @@ export async function monitorOperatorMetrics() {
 	let skip = 0
 	const take = 1000
 
-	const strategyTokenPrices = await fetchStrategyTokenPrices()
-	const strategiesWithSharesUnderlying =
-		await getStrategiesWithShareUnderlying()
+	const strategiesWithSharesUnderlying = await getStrategiesWithShareUnderlying()
 
 	while (true) {
 		try {
@@ -54,9 +50,7 @@ export async function monitorOperatorMetrics() {
 
 			// Setup all db transactions for this iteration
 			for (const operator of operatorMetrics) {
-				const sharesHash = createHash('md5')
-					.update(JSON.stringify(operator.shares))
-					.digest('hex')
+				const sharesHash = createHash('md5').update(JSON.stringify(operator.shares)).digest('hex')
 				const totalStakers = operator._count.stakers
 				const totalAvs = operator._count.avs
 
@@ -65,11 +59,7 @@ export async function monitorOperatorMetrics() {
 					operator.totalStakers !== totalStakers ||
 					operator.sharesHash !== sharesHash
 				) {
-					const tvlObject = sharesToTVL(
-						operator.shares,
-						strategiesWithSharesUnderlying,
-						strategyTokenPrices
-					)
+					const tvlObject = sharesToTVL(operator.shares, strategiesWithSharesUnderlying)
 
 					data.push({
 						address: operator.address,
@@ -105,9 +95,7 @@ export async function monitorOperatorMetrics() {
 						o2.address = o.address;
 				`
 
-				dbTransactions.push(
-					prismaClient.$executeRaw`${prisma.Prisma.raw(query)}`
-				)
+				dbTransactions.push(prismaClient.$executeRaw`${prisma.Prisma.raw(query)}`)
 			}
 		} catch (error) {}
 	}

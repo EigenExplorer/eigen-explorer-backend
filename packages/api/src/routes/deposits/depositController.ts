@@ -14,15 +14,12 @@ import { PaginationQuerySchema } from '../../schema/zod/schemas/paginationQuery'
 
 export async function getAllDeposits(req: Request, res: Response) {
 	// Validate query
-	const result = DepositListQuerySchema.and(PaginationQuerySchema).safeParse(
-		req.query
-	)
+	const result = DepositListQuerySchema.and(PaginationQuerySchema).safeParse(req.query)
 	if (!result.success) {
 		return handleAndReturnErrorResponse(req, res, result.error)
 	}
 
-	const { stakerAddress, tokenAddress, strategyAddress, skip, take } =
-		result.data
+	const { stakerAddress, tokenAddress, strategyAddress, skip, take } = result.data
 
 	try {
 		const filterQuery: Prisma.DepositWhereInput = {}

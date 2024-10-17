@@ -15,25 +15,16 @@ const blockSyncKeyLogs = 'lastSyncedBlock_queuedWithdrawals' // Latest sync is w
  * @param fromBlock
  * @param toBlock
  */
-export async function seedCompletedWithdrawals(
-	toBlock?: bigint,
-	fromBlock?: bigint
-) {
+export async function seedCompletedWithdrawals(toBlock?: bigint, fromBlock?: bigint) {
 	const prismaClient = getPrismaClient()
 	const completedWithdrawalList: prisma.WithdrawalCompleted[] = []
 
-	const firstBlock = fromBlock
-		? fromBlock
-		: await fetchLastSyncBlock(blockSyncKey)
-	const lastBlock = toBlock
-		? toBlock
-		: await fetchLastSyncBlock(blockSyncKeyLogs)
+	const firstBlock = fromBlock ? fromBlock : await fetchLastSyncBlock(blockSyncKey)
+	const lastBlock = toBlock ? toBlock : await fetchLastSyncBlock(blockSyncKeyLogs)
 
 	// Bail early if there is no block diff to sync
 	if (lastBlock - firstBlock <= 0) {
-		console.log(
-			`[In Sync] [Data] Completed Withdrawal from: ${firstBlock} to: ${lastBlock}`
-		)
+		console.log(`[In Sync] [Data] Completed Withdrawal from: ${firstBlock} to: ${lastBlock}`)
 		return
 	}
 
@@ -59,15 +50,14 @@ export async function seedCompletedWithdrawals(
 				}
 			})
 
-			const podSharesUpdatedLogs =
-				await prismaClient.eventLogs_PodSharesUpdated.findMany({
-					where: {
-						blockNumber: {
-							gt: fromBlock,
-							lte: toBlock
-						}
+			const podSharesUpdatedLogs = await prismaClient.eventLogs_PodSharesUpdated.findMany({
+				where: {
+					blockNumber: {
+						gt: fromBlock,
+						lte: toBlock
 					}
-				})
+				}
+			})
 
 			for (const l in logs) {
 				const log = logs[l]

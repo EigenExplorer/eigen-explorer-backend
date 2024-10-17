@@ -1,14 +1,7 @@
 import { Prisma } from '@prisma/client'
 import { getPrismaClient } from '../utils/prismaClient'
-import {
-	getSharesToUnderlying,
-	getEthPrices,
-	getStrategyToSymbolMap
-} from '../utils/strategies'
-import {
-	bulkUpdateDbTransactions,
-	fetchLastSyncTime
-} from '../utils/seeder'
+import { getSharesToUnderlying, getEthPrices, getStrategyToSymbolMap } from '../utils/strategies'
+import { bulkUpdateDbTransactions, fetchLastSyncTime } from '../utils/seeder'
 
 const timeSyncKey = 'lastSyncedTime_metrics_withdrawal'
 
@@ -17,7 +10,7 @@ export async function seedMetricsWithdrawal() {
 
 	// Define start date
 	let startAt: Date | null = await fetchLastSyncTime(timeSyncKey)
-	const endAt: Date = new Date(new Date().setUTCHours(0, 0, 0, 0))	
+	const endAt: Date = new Date(new Date().setUTCHours(0, 0, 0, 0))
 	let clearPrev = false
 
 	if (!startAt) {
@@ -32,9 +25,7 @@ export async function seedMetricsWithdrawal() {
 
 	// Bail early if there is no time diff to sync
 	if (endAt.getTime() - startAt.getTime() <= 0) {
-		console.log(
-			`[In Sync] [Metrics] Withdrawal Daily from: ${startAt} to: ${endAt}`
-		)
+		console.log(`[In Sync] [Metrics] Withdrawal Daily from: ${startAt} to: ${endAt}`)
 		return
 	}
 
@@ -145,7 +136,7 @@ async function processWithdrawals(
 
 	// Calculate daily withdrawals
 	const dailyWithdrawals = allWithdrawals.reduce((acc, withdrawal) => {
-		const dayTimestamp = new Date(withdrawal.createdAt).setUTCHours(0, 0, 0, 0);
+		const dayTimestamp = new Date(withdrawal.createdAt).setUTCHours(0, 0, 0, 0)
 		if (!acc[dayTimestamp]) {
 			acc[dayTimestamp] = {
 				timestamp: new Date(dayTimestamp),
@@ -153,25 +144,26 @@ async function processWithdrawals(
 				totalWithdrawals: 0,
 				changeTvlEth: 0,
 				changeWithdrawals: 0
-			};
+			}
 		}
 
 		withdrawal.strategies.forEach((strategyAddress, index) => {
-			const symbol = strategyToSymbolMap.get(strategyAddress)?.toLowerCase();
-			const sharesMultiplier = Number(sharesToUnderlying.get(strategyAddress.toLowerCase()));
-			const ethPrice = Number(ethPriceData.find((price) => price.symbol.toLowerCase() === symbol)?.ethPrice) || 0;
+			const symbol = strategyToSymbolMap.get(strategyAddress)?.toLowerCase()
+			const sharesMultiplier = Number(sharesToUnderlying.get(strategyAddress.toLowerCase()))
+			const ethPrice =
+				Number(ethPriceData.find((price) => price.symbol.toLowerCase() === symbol)?.ethPrice) || 0
 
 			if (sharesMultiplier && ethPrice) {
-				const shares = withdrawal.shares[index];
-				const withdrawalValueEth = (Number(shares) / 1e18) * sharesMultiplier * ethPrice;
-				acc[dayTimestamp].changeTvlEth = Number(acc[dayTimestamp].changeTvlEth) + withdrawalValueEth;
+				const shares = withdrawal.shares[index]
+				const withdrawalValueEth = (Number(shares) / 1e18) * sharesMultiplier * ethPrice
+				acc[dayTimestamp].changeTvlEth = Number(acc[dayTimestamp].changeTvlEth) + withdrawalValueEth
 			}
-		});
+		})
 
-		acc[dayTimestamp].changeWithdrawals += 1;
+		acc[dayTimestamp].changeWithdrawals += 1
 
-		return acc;
-	}, {} as Record<number, Omit<Prisma.MetricWithdrawalUnitCreateInput, 'id'>>);
+		return acc
+	}, {} as Record<number, Omit<Prisma.MetricWithdrawalUnitCreateInput, 'id'>>)
 
 	// Calculate cumulative metrics
 	const cumulativeWithdrawals = Object.values(dailyWithdrawals)
@@ -180,18 +172,18 @@ async function processWithdrawals(
 			if (index > 0) {
 				dayData.tvlEth = new Prisma.Decimal(
 					Number(array[index - 1].tvlEth) + Number(dayData.changeTvlEth)
-				);
-				dayData.totalWithdrawals = array[index - 1].totalWithdrawals + dayData.changeWithdrawals;
+				)
+				dayData.totalWithdrawals = array[index - 1].totalWithdrawals + dayData.changeWithdrawals
 			} else {
-				dayData.tvlEth = new Prisma.Decimal(initialTvlEth + Number(dayData.changeTvlEth));
-				dayData.totalWithdrawals = initialTotalWithdrawals + dayData.changeWithdrawals;
+				dayData.tvlEth = new Prisma.Decimal(initialTvlEth + Number(dayData.changeTvlEth))
+				dayData.totalWithdrawals = initialTotalWithdrawals + dayData.changeWithdrawals
 			}
 			return {
 				...dayData,
 				tvlEth: dayData.tvlEth,
 				changeTvlEth: dayData.changeTvlEth
-			};
-		});
+			}
+		})
 
 	return cumulativeWithdrawals
 }

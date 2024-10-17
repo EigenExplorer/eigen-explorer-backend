@@ -18,16 +18,11 @@ const blockSyncKeyLogs = 'lastSyncedBlock_logs_completedWithdrawals'
  * @param fromBlock
  * @param toBlock
  */
-export async function seedLogsWithdrawalCompleted(
-	toBlock?: bigint,
-	fromBlock?: bigint
-) {
+export async function seedLogsWithdrawalCompleted(toBlock?: bigint, fromBlock?: bigint) {
 	const viemClient = getViemClient()
 	const prismaClient = getPrismaClient()
 
-	const firstBlock = fromBlock
-		? fromBlock
-		: await fetchLastSyncBlock(blockSyncKeyLogs)
+	const firstBlock = fromBlock ? fromBlock : await fetchLastSyncBlock(blockSyncKeyLogs)
 	const lastBlock = toBlock ? toBlock : await viemClient.getBlockNumber()
 
 	// Loop through evm logs
@@ -42,9 +37,7 @@ export async function seedLogsWithdrawalCompleted(
 
 			const logs = await viemClient.getLogs({
 				address: getEigenContracts().DelegationManager,
-				event: parseAbiItem([
-					'event WithdrawalCompleted(bytes32 withdrawalRoot)'
-				]),
+				event: parseAbiItem(['event WithdrawalCompleted(bytes32 withdrawalRoot)']),
 				fromBlock,
 				toBlock
 			})

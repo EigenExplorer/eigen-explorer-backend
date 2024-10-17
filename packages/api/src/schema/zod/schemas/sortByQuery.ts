@@ -15,23 +15,17 @@ export const SortByQuerySchema = z
 		sortByTotalAvs: z
 			.enum(['asc', 'desc'])
 			.optional()
-			.describe(
-				'Sort results in asc or desc order of total AVS (only valid for Operator queries)'
-			)
+			.describe('Sort results in asc or desc order of total AVS (only valid for Operator queries)')
 			.openapi({ example: 'desc' }),
 		sortByApy: z
 			.enum(['asc', 'desc'])
 			.optional()
-			.describe(
-				'Sort results in asc or desc order of APY'
-			)
+			.describe('Sort results in asc or desc order of APY')
 			.openapi({ example: 'desc' }),
 		sortByTotalOperators: z
 			.enum(['asc', 'desc'])
 			.optional()
-			.describe(
-				'Sort results in asc or desc order of total AVS (only valid for AVS queries)'
-			)
+			.describe('Sort results in asc or desc order of total AVS (only valid for AVS queries)')
 			.openapi({ example: 'desc' }),
 		sortOperatorsByTvl: z
 			.enum(['asc', 'desc'])
@@ -47,17 +41,12 @@ export const SortByQuerySchema = z
 				data.sortByTvl,
 				data.sortByTotalStakers,
 				data.sortByTotalAvs,
-				data.sortByTotalOperators,
+				data.sortByTotalOperators
 			].filter((field) => field !== undefined)
 			return sortByFields.length <= 1
 		},
 		{
 			message: 'Only one sortBy option can be used',
-			path: [
-				'sortByTvl',
-				'sortByTotalStakers',
-				'sortByTotalAvs',
-				'sortByTotalOperators',
-			]
+			path: ['sortByTvl', 'sortByTotalStakers', 'sortByTotalAvs', 'sortByTotalOperators']
 		}
 	)

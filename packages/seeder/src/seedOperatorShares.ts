@@ -13,23 +13,14 @@ const blockSyncKeyLogs = 'lastSyncedBlock_logs_operatorShares'
 
 export async function seedOperatorShares(toBlock?: bigint, fromBlock?: bigint) {
 	const prismaClient = getPrismaClient()
-	const operatorShares: IMap<
-		string,
-		{ shares: bigint; strategyAddress: string }[]
-	> = new Map()
+	const operatorShares: IMap<string, { shares: bigint; strategyAddress: string }[]> = new Map()
 
-	const firstBlock = fromBlock
-		? fromBlock
-		: await fetchLastSyncBlock(blockSyncKey)
-	const lastBlock = toBlock
-		? toBlock
-		: await fetchLastSyncBlock(blockSyncKeyLogs)
+	const firstBlock = fromBlock ? fromBlock : await fetchLastSyncBlock(blockSyncKey)
+	const lastBlock = toBlock ? toBlock : await fetchLastSyncBlock(blockSyncKeyLogs)
 
 	// Bail early if there is no block diff to sync
 	if (lastBlock - firstBlock <= 0) {
-		console.log(
-			`[In Sync] [Data] Operator Shares from: ${firstBlock} to: ${lastBlock}`
-		)
+		console.log(`[In Sync] [Data] Operator Shares from: ${firstBlock} to: ${lastBlock}`)
 		return
 	}
 
@@ -77,9 +68,7 @@ export async function seedOperatorShares(toBlock?: bigint, fromBlock?: bigint) {
 			})
 
 			// Operators list
-			const operatorAddresses = allLogs.map((l) =>
-				String(l.operator).toLowerCase()
-			)
+			const operatorAddresses = allLogs.map((l) => String(l.operator).toLowerCase())
 			const operatorInit =
 				firstBlock !== baseBlock
 					? await prismaClient.operator.findMany({
@@ -118,33 +107,22 @@ export async function seedOperatorShares(toBlock?: bigint, fromBlock?: bigint) {
 
 				let foundSharesIndex = operatorShares
 					.get(operatorAddress)
-					.findIndex(
-						(os) =>
-							os.strategyAddress.toLowerCase() === strategyAddress.toLowerCase()
-					)
+					.findIndex((os) => os.strategyAddress.toLowerCase() === strategyAddress.toLowerCase())
 
 				if (foundSharesIndex !== undefined && foundSharesIndex === -1) {
-					operatorShares
-						.get(operatorAddress)
-						.push({ shares: 0n, strategyAddress: strategyAddress })
+					operatorShares.get(operatorAddress).push({ shares: 0n, strategyAddress: strategyAddress })
 
 					foundSharesIndex = operatorShares
 						.get(operatorAddress)
-						.findIndex(
-							(os) =>
-								os.strategyAddress.toLowerCase() ===
-								strategyAddress.toLowerCase()
-						)
+						.findIndex((os) => os.strategyAddress.toLowerCase() === strategyAddress.toLowerCase())
 				}
 
 				if (log.eventName === 'OperatorSharesIncreased') {
 					operatorShares.get(operatorAddress)[foundSharesIndex].shares =
-						operatorShares.get(operatorAddress)[foundSharesIndex].shares +
-						BigInt(shares)
+						operatorShares.get(operatorAddress)[foundSharesIndex].shares + BigInt(shares)
 				} else if (log.eventName === 'OperatorSharesDecreased') {
 					operatorShares.get(operatorAddress)[foundSharesIndex].shares =
-						operatorShares.get(operatorAddress)[foundSharesIndex].shares -
-						BigInt(shares)
+						operatorShares.get(operatorAddress)[foundSharesIndex].shares - BigInt(shares)
 				}
 			}
 

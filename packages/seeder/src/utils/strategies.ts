@@ -17,10 +17,7 @@ export async function getSharesToUnderlying() {
 				? sharesValue / BigInt(1e18)
 				: sharesValue / BigInt(1e32)
 
-		sharesToUnderlying.set(
-			strategy.address.toLowerCase(),
-			normalizedValue.toString()
-		)
+		sharesToUnderlying.set(strategy.address.toLowerCase(), normalizedValue.toString())
 	}
 
 	sharesToUnderlying.set('0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0', '1')

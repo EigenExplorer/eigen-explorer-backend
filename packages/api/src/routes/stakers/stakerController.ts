@@ -4,11 +4,7 @@ import { handleAndReturnErrorResponse } from '../../schema/errors'
 import { PaginationQuerySchema } from '../../schema/zod/schemas/paginationQuery'
 import { WithTvlQuerySchema } from '../../schema/zod/schemas/withTvlQuery'
 import { getViemClient } from '../../viem/viemClient'
-import { fetchStrategyTokenPrices } from '../../utils/tokenPrices'
-import {
-	getStrategiesWithShareUnderlying,
-	sharesToTVL
-} from '../strategies/strategiesController'
+import { getStrategiesWithShareUnderlying, sharesToTVL } from '../../utils/strategyShares'
 import { EthereumAddressSchema } from '../../schema/zod/schemas/base/ethereumAddress'
 import { UpdatedSinceQuerySchema } from '../../schema/zod/schemas/updatedSinceQuery'
 
@@ -34,7 +30,7 @@ export async function getAllStakers(req: Request, res: Response) {
 		const stakersCount = await prisma.staker.count({
 			where: updatedSince ? { updatedAt: { gte: new Date(updatedSince) } } : {}
 		})
-		
+
 		const stakersRecords = await prisma.staker.findMany({
 			skip,
 			take,
@@ -46,20 +42,11 @@ export async function getAllStakers(req: Request, res: Response) {
 			}
 		})
 
-		const strategyTokenPrices = withTvl ? await fetchStrategyTokenPrices() : {}
-		const strategiesWithSharesUnderlying = withTvl
-			? await getStrategiesWithShareUnderlying()
-			: []
+		const strategiesWithSharesUnderlying = withTvl ? await getStrategiesWithShareUnderlying() : []
 
 		const stakers = stakersRecords.map((staker) => ({
 			...staker,
-			tvl: withTvl
-				? sharesToTVL(
-						staker.shares,
-						strategiesWithSharesUnderlying,
-						strategyTokenPrices
-				  )
-				: undefined
+			tvl: withTvl ? sharesToTVL(staker.shares, strategiesWithSharesUnderlying) : undefined
 		}))
 
 		res.send({
@@ -107,20 +94,11 @@ export async function getStaker(req: Request, res: Response) {
 			}
 		})
 
-		const strategyTokenPrices = withTvl ? await fetchStrategyTokenPrices() : {}
-		const strategiesWithSharesUnderlying = withTvl
-			? await getStrategiesWithShareUnderlying()
-			: []
+		const strategiesWithSharesUnderlying = withTvl ? await getStrategiesWithShareUnderlying() : []
 
 		res.send({
 			...staker,
-			tvl: withTvl
-				? sharesToTVL(
-						staker.shares,
-						strategiesWithSharesUnderlying,
-						strategyTokenPrices
-				  )
-				: undefined
+			tvl: withTvl ? sharesToTVL(staker.shares, strategiesWithSharesUnderlying) : undefined
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
@@ -170,11 +148,8 @@ export async function getStakerWithdrawals(req: Request, res: Response) {
 				strategies: undefined,
 				completedWithdrawal: undefined,
 				isCompleted: !!withdrawal.completedWithdrawal,
-				updatedAt:
-					withdrawal.completedWithdrawal?.createdAt || withdrawal.createdAt,
-				updatedAtBlock:
-					withdrawal.completedWithdrawal?.createdAtBlock ||
-					withdrawal.createdAtBlock
+				updatedAt: withdrawal.completedWithdrawal?.createdAt || withdrawal.createdAt,
+				updatedAtBlock: withdrawal.completedWithdrawal?.createdAtBlock || withdrawal.createdAtBlock
 			}
 		})
 
@@ -228,7 +203,7 @@ export async function getStakerWithdrawalsQueued(req: Request, res: Response) {
 			return {
 				...withdrawal,
 				shares,
-				strategies: undefined,
+				strategies: undefined
 			}
 		})
 
@@ -245,10 +220,7 @@ export async function getStakerWithdrawalsQueued(req: Request, res: Response) {
 	}
 }
 
-export async function getStakerWithdrawalsWithdrawable(
-	req: Request,
-	res: Response
-) {
+export async function getStakerWithdrawalsWithdrawable(req: Request, res: Response) {
 	// Validate query
 	const result = PaginationQuerySchema.safeParse(req.query)
 	if (!result.success) {
@@ -270,8 +242,7 @@ export async function getStakerWithdrawalsWithdrawable(
 			where: { key: 'withdrawMinDelayBlocks' }
 		})
 		const minDelayBlock =
-			(await viemClient.getBlockNumber()) -
-			BigInt((minDelayBlocks?.value as string) || 0)
+			(await viemClient.getBlockNumber()) - BigInt((minDelayBlocks?.value as string) || 0)
 
 		const filterQuery = {
 			stakerAddress: address,
@@ -298,7 +269,7 @@ export async function getStakerWithdrawalsWithdrawable(
 			return {
 				...withdrawal,
 				shares,
-				strategies: undefined,
+				strategies: undefined
 			}
 		})
 
@@ -315,10 +286,7 @@ export async function getStakerWithdrawalsWithdrawable(
 	}
 }
 
-export async function getStakerWithdrawalsCompleted(
-	req: Request,
-	res: Response
-) {
+export async function getStakerWithdrawalsCompleted(req: Request, res: Response) {
 	// Validate query
 	const result = PaginationQuerySchema.safeParse(req.query)
 	if (!result.success) {
@@ -365,11 +333,8 @@ export async function getStakerWithdrawalsCompleted(
 				shares,
 				strategies: undefined,
 				completedWithdrawal: undefined,
-				updatedAt:
-					withdrawal.completedWithdrawal?.createdAt || withdrawal.createdAt,
-				updatedAtBlock:
-					withdrawal.completedWithdrawal?.createdAtBlock ||
-					withdrawal.createdAtBlock
+				updatedAt: withdrawal.completedWithdrawal?.createdAt || withdrawal.createdAt,
+				updatedAtBlock: withdrawal.completedWithdrawal?.createdAtBlock || withdrawal.createdAtBlock
 			}
 		})
 
@@ -416,7 +381,7 @@ export async function getStakerDeposits(req: Request, res: Response) {
 
 		const data = depositRecords.map((deposit) => {
 			return {
-				...deposit,
+				...deposit
 			}
 		})
 
