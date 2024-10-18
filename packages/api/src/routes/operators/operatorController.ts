@@ -399,7 +399,7 @@ export async function getOperatorEvents(req: Request, res: Response) {
 	}
 
 	try {
-		const { type, stakerAddress, strategyAddress, txHash, startAt, skip, take } = result.data
+		const { type, stakerAddress, strategyAddress, txHash, startAt, endAt, skip, take } = result.data
 		const { address } = req.params
 
 		const baseFilterQuery = {
@@ -407,7 +407,10 @@ export async function getOperatorEvents(req: Request, res: Response) {
 			...(stakerAddress && { staker: stakerAddress }),
 			...(strategyAddress && { strategy: strategyAddress }),
 			...(txHash && { transactionHash: txHash }),
-			...(startAt ? { blockTime: { gte: new Date(startAt) } } : {})
+			blockTime: {
+				gte: new Date(startAt),
+				...(endAt ? { lte: new Date(endAt) } : {})
+			}
 		}
 
 		let eventRecords: EventRecord[] = []
