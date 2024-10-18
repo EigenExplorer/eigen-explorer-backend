@@ -637,45 +637,6 @@ async function calculateOperatorApy(operator: any) {
 }
 
 /**
- * Return a map of strategy addresses <> token addresses
- *
- * @param strategies
- * @returns
- */
-export function tokenToStrategyAddressMap(
-	strategies: EigenStrategiesContractAddress
-): Map<string, string> {
-	const map = new Map<string, string>()
-	for (const [key, value] of Object.entries(strategies)) {
-		if (key !== 'Eigen' && value?.tokenContract && value?.strategyContract) {
-			map.set(value.tokenContract.toLowerCase(), value.strategyContract.toLowerCase())
-		}
-	}
-	return map
-}
-
-/**
- * Returns whether a given token address belongs to a list of special tokens
- *
- * @param tokenAddress
- * @returns
- */
-export function isSpecialToken(tokenAddress: string): boolean {
-	const specialTokens =
-		getNetwork() === holesky
-			? [
-					'0x6Cc9397c3B38739daCbfaA68EaD5F5D77Ba5F455', // WETH
-					'0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0'
-			  ]
-			: [
-					'0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2', // WETH
-					'0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0'
-			  ]
-
-	return specialTokens.includes(tokenAddress.toLowerCase())
-}
-
-/**
  * Utility function to fetch and map event records from the database.
  *
  * @param eventType
