@@ -8,6 +8,7 @@ import withdrawalRoutes from './withdrawals/withdrawalRoutes'
 import depositRoutes from './deposits/depositRoutes'
 import auxiliaryRoutes from './auxiliary/auxiliaryRoutes'
 import rewardRoutes from './rewards/rewardRoutes'
+import { rateLimiter } from '../utils/auth'
 
 const apiRouter = express.Router()
 
@@ -20,14 +21,14 @@ apiRouter.get('/version', (_, res) =>
 )
 
 // Remaining routes
-apiRouter.use('/avs', avsRoutes)
-apiRouter.use('/strategies', strategiesRoutes)
-apiRouter.use('/operators', operatorRoutes)
-apiRouter.use('/stakers', stakerRoutes)
-apiRouter.use('/metrics', metricRoutes)
-apiRouter.use('/withdrawals', withdrawalRoutes)
-apiRouter.use('/deposits', depositRoutes)
-apiRouter.use('/aux', auxiliaryRoutes)
-apiRouter.use('/rewards', rewardRoutes)
+apiRouter.use('/avs', rateLimiter, avsRoutes)
+apiRouter.use('/strategies', rateLimiter, strategiesRoutes)
+apiRouter.use('/operators', rateLimiter, operatorRoutes)
+apiRouter.use('/stakers', rateLimiter, stakerRoutes)
+apiRouter.use('/metrics', rateLimiter, metricRoutes)
+apiRouter.use('/withdrawals', rateLimiter, withdrawalRoutes)
+apiRouter.use('/deposits', rateLimiter, depositRoutes)
+apiRouter.use('/aux', rateLimiter, auxiliaryRoutes)
+apiRouter.use('/rewards', rateLimiter, rewardRoutes)
 
 export default apiRouter
