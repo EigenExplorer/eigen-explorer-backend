@@ -403,10 +403,28 @@ export async function getOperatorEvents(req: Request, res: Response) {
 		const { address } = req.params
 
 		const baseFilterQuery = {
-			operator: address,
-			...(stakerAddress && { staker: stakerAddress }),
-			...(strategyAddress && { strategy: strategyAddress }),
-			...(txHash && { transactionHash: txHash }),
+			operator: {
+				contains: address,
+				mode: 'insensitive'
+			},
+			...(stakerAddress && {
+				staker: {
+					contains: stakerAddress,
+					mode: 'insensitive'
+				}
+			}),
+			...(strategyAddress && {
+				strategy: {
+					contains: strategyAddress,
+					mode: 'insensitive'
+				}
+			}),
+			...(txHash && {
+				transactionHash: {
+					contains: txHash,
+					mode: 'insensitive'
+				}
+			}),
 			blockTime: {
 				gte: new Date(startAt),
 				...(endAt ? { lte: new Date(endAt) } : {})
