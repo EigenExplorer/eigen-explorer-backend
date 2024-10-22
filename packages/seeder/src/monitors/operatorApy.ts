@@ -30,9 +30,9 @@ export async function monitorOperatorApy() {
 						select: { strategyAddress: true, shares: true }
 					},
 					avs: {
+						where: { isActive: true },
 						select: {
 							avsAddress: true,
-							isActive: true,
 							avs: {
 								select: {
 									address: true,
