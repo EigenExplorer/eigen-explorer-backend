@@ -80,10 +80,10 @@ export const OperatorEventQuerySchema = z
 			.openapi({ example: '0xe95a203b1a91a908f9b9ce46459d101078c2c3cb' }),
 
 		type: z
-			.enum(['shares increased', 'shares decreased', 'delegation', 'undelegation'])
+			.enum(['SHARES_INCREASED', 'SHARES_DECREASED', 'DELEGATION', 'UNDELEGATION'])
 			.optional()
 			.describe('The type of the operator event')
-			.openapi({ example: 'shares increased' }),
+			.openapi({ example: 'SHARES_INCREASED' }),
 
 		startAt: z
 			.string()
@@ -119,14 +119,14 @@ export const OperatorEventQuerySchema = z
 	})
 	.refine(
 		(data) => {
-			if ((data.type === 'delegation' || data.type === 'undelegation') && data.strategyAddress) {
+			if ((data.type === 'DELEGATION' || data.type === 'UNDELEGATION') && data.strategyAddress) {
 				return false
 			}
 			return true
 		},
 		{
 			message:
-				'strategyAddress filter is not supported for delegation or undelegation event types.',
+				'strategyAddress filter is not supported for DELEGATION or UNDELEGATION event types.',
 			path: ['strategyAddress']
 		}
 	)

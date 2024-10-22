@@ -25,7 +25,7 @@ type EventRecordArgs = {
 }
 
 type EventRecord = {
-	type: 'shares increased' | 'shares decreased' | 'delegation' | 'undelegation'
+	type: 'SHARES_INCREASED' | 'SHARES_DECREASED' | 'DELEGATION' | 'UNDELEGATION'
 	tx: string
 	blockNumber: number
 	blockTime: Date
@@ -419,8 +419,8 @@ export async function getOperatorEvents(req: Request, res: Response) {
 		const eventTypesToFetch = type
 			? [type]
 			: strategyAddress
-			? ['shares increased', 'shares decreased']
-			: ['shares increased', 'shares decreased', 'delegation', 'undelegation']
+			? ['SHARES_INCREASED', 'SHARES_DECREASED']
+			: ['SHARES_INCREASED', 'SHARES_DECREASED', 'DELEGATION', 'UNDELEGATION']
 
 		const fetchEventsForTypes = async (types: string[]) => {
 			const results = await Promise.all(
@@ -656,13 +656,13 @@ async function fetchAndMapEvents(
 ): Promise<{ eventRecords: EventRecord[]; eventCount: number }> {
 	const modelName = (() => {
 		switch (eventType) {
-			case 'shares increased':
+			case 'SHARES_INCREASED':
 				return 'eventLogs_OperatorSharesIncreased'
-			case 'shares decreased':
+			case 'SHARES_DECREASED':
 				return 'eventLogs_OperatorSharesDecreased'
-			case 'delegation':
+			case 'DELEGATION':
 				return 'eventLogs_StakerDelegated'
-			case 'undelegation':
+			case 'UNDELEGATION':
 				return 'eventLogs_StakerUndelegated'
 			default:
 				throw new Error(`Unknown event type: ${eventType}`)
