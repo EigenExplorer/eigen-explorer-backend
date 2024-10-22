@@ -5,13 +5,28 @@ import { openApiErrorResponses } from '../../apiResponseSchema/base/errorRespons
 import { PaginationMetaResponsesSchema } from '../../apiResponseSchema/base/paginationMetaResponses'
 import { OperatorResponseSchema } from '../../apiResponseSchema/operatorResponse'
 import { WithTvlQuerySchema } from '../../../../api/src/schema/zod/schemas/withTvlQuery'
+import {
+	SortByApy,
+	SortByTotalAvs,
+	SortByTotalStakers,
+	SortByTvl
+} from '../../../../api/src/schema/zod/schemas/separateSortingQueries'
+import { SearchByText } from '../../../../api/src/schema/zod/schemas/separateSearchQueries'
 
 const AllOperatorsResponseSchema = z.object({
 	data: z.array(OperatorResponseSchema),
 	meta: PaginationMetaResponsesSchema
 })
 
-const CombinedQuerySchema = z.object({}).merge(WithTvlQuerySchema).merge(PaginationQuerySchema)
+const CombinedQuerySchema = z
+	.object({})
+	.merge(WithTvlQuerySchema)
+	.merge(SearchByText)
+	.merge(SortByApy)
+	.merge(SortByTvl)
+	.merge(SortByTotalAvs)
+	.merge(SortByTotalStakers)
+	.merge(PaginationQuerySchema)
 
 export const getAllOperators: ZodOpenApiOperationObject = {
 	operationId: 'getAllOperators',
@@ -19,7 +34,21 @@ export const getAllOperators: ZodOpenApiOperationObject = {
 	description: 'Returns all operator records. This endpoint supports pagination.',
 	tags: ['Operators'],
 	requestParams: {
-		query: CombinedQuerySchema
+		query: CombinedQuerySchema.refine(
+			(data) => {
+				const sortByFields = [
+					data.sortByApy,
+					data.sortByTvl,
+					data.sortByTotalAvs,
+					data.sortByTotalStakers
+				].filter((field) => field !== undefined)
+				return sortByFields.length <= 1
+			},
+			{
+				message: 'Only one sortBy option can be used',
+				path: ['sortByTvl', 'sortByTotalAvs', 'sortByTotalStakers']
+			}
+		)
 	},
 	responses: {
 		'200': {

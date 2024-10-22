@@ -8,7 +8,6 @@ import helmet from 'helmet'
 import cors from 'cors'
 import apiRouter from './routes'
 import { EigenExplorerApiError, handleAndReturnErrorResponse } from './schema/errors'
-import { rateLimiter } from './utils/authMiddleware'
 
 const PORT = process.env.PORT ? Number.parseInt(process.env.PORT) : 3002
 
@@ -24,7 +23,7 @@ app.use(express.urlencoded({ extended: false }))
 app.use(cookieParser())
 
 // Routes
-app.use('/', rateLimiter, apiRouter)
+app.use('/', apiRouter)
 
 app.get('/favicon.ico', (req, res) => res.sendStatus(204))
 

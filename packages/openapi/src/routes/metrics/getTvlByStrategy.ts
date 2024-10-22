@@ -2,10 +2,13 @@ import { ZodOpenApiOperationObject } from 'zod-openapi'
 import { openApiErrorResponses } from '../../apiResponseSchema/base/errorResponses'
 import { IndividualStrategyTvlResponseSchema } from '../../apiResponseSchema/metrics/tvlResponse'
 import z from '../../../../api/src/schema/zod'
+import { WithChangeQuerySchema } from '../../../../api/src/schema/zod/schemas/withChangeQuery'
 
 const RestakingStrategyNameParam = z.object({
 	strategy: z.string().describe('The name of the restaking strategy').openapi({ example: 'cbETH' })
 })
+
+const QuerySchema = z.object({}).merge(WithChangeQuerySchema)
 
 export const getTvlRestakingMetricByStrategy: ZodOpenApiOperationObject = {
 	operationId: 'getTvlRestakingMetricByStrategy',
@@ -13,6 +16,7 @@ export const getTvlRestakingMetricByStrategy: ZodOpenApiOperationObject = {
 	description: 'Returns the total value locked (TVL) in a specific LST strategy.',
 	tags: ['Metrics'],
 	requestParams: {
+		query: QuerySchema,
 		path: RestakingStrategyNameParam
 	},
 	responses: {

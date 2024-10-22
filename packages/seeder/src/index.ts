@@ -37,6 +37,7 @@ import { seedAvsStrategyRewards } from './seedAvsStrategyRewards'
 import { seedLogsAVSRewardsSubmission } from './events/seedLogsRewardsSubmissions'
 import { monitorAvsApy } from './monitors/avsApy'
 import { monitorOperatorApy } from './monitors/operatorApy'
+import { seedLogStrategyWhitelist } from './events/seedLogStrategyWhitelist'
 
 console.log('Initializing Seeder ...')
 
@@ -81,7 +82,8 @@ async function seedEigenData() {
 				seedLogsWithdrawalCompleted(targetBlock),
 				seedLogsDeposit(targetBlock),
 				seedLogsPodSharesUpdated(targetBlock),
-				seedLogsAVSRewardsSubmission(targetBlock)
+				seedLogsAVSRewardsSubmission(targetBlock),
+				seedLogStrategyWhitelist(targetBlock)
 			])
 
 			await Promise.all([

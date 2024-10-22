@@ -4,8 +4,7 @@ import { handleAndReturnErrorResponse } from '../../schema/errors'
 import { PaginationQuerySchema } from '../../schema/zod/schemas/paginationQuery'
 import { WithTvlQuerySchema } from '../../schema/zod/schemas/withTvlQuery'
 import { getViemClient } from '../../viem/viemClient'
-import { fetchStrategyTokenPrices } from '../../utils/tokenPrices'
-import { getStrategiesWithShareUnderlying, sharesToTVL } from '../strategies/strategiesController'
+import { getStrategiesWithShareUnderlying, sharesToTVL } from '../../utils/strategyShares'
 import { EthereumAddressSchema } from '../../schema/zod/schemas/base/ethereumAddress'
 import { UpdatedSinceQuerySchema } from '../../schema/zod/schemas/updatedSinceQuery'
 
@@ -43,14 +42,11 @@ export async function getAllStakers(req: Request, res: Response) {
 			}
 		})
 
-		const strategyTokenPrices = withTvl ? await fetchStrategyTokenPrices() : {}
 		const strategiesWithSharesUnderlying = withTvl ? await getStrategiesWithShareUnderlying() : []
 
 		const stakers = stakersRecords.map((staker) => ({
 			...staker,
-			tvl: withTvl
-				? sharesToTVL(staker.shares, strategiesWithSharesUnderlying, strategyTokenPrices)
-				: undefined
+			tvl: withTvl ? sharesToTVL(staker.shares, strategiesWithSharesUnderlying) : undefined
 		}))
 
 		res.send({
@@ -98,14 +94,11 @@ export async function getStaker(req: Request, res: Response) {
 			}
 		})
 
-		const strategyTokenPrices = withTvl ? await fetchStrategyTokenPrices() : {}
 		const strategiesWithSharesUnderlying = withTvl ? await getStrategiesWithShareUnderlying() : []
 
 		res.send({
 			...staker,
-			tvl: withTvl
-				? sharesToTVL(staker.shares, strategiesWithSharesUnderlying, strategyTokenPrices)
-				: undefined
+			tvl: withTvl ? sharesToTVL(staker.shares, strategiesWithSharesUnderlying) : undefined
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)

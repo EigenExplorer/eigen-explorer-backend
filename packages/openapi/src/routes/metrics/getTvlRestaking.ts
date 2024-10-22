@@ -6,6 +6,7 @@ import {
 	StrategyTvlSchema,
 	StrategyEthTvlSchema
 } from '../../apiResponseSchema/base/strategyTvlResponse'
+import { WithChangeQuerySchema } from '../../../../api/src/schema/zod/schemas/withChangeQuery'
 
 const RestakingTvlResponseSchema = TvlResponseSchema.extend({
 	tvl: z
@@ -16,13 +17,15 @@ const RestakingTvlResponseSchema = TvlResponseSchema.extend({
 	tvlStrategiesEth: StrategyEthTvlSchema
 })
 
+const QuerySchema = z.object({}).merge(WithChangeQuerySchema)
+
 export const getRestakingTvlMetrics: ZodOpenApiOperationObject = {
 	operationId: 'getRestakingTvlMetrics',
 	summary: 'Retrieve restaking strategies TVL',
 	description:
 		'Returns the combined total value locked (TVL) across all restaking strategies, along with a breakdown of the TVL for each individual strategy.',
 	tags: ['Metrics'],
-	requestParams: {},
+	requestParams: { query: QuerySchema },
 	responses: {
 		'200': {
 			description:

@@ -88,7 +88,8 @@ export const HistoricalCountSchema = z
 		variant: z
 			.enum(['discrete', 'cumulative'])
 			.default('cumulative')
-			.describe('Type of tally, discrete or cumulative'),
+			.describe('Type of tally, discrete or cumulative')
+			.openapi({ example: 'cumulative' }),
 		startAt: z
 			.string()
 			.optional()
@@ -102,7 +103,8 @@ export const HistoricalCountSchema = z
 				}
 			)
 			.default('')
-			.describe('Start date in ISO string format'),
+			.describe('Start date in ISO string format')
+			.openapi({ example: '2024-04-11T08:31:11.000' }),
 		endAt: z
 			.string()
 			.optional()
@@ -117,6 +119,7 @@ export const HistoricalCountSchema = z
 			)
 			.default('')
 			.describe('End date in ISO string format')
+			.openapi({ example: '2024-04-12T08:31:11.000' })
 	})
 	.refine(
 		(data) => {
