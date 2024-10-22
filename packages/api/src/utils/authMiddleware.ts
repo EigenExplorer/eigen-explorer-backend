@@ -1,6 +1,13 @@
+import 'dotenv/config'
+
 import type { NextFunction, Request, Response } from 'express'
 import rateLimit from 'express-rate-limit'
 import authStore from './authStore'
+
+interface User {
+	accessLevel: number
+	apiTokens: string[]
+}
 
 // Rate limiters for different access levels
 const unauthenticatedLimiter = rateLimit({
@@ -44,16 +51,43 @@ export const rateLimiter = async (req: Request, res: Response, next: NextFunctio
 	req.accessLevel = accessLevel // Access this in route functions to impose limits
 
 	switch (accessLevel) {
-		case 2:
-			return hobbyPlanLimiter(req, res, next)
-		case 1:
+		case 999:
 			return adminLimiter(req, res, next)
+		case 1:
+			return hobbyPlanLimiter(req, res, next)
 		default:
 			return unauthenticatedLimiter(req, res, next)
 	}
 }
 
-async function refreshStore() {
-	// TODO: Call dev-portal API and refresh authStore
-	authStore.set('updatedAt', Date.now())
+export async function refreshStore() {
+	// Fetch user auth data from Supabase edge function
+	try {
+		const response = await fetch(`${process.env.FETCH_ALL_USERS_URL}`, {
+			method: 'GET',
+			headers: {
+				Authorization: `Bearer ${process.env.SUPABASE_JWT_BEARER}`,
+				'Content-Type': 'application/json'
+			}
+		})
+
+		if (!response.ok) {
+			console.log('response: ', response)
+			throw new Error(`HTTP error! status: ${response.status}`)
+		}
+
+		const users = (await response.json()).data as User[]
+
+		// Refresh auth store
+		authStore.flushAll()
+
+		for (const user of users) {
+			const accessLevel = user.accessLevel
+			for (const apiToken of user.apiTokens) {
+				authStore.set(`apiToken:${apiToken}:accessLevel`, accessLevel)
+			}
+		}
+
+		authStore.set('updatedAt', Date.now())
+	} catch {}
 }

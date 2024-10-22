@@ -43,35 +43,3 @@ export async function postUpdateStore(req: Request, res: Response) {
 		handleAndReturnErrorResponse(req, res, error)
 	}
 }
-
-/**
- * Post a full refresh of auth store
- *
- * @param req
- * @param res
- * @returns
- */
-export async function postRefreshStore(req: Request, res: Response) {
-	const bodyCheck = RefreshCacheQuerySchema.safeParse(req.body)
-	if (!bodyCheck.success) {
-		return handleAndReturnErrorResponse(req, res, bodyCheck.error)
-	}
-
-	try {
-		const { data } = bodyCheck.data
-
-		authStore.flushAll()
-
-		let totalRecords = 0
-		for (const record of data) {
-			for (const apiToken of record.apiTokens) {
-				authStore.set(`apiToken:${apiToken}:accessLevel`, record.accessLevel)
-				totalRecords++
-			}
-		}
-
-		res.status(200).json({ message: `Auth store refreshed with ${totalRecords} records.` })
-	} catch (error) {
-		handleAndReturnErrorResponse(req, res, error)
-	}
-}
