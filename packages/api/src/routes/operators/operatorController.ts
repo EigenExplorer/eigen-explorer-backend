@@ -17,11 +17,15 @@ import { withOperatorShares } from '../../utils/operatorShares'
 import Prisma from '@prisma/client'
 import prisma from '../../utils/prismaClient'
 import { fetchTokenPrices } from '../../utils/tokenPrices'
+import { WithTokenDataQuerySchema } from '../../schema/zod/schemas/withTokenDataQuery'
+import { getSharesToUnderlying } from '../../../../seeder/src/utils/strategies'
 
 type EventRecordArgs = {
 	staker: string
 	strategy?: string
 	shares?: number
+	underlyingToken?: string
+	underlyingValue?: number
 }
 
 type EventRecord = {
@@ -393,13 +397,25 @@ export async function getOperatorRewards(req: Request, res: Response) {
  * @param res
  */
 export async function getOperatorEvents(req: Request, res: Response) {
-	const result = OperatorEventQuerySchema.and(PaginationQuerySchema).safeParse(req.query)
+	const result = OperatorEventQuerySchema.and(WithTokenDataQuerySchema)
+		.and(PaginationQuerySchema)
+		.safeParse(req.query)
 	if (!result.success) {
 		return handleAndReturnErrorResponse(req, res, result.error)
 	}
 
 	try {
-		const { type, stakerAddress, strategyAddress, txHash, startAt, endAt, skip, take } = result.data
+		const {
+			type,
+			stakerAddress,
+			strategyAddress,
+			txHash,
+			startAt,
+			endAt,
+			withTokenData,
+			skip,
+			take
+		} = result.data
 		const { address } = req.params
 
 		const baseFilterQuery = {
@@ -442,7 +458,9 @@ export async function getOperatorEvents(req: Request, res: Response) {
 
 		const fetchEventsForTypes = async (types: string[]) => {
 			const results = await Promise.all(
-				types.map((eventType) => fetchAndMapEvents(eventType, baseFilterQuery, skip, take))
+				types.map((eventType) =>
+					fetchAndMapEvents(eventType, baseFilterQuery, withTokenData, skip, take)
+				)
 			)
 			return results
 		}
@@ -669,6 +687,7 @@ async function calculateOperatorApy(operator: any) {
 async function fetchAndMapEvents(
 	eventType: string,
 	baseFilterQuery: any,
+	withTokenData: boolean,
 	skip: number,
 	take: number
 ): Promise<{ eventRecords: EventRecord[]; eventCount: number }> {
@@ -693,25 +712,68 @@ async function fetchAndMapEvents(
 		where: baseFilterQuery
 	})
 
-	const eventRecords = await model.findMany({
+	const eventLogs = await model.findMany({
 		where: baseFilterQuery,
 		skip,
 		take,
 		orderBy: { blockNumber: 'desc' }
 	})
 
-	return {
-		eventRecords: eventRecords.map((event) => ({
-			type: eventType,
-			tx: event.transactionHash,
-			blockNumber: event.blockNumber,
-			blockTime: event.blockTime,
-			args: {
-				staker: event.staker,
-				strategy: event.strategy,
-				shares: event.shares
+	const tokenPrices = withTokenData ? await fetchTokenPrices() : undefined
+	const sharesToUnderlying = withTokenData ? await getSharesToUnderlying() : undefined
+
+	const eventRecords = await Promise.all(
+		eventLogs.map(async (event) => {
+			let underlyingToken: string | undefined
+			let underlyingValue: number | undefined
+
+			if (
+				withTokenData &&
+				(eventType === 'SHARES_INCREASED' || eventType === 'SHARES_DECREASED') &&
+				event.strategy
+			) {
+				const strategy = await prisma.strategies.findUnique({
+					where: {
+						address: event.strategy.toLowerCase()
+					}
+				})
+
+				if (strategy && sharesToUnderlying) {
+					underlyingToken = strategy.underlyingToken
+					const sharesMultiplier = Number(sharesToUnderlying.get(event.strategy.toLowerCase()))
+					const strategyTokenPrice = tokenPrices?.find(
+						(tp) => tp.address.toLowerCase() === strategy.underlyingToken.toLowerCase()
+					)
+
+					if (sharesMultiplier && strategyTokenPrice) {
+						underlyingValue =
+							(Number(event.shares) / Math.pow(10, strategyTokenPrice.decimals)) *
+							sharesMultiplier *
+							strategyTokenPrice.ethPrice
+					}
+				}
 			}
-		})),
+
+			return {
+				type: eventType,
+				tx: event.transactionHash,
+				blockNumber: event.blockNumber,
+				blockTime: event.blockTime,
+				args: {
+					staker: event.staker,
+					strategy: event.strategy,
+					shares: event.shares,
+					...(withTokenData && {
+						underlyingToken,
+						underlyingValue
+					})
+				}
+			}
+		})
+	)
+
+	return {
+		eventRecords,
 		eventCount
 	}
 }
