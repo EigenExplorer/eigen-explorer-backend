@@ -3316,19 +3316,24 @@
 											"items": {
 												"type": "object",
 												"properties": {
-													"name": {
-														"type": "string",
-														"description": "The AVS's name",
-														"example": "Example AVS"
-													},
 													"address": {
 														"type": "string",
 														"pattern": "^0x[a-fA-F0-9]{40}$",
 														"description": "AVS service manager contract address",
 														"example": "0x35f4f28a8d3ff20eed10e087e8f96ea2641e6aa1"
+													},
+													"name": {
+														"type": "string",
+														"description": "The AVS's name",
+														"example": "Example AVS"
+													},
+													"logo": {
+														"type": "string",
+														"description": "The AVS's logo URL",
+														"example": "https://example.avs/logo.png"
 													}
 												},
-												"required": ["name", "address"]
+												"required": ["address", "name", "logo"]
 											}
 										},
 										"meta": {
@@ -4775,6 +4780,142 @@
 													"shares",
 													"avsRegistrations"
 												]
+											}
+										},
+										"meta": {
+											"type": "object",
+											"properties": {
+												"total": {
+													"type": "number",
+													"description": "Total number of records in the database",
+													"example": 30
+												},
+												"skip": {
+													"type": "number",
+													"description": "The number of skiped records for this query",
+													"example": 0
+												},
+												"take": {
+													"type": "number",
+													"description": "The number of records returned for this query",
+													"example": 12
+												}
+											},
+											"required": ["total", "skip", "take"]
+										}
+									},
+									"required": ["data", "meta"]
+								}
+							}
+						}
+					},
+					"400": {
+						"$ref": "#/components/responses/400"
+					},
+					"401": {
+						"$ref": "#/components/responses/401"
+					},
+					"403": {
+						"$ref": "#/components/responses/403"
+					},
+					"404": {
+						"$ref": "#/components/responses/404"
+					},
+					"422": {
+						"$ref": "#/components/responses/422"
+					},
+					"429": {
+						"$ref": "#/components/responses/429"
+					},
+					"500": {
+						"$ref": "#/components/responses/500"
+					}
+				}
+			}
+		},
+		"/operators/addresses": {
+			"get": {
+				"operationId": "getAllOperatorAddresses",
+				"summary": "Retrieve all Operator addresses",
+				"description": "Returns a list of all Operator addresses. This page supports pagination.",
+				"tags": ["Operator"],
+				"parameters": [
+					{
+						"in": "query",
+						"name": "searchMode",
+						"description": "Search mode",
+						"schema": {
+							"type": "string",
+							"enum": ["contains", "startsWith"],
+							"default": "contains",
+							"description": "Search mode",
+							"example": "contains"
+						}
+					},
+					{
+						"in": "query",
+						"name": "searchByText",
+						"description": "Case-insensitive search query",
+						"schema": {
+							"type": "string",
+							"description": "Case-insensitive search query",
+							"example": "blockless"
+						}
+					},
+					{
+						"in": "query",
+						"name": "skip",
+						"description": "The number of records to skip for pagination",
+						"schema": {
+							"type": "string",
+							"default": "0",
+							"description": "The number of records to skip for pagination",
+							"example": 0
+						}
+					},
+					{
+						"in": "query",
+						"name": "take",
+						"description": "The number of records to return for pagination",
+						"schema": {
+							"type": "string",
+							"default": "12",
+							"description": "The number of records to return for pagination",
+							"example": 12
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The list of Operator addresses.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"data": {
+											"type": "array",
+											"items": {
+												"type": "object",
+												"properties": {
+													"address": {
+														"type": "string",
+														"pattern": "^0x[a-fA-F0-9]{40}$",
+														"description": "The Address of the Operator",
+														"example": "0x0000039b2f2ac9e3492a0f805ec7aea9eaee0c25"
+													},
+													"name": {
+														"type": "string",
+														"description": "The Operator's name",
+														"example": "Example Operator"
+													},
+													"logo": {
+														"type": "string",
+														"description": "The Operator's logo URL",
+														"example": "https://example.operator/logo.png"
+													}
+												},
+												"required": ["address", "name", "logo"]
 											}
 										},
 										"meta": {
