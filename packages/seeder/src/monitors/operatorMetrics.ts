@@ -2,9 +2,7 @@ import prisma from '@prisma/client'
 import { createHash } from 'crypto'
 import { getPrismaClient } from '../utils/prismaClient'
 import { bulkUpdateDbTransactions } from '../utils/seeder'
-import { fetchStrategyTokenPrices } from '../utils/tokenPrices'
-import { getStrategiesWithShareUnderlying } from '../metrics/seedMetricsTvl'
-import { sharesToTVL } from './avsMetrics'
+import { sharesToTVL, getStrategiesWithShareUnderlying } from '../utils/strategyShares'
 
 export async function monitorOperatorMetrics() {
 	const prismaClient = getPrismaClient()
@@ -22,7 +20,6 @@ export async function monitorOperatorMetrics() {
 	let skip = 0
 	const take = 1000
 
-	const strategyTokenPrices = await fetchStrategyTokenPrices()
 	const strategiesWithSharesUnderlying = await getStrategiesWithShareUnderlying()
 
 	while (true) {
@@ -62,11 +59,7 @@ export async function monitorOperatorMetrics() {
 					operator.totalStakers !== totalStakers ||
 					operator.sharesHash !== sharesHash
 				) {
-					const tvlObject = sharesToTVL(
-						operator.shares,
-						strategiesWithSharesUnderlying,
-						strategyTokenPrices
-					)
+					const tvlObject = sharesToTVL(operator.shares, strategiesWithSharesUnderlying)
 
 					data.push({
 						address: operator.address,
