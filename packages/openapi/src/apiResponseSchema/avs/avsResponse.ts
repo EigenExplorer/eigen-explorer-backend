@@ -58,6 +58,8 @@ export const AvsSchema = z.object({
 				metadataTelegram: "The URL of the AVS's Telegram channel",
 				metadataWebsite: 'https://acme.com',
 				metadataX: 'https://twitter.com/acme',
+				metadataGithub: 'https://github.com/acme',
+				metadataTokenAddress: '0x2344c0fe02ccd2b32155ca0ffcb1978a6d96a552',
 				tags: ['Example tag 1', 'Example tag 2'],
 				isVisible: true,
 				isVerified: true

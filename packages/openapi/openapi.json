@@ -3003,6 +3003,20 @@
 																"description": "The URL of the AVS's X",
 																"example": "https://twitter.com/acme"
 															},
+															"metadataGithub": {
+																"type": "string",
+																"nullable": true,
+																"format": "uri",
+																"description": "The URL of the AVS's Github",
+																"example": "https://github.com/acme"
+															},
+															"metadataTokenAddress": {
+																"type": "string",
+																"nullable": true,
+																"format": "uri",
+																"description": "The Token Address of the AVS",
+																"example": "0x2344c0fe02ccd2b32155ca0ffcb1978a6d96a552"
+															},
 															"avsAddress": {
 																"type": "string",
 																"pattern": "^0x[a-fA-F0-9]{40}$",
@@ -3036,6 +3050,8 @@
 															"metadataTelegram",
 															"metadataWebsite",
 															"metadataX",
+															"metadataGithub",
+															"metadataTokenAddress",
 															"avsAddress",
 															"tags",
 															"isVisible",
@@ -3051,6 +3067,8 @@
 															"metadataTelegram": "The URL of the AVS's Telegram channel",
 															"metadataWebsite": "https://acme.com",
 															"metadataX": "https://twitter.com/acme",
+															"metadataGithub": "https://github.com/acme",
+															"metadataTokenAddress": "0x2344c0fe02ccd2b32155ca0ffcb1978a6d96a552",
 															"tags": ["Example tag 1", "Example tag 2"],
 															"isVisible": true,
 															"isVerified": true
@@ -3550,6 +3568,20 @@
 													"description": "The URL of the AVS's X",
 													"example": "https://twitter.com/acme"
 												},
+												"metadataGithub": {
+													"type": "string",
+													"nullable": true,
+													"format": "uri",
+													"description": "The URL of the AVS's Github",
+													"example": "https://github.com/acme"
+												},
+												"metadataTokenAddress": {
+													"type": "string",
+													"nullable": true,
+													"format": "uri",
+													"description": "The Token Address of the AVS",
+													"example": "0x2344c0fe02ccd2b32155ca0ffcb1978a6d96a552"
+												},
 												"avsAddress": {
 													"type": "string",
 													"pattern": "^0x[a-fA-F0-9]{40}$",
@@ -3583,6 +3615,8 @@
 												"metadataTelegram",
 												"metadataWebsite",
 												"metadataX",
+												"metadataGithub",
+												"metadataTokenAddress",
 												"avsAddress",
 												"tags",
 												"isVisible",
@@ -3598,6 +3632,8 @@
 												"metadataTelegram": "The URL of the AVS's Telegram channel",
 												"metadataWebsite": "https://acme.com",
 												"metadataX": "https://twitter.com/acme",
+												"metadataGithub": "https://github.com/acme",
+												"metadataTokenAddress": "0x2344c0fe02ccd2b32155ca0ffcb1978a6d96a552",
 												"tags": ["Example tag 1", "Example tag 2"],
 												"isVisible": true,
 												"isVerified": true
