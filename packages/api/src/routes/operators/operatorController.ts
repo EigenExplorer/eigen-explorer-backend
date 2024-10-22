@@ -6,6 +6,7 @@ import { WithAdditionalDataQuerySchema } from '../../schema/zod/schemas/withAddi
 import { SortByQuerySchema } from '../../schema/zod/schemas/sortByQuery'
 import { SearchByTextQuerySchema } from '../../schema/zod/schemas/searchByTextQuery'
 import { WithRewardsQuerySchema } from '../../schema/zod/schemas/withRewardsQuery'
+import { OperatorEventQuerySchema } from '../../schema/zod/schemas/operatorEvents'
 import { handleAndReturnErrorResponse } from '../../schema/errors'
 import {
 	getStrategiesWithShareUnderlying,
@@ -16,6 +17,24 @@ import { withOperatorShares } from '../../utils/operatorShares'
 import Prisma from '@prisma/client'
 import prisma from '../../utils/prismaClient'
 import { fetchTokenPrices } from '../../utils/tokenPrices'
+import { WithTokenDataQuerySchema } from '../../schema/zod/schemas/withTokenDataQuery'
+import { getSharesToUnderlying } from '../../../../seeder/src/utils/strategies'
+
+type EventRecordArgs = {
+	staker: string
+	strategy?: string
+	shares?: number
+}
+
+type EventRecord = {
+	type: 'SHARES_INCREASED' | 'SHARES_DECREASED' | 'DELEGATION' | 'UNDELEGATION'
+	tx: string
+	blockNumber: number
+	blockTime: Date
+	args: EventRecordArgs
+	underlyingToken?: string
+	underlyingValue?: number
+}
 
 /**
  * Function for route /operators
@@ -371,6 +390,106 @@ export async function getOperatorRewards(req: Request, res: Response) {
 }
 
 /**
+ * Function for route /operators/:address/events
+ * Fetches and returns a list of events for a specific operator with optional filters
+ *
+ * @param req
+ * @param res
+ */
+export async function getOperatorEvents(req: Request, res: Response) {
+	const result = OperatorEventQuerySchema.and(WithTokenDataQuerySchema)
+		.and(PaginationQuerySchema)
+		.safeParse(req.query)
+	if (!result.success) {
+		return handleAndReturnErrorResponse(req, res, result.error)
+	}
+
+	try {
+		const {
+			type,
+			stakerAddress,
+			strategyAddress,
+			txHash,
+			startAt,
+			endAt,
+			withTokenData,
+			skip,
+			take
+		} = result.data
+		const { address } = req.params
+
+		const baseFilterQuery = {
+			operator: {
+				contains: address,
+				mode: 'insensitive'
+			},
+			...(stakerAddress && {
+				staker: {
+					contains: stakerAddress,
+					mode: 'insensitive'
+				}
+			}),
+			...(strategyAddress && {
+				strategy: {
+					contains: strategyAddress,
+					mode: 'insensitive'
+				}
+			}),
+			...(txHash && {
+				transactionHash: {
+					contains: txHash,
+					mode: 'insensitive'
+				}
+			}),
+			blockTime: {
+				gte: new Date(startAt),
+				...(endAt ? { lte: new Date(endAt) } : {})
+			}
+		}
+
+		let eventRecords: EventRecord[] = []
+		let eventCount = 0
+
+		const eventTypesToFetch = type
+			? [type]
+			: strategyAddress
+			? ['SHARES_INCREASED', 'SHARES_DECREASED']
+			: ['SHARES_INCREASED', 'SHARES_DECREASED', 'DELEGATION', 'UNDELEGATION']
+
+		const fetchEventsForTypes = async (types: string[]) => {
+			const results = await Promise.all(
+				types.map((eventType) =>
+					fetchAndMapEvents(eventType, baseFilterQuery, withTokenData, skip, take)
+				)
+			)
+			return results
+		}
+
+		const results = await fetchEventsForTypes(eventTypesToFetch)
+
+		eventRecords = results.flatMap((result) => result.eventRecords)
+		eventRecords = eventRecords
+			.sort((a, b) => (b.blockNumber > a.blockNumber ? 1 : -1))
+			.slice(0, take)
+
+		eventCount = results.reduce((acc, result) => acc + result.eventCount, 0)
+
+		const response = {
+			data: eventRecords,
+			meta: {
+				total: eventCount,
+				skip,
+				take
+			}
+		}
+
+		res.send(response)
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+/**
  * Function for route /operators/:address/invalidate-metadata
  * Protected route to invalidate the metadata of a given Operator
  *
@@ -554,4 +673,107 @@ async function calculateOperatorApy(operator: any) {
 
 		return response
 	} catch {}
+}
+
+/**
+ * Utility function to fetch and map event records from the database.
+ *
+ * @param eventType
+ * @param baseFilterQuery
+ * @param skip
+ * @param take
+ * @returns
+ */
+async function fetchAndMapEvents(
+	eventType: string,
+	baseFilterQuery: any,
+	withTokenData: boolean,
+	skip: number,
+	take: number
+): Promise<{ eventRecords: EventRecord[]; eventCount: number }> {
+	const modelName = (() => {
+		switch (eventType) {
+			case 'SHARES_INCREASED':
+				return 'eventLogs_OperatorSharesIncreased'
+			case 'SHARES_DECREASED':
+				return 'eventLogs_OperatorSharesDecreased'
+			case 'DELEGATION':
+				return 'eventLogs_StakerDelegated'
+			case 'UNDELEGATION':
+				return 'eventLogs_StakerUndelegated'
+			default:
+				throw new Error(`Unknown event type: ${eventType}`)
+		}
+	})()
+
+	const model = prisma[modelName] as any
+
+	const eventCount = await model.count({
+		where: baseFilterQuery
+	})
+
+	const eventLogs = await model.findMany({
+		where: baseFilterQuery,
+		skip,
+		take,
+		orderBy: { blockNumber: 'desc' }
+	})
+
+	const tokenPrices = withTokenData ? await fetchTokenPrices() : undefined
+	const sharesToUnderlying = withTokenData ? await getSharesToUnderlying() : undefined
+
+	const eventRecords = await Promise.all(
+		eventLogs.map(async (event) => {
+			let underlyingToken: string | undefined
+			let underlyingValue: number | undefined
+
+			if (
+				withTokenData &&
+				(eventType === 'SHARES_INCREASED' || eventType === 'SHARES_DECREASED') &&
+				event.strategy
+			) {
+				const strategy = await prisma.strategies.findUnique({
+					where: {
+						address: event.strategy.toLowerCase()
+					}
+				})
+
+				if (strategy && sharesToUnderlying) {
+					underlyingToken = strategy.underlyingToken
+					const sharesMultiplier = Number(sharesToUnderlying.get(event.strategy.toLowerCase()))
+					const strategyTokenPrice = tokenPrices?.find(
+						(tp) => tp.address.toLowerCase() === strategy.underlyingToken.toLowerCase()
+					)
+
+					if (sharesMultiplier && strategyTokenPrice) {
+						underlyingValue =
+							(Number(event.shares) / Math.pow(10, strategyTokenPrice.decimals)) *
+							sharesMultiplier *
+							strategyTokenPrice.ethPrice
+					}
+				}
+			}
+
+			return {
+				type: eventType,
+				tx: event.transactionHash,
+				blockNumber: event.blockNumber,
+				blockTime: event.blockTime,
+				args: {
+					staker: event.staker.toLowerCase(),
+					strategy: event.strategy?.toLowerCase(),
+					shares: event.shares
+				},
+				...(withTokenData && {
+					underlyingToken: underlyingToken?.toLowerCase(),
+					underlyingValue
+				})
+			}
+		})
+	)
+
+	return {
+		eventRecords,
+		eventCount
+	}
 }
