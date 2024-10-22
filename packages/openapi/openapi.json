@@ -3869,6 +3869,12 @@
 														"items": {
 															"type": "object",
 															"properties": {
+																"stakerAddress": {
+																	"type": "string",
+																	"pattern": "^0x[a-fA-F0-9]{40}$",
+																	"description": "The address of the staker",
+																	"example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
+																},
 																"strategyAddress": {
 																	"type": "string",
 																	"pattern": "^0x[a-fA-F0-9]{40}$",
@@ -3881,7 +3887,7 @@
 																	"example": "40888428658906049"
 																}
 															},
-															"required": ["strategyAddress", "shares"]
+															"required": ["stakerAddress", "strategyAddress", "shares"]
 														}
 													},
 													"tvl": {
