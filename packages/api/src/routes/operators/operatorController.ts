@@ -24,8 +24,6 @@ type EventRecordArgs = {
 	staker: string
 	strategy?: string
 	shares?: number
-	underlyingToken?: string
-	underlyingValue?: number
 }
 
 type EventRecord = {
@@ -34,6 +32,8 @@ type EventRecord = {
 	blockNumber: number
 	blockTime: Date
 	args: EventRecordArgs
+	underlyingToken?: string
+	underlyingValue?: number
 }
 
 /**
@@ -760,14 +760,14 @@ async function fetchAndMapEvents(
 				blockNumber: event.blockNumber,
 				blockTime: event.blockTime,
 				args: {
-					staker: event.staker,
-					strategy: event.strategy,
-					shares: event.shares,
-					...(withTokenData && {
-						underlyingToken,
-						underlyingValue
-					})
-				}
+					staker: event.staker.toLowerCase(),
+					strategy: event.strategy?.toLowerCase(),
+					shares: event.shares
+				},
+				...(withTokenData && {
+					underlyingToken: underlyingToken?.toLowerCase(),
+					underlyingValue
+				})
 			}
 		})
 	)
