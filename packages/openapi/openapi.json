@@ -495,18 +495,19 @@
 		"/metrics/tvl/restaking/{strategy}": {
 			"get": {
 				"operationId": "getTvlRestakingMetricByStrategy",
-				"summary": "Retrieve a strategy TVL by name",
+				"summary": "Retrieve a strategy TVL by address",
 				"description": "Returns the total value locked (TVL) in a specific LST strategy.",
 				"tags": ["Metrics"],
 				"parameters": [
 					{
 						"in": "path",
 						"name": "strategy",
-						"description": "The name of the restaking strategy",
+						"description": "The address of the restaking strategy",
 						"schema": {
 							"type": "string",
-							"description": "The name of the restaking strategy",
-							"example": "cbETH"
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "The address of the restaking strategy",
+							"example": "0x0fe4f44bee93503346a3ac9ee5a26b130a5796d6"
 						},
 						"required": true
 					},
