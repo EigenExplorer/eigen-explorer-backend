@@ -4320,6 +4320,21 @@
 														"description": "The URL of the AVS operator's X",
 														"example": "https://twitter.com/acme"
 													},
+													"totalStakers": {
+														"type": "number",
+														"description": "The total number of stakers who have delegated to this AVS operator",
+														"example": 10
+													},
+													"totalAvs": {
+														"type": "number",
+														"description": "The total number of AVS opted by the AVS operator",
+														"example": 10
+													},
+													"apy": {
+														"type": "number",
+														"description": "The latest APY recorded for the Operator",
+														"example": 1
+													},
 													"createdAtBlock": {
 														"type": "string",
 														"description": "The block number at which the AVS Operator was registered",
@@ -4379,11 +4394,6 @@
 														},
 														"description": "The list of restaked strategies",
 														"example": ["0x35f4f28a8d3ff20eed10e087e8f96ea2641e6aa1"]
-													},
-													"totalStakers": {
-														"type": "number",
-														"description": "The total number of stakers who have delegated to this AVS operator",
-														"example": 10
 													},
 													"tvl": {
 														"type": "object",
@@ -4469,13 +4479,15 @@
 													"metadataTelegram",
 													"metadataWebsite",
 													"metadataX",
+													"totalStakers",
+													"totalAvs",
+													"apy",
 													"createdAtBlock",
 													"updatedAtBlock",
 													"createdAt",
 													"updatedAt",
 													"shares",
-													"restakedStrategies",
-													"totalStakers"
+													"restakedStrategies"
 												]
 											}
 										},
