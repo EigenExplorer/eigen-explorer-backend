@@ -3178,6 +3178,50 @@
 																"cbETH": 2000000
 															}
 														}
+													},
+													"rewards": {
+														"type": "object",
+														"properties": {
+															"strategies": {
+																"type": "array",
+																"items": {
+																	"type": "object",
+																	"properties": {
+																		"strategyAddress": {
+																			"type": "string",
+																			"description": "The address of the strategy",
+																			"example": "0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0"
+																		},
+																		"apy": {
+																			"type": "number",
+																			"description": "The APY of the strategy",
+																			"example": 0.00016956497239057833
+																		}
+																	},
+																	"required": ["strategyAddress", "apy"]
+																}
+															},
+															"aggregateApy": {
+																"type": "number",
+																"description": "The aggregate APY across all strategies",
+																"example": 1.060577413975275
+															}
+														},
+														"required": ["strategies", "aggregateApy"],
+														"description": "The rewards and APY information of the AVS strategies",
+														"example": {
+															"strategies": [
+																{
+																	"strategyAddress": "0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0",
+																	"apy": 0.00016956497239057833
+																},
+																{
+																	"strategyAddress": "0x93c4b944d05dfe6df7645a86cd2206016c51564d",
+																	"apy": 0.001007600130048518
+																}
+															],
+															"aggregateApy": 1.060577413975275
+														}
 													}
 												},
 												"required": [
@@ -3427,6 +3471,18 @@
 							"enum": ["true", "false"],
 							"default": "false",
 							"description": "Toggle whether the route should send curated metadata",
+							"example": "false"
+						}
+					},
+					{
+						"in": "query",
+						"name": "withRewards",
+						"description": "Toggle whether the route should return Avs/Operator rewards APY data",
+						"schema": {
+							"type": "string",
+							"enum": ["true", "false"],
+							"default": "false",
+							"description": "Toggle whether the route should return Avs/Operator rewards APY data",
 							"example": "false"
 						}
 					}
@@ -3747,6 +3803,50 @@
 													"stETH": 1000000,
 													"cbETH": 2000000
 												}
+											}
+										},
+										"rewards": {
+											"type": "object",
+											"properties": {
+												"strategies": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"strategyAddress": {
+																"type": "string",
+																"description": "The address of the strategy",
+																"example": "0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0"
+															},
+															"apy": {
+																"type": "number",
+																"description": "The APY of the strategy",
+																"example": 0.00016956497239057833
+															}
+														},
+														"required": ["strategyAddress", "apy"]
+													}
+												},
+												"aggregateApy": {
+													"type": "number",
+													"description": "The aggregate APY across all strategies",
+													"example": 1.060577413975275
+												}
+											},
+											"required": ["strategies", "aggregateApy"],
+											"description": "The rewards and APY information of the AVS strategies",
+											"example": {
+												"strategies": [
+													{
+														"strategyAddress": "0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0",
+														"apy": 0.00016956497239057833
+													},
+													{
+														"strategyAddress": "0x93c4b944d05dfe6df7645a86cd2206016c51564d",
+														"apy": 0.001007600130048518
+													}
+												],
+												"aggregateApy": 1.060577413975275
 											}
 										}
 									},
@@ -5009,6 +5109,18 @@
 							"enum": ["true", "false"],
 							"default": "false",
 							"description": "Toggle whether to return additional data for each AVS registration for a given Operator",
+							"example": "false"
+						}
+					},
+					{
+						"in": "query",
+						"name": "withRewards",
+						"description": "Toggle whether the route should return Avs/Operator rewards APY data",
+						"schema": {
+							"type": "string",
+							"enum": ["true", "false"],
+							"default": "false",
+							"description": "Toggle whether the route should return Avs/Operator rewards APY data",
 							"example": "false"
 						}
 					}
