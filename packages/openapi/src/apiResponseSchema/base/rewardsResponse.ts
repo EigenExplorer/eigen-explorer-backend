@@ -1,5 +1,4 @@
 import z from '../../../../api/src/schema/zod'
-import { StrategyTvlSchema, StrategyEthTvlSchema } from './strategyTvlResponse'
 
 export const RewardsSchema = z.object({
 	strategies: z.array(

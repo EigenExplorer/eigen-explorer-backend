@@ -8,6 +8,7 @@ import { withdrawalsRoutes } from './routes/withdrawals'
 import { stakersRoutes } from './routes/stakers'
 import { depositsRoutes } from './routes/deposits'
 import { historicalRoutes } from './routes/historical'
+import { rewardsRoutes } from './routes/rewards'
 
 export const document = createDocument({
 	openapi: '3.0.3',
@@ -34,7 +35,8 @@ export const document = createDocument({
 		...operatorsRoutes,
 		...withdrawalsRoutes,
 		...stakersRoutes,
-		...depositsRoutes
+		...depositsRoutes,
+		...rewardsRoutes
 	},
 	components: {
 		schemas: {},

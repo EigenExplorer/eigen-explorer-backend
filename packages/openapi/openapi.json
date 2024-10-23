@@ -7318,6 +7318,80 @@
 					}
 				}
 			}
+		},
+		"/rewards/strategies": {
+			"get": {
+				"operationId": "getStrategies",
+				"summary": "Retrieve all strategies with their reward tokens",
+				"description": "Returns a list of strategies with their corresponding reward tokens, including strategy addresses and associated token addresses.",
+				"tags": ["Rewards"],
+				"responses": {
+					"200": {
+						"description": "List of strategies along with associated reward tokens.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"strategies": {
+											"type": "array",
+											"items": {
+												"type": "object",
+												"properties": {
+													"strategyAddress": {
+														"type": "string",
+														"description": "The address of the strategy",
+														"example": "0x0fe4f44bee93503346a3ac9ee5a26b130a5796d6"
+													},
+													"tokens": {
+														"type": "array",
+														"items": {
+															"type": "string"
+														},
+														"description": "Array of token addresses associated with the strategy",
+														"example": [
+															"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+															"0xba50933c268f567bdc86e1ac131be072c6b0b71a"
+														]
+													}
+												},
+												"required": ["strategyAddress", "tokens"]
+											}
+										},
+										"total": {
+											"type": "number",
+											"description": "The total number of strategies",
+											"example": 15
+										}
+									},
+									"required": ["strategies", "total"]
+								}
+							}
+						}
+					},
+					"400": {
+						"$ref": "#/components/responses/400"
+					},
+					"401": {
+						"$ref": "#/components/responses/401"
+					},
+					"403": {
+						"$ref": "#/components/responses/403"
+					},
+					"404": {
+						"$ref": "#/components/responses/404"
+					},
+					"422": {
+						"$ref": "#/components/responses/422"
+					},
+					"429": {
+						"$ref": "#/components/responses/429"
+					},
+					"500": {
+						"$ref": "#/components/responses/500"
+					}
+				}
+			}
 		}
 	},
 	"components": {
