@@ -720,7 +720,7 @@ async function fetchAndMapEvents(
 	})
 
 	const tokenPrices = withTokenData ? await fetchTokenPrices() : undefined
-	const sharesToUnderlying = withTokenData ? await getSharesToUnderlying() : undefined
+	const sharesToUnderlying = withTokenData ? await getStrategiesWithShareUnderlying() : undefined
 
 	const eventRecords = await Promise.all(
 		eventLogs.map(async (event) => {
@@ -740,16 +740,22 @@ async function fetchAndMapEvents(
 
 				if (strategy && sharesToUnderlying) {
 					underlyingToken = strategy.underlyingToken
-					const sharesMultiplier = Number(sharesToUnderlying.get(event.strategy.toLowerCase()))
-					const strategyTokenPrice = tokenPrices?.find(
-						(tp) => tp.address.toLowerCase() === strategy.underlyingToken.toLowerCase()
+					const matchingStrategy = sharesToUnderlying.find(
+						(s) => s.strategyAddress.toLowerCase() === event.strategy.toLowerCase()
 					)
 
-					if (sharesMultiplier && strategyTokenPrice) {
-						underlyingValue =
-							(Number(event.shares) / Math.pow(10, strategyTokenPrice.decimals)) *
-							sharesMultiplier *
-							strategyTokenPrice.ethPrice
+					if (matchingStrategy) {
+						const sharesMultiplier = matchingStrategy.sharesToUnderlying
+						const strategyTokenPrice = tokenPrices?.find(
+							(tp) => tp.address.toLowerCase() === strategy.underlyingToken.toLowerCase()
+						)
+
+						if (sharesMultiplier && strategyTokenPrice) {
+							underlyingValue =
+								(Number(event.shares) / Math.pow(10, strategyTokenPrice.decimals)) *
+								Number(sharesMultiplier) *
+								strategyTokenPrice.ethPrice
+						}
 					}
 				}
 			}
