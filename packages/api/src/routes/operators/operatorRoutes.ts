@@ -109,7 +109,7 @@ router.get('/:address', routeCache.cacheSeconds(120), getOperator)
 
 router.get('/:address/rewards', routeCache.cacheSeconds(120), getOperatorRewards)
 
-router.get('/:address/events', routeCache.cacheSeconds(120), getOperatorEvents)
+router.get('/:address/events/delegation', routeCache.cacheSeconds(120), getOperatorEvents)
 
 // Protected routes
 router.get(
