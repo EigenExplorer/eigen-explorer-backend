@@ -4,6 +4,7 @@ import {
 	getOperator,
 	getAllOperatorAddresses,
 	getOperatorRewards,
+	getOperatorEvents,
 	invalidateMetadata
 } from './operatorController'
 import { authenticateJWT } from '../../utils/jwtUtils'
@@ -107,6 +108,8 @@ router.get('/', routeCache.cacheSeconds(120), getAllOperators)
 router.get('/:address', routeCache.cacheSeconds(120), getOperator)
 
 router.get('/:address/rewards', routeCache.cacheSeconds(120), getOperatorRewards)
+
+router.get('/:address/events', routeCache.cacheSeconds(120), getOperatorEvents)
 
 // Protected routes
 router.get(
