@@ -17,8 +17,6 @@ import { withOperatorShares } from '../../utils/operatorShares'
 import Prisma from '@prisma/client'
 import prisma from '../../utils/prismaClient'
 import { fetchTokenPrices } from '../../utils/tokenPrices'
-import { WithTokenDataQuerySchema } from '../../schema/zod/schemas/withTokenDataQuery'
-import { getSharesToUnderlying } from '../../../../seeder/src/utils/strategies'
 
 type EventRecordArgs = {
 	staker: string
@@ -34,6 +32,7 @@ type EventRecord = {
 	args: EventRecordArgs
 	underlyingToken?: string
 	underlyingValue?: number
+	ethValue?: number
 }
 
 /**
@@ -397,9 +396,7 @@ export async function getOperatorRewards(req: Request, res: Response) {
  * @param res
  */
 export async function getOperatorEvents(req: Request, res: Response) {
-	const result = OperatorEventQuerySchema.and(WithTokenDataQuerySchema)
-		.and(PaginationQuerySchema)
-		.safeParse(req.query)
+	const result = OperatorEventQuerySchema.and(PaginationQuerySchema).safeParse(req.query)
 	if (!result.success) {
 		return handleAndReturnErrorResponse(req, res, result.error)
 	}
@@ -413,6 +410,7 @@ export async function getOperatorEvents(req: Request, res: Response) {
 			startAt,
 			endAt,
 			withTokenData,
+			withEthValue,
 			skip,
 			take
 		} = result.data
@@ -459,7 +457,7 @@ export async function getOperatorEvents(req: Request, res: Response) {
 		const fetchEventsForTypes = async (types: string[]) => {
 			const results = await Promise.all(
 				types.map((eventType) =>
-					fetchAndMapEvents(eventType, baseFilterQuery, withTokenData, skip, take)
+					fetchAndMapEvents(eventType, baseFilterQuery, withTokenData, withEthValue, skip, take)
 				)
 			)
 			return results
@@ -688,6 +686,7 @@ async function fetchAndMapEvents(
 	eventType: string,
 	baseFilterQuery: any,
 	withTokenData: boolean,
+	withEthValue: boolean,
 	skip: number,
 	take: number
 ): Promise<{ eventRecords: EventRecord[]; eventCount: number }> {
@@ -727,6 +726,7 @@ async function fetchAndMapEvents(
 		eventLogs.map(async (event) => {
 			let underlyingToken: string | undefined
 			let underlyingValue: number | undefined
+			let ethValue: number | undefined
 
 			if (
 				withTokenData &&
@@ -751,6 +751,10 @@ async function fetchAndMapEvents(
 							Number(
 								(BigInt(event.shares) * BigInt(sharesUnderlying.sharesToUnderlying)) / BigInt(1e18)
 							) / 1e18
+
+						if (withEthValue) {
+							ethValue = underlyingValue * sharesUnderlying.ethPrice
+						}
 					}
 				}
 			}
@@ -758,7 +762,7 @@ async function fetchAndMapEvents(
 			return {
 				type: eventType,
 				tx: event.transactionHash,
-				blockNumber: event.blockNumber,
+				blockNumber: Number(event.blockNumber),
 				blockTime: event.blockTime,
 				args: {
 					staker: event.staker.toLowerCase(),
@@ -768,7 +772,8 @@ async function fetchAndMapEvents(
 				...(withTokenData && {
 					underlyingToken: underlyingToken?.toLowerCase(),
 					underlyingValue
-				})
+				}),
+				...(withEthValue && { ethValue })
 			}
 		})
 	)
