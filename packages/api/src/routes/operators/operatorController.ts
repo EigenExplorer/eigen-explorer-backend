@@ -719,8 +719,9 @@ async function fetchAndMapEvents(
 		orderBy: { blockNumber: 'desc' }
 	})
 
-	const tokenPrices = withTokenData ? await fetchTokenPrices() : undefined
-	const sharesToUnderlying = withTokenData ? await getStrategiesWithShareUnderlying() : undefined
+	const strategiesWithSharesUnderlying = withTokenData
+		? await getStrategiesWithShareUnderlying()
+		: undefined
 
 	const eventRecords = await Promise.all(
 		eventLogs.map(async (event) => {
@@ -738,24 +739,18 @@ async function fetchAndMapEvents(
 					}
 				})
 
-				if (strategy && sharesToUnderlying) {
+				if (strategy && strategiesWithSharesUnderlying) {
 					underlyingToken = strategy.underlyingToken
-					const matchingStrategy = sharesToUnderlying.find(
+
+					const sharesUnderlying = strategiesWithSharesUnderlying.find(
 						(s) => s.strategyAddress.toLowerCase() === event.strategy.toLowerCase()
 					)
 
-					if (matchingStrategy) {
-						const sharesMultiplier = matchingStrategy.sharesToUnderlying
-						const strategyTokenPrice = tokenPrices?.find(
-							(tp) => tp.address.toLowerCase() === strategy.underlyingToken.toLowerCase()
-						)
-
-						if (sharesMultiplier && strategyTokenPrice) {
-							underlyingValue =
-								(Number(event.shares) / Math.pow(10, strategyTokenPrice.decimals)) *
-								Number(sharesMultiplier) *
-								strategyTokenPrice.ethPrice
-						}
+					if (sharesUnderlying) {
+						underlyingValue =
+							Number(
+								(BigInt(event.shares) * BigInt(sharesUnderlying.sharesToUnderlying)) / BigInt(1e18)
+							) / 1e18
 					}
 				}
 			}
