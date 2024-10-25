@@ -752,7 +752,7 @@ async function fetchAndMapEvents(
 								(BigInt(event.shares) * BigInt(sharesUnderlying.sharesToUnderlying)) / BigInt(1e18)
 							) / 1e18
 
-						if (withEthValue) {
+						if (withEthValue && sharesUnderlying.ethPrice) {
 							ethValue = underlyingValue * sharesUnderlying.ethPrice
 						}
 					}
@@ -762,7 +762,7 @@ async function fetchAndMapEvents(
 			return {
 				type: eventType,
 				tx: event.transactionHash,
-				blockNumber: Number(event.blockNumber),
+				blockNumber: event.blockNumber,
 				blockTime: event.blockTime,
 				args: {
 					staker: event.staker.toLowerCase(),
