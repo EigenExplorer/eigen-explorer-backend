@@ -1,4 +1,5 @@
 import z from '../'
+import { WithTokenDataQuerySchema, WithEthValueQuerySchema } from './withTokenDataQuery'
 
 const isoRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/
 const yyyymmddRegex = /^\d{4}-\d{2}-\d{2}$/
@@ -117,6 +118,20 @@ export const OperatorEventQuerySchema = z
 			.describe('End date in ISO string format')
 			.openapi({ example: '2024-04-12T08:31:11.000' })
 	})
+	.merge(WithTokenDataQuerySchema)
+	.merge(WithEthValueQuerySchema)
+	.refine(
+		(data) => {
+			if (data.withEthValue && !data.withTokenData) {
+				return false
+			}
+			return true
+		},
+		{
+			message: "'withEthValue' requires 'withTokenData' to be enabled.",
+			path: ['withEthValue']
+		}
+	)
 	.refine(
 		(data) => {
 			if ((data.type === 'DELEGATION' || data.type === 'UNDELEGATION') && data.strategyAddress) {
