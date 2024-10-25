@@ -1,44 +1,37 @@
 import type { Request, Response } from 'express'
-import authStore from '../../utils/authStore'
 import { handleAndReturnErrorResponse } from '../../schema/errors'
-import { UpdateCacheQuerySchema, RefreshCacheQuerySchema } from '../../schema/zod/schemas/auth'
+import { refreshStore } from '../../utils/authMiddleware'
+import { RequestHeadersSchema } from '../../schema/zod/schemas/auth'
 
 /**
- * Post a single record update to auth store (insert/update/delete record)
+ * Refresh the server's entire auth store. Called by Supabase edge fn signal-refresh.
+ * This function will fail if the caller does not use admin-level auth token
  *
  * @param req
  * @param res
  * @returns
  */
-export async function postUpdateStore(req: Request, res: Response) {
-	const queryCheck = UpdateCacheQuerySchema.safeParse(req.body)
-	if (!queryCheck.success) {
-		return handleAndReturnErrorResponse(req, res, queryCheck.error)
+export async function signalRefreshStore(req: Request, res: Response) {
+	const headerCheck = RequestHeadersSchema.safeParse(req.headers)
+	if (!headerCheck.success) {
+		return handleAndReturnErrorResponse(req, res, headerCheck.error)
 	}
 
 	try {
-		const { type, record, old_record } = queryCheck.data
+		const apiToken = headerCheck.data['X-API-Token']
+		const authToken = process.env.EE_AUTH_TOKEN
 
-		switch (type) {
-			case 'INSERT':
-			case 'UPDATE': {
-				if (record) {
-					for (const apiToken of record.apiTokens) {
-						authStore.set(`apiToken:${apiToken}:accessLevel`, record.accessLevel)
-					}
-				}
-				break
-			}
-			case 'DELETE': {
-				if (old_record) {
-					for (const apiToken of old_record.apiTokens) {
-						authStore.del(`apiToken:${apiToken}:accessLevel`)
-					}
-				}
-			}
+		if (apiToken !== authToken) {
+			throw new Error('Unauthorized access.')
 		}
 
-		res.status(200).json({ message: 'Auth store updated.' })
+		const status = await refreshStore()
+
+		if (!status) {
+			throw new Error('Refresh auth store failed.')
+		}
+
+		res.status(200).json({ message: 'Auth store refreshed.' })
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
 	}

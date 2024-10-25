@@ -9,7 +9,10 @@ interface User {
 	apiTokens: string[]
 }
 
-// Rate limiters for different access levels
+/**
+ * Rate limit settings for Free or no plan, access level = 0
+ *
+ */
 const unauthenticatedLimiter = rateLimit({
 	windowMs: 1 * 60 * 1000,
 	max: 30,
@@ -20,6 +23,10 @@ const unauthenticatedLimiter = rateLimit({
 		"You've reached the limit of 30 requests per minute. Sign up for a plan on https://dev.eigenexplorer.com for increased limits."
 })
 
+/**
+ * Rate limit settings for Hobby plan, access level = 1
+ *
+ */
 const hobbyPlanLimiter = rateLimit({
 	windowMs: 1 * 60 * 1000,
 	max: 10_000,
@@ -30,9 +37,20 @@ const hobbyPlanLimiter = rateLimit({
 		"You've reached the limit of 10k requests per minute. Upgrade your plan for increased limits."
 })
 
-// No rate limit for admin
-const adminLimiter = (_req: Request, _res: Response, next: NextFunction) => next()
+/**
+ * Rate limit settings for Admin, access level = 999
+ *
+ */
+const adminLimiter = (_req: Request, _res: Response, next: NextFunction) => next() // No rate limit
 
+/**
+ * Generate a rate limiter basis the caller's access level
+ *
+ * @param req
+ * @param res
+ * @param next
+ * @returns
+ */
 export const rateLimiter = async (req: Request, res: Response, next: NextFunction) => {
 	const apiToken = req.header('X-API-Token')
 
@@ -60,34 +78,39 @@ export const rateLimiter = async (req: Request, res: Response, next: NextFunctio
 	}
 }
 
+/**
+ * Fetch all user auth data from Supabase edge function and refresh auth store.
+ *
+ */
 export async function refreshStore() {
-	// Fetch user auth data from Supabase edge function
 	try {
-		const response = await fetch(`${process.env.FETCH_ALL_USERS_URL}`, {
+		const response = await fetch(`${process.env.SUPABASE_FETCH_ALL_USERS_URL}`, {
 			method: 'GET',
 			headers: {
-				Authorization: `Bearer ${process.env.SUPABASE_JWT_BEARER}`,
+				Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
 				'Content-Type': 'application/json'
 			}
 		})
 
 		if (!response.ok) {
-			console.log('response: ', response)
-			throw new Error(`HTTP error! status: ${response.status}`)
+			throw new Error()
 		}
 
 		const users = (await response.json()).data as User[]
 
-		// Refresh auth store
 		authStore.flushAll()
 
 		for (const user of users) {
-			const accessLevel = user.accessLevel
-			for (const apiToken of user.apiTokens) {
+			const accessLevel = user.accessLevel || 0
+			const apiTokens = user.apiTokens ?? []
+			for (const apiToken of apiTokens) {
 				authStore.set(`apiToken:${apiToken}:accessLevel`, accessLevel)
 			}
 		}
 
 		authStore.set('updatedAt', Date.now())
-	} catch {}
+		return true
+	} catch {
+		return false
+	}
 }

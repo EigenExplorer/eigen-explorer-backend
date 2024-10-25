@@ -1,21 +1,13 @@
 import z from '..'
 
-const RecordSchema = z.object({
-	apiTokens: z.array(z.string()),
-	accessLevel: z.number()
-})
-
-export const UpdateCacheQuerySchema = z.object({
-	type: z.enum(['INSERT', 'UPDATE', 'DELETE']),
-	record: RecordSchema.nullable(),
-	old_record: RecordSchema.nullable()
-})
-
-export const RefreshCacheQuerySchema = z.object({
-	data: z.array(
-		z.object({
-			apiTokens: z.array(z.string()),
-			accessLevel: z.number()
-		})
-	)
-})
+export const RequestHeadersSchema = z
+	.object({
+		'x-api-token': z.string()
+	})
+	.transform((headers) => {
+		const token =
+			Object.keys(headers).find((key) => key.toLowerCase() === 'x-api-token') ?? 'x-api-token'
+		return {
+			'X-API-Token': headers[token]
+		}
+	})

@@ -1,10 +1,10 @@
 import express from 'express'
-import { postUpdateStore } from './authController'
+import { signalRefreshStore } from './authController'
 
 const router = express.Router()
 
 // API routes for /auth
 
-router.post('/store/update', postUpdateStore)
+router.get('/refresh-store', signalRefreshStore)
 
 export default router
