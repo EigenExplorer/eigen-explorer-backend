@@ -6,7 +6,8 @@ import {
 	getAVSOperators,
 	getAVSStakers,
 	getAVSRewards,
-	invalidateMetadata
+	invalidateMetadata,
+	getAVSRewardsEvents
 } from './avsController'
 import { authenticateJWT } from '../../utils/jwtUtils'
 
@@ -26,6 +27,8 @@ router.get('/:address/stakers', routeCache.cacheSeconds(120), getAVSStakers)
 router.get('/:address/operators', routeCache.cacheSeconds(120), getAVSOperators)
 
 router.get('/:address/rewards', routeCache.cacheSeconds(120), getAVSRewards)
+
+router.get('/:address/events/rewards', routeCache.cacheSeconds(120), getAVSRewardsEvents)
 
 // Protected routes
 router.get(
