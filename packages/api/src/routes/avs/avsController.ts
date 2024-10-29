@@ -19,6 +19,30 @@ import Prisma from '@prisma/client'
 import prisma from '../../utils/prismaClient'
 import { fetchTokenPrices } from '../../utils/tokenPrices'
 import { withOperatorShares } from '../../utils/operatorShares'
+import { AvsEventQuerySchema } from '../../schema/zod/schemas/avsEvents'
+import { WithEthValueQuerySchema } from '../../schema/zod/schemas/withTokenDataQuery'
+
+export type AVSEventRecordArgs = {
+	submissionNonce: number
+	rewardsSubmissionHash: string
+	rewardsSubmissionToken: string
+	rewardsSubmissionAmount: string
+	rewardsSubmissionStartTimeStamp: number
+	rewardsSubmissionDuration: number
+	strategies: {
+		strategy: string
+		multiplier: string
+	}[]
+	ethValue?: number
+}
+
+export type AVSEventRecord = {
+	type: 'REWARDS'
+	tx: string
+	blockNumber: number
+	blockTime: Date
+	args: AVSEventRecordArgs
+}
 
 /**
  * Function for route /avs
@@ -612,6 +636,127 @@ export async function getAVSRewards(req: Request, res: Response) {
 		result.rewardStrategies = rewardStrategies
 
 		res.send(result)
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+/**
+ * Function for route /avs/:address/events/rewards
+ * Fetches and returns a list of reward events for a specific AVS with optional filters
+ *
+ * @param req
+ * @param res
+ */
+export async function getAVSRewardsEvents(req: Request, res: Response) {
+	const result = AvsEventQuerySchema.and(PaginationQuerySchema)
+		.and(WithEthValueQuerySchema)
+		.safeParse(req.query)
+	if (!result.success) {
+		return handleAndReturnErrorResponse(req, res, result.error)
+	}
+
+	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	}
+
+	try {
+		const { address } = req.params
+		const {
+			startAt,
+			endAt,
+			txHash,
+			rewardsSubmissionHash,
+			rewardsSubmissionToken,
+			withEthValue,
+			skip,
+			take
+		} = result.data
+
+		const baseFilterQuery = {
+			avs: {
+				contains: address,
+				mode: 'insensitive'
+			},
+			...(txHash && {
+				transactionHash: {
+					contains: txHash,
+					mode: 'insensitive'
+				}
+			}),
+			...(rewardsSubmissionHash && {
+				rewardsSubmissionHash: {
+					contains: rewardsSubmissionHash,
+					mode: 'insensitive'
+				}
+			}),
+			...(rewardsSubmissionToken && {
+				rewardsSubmission_token: {
+					contains: rewardsSubmissionToken,
+					mode: 'insensitive'
+				}
+			}),
+			blockTime: {
+				gte: new Date(startAt),
+				...(endAt ? { lte: new Date(endAt) } : {})
+			}
+		}
+
+		const model = prisma['eventLogs_AVSRewardsSubmission'] as any
+
+		const eventLogs = await model.findMany({
+			where: baseFilterQuery,
+			skip,
+			take,
+			orderBy: { blockNumber: 'desc' }
+		})
+
+		const tokenPrices = withEthValue ? await fetchTokenPrices() : []
+
+		const eventRecords: AVSEventRecord[] = eventLogs.map((event) => {
+			let ethValue: number | undefined
+
+			if (withEthValue) {
+				const tokenPrice = tokenPrices.find(
+					(tp) => tp.address.toLowerCase() === event.rewardsSubmission_token.toLowerCase()
+				)
+				if (tokenPrice) {
+					ethValue =
+						(Number(BigInt(event.rewardsSubmission_amount)) * tokenPrice.ethPrice) /
+						Math.pow(10, tokenPrice.decimals)
+				}
+			}
+
+			return {
+				type: 'REWARDS',
+				tx: event.transactionHash,
+				blockNumber: event.blockNumber,
+				blockTime: event.blockTime,
+				args: {
+					submissionNonce: event.submissionNonce,
+					rewardsSubmissionHash: event.rewardsSubmissionHash,
+					rewardsSubmissionToken: event.rewardsSubmission_token.toLowerCase(),
+					rewardsSubmissionAmount: event.rewardsSubmission_amount,
+					rewardsSubmissionStartTimeStamp: event.rewardsSubmission_startTimestamp,
+					rewardsSubmissionDuration: event.rewardsSubmission_duration,
+					strategies: event.strategiesAndMultipliers_strategies.map((strategyAddress, index) => ({
+						strategy: strategyAddress.toLowerCase(),
+						multiplier: event.strategiesAndMultipliers_multipliers[index]
+					}))
+				},
+				...(withEthValue && { ethValue })
+			}
+		})
+
+		res.send({
+			data: eventRecords,
+			meta: {
+				total: eventRecords.length,
+				skip,
+				take
+			}
+		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
 	}
