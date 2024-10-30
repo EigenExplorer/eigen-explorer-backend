@@ -5398,28 +5398,547 @@
 													"avsAddress": {
 														"type": "string",
 														"pattern": "^0x[a-fA-F0-9]{40}$",
-														"description": "AVS service manager contract address",
+														"description": "The address of the AVS contract",
 														"example": "0x870679e138bcdf293b7ff14dd44b70fc97e12fc0"
 													},
 													"isActive": {
 														"type": "boolean",
-														"description": "True indicates operator is an active participant while False indicates it used to be one but not anymore",
+														"description": "Status of the AVS registration",
 														"example": false
+													},
+													"metadataName": {
+														"type": "string",
+														"description": "The name of the AVS",
+														"example": "Example AVS"
+													},
+													"metadataDescription": {
+														"type": "string",
+														"nullable": true,
+														"description": "The description of the AVS",
+														"example": "This is an example AVS"
+													},
+													"metadataDiscord": {
+														"type": "string",
+														"nullable": true,
+														"format": "uri",
+														"description": "The URL of the AVS's Discord server",
+														"example": "https://discord.com/invite/abcdefghij"
+													},
+													"metadataLogo": {
+														"type": "string",
+														"nullable": true,
+														"format": "uri",
+														"description": "The URL of the AVS's logo"
+													},
+													"metadataTelegram": {
+														"type": "string",
+														"nullable": true,
+														"format": "uri",
+														"description": "The URL of the AVS's Telegram channel",
+														"example": "https://t.me/acme"
+													},
+													"metadataWebsite": {
+														"type": "string",
+														"nullable": true,
+														"format": "uri",
+														"description": "The URL of the AVS's website",
+														"example": "https://acme.com"
+													},
+													"metadataX": {
+														"type": "string",
+														"nullable": true,
+														"format": "uri",
+														"description": "The URL of the AVS's X",
+														"example": "https://twitter.com/acme"
+													},
+													"metadataUrl": {
+														"type": "string",
+														"description": "URL for AVS metadata",
+														"example": "https://mainnet-ethereum-avs-metadata.s3.amazonaws.com/EigenDA.json"
+													},
+													"curatedMetadata": {
+														"type": "object",
+														"properties": {
+															"metadataName": {
+																"type": "string",
+																"description": "The name of the AVS",
+																"example": "Example AVS"
+															},
+															"metadataDescription": {
+																"type": "string",
+																"nullable": true,
+																"description": "The description of the AVS",
+																"example": "This is an example AVS"
+															},
+															"metadataDiscord": {
+																"type": "string",
+																"nullable": true,
+																"format": "uri",
+																"description": "The URL of the AVS's Discord server",
+																"example": "https://discord.com/invite/abcdefghij"
+															},
+															"metadataLogo": {
+																"type": "string",
+																"nullable": true,
+																"format": "uri",
+																"description": "The URL of the AVS's logo"
+															},
+															"metadataTelegram": {
+																"type": "string",
+																"nullable": true,
+																"format": "uri",
+																"description": "The URL of the AVS's Telegram channel",
+																"example": "https://t.me/acme"
+															},
+															"metadataWebsite": {
+																"type": "string",
+																"nullable": true,
+																"format": "uri",
+																"description": "The URL of the AVS's website",
+																"example": "https://acme.com"
+															},
+															"metadataX": {
+																"type": "string",
+																"nullable": true,
+																"format": "uri",
+																"description": "The URL of the AVS's X",
+																"example": "https://twitter.com/acme"
+															},
+															"metadataGithub": {
+																"type": "string",
+																"nullable": true,
+																"format": "uri",
+																"description": "The URL of the AVS's Github",
+																"example": "https://github.com/acme"
+															},
+															"metadataTokenAddress": {
+																"type": "string",
+																"nullable": true,
+																"format": "uri",
+																"description": "The Token Address of the AVS",
+																"example": "0x2344c0fe02ccd2b32155ca0ffcb1978a6d96a552"
+															},
+															"tags": {
+																"type": "array",
+																"items": {
+																	"type": "string"
+																},
+																"description": "Tags to describe the AVS",
+																"example": ["Example tag 1", "Example tag 2"]
+															},
+															"isVisible": {
+																"type": "boolean",
+																"description": "Indicates if AVS visibility is allowed",
+																"example": false
+															},
+															"isVerified": {
+																"type": "boolean",
+																"description": "Indicates if the AVS has been verified by the EigenExplorer team",
+																"example": false
+															}
+														},
+														"required": [
+															"metadataName",
+															"metadataDescription",
+															"metadataDiscord",
+															"metadataLogo",
+															"metadataTelegram",
+															"metadataWebsite",
+															"metadataX",
+															"metadataGithub",
+															"metadataTokenAddress",
+															"tags",
+															"isVisible",
+															"isVerified"
+														],
+														"description": "Curated metadata information for AVS"
+													},
+													"restakeableStrategies": {
+														"type": "array",
+														"items": {
+															"type": "string",
+															"pattern": "^0x[a-fA-F0-9]{40}$"
+														},
+														"description": "The list of restakeable strategies for AVS"
+													},
+													"totalStakers": {
+														"type": "number",
+														"description": "Total number of stakers",
+														"example": 80426
+													},
+													"totalOperators": {
+														"type": "number",
+														"description": "Total number of operators",
+														"example": 220
+													},
+													"tvlEth": {
+														"type": "string",
+														"description": "Total TVL in ETH",
+														"example": "3562188.35141025"
+													},
+													"createdAtBlock": {
+														"type": "number",
+														"description": "Creation block number",
+														"example": 19592323
+													},
+													"updatedAtBlock": {
+														"type": "number",
+														"description": "Last update block number",
+														"example": 19592323
+													},
+													"createdAt": {
+														"type": "string",
+														"description": "Creation timestamp",
+														"example": "2024-04-05T21:49:59.000Z"
+													},
+													"updatedAt": {
+														"type": "string",
+														"description": "Last update timestamp",
+														"example": "2024-04-05T21:49:59.000Z"
+													},
+													"address": {
+														"type": "string",
+														"pattern": "^0x[a-fA-F0-9]{40}$",
+														"description": "AVS operator address",
+														"example": "0x870679e138bcdf293b7ff14dd44b70fc97e12fc0"
+													},
+													"rewardsSubmissions": {
+														"type": "array",
+														"items": {
+															"type": "object",
+															"properties": {
+																"id": {
+																	"type": "number",
+																	"description": "Unique ID of the rewards submission",
+																	"example": 1
+																},
+																"submissionNonce": {
+																	"type": "number",
+																	"description": "Nonce of the rewards submission",
+																	"example": 0
+																},
+																"rewardsSubmissionHash": {
+																	"type": "string",
+																	"description": "Hash of the rewards submission",
+																	"example": "0x2bc2f7cef0974f7064dbdae054f9a0e5ea1c2293d180a749c70100506382d85"
+																},
+																"avsAddress": {
+																	"type": "string",
+																	"pattern": "^0x[a-fA-F0-9]{40}$",
+																	"description": "AVS address for the rewards submission",
+																	"example": "0x870679e138bcdf293b7ff14dd44b70fc97e12fc0"
+																},
+																"strategyAddress": {
+																	"type": "string",
+																	"pattern": "^0x[a-fA-F0-9]{40}$",
+																	"description": "Strategy address for the rewards submission",
+																	"example": "0x0fe4f44bee93503346a3ac9ee5a26b130a5796d6"
+																},
+																"multiplier": {
+																	"type": "string",
+																	"description": "Multiplier for the rewards",
+																	"example": "1055446649335815388"
+																},
+																"token": {
+																	"type": "string",
+																	"pattern": "^0x[a-fA-F0-9]{40}$",
+																	"description": "Token address for rewards",
+																	"example": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+																},
+																"amount": {
+																	"type": "string",
+																	"description": "Amount of the rewards",
+																	"example": "386651387601193218"
+																},
+																"startTimestamp": {
+																	"type": "number",
+																	"description": "Start timestamp of rewards",
+																	"example": 1723075200
+																},
+																"duration": {
+																	"type": "number",
+																	"description": "Duration of the rewards",
+																	"example": 2419200
+																},
+																"createdAtBlock": {
+																	"type": "number",
+																	"description": "Block number at creation",
+																	"example": 20495824
+																},
+																"createdAt": {
+																	"type": "string",
+																	"description": "Creation timestamp",
+																	"example": "2024-08-10T04:28:47.000Z"
+																}
+															},
+															"required": [
+																"id",
+																"submissionNonce",
+																"rewardsSubmissionHash",
+																"avsAddress",
+																"strategyAddress",
+																"multiplier",
+																"token",
+																"amount",
+																"startTimestamp",
+																"duration",
+																"createdAtBlock",
+																"createdAt"
+															]
+														},
+														"description": "List of rewards submissions associated with AVS"
+													},
+													"operators": {
+														"type": "array",
+														"items": {
+															"type": "object",
+															"properties": {
+																"avsAddress": {
+																	"type": "string",
+																	"pattern": "^0x[a-fA-F0-9]{40}$",
+																	"description": "AVS address associated with operator",
+																	"example": "0x870679e138bcdf293b7ff14dd44b70fc97e12fc0"
+																},
+																"operatorAddress": {
+																	"type": "string",
+																	"pattern": "^0x[a-fA-F0-9]{40}$",
+																	"description": "Operator contract address",
+																	"example": "0x4cd2086e1d708e65db5d4f5712a9ca46ed4bbd0a"
+																},
+																"isActive": {
+																	"type": "boolean",
+																	"description": "Operator active status",
+																	"example": true
+																},
+																"restakedStrategies": {
+																	"type": "array",
+																	"items": {
+																		"type": "string",
+																		"pattern": "^0x[a-fA-F0-9]{40}$"
+																	},
+																	"description": "List of strategies restaked by the operator",
+																	"example": [
+																		"0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0",
+																		"0x93c4b944d05dfe6df7645a86cd2206016c51564d"
+																	]
+																},
+																"createdAtBlock": {
+																	"type": "number",
+																	"description": "Creation block number for operator",
+																	"example": 19614553
+																},
+																"updatedAtBlock": {
+																	"type": "number",
+																	"description": "Last update block number for operator",
+																	"example": 19614553
+																},
+																"createdAt": {
+																	"type": "string",
+																	"description": "Creation timestamp for operator",
+																	"example": "2024-04-09T00:35:35.000Z"
+																},
+																"updatedAt": {
+																	"type": "string",
+																	"description": "Last update timestamp for operator",
+																	"example": "2024-04-09T00:35:35.000Z"
+																},
+																"operator": {
+																	"type": "object",
+																	"properties": {
+																		"address": {
+																			"type": "string",
+																			"pattern": "^0x[a-fA-F0-9]{40}$",
+																			"description": "Operator address",
+																			"example": "0x4cd2086e1d708e65db5d4f5712a9ca46ed4bbd0a"
+																		},
+																		"metadataUrl": {
+																			"type": "string",
+																			"description": "URL for operator metadata",
+																			"example": "https://raw.githubusercontent.com/github-infstones/eigenlayer/main/metadata.json"
+																		},
+																		"metadataName": {
+																			"type": "string",
+																			"description": "Name of the operator",
+																			"example": "InfStones"
+																		},
+																		"metadataDescription": {
+																			"type": "string",
+																			"nullable": true,
+																			"description": "Description of the operator",
+																			"example": "InfStones is committed to supporting a wide range of AVSes and reward delegators through our Giveaway! Learn more: https://infstones.com/"
+																		},
+																		"metadataDiscord": {
+																			"type": "string",
+																			"nullable": true,
+																			"description": "Discord link",
+																			"example": ""
+																		},
+																		"metadataLogo": {
+																			"type": "string",
+																			"nullable": true,
+																			"description": "Logo URL",
+																			"example": "https://raw.githubusercontent.com/github-infstones/eigenlayer/main/logo_white.png"
+																		},
+																		"metadataTelegram": {
+																			"type": "string",
+																			"nullable": true,
+																			"description": "Telegram link",
+																			"example": ""
+																		},
+																		"metadataWebsite": {
+																			"type": "string",
+																			"nullable": true,
+																			"description": "Website URL",
+																			"example": "https://infstones.com"
+																		},
+																		"metadataX": {
+																			"type": "string",
+																			"nullable": true,
+																			"description": "Twitter link",
+																			"example": "https://twitter.com/InfStones"
+																		},
+																		"isMetadataSynced": {
+																			"type": "boolean",
+																			"description": "Indicates if metadata is synced",
+																			"example": true
+																		},
+																		"totalStakers": {
+																			"type": "number",
+																			"description": "Total number of stakers for the operator",
+																			"example": 22375
+																		},
+																		"totalAvs": {
+																			"type": "number",
+																			"description": "Total AVSes operated",
+																			"example": 17
+																		},
+																		"apy": {
+																			"type": "string",
+																			"description": "Current APY for the operator",
+																			"example": "1.1796"
+																		},
+																		"tvlEth": {
+																			"type": "string",
+																			"description": "Total TVL in ETH",
+																			"example": "38817.22857187"
+																		},
+																		"sharesHash": {
+																			"type": "string",
+																			"description": "Shares hash for the operator",
+																			"example": "0c67d2a677454013c442732ee3bcf07b"
+																		},
+																		"createdAtBlock": {
+																			"type": "number",
+																			"description": "Creation block number",
+																			"example": 19613775
+																		},
+																		"updatedAtBlock": {
+																			"type": "number",
+																			"description": "Last update block number",
+																			"example": 19613775
+																		},
+																		"createdAt": {
+																			"type": "string",
+																			"description": "Creation timestamp",
+																			"example": "2024-04-08T21:58:35.000Z"
+																		},
+																		"updatedAt": {
+																			"type": "string",
+																			"description": "Last update timestamp",
+																			"example": "2024-04-08T21:58:35.000Z"
+																		},
+																		"shares": {
+																			"type": "array",
+																			"items": {
+																				"type": "object",
+																				"properties": {
+																					"operatorAddress": {
+																						"type": "string",
+																						"pattern": "^0x[a-fA-F0-9]{40}$",
+																						"description": "Operator address",
+																						"example": "0x4cd2086e1d708e65db5d4f5712a9ca46ed4bbd0a"
+																					},
+																					"strategyAddress": {
+																						"type": "string",
+																						"pattern": "^0x[a-fA-F0-9]{40}$",
+																						"description": "Strategy address",
+																						"example": "0x73a18a6304d05b495ecb161dbf1ab496461bbf2e"
+																					},
+																					"shares": {
+																						"type": "string",
+																						"description": "Shares amount",
+																						"example": "1769899853080271886659"
+																					}
+																				},
+																				"required": ["operatorAddress", "strategyAddress", "shares"]
+																			},
+																			"description": "Shares held by the operator in various strategies"
+																		}
+																	},
+																	"required": [
+																		"address",
+																		"metadataUrl",
+																		"metadataName",
+																		"metadataDescription",
+																		"metadataDiscord",
+																		"metadataLogo",
+																		"metadataTelegram",
+																		"metadataWebsite",
+																		"metadataX",
+																		"isMetadataSynced",
+																		"totalStakers",
+																		"totalAvs",
+																		"apy",
+																		"tvlEth",
+																		"sharesHash",
+																		"createdAtBlock",
+																		"updatedAtBlock",
+																		"createdAt",
+																		"updatedAt",
+																		"shares"
+																	]
+																}
+															},
+															"required": [
+																"avsAddress",
+																"operatorAddress",
+																"isActive",
+																"restakedStrategies",
+																"createdAtBlock",
+																"updatedAtBlock",
+																"createdAt",
+																"updatedAt",
+																"operator"
+															]
+														},
+														"description": "List of operators associated with the AVS registration"
 													}
 												},
-												"required": ["avsAddress", "isActive"]
+												"required": [
+													"avsAddress",
+													"isActive",
+													"metadataName",
+													"metadataDescription",
+													"metadataDiscord",
+													"metadataLogo",
+													"metadataTelegram",
+													"metadataWebsite",
+													"metadataX",
+													"metadataUrl",
+													"restakeableStrategies",
+													"totalStakers",
+													"totalOperators",
+													"tvlEth",
+													"createdAtBlock",
+													"updatedAtBlock",
+													"createdAt",
+													"updatedAt",
+													"address",
+													"rewardsSubmissions",
+													"operators"
+												]
 											},
-											"description": "Operator AVS registrations and their participation status",
-											"example": [
-												{
-													"avsAddress": "0x870679e138bcdf293b7ff14dd44b70fc97e12fc0",
-													"isActive": true
-												},
-												{
-													"avsAddress": "0xe8e59c6c8b56f2c178f63bcfc4ce5e5e2359c8fc",
-													"isActive": false
-												}
-											]
+											"description": "Detailed AVS registrations information for the operator"
 										},
 										"tvl": {
 											"type": "object",
