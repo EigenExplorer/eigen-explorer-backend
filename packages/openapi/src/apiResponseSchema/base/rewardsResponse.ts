@@ -7,7 +7,10 @@ export const RewardsSchema = z.object({
 				.string()
 				.describe('The contract address of the restaking strategy')
 				.openapi({ example: '0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0' }),
-			apy: z.number().describe('The APY of the restaking strategy').openapi({ example: 0.1 })
+			apy: z
+				.number()
+				.describe('The latest APY recorded for the restaking strategy')
+				.openapi({ example: 0.1 })
 		})
 	),
 	aggregateApy: z

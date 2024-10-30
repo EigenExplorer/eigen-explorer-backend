@@ -3777,7 +3777,7 @@
 															},
 															"apy": {
 																"type": "number",
-																"description": "The APY of the restaking strategy",
+																"description": "The latest APY recorded for the restaking strategy",
 																"example": 0.1
 															}
 														},
@@ -5403,7 +5403,7 @@
 													},
 													"isActive": {
 														"type": "boolean",
-														"description": "Status of the AVS registration",
+														"description": "True indicates operator is an active participant while False indicates it used to be one but not anymore",
 														"example": false
 													},
 													"metadataName": {
@@ -5578,28 +5578,28 @@
 													},
 													"createdAtBlock": {
 														"type": "number",
-														"description": "Creation block number",
+														"description": "The block number at which the AVS was created",
 														"example": 19592323
 													},
 													"updatedAtBlock": {
 														"type": "number",
-														"description": "Last update block number",
+														"description": "The block number at which the AVS was last updated",
 														"example": 19592323
 													},
 													"createdAt": {
 														"type": "string",
-														"description": "Creation timestamp",
+														"description": "The time stamp at which the AVS was created",
 														"example": "2024-04-05T21:49:59.000Z"
 													},
 													"updatedAt": {
 														"type": "string",
-														"description": "Last update timestamp",
+														"description": "The time stamp at which the AVS was last updated",
 														"example": "2024-04-05T21:49:59.000Z"
 													},
 													"address": {
 														"type": "string",
 														"pattern": "^0x[a-fA-F0-9]{40}$",
-														"description": "AVS operator address",
+														"description": "AVS service manager contract address",
 														"example": "0x870679e138bcdf293b7ff14dd44b70fc97e12fc0"
 													},
 													"rewardsSubmissions": {
@@ -5609,17 +5609,17 @@
 															"properties": {
 																"id": {
 																	"type": "number",
-																	"description": "Unique ID of the rewards submission",
+																	"description": "Id for the rewards submission",
 																	"example": 1
 																},
 																"submissionNonce": {
 																	"type": "number",
-																	"description": "Nonce of the rewards submission",
+																	"description": "The nonce of the rewards submission",
 																	"example": 0
 																},
 																"rewardsSubmissionHash": {
 																	"type": "string",
-																	"description": "Hash of the rewards submission",
+																	"description": "The hash of the rewards submission",
 																	"example": "0x2bc2f7cef0974f7064dbdae054f9a0e5ea1c2293d180a749c70100506382d85"
 																},
 																"avsAddress": {
@@ -5636,38 +5636,38 @@
 																},
 																"multiplier": {
 																	"type": "string",
-																	"description": "Multiplier for the rewards",
+																	"description": "The multiplier associated with this strategy",
 																	"example": "1000000000000000000"
 																},
 																"token": {
 																	"type": "string",
 																	"pattern": "^0x[a-fA-F0-9]{40}$",
-																	"description": "Token address for rewards",
+																	"description": "The contract address of the token used for rewards distribution",
 																	"example": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
 																},
 																"amount": {
 																	"type": "string",
-																	"description": "Amount of the rewards",
+																	"description": "The amount of rewards allocated to this strategy from the total rewards",
 																	"example": "300000000000000000"
 																},
 																"startTimestamp": {
 																	"type": "number",
-																	"description": "Start timestamp of rewards",
+																	"description": "The timestamp marking the start of this rewards distribution period",
 																	"example": 1720000000
 																},
 																"duration": {
 																	"type": "number",
-																	"description": "Duration of the rewards",
+																	"description": "The duration (in seconds) over which the rewards are distributed",
 																	"example": 2500000
 																},
 																"createdAtBlock": {
 																	"type": "number",
-																	"description": "Block number at creation",
+																	"description": "The block number at which the reward submission was recorded",
 																	"example": 20495824
 																},
 																"createdAt": {
 																	"type": "string",
-																	"description": "Creation timestamp",
+																	"description": "The timestamp at which the reward submission was recorded",
 																	"example": "2024-08-10T04:28:47.000Z"
 																}
 															},
@@ -5696,18 +5696,18 @@
 																"avsAddress": {
 																	"type": "string",
 																	"pattern": "^0x[a-fA-F0-9]{40}$",
-																	"description": "AVS address associated with operator",
+																	"description": "AVS service manager contract address",
 																	"example": "0x870679e138bcdf293b7ff14dd44b70fc97e12fc0"
 																},
 																"operatorAddress": {
 																	"type": "string",
 																	"pattern": "^0x[a-fA-F0-9]{40}$",
-																	"description": "Operator contract address",
+																	"description": "The contract address of the AVS operator",
 																	"example": "0x4cd2086e1d708e65db5d4f5712a9ca46ed4bbd0a"
 																},
 																"isActive": {
 																	"type": "boolean",
-																	"description": "Operator active status",
+																	"description": "True indicates operator is an active participant while False indicates it used to be one but not anymore",
 																	"example": true
 																},
 																"restakedStrategies": {
@@ -5724,22 +5724,22 @@
 																},
 																"createdAtBlock": {
 																	"type": "number",
-																	"description": "Creation block number for operator",
+																	"description": "The block number at which the AVS Operator was registered",
 																	"example": 19614553
 																},
 																"updatedAtBlock": {
 																	"type": "number",
-																	"description": "Last update block number for operator",
+																	"description": "The block number at which the AVS Operator registration was last updated",
 																	"example": 19614553
 																},
 																"createdAt": {
 																	"type": "string",
-																	"description": "Creation timestamp for operator",
+																	"description": "The time stamp at which the AVS Operator was registered",
 																	"example": "2024-04-09T00:35:35.000Z"
 																},
 																"updatedAt": {
 																	"type": "string",
-																	"description": "Last update timestamp for operator",
+																	"description": "The time stamp at which the AVS Operator registration was last updated",
 																	"example": "2024-04-09T00:35:35.000Z"
 																},
 																"operator": {
@@ -5748,7 +5748,7 @@
 																		"address": {
 																			"type": "string",
 																			"pattern": "^0x[a-fA-F0-9]{40}$",
-																			"description": "Operator address",
+																			"description": "The contract address of the AVS operator",
 																			"example": "0x09e6eb09213bdd3698bd8afb43ec3cb0ecff683a"
 																		},
 																		"metadataUrl": {
@@ -5758,7 +5758,7 @@
 																		},
 																		"metadataName": {
 																			"type": "string",
-																			"description": "Name of the operator",
+																			"description": "The name of the AVS operator",
 																			"example": "Example AVS Operator"
 																		},
 																		"metadataDescription": {
@@ -5770,7 +5770,7 @@
 																		"metadataDiscord": {
 																			"type": "string",
 																			"nullable": true,
-																			"description": "Discord link",
+																			"description": "The URL of the AVS operator's Discord server",
 																			"example": "https://discord.com/invite/example"
 																		},
 																		"metadataLogo": {
@@ -5782,19 +5782,19 @@
 																		"metadataTelegram": {
 																			"type": "string",
 																			"nullable": true,
-																			"description": "Telegram link",
+																			"description": "The URL of the AVS operator's Telegram channel",
 																			"example": "https://t.me/example"
 																		},
 																		"metadataWebsite": {
 																			"type": "string",
 																			"nullable": true,
-																			"description": "Website URL",
+																			"description": "The URL of the AVS operator's website",
 																			"example": "https://example.com"
 																		},
 																		"metadataX": {
 																			"type": "string",
 																			"nullable": true,
-																			"description": "Twitter link",
+																			"description": "The URL of the AVS operator's X",
 																			"example": "https://twitter.com/example"
 																		},
 																		"isMetadataSynced": {
@@ -5804,17 +5804,17 @@
 																		},
 																		"totalStakers": {
 																			"type": "number",
-																			"description": "Total number of stakers for the operator",
+																			"description": "The total number of stakers who have delegated to this AVS operator",
 																			"example": 20000
 																		},
 																		"totalAvs": {
 																			"type": "number",
-																			"description": "Total AVSes operated",
+																			"description": "The total number of AVS opted by the AVS operator",
 																			"example": 10
 																		},
 																		"apy": {
 																			"type": "string",
-																			"description": "Current APY for the operator",
+																			"description": "The latest APY recorded for the operator",
 																			"example": "1.0"
 																		},
 																		"tvlEth": {
@@ -5829,22 +5829,22 @@
 																		},
 																		"createdAtBlock": {
 																			"type": "number",
-																			"description": "Creation block number",
+																			"description": "The block number at which the AVS Operator was registered",
 																			"example": 19613775
 																		},
 																		"updatedAtBlock": {
 																			"type": "number",
-																			"description": "Last update block number",
+																			"description": "The block number at which the AVS Operator registration was last updated",
 																			"example": 19613775
 																		},
 																		"createdAt": {
 																			"type": "string",
-																			"description": "Creation timestamp",
+																			"description": "The time stamp at which the AVS Operator was registered",
 																			"example": "2024-04-08T21:58:35.000Z"
 																		},
 																		"updatedAt": {
 																			"type": "string",
-																			"description": "Last update timestamp",
+																			"description": "The time stamp at which the AVS Operator registration was last updated",
 																			"example": "2024-04-08T21:58:35.000Z"
 																		},
 																		"shares": {
@@ -5855,24 +5855,24 @@
 																					"operatorAddress": {
 																						"type": "string",
 																						"pattern": "^0x[a-fA-F0-9]{40}$",
-																						"description": "Operator address",
+																						"description": "The contract address of the AVS operator",
 																						"example": "0x4cd2086e1d708e65db5d4f5712a9ca46ed4bbd0a"
 																					},
 																					"strategyAddress": {
 																						"type": "string",
 																						"pattern": "^0x[a-fA-F0-9]{40}$",
-																						"description": "Strategy address",
+																						"description": "The contract address of the restaking strategy",
 																						"example": "0x73a18a6304d05b495ecb161dbf1ab496461bbf2e"
 																					},
 																					"shares": {
 																						"type": "string",
-																						"description": "Shares amount",
+																						"description": "The amount of shares held in the strategy",
 																						"example": "1000000000000000000000"
 																					}
 																				},
 																				"required": ["operatorAddress", "strategyAddress", "shares"]
 																			},
-																			"description": "Shares held by the operator in various strategies"
+																			"description": "The strategy shares held in the AVS operator"
 																		}
 																	},
 																	"required": [
@@ -6030,7 +6030,7 @@
 															},
 															"apy": {
 																"type": "number",
-																"description": "APY of the AVS",
+																"description": "Latest APY recorded for the AVS",
 																"example": 0.15973119826488588
 															}
 														},
@@ -6069,7 +6069,7 @@
 												}
 											},
 											"required": ["avs", "strategies", "aggregateApy", "operatorEarningsEth"],
-											"description": "Rewards information for the operator"
+											"description": "The rewards information for the operator"
 										}
 									},
 									"required": [
