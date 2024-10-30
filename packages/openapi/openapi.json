@@ -4498,6 +4498,177 @@
 				}
 			}
 		},
+		"/avs/{address}/rewards": {
+			"get": {
+				"operationId": "getAvsRewards",
+				"summary": "Retrieve all rewards for a given AVS address",
+				"description": "Returns a list of all rewards for a given AVS address.",
+				"tags": ["AVS"],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "address",
+						"description": "AVS service manager contract address",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "AVS service manager contract address",
+							"example": "0x870679e138bcdf293b7ff14dd44b70fc97e12fc0"
+						},
+						"required": true
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The rewards found for the AVS.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"address": {
+											"type": "string",
+											"pattern": "^0x[a-fA-F0-9]{40}$",
+											"description": "AVS service manager contract address",
+											"example": "0x870679e138bcdf293b7ff14dd44b70fc97e12fc0"
+										},
+										"submissions": {
+											"type": "array",
+											"items": {
+												"type": "object",
+												"properties": {
+													"rewardsSubmissionHash": {
+														"type": "string",
+														"description": "The hash of the rewards submission",
+														"example": "0x141e6ea51d92c9ceaefbd5d1ac1b5f1c2ee06555ef20e224ff23ec3448edb7dd"
+													},
+													"startTimestamp": {
+														"type": "number",
+														"description": "The timestamp marking the start of this rewards distribution period",
+														"example": 1723075200
+													},
+													"duration": {
+														"type": "number",
+														"description": "The duration (in seconds) over which the rewards are distributed",
+														"example": 2419200
+													},
+													"totalAmount": {
+														"type": "string",
+														"description": "The total amount of rewards allocated in this submission",
+														"example": "5000000000000000000"
+													},
+													"tokenAddress": {
+														"type": "string",
+														"pattern": "^0x[a-fA-F0-9]{40}$",
+														"description": "The contract address of the token used for rewards distribution",
+														"example": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+													},
+													"strategies": {
+														"type": "array",
+														"items": {
+															"type": "object",
+															"properties": {
+																"strategyAddress": {
+																	"type": "string",
+																	"pattern": "^0x[a-fA-F0-9]{40}$",
+																	"description": "The address of the restaking strategy",
+																	"example": "0xacb55c530acdb2849e6d4f36992cd8c9d50ed8f7"
+																},
+																"multiplier": {
+																	"type": "string",
+																	"description": "The multiplier associated with this strategy",
+																	"example": "1000000000000000000"
+																},
+																"amount": {
+																	"type": "string",
+																	"description": "The amount of rewards allocated to this strategy from the total rewards in this submissionn",
+																	"example": "5000000000000000000"
+																}
+															},
+															"required": ["strategyAddress", "multiplier", "amount"]
+														},
+														"description": "List of strategies involved in the rewards submission"
+													}
+												},
+												"required": [
+													"rewardsSubmissionHash",
+													"startTimestamp",
+													"duration",
+													"totalAmount",
+													"tokenAddress",
+													"strategies"
+												]
+											},
+											"description": "The list of of individual rewards submissions associated with the AVS"
+										},
+										"totalRewards": {
+											"type": "string",
+											"description": "The aggregate amount of rewards distributed across all submissions",
+											"example": "19972996158601646000"
+										},
+										"totalSubmissions": {
+											"type": "number",
+											"description": "The total count of rewards submissions associated with the AVS",
+											"example": 4
+										},
+										"rewardTokens": {
+											"type": "array",
+											"items": {
+												"type": "string",
+												"pattern": "^0x[a-fA-F0-9]{40}$"
+											},
+											"description": "The list of token addresses used for reward distribution",
+											"example": ["0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"]
+										},
+										"rewardStrategies": {
+											"type": "array",
+											"items": {
+												"type": "string",
+												"pattern": "^0x[a-fA-F0-9]{40}$"
+											},
+											"description": "The list of strategy addresses for which rewards are distributed",
+											"example": [
+												"0xacb55c530acdb2849e6d4f36992cd8c9d50ed8f7",
+												"0x13760f50a9d7377e4f20cb8cf9e4c26586c658ff"
+											]
+										}
+									},
+									"required": [
+										"address",
+										"submissions",
+										"totalRewards",
+										"totalSubmissions",
+										"rewardTokens",
+										"rewardStrategies"
+									]
+								}
+							}
+						}
+					},
+					"400": {
+						"$ref": "#/components/responses/400"
+					},
+					"401": {
+						"$ref": "#/components/responses/401"
+					},
+					"403": {
+						"$ref": "#/components/responses/403"
+					},
+					"404": {
+						"$ref": "#/components/responses/404"
+					},
+					"422": {
+						"$ref": "#/components/responses/422"
+					},
+					"429": {
+						"$ref": "#/components/responses/429"
+					},
+					"500": {
+						"$ref": "#/components/responses/500"
+					}
+				}
+			}
+		},
 		"/operators": {
 			"get": {
 				"operationId": "getAllOperators",
@@ -5344,6 +5515,94 @@
 										"shares",
 										"avsRegistrations"
 									]
+								}
+							}
+						}
+					},
+					"400": {
+						"$ref": "#/components/responses/400"
+					},
+					"401": {
+						"$ref": "#/components/responses/401"
+					},
+					"403": {
+						"$ref": "#/components/responses/403"
+					},
+					"404": {
+						"$ref": "#/components/responses/404"
+					},
+					"422": {
+						"$ref": "#/components/responses/422"
+					},
+					"429": {
+						"$ref": "#/components/responses/429"
+					},
+					"500": {
+						"$ref": "#/components/responses/500"
+					}
+				}
+			}
+		},
+		"/operators/{address}/rewards": {
+			"get": {
+				"operationId": "getOperatorRewards",
+				"summary": "Retrieve rewards info for an operator",
+				"description": "Returns a list of strategies that the Operator is rewarded for, and the tokens they are rewarded in.",
+				"tags": ["Operators"],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "address",
+						"description": "The address of the operator",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "The address of the operator",
+							"example": "0x00107cfdeaddc0a3160ed2f6fedd627f313e7b1a"
+						},
+						"required": true
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The reward strategies and tokens found for the Operator.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"address": {
+											"type": "string",
+											"pattern": "^0x[a-fA-F0-9]{40}$",
+											"description": "The contract address of the AVS operator",
+											"example": "0xdbed88d83176316fc46797b43adee927dc2ff2f5"
+										},
+										"rewardTokens": {
+											"type": "array",
+											"items": {
+												"type": "string",
+												"pattern": "^0x[a-fA-F0-9]{40}$"
+											},
+											"description": "List of tokens in which the operator receives rewards",
+											"example": [
+												"0xba50933c268f567bdc86e1ac131be072c6b0b71a",
+												"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+											]
+										},
+										"rewardStrategies": {
+											"type": "array",
+											"items": {
+												"type": "string",
+												"pattern": "^0x[a-fA-F0-9]{40}$"
+											},
+											"description": "List of strategies for which the operator receives rewards",
+											"example": [
+												"0x0fe4f44bee93503346a3ac9ee5a26b130a5796d6",
+												"0x13760f50a9d7377e4f20cb8cf9e4c26586c658ff"
+											]
+										}
+									},
+									"required": ["address", "rewardTokens", "rewardStrategies"]
 								}
 							}
 						}

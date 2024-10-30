@@ -5,7 +5,7 @@ import { ZodOpenApiOperationObject } from 'zod-openapi'
 import { WithTvlQuerySchema } from '../../../../api/src/schema/zod/schemas/withTvlQuery'
 import { WithCuratedMetadata } from '../../../../api/src/schema/zod/schemas/withCuratedMetadataQuery'
 import { WithRewardsQuerySchema } from '../../../../api/src/schema/zod/schemas/withRewardsQuery'
-import { AvsWithRewardsSchema } from '../../apiResponseSchema/avs/avsRewardsResponse'
+import { AvsWithRewardsSchema } from '../../apiResponseSchema/avs/avsWithRewardsResponse'
 
 const CombinedQuerySchema = z
 	.object({})
