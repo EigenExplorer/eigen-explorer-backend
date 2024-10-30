@@ -1855,11 +1855,11 @@
 					{
 						"in": "path",
 						"name": "address",
-						"description": "The address of the strategy",
+						"description": "The contract address of the restaking strategy",
 						"schema": {
 							"type": "string",
 							"pattern": "^0x[a-fA-F0-9]{40}$",
-							"description": "The address of the strategy",
+							"description": "The contract address of the restaking strategy",
 							"example": "0x54945180dB7943c0ed0FEE7EdaB2Bd24620256bc"
 						},
 						"required": true
@@ -3772,12 +3772,12 @@
 														"properties": {
 															"strategyAddress": {
 																"type": "string",
-																"description": "The address of the strategy",
+																"description": "The contract address of the restaking strategy",
 																"example": "0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0"
 															},
 															"apy": {
 																"type": "number",
-																"description": "The APY of the strategy",
+																"description": "The APY of the restaking strategy",
 																"example": 0.00016956497239057833
 															}
 														},
@@ -6013,6 +6013,63 @@
 													"cbETH": 2000000
 												}
 											}
+										},
+										"rewards": {
+											"type": "object",
+											"properties": {
+												"avs": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"avsAddress": {
+																"type": "string",
+																"pattern": "^0x[a-fA-F0-9]{40}$",
+																"description": "AVS service manager contract address",
+																"example": "0x870679e138bcdf293b7ff14dd44b70fc97e12fc0"
+															},
+															"apy": {
+																"type": "number",
+																"description": "APY of the AVS",
+																"example": 0.15973119826488588
+															}
+														},
+														"required": ["avsAddress", "apy"]
+													}
+												},
+												"strategies": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"strategyAddress": {
+																"type": "string",
+																"pattern": "^0x[a-fA-F0-9]{40}$",
+																"description": "The contract address of the restaking strategy",
+																"example": "0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0"
+															},
+															"apy": {
+																"type": "number",
+																"description": "APY of the restaking strategy",
+																"example": 0.00016956497239057833
+															}
+														},
+														"required": ["strategyAddress", "apy"]
+													}
+												},
+												"aggregateApy": {
+													"type": "number",
+													"description": "The aggregate APY across all strategies",
+													"example": 1.060577413975275
+												},
+												"operatorEarningsEth": {
+													"type": "string",
+													"description": "Total earnings for the operator in ETH",
+													"example": "2462802843029299341.7"
+												}
+											},
+											"required": ["avs", "strategies", "aggregateApy", "operatorEarningsEth"],
+											"description": "Rewards information for the operator"
 										}
 									},
 									"required": [
@@ -6032,7 +6089,8 @@
 										"createdAt",
 										"updatedAt",
 										"shares",
-										"avsRegistrations"
+										"avsRegistrations",
+										"rewards"
 									]
 								}
 							}
@@ -8087,7 +8145,7 @@
 												"properties": {
 													"strategyAddress": {
 														"type": "string",
-														"description": "The address of the strategy",
+														"description": "The contract address of the restaking strategy",
 														"example": "0x0fe4f44bee93503346a3ac9ee5a26b130a5796d6"
 													},
 													"tokens": {
@@ -8095,7 +8153,7 @@
 														"items": {
 															"type": "string"
 														},
-														"description": "Array of token addresses associated with the strategy",
+														"description": "List of reward token addresses associated with the strategy",
 														"example": [
 															"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
 															"0xba50933c268f567bdc86e1ac131be072c6b0b71a"

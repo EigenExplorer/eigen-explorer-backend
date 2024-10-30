@@ -184,8 +184,41 @@ export const DetailedAvsRegistrationSchema = AvsRegistrationSchema.merge(AvsMeta
 		.describe('List of operators associated with the AVS registration')
 })
 
+export const RewardsSchema = z.object({
+	avs: z.array(
+		z.object({
+			avsAddress: EthereumAddressSchema.describe('AVS service manager contract address').openapi({
+				example: '0x870679e138bcdf293b7ff14dd44b70fc97e12fc0'
+			}),
+			apy: z.number().describe('APY of the AVS').openapi({ example: 0.15973119826488588 })
+		})
+	),
+	strategies: z.array(
+		z.object({
+			strategyAddress: EthereumAddressSchema.describe(
+				'The contract address of the restaking strategy'
+			).openapi({
+				example: '0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0'
+			}),
+			apy: z
+				.number()
+				.describe('APY of the restaking strategy')
+				.openapi({ example: 0.00016956497239057833 })
+		})
+	),
+	aggregateApy: z
+		.number()
+		.describe('The aggregate APY across all strategies')
+		.openapi({ example: 1.060577413975275 }),
+	operatorEarningsEth: z
+		.string()
+		.describe('Total earnings for the operator in ETH')
+		.openapi({ example: '2462802843029299341.7' })
+})
+
 export const OperatorWithRewardsResponseSchema = OperatorResponseSchema.extend({
 	avsRegistrations: z
 		.array(DetailedAvsRegistrationSchema)
-		.describe('Detailed AVS registrations information for the operator')
+		.describe('Detailed AVS registrations information for the operator'),
+	rewards: RewardsSchema.describe('Rewards information for the operator')
 })

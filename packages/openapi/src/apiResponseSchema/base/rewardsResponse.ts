@@ -5,11 +5,11 @@ export const RewardsSchema = z.object({
 		z.object({
 			strategyAddress: z
 				.string()
-				.describe('The address of the strategy')
+				.describe('The contract address of the restaking strategy')
 				.openapi({ example: '0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0' }),
 			apy: z
 				.number()
-				.describe('The APY of the strategy')
+				.describe('The APY of the restaking strategy')
 				.openapi({ example: 0.00016956497239057833 })
 		})
 	),
