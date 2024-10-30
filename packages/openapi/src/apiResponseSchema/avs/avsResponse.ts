@@ -24,7 +24,7 @@ export const AvsSchema = z.object({
 		.number()
 		.describe('The total number of operators operating the AVS')
 		.openapi({ example: 10 }),
-	apy: z.string().describe('The latest APY recorded for the AVS').openapi({ example: '1.302' }),
+	apy: z.string().describe('The latest APY recorded for the AVS').openapi({ example: '1.0' }),
 	createdAtBlock: z
 		.string()
 		.describe('The block number at which the AVS was created')
@@ -53,12 +53,12 @@ export const AvsSchema = z.object({
 				avsAddress: '0x2344c0fe02ccd2b32155ca0ffcb1978a6d96a552',
 				metadataName: 'Example AVS',
 				metadataDescription: 'This is an example AVS',
-				metadataDiscord: 'https://discord.com/invite/abcdefghij',
+				metadataDiscord: 'https://discord.com/invite/example',
 				metadataLogo: "The URL of the AVS's logo",
 				metadataTelegram: "The URL of the AVS's Telegram channel",
-				metadataWebsite: 'https://acme.com',
-				metadataX: 'https://twitter.com/acme',
-				metadataGithub: 'https://github.com/acme',
+				metadataWebsite: 'https://example.com',
+				metadataX: 'https://twitter.com/example',
+				metadataGithub: 'https://github.com/example',
 				metadataTokenAddress: '0x2344c0fe02ccd2b32155ca0ffcb1978a6d96a552',
 				tags: ['Example tag 1', 'Example tag 2'],
 				isVisible: true,
@@ -72,11 +72,11 @@ export const AvsSchema = z.object({
 			example: [
 				{
 					strategyAddress: '0x93c4b944d05dfe6df7645a86cd2206016c51564d',
-					shares: '135064894598947935263152'
+					shares: '1000000000000000000000'
 				},
 				{
 					strategyAddress: '0x54945180db7943c0ed0fee7edab2bd24620256bc',
-					shares: '9323641881708650182301'
+					shares: '1000000000000000000000'
 				}
 			]
 		}),

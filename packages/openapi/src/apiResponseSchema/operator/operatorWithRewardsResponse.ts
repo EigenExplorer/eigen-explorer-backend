@@ -20,7 +20,7 @@ export const AvsMetaDataFields = z.object({
 	metadataWebsite: AvsMetaDataSchema.shape.metadataWebsite,
 	metadataX: AvsMetaDataSchema.shape.metadataX,
 	metadataUrl: z.string().describe('URL for AVS metadata').openapi({
-		example: 'https://mainnet-ethereum-avs-metadata.s3.amazonaws.com/EigenDA.json'
+		example: 'https://example.json'
 	})
 })
 
@@ -41,16 +41,16 @@ export const RewardsSubmissionSchema = z.object({
 	multiplier: z
 		.string()
 		.describe('Multiplier for the rewards')
-		.openapi({ example: '1055446649335815388' }),
+		.openapi({ example: '1000000000000000000' }),
 	token: EthereumAddressSchema.describe('Token address for rewards').openapi({
 		example: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'
 	}),
-	amount: z.string().describe('Amount of the rewards').openapi({ example: '386651387601193218' }),
+	amount: z.string().describe('Amount of the rewards').openapi({ example: '300000000000000000' }),
 	startTimestamp: z
 		.number()
 		.describe('Start timestamp of rewards')
-		.openapi({ example: 1723075200 }),
-	duration: z.number().describe('Duration of the rewards').openapi({ example: 2419200 }),
+		.openapi({ example: 1720000000 }),
+	duration: z.number().describe('Duration of the rewards').openapi({ example: 2500000 }),
 	createdAtBlock: z.number().describe('Block number at creation').openapi({ example: 20495824 }),
 	createdAt: z.string().describe('Creation timestamp').openapi({
 		example: '2024-08-10T04:28:47.000Z'
@@ -59,31 +59,41 @@ export const RewardsSubmissionSchema = z.object({
 
 export const OperatorDetailsSchema = z.object({
 	address: EthereumAddressSchema.describe('Operator address').openapi({
-		example: '0x4cd2086e1d708e65db5d4f5712a9ca46ed4bbd0a'
+		example: '0x09e6eb09213bdd3698bd8afb43ec3cb0ecff683a'
 	}),
 	metadataUrl: z.string().describe('URL for operator metadata').openapi({
 		example: 'https://raw.githubusercontent.com/github-infstones/eigenlayer/main/metadata.json'
 	}),
-	metadataName: z.string().describe('Name of the operator').openapi({ example: 'InfStones' }),
+	metadataName: z
+		.string()
+		.describe('Name of the operator')
+		.openapi({ example: 'Example AVS Operator' }),
 	metadataDescription: z.string().nullable().describe('Description of the operator').openapi({
-		example:
-			'InfStones is committed to supporting a wide range of AVSes and reward delegators through our Giveaway! Learn more: https://infstones.com/'
+		example: 'This is an example AVS operator'
 	}),
-	metadataDiscord: z.string().nullable().describe('Discord link').openapi({ example: '' }),
+	metadataDiscord: z
+		.string()
+		.nullable()
+		.describe('Discord link')
+		.openapi({ example: 'https://discord.com/invite/example' }),
 	metadataLogo: z.string().nullable().describe('Logo URL').openapi({
-		example: 'https://raw.githubusercontent.com/github-infstones/eigenlayer/main/logo_white.png'
+		example: '<string>'
 	}),
-	metadataTelegram: z.string().nullable().describe('Telegram link').openapi({ example: '' }),
+	metadataTelegram: z
+		.string()
+		.nullable()
+		.describe('Telegram link')
+		.openapi({ example: 'https://t.me/example' }),
 	metadataWebsite: z
 		.string()
 		.nullable()
 		.describe('Website URL')
-		.openapi({ example: 'https://infstones.com' }),
+		.openapi({ example: 'https://example.com' }),
 	metadataX: z
 		.string()
 		.nullable()
 		.describe('Twitter link')
-		.openapi({ example: 'https://twitter.com/InfStones' }),
+		.openapi({ example: 'https://twitter.com/example' }),
 	isMetadataSynced: z
 		.boolean()
 		.describe('Indicates if metadata is synced')
@@ -91,10 +101,10 @@ export const OperatorDetailsSchema = z.object({
 	totalStakers: z
 		.number()
 		.describe('Total number of stakers for the operator')
-		.openapi({ example: 22375 }),
-	totalAvs: z.number().describe('Total AVSes operated').openapi({ example: 17 }),
-	apy: z.string().describe('Current APY for the operator').openapi({ example: '1.1796' }),
-	tvlEth: z.string().describe('Total TVL in ETH').openapi({ example: '38817.22857187' }),
+		.openapi({ example: 20000 }),
+	totalAvs: z.number().describe('Total AVSes operated').openapi({ example: 10 }),
+	apy: z.string().describe('Current APY for the operator').openapi({ example: '1.0' }),
+	tvlEth: z.string().describe('Total TVL in ETH').openapi({ example: '30000' }),
 	sharesHash: z.string().describe('Shares hash for the operator').openapi({
 		example: '0c67d2a677454013c442732ee3bcf07b'
 	}),
@@ -115,7 +125,7 @@ export const OperatorDetailsSchema = z.object({
 				strategyAddress: EthereumAddressSchema.describe('Strategy address').openapi({
 					example: '0x73a18a6304d05b495ecb161dbf1ab496461bbf2e'
 				}),
-				shares: z.string().describe('Shares amount').openapi({ example: '1769899853080271886659' })
+				shares: z.string().describe('Shares amount').openapi({ example: '1000000000000000000000' })
 			})
 		)
 		.describe('Shares held by the operator in various strategies')
@@ -162,9 +172,9 @@ export const DetailedAvsRegistrationSchema = AvsRegistrationSchema.merge(AvsMeta
 	restakeableStrategies: z
 		.array(EthereumAddressSchema)
 		.describe('The list of restakeable strategies for AVS'),
-	totalStakers: z.number().describe('Total number of stakers').openapi({ example: 80426 }),
-	totalOperators: z.number().describe('Total number of operators').openapi({ example: 220 }),
-	tvlEth: z.string().describe('Total TVL in ETH').openapi({ example: '3562188.35141025' }),
+	totalStakers: z.number().describe('Total number of stakers').openapi({ example: 80000 }),
+	totalOperators: z.number().describe('Total number of operators').openapi({ example: 200 }),
+	tvlEth: z.string().describe('Total TVL in ETH').openapi({ example: '3000000' }),
 	createdAtBlock: z.number().describe('Creation block number').openapi({ example: 19592323 }),
 	updatedAtBlock: z.number().describe('Last update block number').openapi({ example: 19592323 }),
 	createdAt: z.string().describe('Creation timestamp').openapi({
@@ -200,20 +210,17 @@ export const RewardsSchema = z.object({
 			).openapi({
 				example: '0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0'
 			}),
-			apy: z
-				.number()
-				.describe('APY of the restaking strategy')
-				.openapi({ example: 0.00016956497239057833 })
+			apy: z.number().describe('APY of the restaking strategy').openapi({ example: 0.1 })
 		})
 	),
 	aggregateApy: z
 		.number()
 		.describe('The aggregate APY across all strategies')
-		.openapi({ example: 1.060577413975275 }),
+		.openapi({ example: 1.0 }),
 	operatorEarningsEth: z
 		.string()
 		.describe('Total earnings for the operator in ETH')
-		.openapi({ example: '2462802843029299341.7' })
+		.openapi({ example: '1000000000000000000' })
 })
 
 export const OperatorWithRewardsResponseSchema = OperatorResponseSchema.extend({

@@ -12,7 +12,7 @@ const StakerSharesSchema = z.object({
 	shares: z
 		.string()
 		.describe('The amount of shares held in the strategy')
-		.openapi({ example: '40888428658906049' })
+		.openapi({ example: '40000000000000000' })
 })
 
 export const AvsStakerSchema = z.object({

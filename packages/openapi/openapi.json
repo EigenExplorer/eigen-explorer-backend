@@ -2934,7 +2934,7 @@
 													"apy": {
 														"type": "string",
 														"description": "The latest APY recorded for the AVS",
-														"example": "1.302"
+														"example": "1.0"
 													},
 													"createdAtBlock": {
 														"type": "string",
@@ -3063,12 +3063,12 @@
 															"avsAddress": "0x2344c0fe02ccd2b32155ca0ffcb1978a6d96a552",
 															"metadataName": "Example AVS",
 															"metadataDescription": "This is an example AVS",
-															"metadataDiscord": "https://discord.com/invite/abcdefghij",
+															"metadataDiscord": "https://discord.com/invite/example",
 															"metadataLogo": "The URL of the AVS's logo",
 															"metadataTelegram": "The URL of the AVS's Telegram channel",
-															"metadataWebsite": "https://acme.com",
-															"metadataX": "https://twitter.com/acme",
-															"metadataGithub": "https://github.com/acme",
+															"metadataWebsite": "https://example.com",
+															"metadataX": "https://twitter.com/example",
+															"metadataGithub": "https://github.com/example",
 															"metadataTokenAddress": "0x2344c0fe02ccd2b32155ca0ffcb1978a6d96a552",
 															"tags": ["Example tag 1", "Example tag 2"],
 															"isVisible": true,
@@ -3098,11 +3098,11 @@
 														"example": [
 															{
 																"strategyAddress": "0x93c4b944d05dfe6df7645a86cd2206016c51564d",
-																"shares": "135064894598947935263152"
+																"shares": "1000000000000000000000"
 															},
 															{
 																"strategyAddress": "0x54945180db7943c0ed0fee7edab2bd24620256bc",
-																"shares": "9323641881708650182301"
+																"shares": "1000000000000000000000"
 															}
 														]
 													},
@@ -3516,7 +3516,7 @@
 										"apy": {
 											"type": "string",
 											"description": "The latest APY recorded for the AVS",
-											"example": "1.302"
+											"example": "1.0"
 										},
 										"createdAtBlock": {
 											"type": "string",
@@ -3645,12 +3645,12 @@
 												"avsAddress": "0x2344c0fe02ccd2b32155ca0ffcb1978a6d96a552",
 												"metadataName": "Example AVS",
 												"metadataDescription": "This is an example AVS",
-												"metadataDiscord": "https://discord.com/invite/abcdefghij",
+												"metadataDiscord": "https://discord.com/invite/example",
 												"metadataLogo": "The URL of the AVS's logo",
 												"metadataTelegram": "The URL of the AVS's Telegram channel",
-												"metadataWebsite": "https://acme.com",
-												"metadataX": "https://twitter.com/acme",
-												"metadataGithub": "https://github.com/acme",
+												"metadataWebsite": "https://example.com",
+												"metadataX": "https://twitter.com/example",
+												"metadataGithub": "https://github.com/example",
 												"metadataTokenAddress": "0x2344c0fe02ccd2b32155ca0ffcb1978a6d96a552",
 												"tags": ["Example tag 1", "Example tag 2"],
 												"isVisible": true,
@@ -3680,11 +3680,11 @@
 											"example": [
 												{
 													"strategyAddress": "0x93c4b944d05dfe6df7645a86cd2206016c51564d",
-													"shares": "135064894598947935263152"
+													"shares": "1000000000000000000000"
 												},
 												{
 													"strategyAddress": "0x54945180db7943c0ed0fee7edab2bd24620256bc",
-													"shares": "9323641881708650182301"
+													"shares": "1000000000000000000000"
 												}
 											]
 										},
@@ -3778,7 +3778,7 @@
 															"apy": {
 																"type": "number",
 																"description": "The APY of the restaking strategy",
-																"example": 0.00016956497239057833
+																"example": 0.1
 															}
 														},
 														"required": ["strategyAddress", "apy"]
@@ -3787,7 +3787,7 @@
 												"aggregateApy": {
 													"type": "number",
 													"description": "The aggregate APY across all strategies",
-													"example": 1.060577413975275
+													"example": 1
 												}
 											},
 											"required": ["strategies", "aggregateApy"],
@@ -3796,14 +3796,14 @@
 												"strategies": [
 													{
 														"strategyAddress": "0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0",
-														"apy": 0.00016956497239057833
+														"apy": 0.1
 													},
 													{
 														"strategyAddress": "0x93c4b944d05dfe6df7645a86cd2206016c51564d",
-														"apy": 0.001007600130048518
+														"apy": 0.1
 													}
 												],
-												"aggregateApy": 1.060577413975275
+												"aggregateApy": 1
 											}
 										}
 									},
@@ -3982,7 +3982,7 @@
 																"shares": {
 																	"type": "string",
 																	"description": "The amount of shares held in the strategy",
-																	"example": "40888428658906049"
+																	"example": "40000000000000000"
 																}
 															},
 															"required": ["stakerAddress", "strategyAddress", "shares"]
@@ -4545,12 +4545,12 @@
 													"startTimestamp": {
 														"type": "number",
 														"description": "The timestamp marking the start of this rewards distribution period",
-														"example": 1723075200
+														"example": 1720000000
 													},
 													"duration": {
 														"type": "number",
 														"description": "The duration (in seconds) over which the rewards are distributed",
-														"example": 2419200
+														"example": 2500000
 													},
 													"totalAmount": {
 														"type": "string",
@@ -4604,12 +4604,12 @@
 										"totalRewards": {
 											"type": "string",
 											"description": "The aggregate amount of rewards distributed across all submissions",
-											"example": "19972996158601646000"
+											"example": "1000000000000000000"
 										},
 										"totalSubmissions": {
 											"type": "number",
 											"description": "The total count of rewards submissions associated with the AVS",
-											"example": 4
+											"example": 10
 										},
 										"rewardTokens": {
 											"type": "array",
@@ -4842,7 +4842,7 @@
 													"apy": {
 														"type": "string",
 														"description": "The latest APY recorded for the operator",
-														"example": "1.39"
+														"example": "1.0"
 													},
 													"createdAtBlock": {
 														"type": "string",
@@ -5337,7 +5337,7 @@
 										"apy": {
 											"type": "string",
 											"description": "The latest APY recorded for the operator",
-											"example": "1.39"
+											"example": "1.0"
 										},
 										"createdAtBlock": {
 											"type": "string",
@@ -5454,7 +5454,7 @@
 													"metadataUrl": {
 														"type": "string",
 														"description": "URL for AVS metadata",
-														"example": "https://mainnet-ethereum-avs-metadata.s3.amazonaws.com/EigenDA.json"
+														"example": "https://example.json"
 													},
 													"curatedMetadata": {
 														"type": "object",
@@ -5564,17 +5564,17 @@
 													"totalStakers": {
 														"type": "number",
 														"description": "Total number of stakers",
-														"example": 80426
+														"example": 80000
 													},
 													"totalOperators": {
 														"type": "number",
 														"description": "Total number of operators",
-														"example": 220
+														"example": 200
 													},
 													"tvlEth": {
 														"type": "string",
 														"description": "Total TVL in ETH",
-														"example": "3562188.35141025"
+														"example": "3000000"
 													},
 													"createdAtBlock": {
 														"type": "number",
@@ -5637,7 +5637,7 @@
 																"multiplier": {
 																	"type": "string",
 																	"description": "Multiplier for the rewards",
-																	"example": "1055446649335815388"
+																	"example": "1000000000000000000"
 																},
 																"token": {
 																	"type": "string",
@@ -5648,17 +5648,17 @@
 																"amount": {
 																	"type": "string",
 																	"description": "Amount of the rewards",
-																	"example": "386651387601193218"
+																	"example": "300000000000000000"
 																},
 																"startTimestamp": {
 																	"type": "number",
 																	"description": "Start timestamp of rewards",
-																	"example": 1723075200
+																	"example": 1720000000
 																},
 																"duration": {
 																	"type": "number",
 																	"description": "Duration of the rewards",
-																	"example": 2419200
+																	"example": 2500000
 																},
 																"createdAtBlock": {
 																	"type": "number",
@@ -5749,7 +5749,7 @@
 																			"type": "string",
 																			"pattern": "^0x[a-fA-F0-9]{40}$",
 																			"description": "Operator address",
-																			"example": "0x4cd2086e1d708e65db5d4f5712a9ca46ed4bbd0a"
+																			"example": "0x09e6eb09213bdd3698bd8afb43ec3cb0ecff683a"
 																		},
 																		"metadataUrl": {
 																			"type": "string",
@@ -5759,43 +5759,43 @@
 																		"metadataName": {
 																			"type": "string",
 																			"description": "Name of the operator",
-																			"example": "InfStones"
+																			"example": "Example AVS Operator"
 																		},
 																		"metadataDescription": {
 																			"type": "string",
 																			"nullable": true,
 																			"description": "Description of the operator",
-																			"example": "InfStones is committed to supporting a wide range of AVSes and reward delegators through our Giveaway! Learn more: https://infstones.com/"
+																			"example": "This is an example AVS operator"
 																		},
 																		"metadataDiscord": {
 																			"type": "string",
 																			"nullable": true,
 																			"description": "Discord link",
-																			"example": ""
+																			"example": "https://discord.com/invite/example"
 																		},
 																		"metadataLogo": {
 																			"type": "string",
 																			"nullable": true,
 																			"description": "Logo URL",
-																			"example": "https://raw.githubusercontent.com/github-infstones/eigenlayer/main/logo_white.png"
+																			"example": "<string>"
 																		},
 																		"metadataTelegram": {
 																			"type": "string",
 																			"nullable": true,
 																			"description": "Telegram link",
-																			"example": ""
+																			"example": "https://t.me/example"
 																		},
 																		"metadataWebsite": {
 																			"type": "string",
 																			"nullable": true,
 																			"description": "Website URL",
-																			"example": "https://infstones.com"
+																			"example": "https://example.com"
 																		},
 																		"metadataX": {
 																			"type": "string",
 																			"nullable": true,
 																			"description": "Twitter link",
-																			"example": "https://twitter.com/InfStones"
+																			"example": "https://twitter.com/example"
 																		},
 																		"isMetadataSynced": {
 																			"type": "boolean",
@@ -5805,22 +5805,22 @@
 																		"totalStakers": {
 																			"type": "number",
 																			"description": "Total number of stakers for the operator",
-																			"example": 22375
+																			"example": 20000
 																		},
 																		"totalAvs": {
 																			"type": "number",
 																			"description": "Total AVSes operated",
-																			"example": 17
+																			"example": 10
 																		},
 																		"apy": {
 																			"type": "string",
 																			"description": "Current APY for the operator",
-																			"example": "1.1796"
+																			"example": "1.0"
 																		},
 																		"tvlEth": {
 																			"type": "string",
 																			"description": "Total TVL in ETH",
-																			"example": "38817.22857187"
+																			"example": "30000"
 																		},
 																		"sharesHash": {
 																			"type": "string",
@@ -5867,7 +5867,7 @@
 																					"shares": {
 																						"type": "string",
 																						"description": "Shares amount",
-																						"example": "1769899853080271886659"
+																						"example": "1000000000000000000000"
 																					}
 																				},
 																				"required": ["operatorAddress", "strategyAddress", "shares"]
@@ -6051,7 +6051,7 @@
 															"apy": {
 																"type": "number",
 																"description": "APY of the restaking strategy",
-																"example": 0.00016956497239057833
+																"example": 0.1
 															}
 														},
 														"required": ["strategyAddress", "apy"]
@@ -6060,12 +6060,12 @@
 												"aggregateApy": {
 													"type": "number",
 													"description": "The aggregate APY across all strategies",
-													"example": 1.060577413975275
+													"example": 1
 												},
 												"operatorEarningsEth": {
 													"type": "string",
 													"description": "Total earnings for the operator in ETH",
-													"example": "2462802843029299341.7"
+													"example": "1000000000000000000"
 												}
 											},
 											"required": ["avs", "strategies", "aggregateApy", "operatorEarningsEth"],
@@ -6696,7 +6696,7 @@
 																"shares": {
 																	"type": "string",
 																	"description": "The amount of shares held in the strategy",
-																	"example": "40888428658906049"
+																	"example": "40000000000000000"
 																}
 															},
 															"required": ["strategyAddress", "shares"]
@@ -6925,7 +6925,7 @@
 													"shares": {
 														"type": "string",
 														"description": "The amount of shares held in the strategy",
-														"example": "40888428658906049"
+														"example": "40000000000000000"
 													}
 												},
 												"required": ["strategyAddress", "shares"]
@@ -7875,7 +7875,7 @@
 													"shares": {
 														"type": "string",
 														"description": "The amount of shares held in the strategy",
-														"example": "40888428658906049"
+														"example": "40000000000000000"
 													},
 													"createdAtBlock": {
 														"type": "number",
@@ -8049,7 +8049,7 @@
 													"shares": {
 														"type": "string",
 														"description": "The amount of shares held in the strategy",
-														"example": "40888428658906049"
+														"example": "40000000000000000"
 													},
 													"createdAtBlock": {
 														"type": "number",

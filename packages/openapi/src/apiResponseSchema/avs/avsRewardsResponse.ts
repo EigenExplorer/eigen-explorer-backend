@@ -25,11 +25,11 @@ const RewardsSubmissionSchema = z.object({
 	startTimestamp: z
 		.number()
 		.describe('The timestamp marking the start of this rewards distribution period')
-		.openapi({ example: 1723075200 }),
+		.openapi({ example: 1720000000 }),
 	duration: z
 		.number()
 		.describe('The duration (in seconds) over which the rewards are distributed')
-		.openapi({ example: 2419200 }),
+		.openapi({ example: 2500000 }),
 	totalAmount: z
 		.string()
 		.describe('The total amount of rewards allocated in this submission')
@@ -56,11 +56,11 @@ export const AvsRewardsSchema = z.object({
 	totalRewards: z
 		.string()
 		.describe('The aggregate amount of rewards distributed across all submissions')
-		.openapi({ example: '19972996158601646000' }),
+		.openapi({ example: '1000000000000000000' }),
 	totalSubmissions: z
 		.number()
 		.describe('The total count of rewards submissions associated with the AVS')
-		.openapi({ example: 4 }),
+		.openapi({ example: 10 }),
 	rewardTokens: z
 		.array(EthereumAddressSchema)
 		.describe('The list of token addresses used for reward distribution')

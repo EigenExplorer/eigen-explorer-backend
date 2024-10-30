@@ -24,7 +24,7 @@ export const OperatorResponseSchema = z.object({
 		.number()
 		.describe('The total number of AVS opted by the AVS operator')
 		.openapi({ example: 10 }),
-	apy: z.string().describe('The latest APY recorded for the operator').openapi({ example: '1.39' }),
+	apy: z.string().describe('The latest APY recorded for the operator').openapi({ example: '1.0' }),
 	createdAtBlock: z
 		.string()
 		.describe('The block number at which the AVS Operator was registered')
