@@ -5076,9 +5076,9 @@
 		"/operators/addresses": {
 			"get": {
 				"operationId": "getAllOperatorAddresses",
-				"summary": "Retrieve all Operator addresses",
-				"description": "Returns a list of all Operator addresses. This page supports pagination.",
-				"tags": ["Operator"],
+				"summary": "Retrieve all operator addresses",
+				"description": "Returns a list of all operator addresses. This page supports pagination.",
+				"tags": ["Operators"],
 				"parameters": [
 					{
 						"in": "query",
@@ -5127,7 +5127,7 @@
 				],
 				"responses": {
 					"200": {
-						"description": "The list of Operator addresses.",
+						"description": "The list of operator addresses.",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -5141,7 +5141,7 @@
 													"address": {
 														"type": "string",
 														"pattern": "^0x[a-fA-F0-9]{40}$",
-														"description": "The Address of the Operator",
+														"description": "The contract address of the AVS operator",
 														"example": "0x0000039b2f2ac9e3492a0f805ec7aea9eaee0c25"
 													},
 													"name": {

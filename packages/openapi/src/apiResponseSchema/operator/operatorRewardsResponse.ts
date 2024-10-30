@@ -1,5 +1,5 @@
-import z from '../../../api/src/schema/zod'
-import { EthereumAddressSchema } from '../../../api/src/schema/zod/schemas/base/ethereumAddress'
+import z from '../../../../api/src/schema/zod'
+import { EthereumAddressSchema } from '../../../../api/src/schema/zod/schemas/base/ethereumAddress'
 
 export const OperatorRewardsSchema = z.object({
 	address: EthereumAddressSchema.describe('The contract address of the AVS operator').openapi({

@@ -2,7 +2,7 @@ import { openApiErrorResponses } from '../../apiResponseSchema/base/errorRespons
 import z from '../../../../api/src/schema/zod'
 import { EthereumAddressSchema } from '../../../../api/src/schema/zod/schemas/base/ethereumAddress'
 import { ZodOpenApiOperationObject } from 'zod-openapi'
-import { OperatorRewardsSchema } from '../../apiResponseSchema/operatorRewardsResponse'
+import { OperatorRewardsSchema } from '../../apiResponseSchema/operator/operatorRewardsResponse'
 
 const OperatorAddressParam = z.object({
 	address: EthereumAddressSchema.describe('The address of the operator').openapi({

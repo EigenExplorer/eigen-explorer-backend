@@ -1,9 +1,9 @@
-import z from '../../../api/src/schema/zod'
-import { OperatorMetaDataSchema } from '../../../api/src/schema/zod/schemas/base/operatorMetaData'
-import { EthereumAddressSchema } from '../../../api/src/schema/zod/schemas/base/ethereumAddress'
-import { TvlSchema } from './base/tvlResponses'
-import { StrategySharesSchema } from '../../../api/src/schema/zod/schemas/base/strategyShares'
-import { AvsRegistrationSchema } from '../../../api/src/schema/zod/schemas/base/avsRegistrations'
+import z from '../../../../api/src/schema/zod'
+import { OperatorMetaDataSchema } from '../../../../api/src/schema/zod/schemas/base/operatorMetaData'
+import { EthereumAddressSchema } from '../../../../api/src/schema/zod/schemas/base/ethereumAddress'
+import { TvlSchema } from '.././base/tvlResponses'
+import { StrategySharesSchema } from '../../../../api/src/schema/zod/schemas/base/strategyShares'
+import { AvsRegistrationSchema } from '../../../../api/src/schema/zod/schemas/base/avsRegistrations'
 
 export const OperatorResponseSchema = z.object({
 	address: EthereumAddressSchema.describe('The contract address of the AVS operator').openapi({
