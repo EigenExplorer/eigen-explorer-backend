@@ -20,7 +20,10 @@ import prisma from '../../utils/prismaClient'
 import { fetchTokenPrices } from '../../utils/tokenPrices'
 import { withOperatorShares } from '../../utils/operatorShares'
 import { AvsEventQuerySchema } from '../../schema/zod/schemas/avsEvents'
-import { WithEthValueQuerySchema } from '../../schema/zod/schemas/withTokenDataQuery'
+import {
+	WithEthValueQuerySchema,
+	WithIndividualShareQuerySchema
+} from '../../schema/zod/schemas/withTokenDataQuery'
 
 export type AVSEventRecordArgs = {
 	submissionNonce: number
@@ -32,6 +35,8 @@ export type AVSEventRecordArgs = {
 	strategies: {
 		strategy: string
 		multiplier: string
+		share?: string
+		shareEthValue?: number
 	}[]
 	ethValue?: number
 }
@@ -651,6 +656,7 @@ export async function getAVSRewards(req: Request, res: Response) {
 export async function getAVSRewardsEvents(req: Request, res: Response) {
 	const result = AvsEventQuerySchema.and(PaginationQuerySchema)
 		.and(WithEthValueQuerySchema)
+		.and(WithIndividualShareQuerySchema)
 		.safeParse(req.query)
 	if (!result.success) {
 		return handleAndReturnErrorResponse(req, res, result.error)
@@ -670,6 +676,7 @@ export async function getAVSRewardsEvents(req: Request, res: Response) {
 			rewardsSubmissionHash,
 			rewardsSubmissionToken,
 			withEthValue,
+			withIndividualShare,
 			skip,
 			take
 		} = result.data
@@ -716,16 +723,52 @@ export async function getAVSRewardsEvents(req: Request, res: Response) {
 
 		const eventRecords: AVSEventRecord[] = eventLogs.map((event) => {
 			let ethValue: number | undefined
+			const totalAmount = BigInt(event.rewardsSubmission_amount)
+			const tokenPrice = tokenPrices.find(
+				(tp) => tp.address.toLowerCase() === event.rewardsSubmission_token.toLowerCase()
+			)
+
+			const ethPrice = tokenPrice?.ethPrice ?? 0
+			const decimals = tokenPrice?.decimals ?? 18
 
 			if (withEthValue) {
-				const tokenPrice = tokenPrices.find(
-					(tp) => tp.address.toLowerCase() === event.rewardsSubmission_token.toLowerCase()
+				ethValue = (Number(totalAmount) * ethPrice) / Math.pow(10, decimals)
+			}
+
+			// Calculate individual shares if the flag is enabled
+			let strategyShares: {
+				strategy: string
+				multiplier: string
+				share?: string
+				shareEthValue?: number
+			}[] = []
+			if (withIndividualShare) {
+				const multipliers = event.strategiesAndMultipliers_multipliers.map((m) => BigInt(m))
+				const totalMultiplier = multipliers.reduce((acc, m) => acc + m, BigInt(0))
+
+				strategyShares = event.strategiesAndMultipliers_strategies.map((strategyAddress, index) => {
+					const multiplier = BigInt(event.strategiesAndMultipliers_multipliers[index])
+					const individualShare = (totalAmount * multiplier) / totalMultiplier
+					let shareEthValue: number | undefined
+
+					if (withEthValue) {
+						shareEthValue = (Number(individualShare) * ethPrice) / Math.pow(10, decimals)
+					}
+
+					return {
+						strategy: strategyAddress.toLowerCase(),
+						multiplier: event.strategiesAndMultipliers_multipliers[index],
+						share: individualShare.toString(),
+						...(withEthValue && { shareEthValue })
+					}
+				})
+			} else {
+				strategyShares = event.strategiesAndMultipliers_strategies.map(
+					(strategyAddress, index) => ({
+						strategy: strategyAddress.toLowerCase(),
+						multiplier: event.strategiesAndMultipliers_multipliers[index]
+					})
 				)
-				if (tokenPrice) {
-					ethValue =
-						(Number(BigInt(event.rewardsSubmission_amount)) * tokenPrice.ethPrice) /
-						Math.pow(10, tokenPrice.decimals)
-				}
 			}
 
 			return {
@@ -740,10 +783,7 @@ export async function getAVSRewardsEvents(req: Request, res: Response) {
 					rewardsSubmissionAmount: event.rewardsSubmission_amount,
 					rewardsSubmissionStartTimeStamp: event.rewardsSubmission_startTimestamp,
 					rewardsSubmissionDuration: event.rewardsSubmission_duration,
-					strategies: event.strategiesAndMultipliers_strategies.map((strategyAddress, index) => ({
-						strategy: strategyAddress.toLowerCase(),
-						multiplier: event.strategiesAndMultipliers_multipliers[index]
-					}))
+					strategies: strategyShares
 				},
 				...(withEthValue && { ethValue })
 			}
