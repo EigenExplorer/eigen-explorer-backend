@@ -6,6 +6,7 @@ import { WithAdditionalDataQuerySchema } from '../../schema/zod/schemas/withAddi
 import { SortByQuerySchema } from '../../schema/zod/schemas/sortByQuery'
 import { SearchByTextQuerySchema } from '../../schema/zod/schemas/searchByTextQuery'
 import { WithRewardsQuerySchema } from '../../schema/zod/schemas/withRewardsQuery'
+import { RequestHeadersSchema } from '../../schema/zod/schemas/auth'
 import { handleAndReturnErrorResponse } from '../../schema/errors'
 import {
 	getStrategiesWithShareUnderlying,
@@ -383,7 +384,19 @@ export async function invalidateMetadata(req: Request, res: Response) {
 		return handleAndReturnErrorResponse(req, res, paramCheck.error)
 	}
 
+	const headerCheck = RequestHeadersSchema.safeParse(req.headers)
+	if (!headerCheck.success) {
+		return handleAndReturnErrorResponse(req, res, headerCheck.error)
+	}
+
 	try {
+		const apiToken = headerCheck.data['X-API-Token']
+		const authToken = process.env.EE_AUTH_TOKEN
+
+		if (!apiToken || apiToken !== authToken) {
+			throw new Error('Unauthorized access.')
+		}
+
 		const { address } = req.params
 
 		const updateResult = await prisma.operator.updateMany({

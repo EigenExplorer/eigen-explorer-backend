@@ -6,7 +6,6 @@ import {
 	getOperatorRewards,
 	invalidateMetadata
 } from './operatorController'
-import { authenticateJWT } from '../../utils/jwtUtils'
 
 import routeCache from 'route-cache'
 
@@ -109,11 +108,6 @@ router.get('/:address', routeCache.cacheSeconds(120), getOperator)
 router.get('/:address/rewards', routeCache.cacheSeconds(120), getOperatorRewards)
 
 // Protected routes
-router.get(
-	'/:address/invalidate-metadata',
-	authenticateJWT,
-	routeCache.cacheSeconds(120),
-	invalidateMetadata
-)
+router.get('/:address/invalidate-metadata', routeCache.cacheSeconds(120), invalidateMetadata)
 
 export default router

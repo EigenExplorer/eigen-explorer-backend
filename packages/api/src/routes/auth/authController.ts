@@ -21,7 +21,7 @@ export async function signalRefreshStore(req: Request, res: Response) {
 		const apiToken = headerCheck.data['X-API-Token']
 		const authToken = process.env.EE_AUTH_TOKEN
 
-		if (apiToken !== authToken) {
+		if (!apiToken || apiToken !== authToken) {
 			throw new Error('Unauthorized access.')
 		}
 
