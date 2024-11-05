@@ -22,7 +22,7 @@ import { withOperatorShares } from '../../utils/operatorShares'
 import { AvsEventQuerySchema } from '../../schema/zod/schemas/avsEvents'
 import {
 	WithEthValueQuerySchema,
-	WithIndividualShareQuerySchema
+	WithIndividualAmountQuerySchema
 } from '../../schema/zod/schemas/withTokenDataQuery'
 
 export type AVSEventRecordArgs = {
@@ -35,8 +35,8 @@ export type AVSEventRecordArgs = {
 	strategies: {
 		strategy: string
 		multiplier: string
-		share?: string
-		shareEthValue?: number
+		amount?: string
+		amountEthValue?: number
 	}[]
 	ethValue?: number
 }
@@ -656,7 +656,7 @@ export async function getAVSRewards(req: Request, res: Response) {
 export async function getAVSRewardsEvents(req: Request, res: Response) {
 	const result = AvsEventQuerySchema.and(PaginationQuerySchema)
 		.and(WithEthValueQuerySchema)
-		.and(WithIndividualShareQuerySchema)
+		.and(WithIndividualAmountQuerySchema)
 		.safeParse(req.query)
 	if (!result.success) {
 		return handleAndReturnErrorResponse(req, res, result.error)
@@ -676,7 +676,7 @@ export async function getAVSRewardsEvents(req: Request, res: Response) {
 			rewardsSubmissionHash,
 			rewardsSubmissionToken,
 			withEthValue,
-			withIndividualShare,
+			withIndividualAmount,
 			skip,
 			take
 		} = result.data
@@ -742,10 +742,10 @@ export async function getAVSRewardsEvents(req: Request, res: Response) {
 			let strategyShares: {
 				strategy: string
 				multiplier: string
-				share?: string
-				shareEthValue?: number
+				amount?: string
+				amountEthValue?: number
 			}[] = []
-			if (withIndividualShare) {
+			if (withIndividualAmount) {
 				const totalMultiplier = event.strategiesAndMultipliers_multipliers
 					.map((m) => new Prisma.Prisma.Decimal(m))
 					.reduce((acc, m) => acc.add(m), new Prisma.Prisma.Decimal(0))
@@ -755,15 +755,15 @@ export async function getAVSRewardsEvents(req: Request, res: Response) {
 						event.strategiesAndMultipliers_multipliers[index]
 					)
 
-					const individualShare = totalAmount
+					const individualAmount = totalAmount
 						.mul(multiplier)
 						.div(totalMultiplier)
 						.toNumber()
 						.toFixed(0)
-					let shareEthValue: number | undefined
+					let amountEthValue: number | undefined
 
 					if (withEthValue) {
-						shareEthValue = new Prisma.Prisma.Decimal(individualShare)
+						amountEthValue = new Prisma.Prisma.Decimal(individualAmount)
 							.div(new Prisma.Prisma.Decimal(10).pow(decimals))
 							.mul(new Prisma.Prisma.Decimal(ethPrice))
 							.toNumber()
@@ -772,8 +772,8 @@ export async function getAVSRewardsEvents(req: Request, res: Response) {
 					return {
 						strategy: strategyAddress.toLowerCase(),
 						multiplier: event.strategiesAndMultipliers_multipliers[index],
-						share: individualShare,
-						...(withEthValue && { shareEthValue })
+						amount: individualAmount,
+						...(withEthValue && { amountEthValue })
 					}
 				})
 			} else {
