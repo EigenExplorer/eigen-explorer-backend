@@ -35,7 +35,7 @@ export type AVSEventRecordArgs = {
 	strategies: {
 		strategy: string
 		multiplier: string
-		share?: string
+		share?: number
 		shareEthValue?: number
 	}[]
 	ethValue?: number
@@ -722,8 +722,9 @@ export async function getAVSRewardsEvents(req: Request, res: Response) {
 		const tokenPrices = withEthValue ? await fetchTokenPrices() : []
 
 		const eventRecords: AVSEventRecord[] = eventLogs.map((event) => {
+			console.log('event ', event)
 			let ethValue: number | undefined
-			const totalAmount = BigInt(event.rewardsSubmission_amount)
+			const totalAmount = new Prisma.Prisma.Decimal(event.rewardsSubmission_amount)
 			const tokenPrice = tokenPrices.find(
 				(tp) => tp.address.toLowerCase() === event.rewardsSubmission_token.toLowerCase()
 			)
@@ -732,33 +733,43 @@ export async function getAVSRewardsEvents(req: Request, res: Response) {
 			const decimals = tokenPrice?.decimals ?? 18
 
 			if (withEthValue) {
-				ethValue = (Number(totalAmount) * ethPrice) / Math.pow(10, decimals)
+				ethValue = totalAmount
+					.div(new Prisma.Prisma.Decimal(10).pow(decimals))
+					.mul(new Prisma.Prisma.Decimal(ethPrice))
+					.toNumber()
 			}
 
 			// Calculate individual shares if the flag is enabled
 			let strategyShares: {
 				strategy: string
 				multiplier: string
-				share?: string
+				share?: number
 				shareEthValue?: number
 			}[] = []
 			if (withIndividualShare) {
-				const multipliers = event.strategiesAndMultipliers_multipliers.map((m) => BigInt(m))
-				const totalMultiplier = multipliers.reduce((acc, m) => acc + m, BigInt(0))
+				const totalMultiplier = event.strategiesAndMultipliers_multipliers
+					.map((m) => new Prisma.Prisma.Decimal(m))
+					.reduce((acc, m) => acc.add(m), new Prisma.Prisma.Decimal(0))
 
 				strategyShares = event.strategiesAndMultipliers_strategies.map((strategyAddress, index) => {
-					const multiplier = BigInt(event.strategiesAndMultipliers_multipliers[index])
-					const individualShare = (totalAmount * multiplier) / totalMultiplier
+					const multiplier = new Prisma.Prisma.Decimal(
+						event.strategiesAndMultipliers_multipliers[index]
+					)
+
+					const individualShare = totalAmount.mul(multiplier).div(totalMultiplier).toFixed(0) // Round to nearest whole number when returning
 					let shareEthValue: number | undefined
 
 					if (withEthValue) {
-						shareEthValue = (Number(individualShare) * ethPrice) / Math.pow(10, decimals)
+						shareEthValue = new Prisma.Prisma.Decimal(individualShare)
+							.div(new Prisma.Prisma.Decimal(10).pow(decimals))
+							.mul(new Prisma.Prisma.Decimal(ethPrice))
+							.toNumber()
 					}
 
 					return {
 						strategy: strategyAddress.toLowerCase(),
-						multiplier: event.strategiesAndMultipliers_multipliers[index],
-						share: individualShare.toString(),
+						multiplier: multiplier.toFixed(0),
+						share: individualShare,
 						...(withEthValue && { shareEthValue })
 					}
 				})
@@ -766,7 +777,9 @@ export async function getAVSRewardsEvents(req: Request, res: Response) {
 				strategyShares = event.strategiesAndMultipliers_strategies.map(
 					(strategyAddress, index) => ({
 						strategy: strategyAddress.toLowerCase(),
-						multiplier: event.strategiesAndMultipliers_multipliers[index]
+						multiplier: new Prisma.Prisma.Decimal(
+							event.strategiesAndMultipliers_multipliers[index]
+						).toFixed(0)
 					})
 				)
 			}
@@ -780,7 +793,7 @@ export async function getAVSRewardsEvents(req: Request, res: Response) {
 					submissionNonce: event.submissionNonce,
 					rewardsSubmissionHash: event.rewardsSubmissionHash,
 					rewardsSubmissionToken: event.rewardsSubmission_token.toLowerCase(),
-					rewardsSubmissionAmount: event.rewardsSubmission_amount,
+					rewardsSubmissionAmount: totalAmount.toFixed(0),
 					rewardsSubmissionStartTimeStamp: event.rewardsSubmission_startTimestamp,
 					rewardsSubmissionDuration: event.rewardsSubmission_duration,
 					strategies: strategyShares
