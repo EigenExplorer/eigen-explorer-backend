@@ -182,7 +182,7 @@ export async function getStakerWithdrawalsQueued(req: Request, res: Response) {
 
 	try {
 		const { address } = req.params
-		const filterQuery = { stakerAddress: address, completedWithdrawal: null }
+		const filterQuery = { stakerAddress: address.toLowerCase(), completedWithdrawal: null }
 
 		const withdrawalCount = await prisma.withdrawalQueued.count({
 			where: filterQuery
@@ -245,7 +245,7 @@ export async function getStakerWithdrawalsWithdrawable(req: Request, res: Respon
 			(await viemClient.getBlockNumber()) - BigInt((minDelayBlocks?.value as string) || 0)
 
 		const filterQuery = {
-			stakerAddress: address,
+			stakerAddress: address.toLowerCase(),
 			completedWithdrawal: null,
 			createdAtBlock: { lte: minDelayBlock }
 		}
@@ -303,7 +303,7 @@ export async function getStakerWithdrawalsCompleted(req: Request, res: Response)
 	try {
 		const { address } = req.params
 		const filterQuery = {
-			stakerAddress: address,
+			stakerAddress: address.toLowerCase(),
 			NOT: {
 				completedWithdrawal: null
 			}
@@ -367,7 +367,7 @@ export async function getStakerDeposits(req: Request, res: Response) {
 
 	try {
 		const { address } = req.params
-		const filterQuery = { stakerAddress: address }
+		const filterQuery = { stakerAddress: address.toLowerCase() }
 
 		const depositCount = await prisma.deposit.count({
 			where: filterQuery
