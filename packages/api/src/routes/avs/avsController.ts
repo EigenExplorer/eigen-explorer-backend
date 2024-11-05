@@ -35,7 +35,7 @@ export type AVSEventRecordArgs = {
 	strategies: {
 		strategy: string
 		multiplier: string
-		share?: number
+		share?: string
 		shareEthValue?: number
 	}[]
 	ethValue?: number
@@ -722,7 +722,6 @@ export async function getAVSRewardsEvents(req: Request, res: Response) {
 		const tokenPrices = withEthValue ? await fetchTokenPrices() : []
 
 		const eventRecords: AVSEventRecord[] = eventLogs.map((event) => {
-			console.log('event ', event)
 			let ethValue: number | undefined
 			const totalAmount = new Prisma.Prisma.Decimal(event.rewardsSubmission_amount)
 			const tokenPrice = tokenPrices.find(
@@ -743,7 +742,7 @@ export async function getAVSRewardsEvents(req: Request, res: Response) {
 			let strategyShares: {
 				strategy: string
 				multiplier: string
-				share?: number
+				share?: string
 				shareEthValue?: number
 			}[] = []
 			if (withIndividualShare) {
@@ -756,7 +755,11 @@ export async function getAVSRewardsEvents(req: Request, res: Response) {
 						event.strategiesAndMultipliers_multipliers[index]
 					)
 
-					const individualShare = totalAmount.mul(multiplier).div(totalMultiplier).toFixed(0) // Round to nearest whole number when returning
+					const individualShare = totalAmount
+						.mul(multiplier)
+						.div(totalMultiplier)
+						.toNumber()
+						.toFixed(0)
 					let shareEthValue: number | undefined
 
 					if (withEthValue) {
@@ -768,7 +771,7 @@ export async function getAVSRewardsEvents(req: Request, res: Response) {
 
 					return {
 						strategy: strategyAddress.toLowerCase(),
-						multiplier: multiplier.toFixed(0),
+						multiplier: event.strategiesAndMultipliers_multipliers[index],
 						share: individualShare,
 						...(withEthValue && { shareEthValue })
 					}
@@ -777,9 +780,7 @@ export async function getAVSRewardsEvents(req: Request, res: Response) {
 				strategyShares = event.strategiesAndMultipliers_strategies.map(
 					(strategyAddress, index) => ({
 						strategy: strategyAddress.toLowerCase(),
-						multiplier: new Prisma.Prisma.Decimal(
-							event.strategiesAndMultipliers_multipliers[index]
-						).toFixed(0)
+						multiplier: event.strategiesAndMultipliers_multipliers[index]
 					})
 				)
 			}
@@ -793,7 +794,7 @@ export async function getAVSRewardsEvents(req: Request, res: Response) {
 					submissionNonce: event.submissionNonce,
 					rewardsSubmissionHash: event.rewardsSubmissionHash,
 					rewardsSubmissionToken: event.rewardsSubmission_token.toLowerCase(),
-					rewardsSubmissionAmount: totalAmount.toFixed(0),
+					rewardsSubmissionAmount: event.rewardsSubmission_amount,
 					rewardsSubmissionStartTimeStamp: event.rewardsSubmission_startTimestamp,
 					rewardsSubmissionDuration: event.rewardsSubmission_duration,
 					strategies: strategyShares
