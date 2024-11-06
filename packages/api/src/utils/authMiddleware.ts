@@ -65,7 +65,10 @@ export const rateLimiter = async (req: Request, res: Response, next: NextFunctio
 		await refreshStore()
 	}
 
-	const accessLevel: number = authStore.get(`apiToken:${apiToken}:accessLevel`) ?? 0
+	const accessLevel: number =
+		process.env.EE_AUTH_TOKEN === apiToken
+			? 999
+			: authStore.get(`apiToken:${apiToken}:accessLevel`) ?? 0
 	req.accessLevel = accessLevel // Access this in route functions to impose limits
 
 	switch (accessLevel) {
