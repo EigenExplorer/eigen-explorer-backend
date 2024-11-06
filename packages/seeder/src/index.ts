@@ -34,10 +34,12 @@ import { seedMetricsTvl } from './metrics/seedMetricsTvl'
 import { monitorAvsMetrics } from './monitors/avsMetrics'
 import { monitorOperatorMetrics } from './monitors/operatorMetrics'
 import { seedAvsStrategyRewards } from './seedAvsStrategyRewards'
+import { seedStakerRewardSnapshots } from './seedStakerRewardSnapshots'
 import { seedLogsAVSRewardsSubmission } from './events/seedLogsRewardsSubmissions'
 import { monitorAvsApy } from './monitors/avsApy'
 import { monitorOperatorApy } from './monitors/operatorApy'
 import { seedLogStrategyWhitelist } from './events/seedLogStrategyWhitelist'
+import { seedLogsDistributionRootSubmitted } from './events/seedLogsDistributionRootSubmitted'
 
 console.log('Initializing Seeder ...')
 
@@ -83,7 +85,8 @@ async function seedEigenData() {
 				seedLogsDeposit(targetBlock),
 				seedLogsPodSharesUpdated(targetBlock),
 				seedLogsAVSRewardsSubmission(targetBlock),
-				seedLogStrategyWhitelist(targetBlock)
+				seedLogStrategyWhitelist(targetBlock),
+				seedLogsDistributionRootSubmitted(targetBlock)
 			])
 
 			await Promise.all([
@@ -112,6 +115,7 @@ async function seedEigenData() {
 			await Promise.all([
 				// Rewards
 				seedAvsStrategyRewards(),
+				seedStakerRewardSnapshots(),
 
 				// Metrics
 				monitorAvsMetrics(),

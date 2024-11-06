@@ -397,3 +397,35 @@ export async function getStakerDeposits(req: Request, res: Response) {
 		handleAndReturnErrorResponse(req, res, error)
 	}
 }
+
+export async function getStakerRewards(req: Request, res: Response) {
+	// Validate query
+	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	}
+
+	try {
+		const { address } = req.params
+
+		const stakerRewardRecords = await prisma.stakerRewardSnapshot.findMany({
+			where: {
+				stakerAddress: address.toLowerCase()
+			}
+		})
+
+		const rewards = stakerRewardRecords.map((record) => {
+			return {
+				tokenAddress: record.tokenAddress.toLowerCase(),
+				cumulativeAmount: record.cumulativeAmount
+			}
+		})
+
+		res.send({
+			stakerAddress: address.toLowerCase(),
+			rewards
+		})
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}

@@ -163,6 +163,8 @@ model Staker {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @default(now())
 
+  User User?
+
   @@index([operatorAddress])
 }
 
@@ -174,6 +176,24 @@ model StakerStrategyShares {
 
   @@id([stakerAddress, strategyAddress])
   @@index([stakerAddress])
+}
+
+model StakerRewardSnapshot {
+  stakerAddress    String
+  tokenAddress     String
+  snapshot         DateTime
+  cumulativeAmount Decimal @default(0) @db.Decimal(78, 0)
+
+  @@id([stakerAddress, tokenAddress])
+  @@index([stakerAddress, snapshot])
+}
+
+model User {
+  address   String  @id
+  apy       Decimal @default(0) @db.Decimal(8, 4)
+  createdAt DateTime @default(now())
+  
+  staker Staker? @relation(fields: [address], references: [address])
 }
 
 model Deposit {
@@ -663,6 +683,23 @@ model EventLogs_StrategyRemovedFromDepositWhitelist {
   @@id([transactionHash, transactionIndex])
   @@index([strategy])
   @@index([blockNumber])
+}
+
+model EventLogs_DistributionRootSubmitted {
+  address String
+
+  transactionHash  String
+  transactionIndex Int
+  blockNumber      BigInt
+  blockHash        String
+  blockTime        DateTime
+
+  root                           String
+  rewardsCalculationEndTimestamp BigInt
+  activatedAt                    BigInt
+
+  @@id([transactionHash, transactionIndex])
+  @@index([blockNumber, rewardsCalculationEndTimestamp])
 }
 
 model EthPricesDaily {
