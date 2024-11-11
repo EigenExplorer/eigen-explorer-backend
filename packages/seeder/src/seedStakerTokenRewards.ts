@@ -16,7 +16,7 @@ interface ClaimData {
  *
  * @returns
  */
-export async function seedStakerRewardSnapshots() {
+export async function seedStakerTokenRewards() {
 	const prismaClient = getPrismaClient()
 	const bucketUrl = getBucketUrl()
 	const BATCH_SIZE = 1000
@@ -24,7 +24,7 @@ export async function seedStakerRewardSnapshots() {
 	try {
 		const tokenPrices = await fetchTokenPrices()
 
-		// Find latest snapshot date
+		// Find latest snapshot timestamp
 		const latestLog = await prismaClient.eventLogs_DistributionRootSubmitted.findFirstOrThrow({
 			select: {
 				rewardsCalculationEndTimestamp: true
@@ -33,12 +33,14 @@ export async function seedStakerRewardSnapshots() {
 				rewardsCalculationEndTimestamp: 'desc'
 			}
 		})
-		const latestSnapshotDate = new Date(Number(latestLog.rewardsCalculationEndTimestamp) * 1000)
+		const latestSnapshotTimestamp = new Date(
+			Number(latestLog.rewardsCalculationEndTimestamp) * 1000
+		)
 			.toISOString()
 			.split('T')[0]
 
 		// Fetch latest snapshot from EL bucket
-		const response = await fetch(`${bucketUrl}/${latestSnapshotDate}/claim-amounts.json`)
+		const response = await fetch(`${bucketUrl}/${latestSnapshotTimestamp}/claim-amounts.json`)
 		if (!response.ok) {
 			throw new Error(`Failed to fetch data: ${response.status} ${response.statusText}`)
 		}
@@ -69,35 +71,38 @@ export async function seedStakerRewardSnapshots() {
 				return
 			}
 
-			const latestIndexedSnapshot = await prismaClient.stakerRewardSnapshot.findFirstOrThrow({
+			const latestIndexedSnapshot = await prismaClient.stakerTokenRewards.findFirst({
 				select: {
-					snapshot: true
+					timestamp: true
 				},
 				orderBy: {
-					snapshot: 'desc'
+					timestamp: 'desc'
 				}
 			})
 
 			let snapshotsToUpdate: Set<string> = new Set()
 			let snapshotsToCreate: Set<string> = new Set()
 
-			if (latestIndexedSnapshot.snapshot.toISOString().split('T')[0] !== latestSnapshotDate) {
+			if (
+				!latestIndexedSnapshot ||
+				latestIndexedSnapshot.timestamp.toISOString().split('T')[0] !== latestSnapshotTimestamp
+			) {
 				// All stakers need update
 				snapshotsToUpdate = new Set(trackedStakers.map((staker) => staker.address))
 			} else {
 				// New/stale stakers need update
 				const [trackedSnapshots, staleSnapshots] = await Promise.all([
-					prismaClient.stakerRewardSnapshot.findMany({
+					prismaClient.stakerTokenRewards.findMany({
 						where: {
 							stakerAddress: {
 								in: trackedStakers.map((staker) => staker.address)
 							}
 						}
 					}),
-					prismaClient.stakerRewardSnapshot.findMany({
+					prismaClient.stakerTokenRewards.findMany({
 						where: {
-							snapshot: {
-								not: latestSnapshotDate
+							timestamp: {
+								not: new Date(latestSnapshotTimestamp)
 							}
 						},
 						select: {
@@ -129,8 +134,8 @@ export async function seedStakerRewardSnapshots() {
 			let buffer = ''
 			const decoder = new TextDecoder()
 
-			let createBatchList: prisma.StakerRewardSnapshot[] = []
-			let updateBatchList: prisma.StakerRewardSnapshot[] = []
+			let createBatchList: prisma.StakerTokenRewards[] = []
+			let updateBatchList: prisma.StakerTokenRewards[] = []
 
 			try {
 				while (true) {
@@ -210,8 +215,8 @@ function processLine(
 	snapshotsToCreate: Set<string>,
 	snapshotsToUpdate: Set<string>,
 	tokenPrices: Array<{ address: string; decimals: number }>,
-	createBatchList: prisma.StakerRewardSnapshot[],
-	updateBatchList: prisma.StakerRewardSnapshot[]
+	createBatchList: prisma.StakerTokenRewards[],
+	updateBatchList: prisma.StakerTokenRewards[]
 ) {
 	const data = JSON.parse(line) as ClaimData
 	const earner = data.earner.toLowerCase()
@@ -224,10 +229,10 @@ function processLine(
 			createBatchList.push({
 				stakerAddress: data.earner.toLowerCase(),
 				tokenAddress: data.token.toLowerCase(),
-				snapshot: new Date(data.snapshot),
 				cumulativeAmount: new prisma.Prisma.Decimal(data.cumulative_amount).div(
 					new prisma.Prisma.Decimal(10).pow(tokenDecimals)
-				)
+				),
+				timestamp: new Date(data.snapshot)
 			})
 
 			snapshotsToCreate.delete(earner)
@@ -242,10 +247,10 @@ function processLine(
 			updateBatchList.push({
 				stakerAddress: data.earner.toLowerCase(),
 				tokenAddress: data.token.toLowerCase(),
-				snapshot: new Date(data.snapshot),
 				cumulativeAmount: new prisma.Prisma.Decimal(data.cumulative_amount).div(
 					new prisma.Prisma.Decimal(10).pow(tokenDecimals)
-				)
+				),
+				timestamp: new Date(data.snapshot)
 			})
 
 			snapshotsToUpdate.delete(earner)
@@ -255,7 +260,7 @@ function processLine(
 
 async function writeToDb(
 	prismaClient: prisma.PrismaClient,
-	batch: prisma.StakerRewardSnapshot[],
+	batch: prisma.StakerTokenRewards[],
 	action: 'create' | 'update'
 ) {
 	if (batch.length === 0) return
@@ -265,7 +270,7 @@ async function writeToDb(
 
 	if (action === 'update') {
 		dbTransactions.push(
-			prismaClient.stakerRewardSnapshot.deleteMany({
+			prismaClient.stakerTokenRewards.deleteMany({
 				where: {
 					stakerAddress: {
 						in: batch.map((record) => record.stakerAddress)
@@ -276,7 +281,7 @@ async function writeToDb(
 	}
 
 	dbTransactions.push(
-		prismaClient.stakerRewardSnapshot.createMany({
+		prismaClient.stakerTokenRewards.createMany({
 			data: batch,
 			skipDuplicates: true
 		})

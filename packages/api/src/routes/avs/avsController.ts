@@ -729,6 +729,14 @@ export function getAvsSearchQuery(
 // biome-ignore lint/suspicious/noExplicitAny: <explanation>
 async function calculateAvsApy(avs: any) {
 	try {
+		const strategyApyMap: Map<
+			string,
+			{
+				apy: number
+				tokens: Map<string, number>
+			}
+		> = new Map()
+
 		const tokenPrices = await fetchTokenPrices()
 		const strategiesWithSharesUnderlying = await getStrategiesWithShareUnderlying()
 
@@ -741,12 +749,21 @@ async function calculateAvsApy(avs: any) {
 		const tvlStrategiesEth = sharesToTVLStrategies(shares, strategiesWithSharesUnderlying)
 
 		// Iterate through each strategy and calculate all its rewards
-		const strategiesApy = avs.restakeableStrategies.map((strategyAddress) => {
+		for (const strategyAddress of avs.restakeableStrategies) {
 			const strategyTvl = tvlStrategiesEth[strategyAddress.toLowerCase()] || 0
-			if (strategyTvl === 0) return { strategyAddress, apy: 0 }
+			if (strategyTvl === 0) continue
 
-			let totalRewardsEth = new Prisma.Prisma.Decimal(0)
-			let totalDuration = 0
+			const tokenApyMap: Map<string, number> = new Map()
+			const tokenRewards: Map<
+				string,
+				{
+					totalRewardsEth: Prisma.Prisma.Decimal
+					totalDuration: number
+				}
+			> = new Map()
+
+			let strategyTotalRewardsEth = new Prisma.Prisma.Decimal(0)
+			let strategyTotalDuration = 0
 
 			// Find all reward submissions attributable to the strategy
 			const relevantSubmissions = avs.rewardSubmissions.filter(
@@ -773,28 +790,60 @@ async function calculateAvsApy(avs: any) {
 					.mul(submission.multiplier)
 					.div(new Prisma.Prisma.Decimal(10).pow(18))
 
-				totalRewardsEth = totalRewardsEth.add(rewardIncrementEth) // No decimals
-				totalDuration += submission.duration
+				// Accumulate token-specific rewards and duration
+				const tokenData = tokenRewards.get(rewardTokenAddress) || {
+					totalRewardsEth: new Prisma.Prisma.Decimal(0),
+					totalDuration: 0
+				}
+				tokenData.totalRewardsEth = tokenData.totalRewardsEth.add(rewardIncrementEth)
+				tokenData.totalDuration += submission.duration
+				tokenRewards.set(rewardTokenAddress, tokenData)
+
+				// Accumulate strategy totals
+				strategyTotalRewardsEth = strategyTotalRewardsEth.add(rewardIncrementEth)
+				strategyTotalDuration += submission.duration
 			}
 
-			if (totalDuration === 0) {
-				return { strategyAddress, apy: 0 }
+			if (strategyTotalDuration === 0) continue
+
+			// Calculate token APYs using accumulated values
+			tokenRewards.forEach((data, tokenAddress) => {
+				if (data.totalDuration !== 0) {
+					const tokenRewardRate = data.totalRewardsEth.toNumber() / strategyTvl
+					const tokenAnnualizedRate = tokenRewardRate * ((365 * 24 * 60 * 60) / data.totalDuration)
+					const tokenApy = tokenAnnualizedRate * 100
+
+					tokenApyMap.set(tokenAddress, tokenApy)
+				}
+			})
+
+			// Calculate overall strategy APY summing token APYs
+			const strategyApy = Array.from(tokenApyMap.values()).reduce((sum, apy) => sum + apy, 0)
+
+			// Update strategy rewards map
+			const currentStrategyRewards = {
+				apy: 0,
+				tokens: new Map()
 			}
 
-			// Annualize the reward basis its duration to find yearly APY
-			const rewardRate = totalRewardsEth.toNumber() / strategyTvl
-			const annualizedRate = rewardRate * ((365 * 24 * 60 * 60) / totalDuration)
-			const apy = annualizedRate * 100
-
-			return { strategyAddress, apy }
-		})
-
-		// Calculate aggregate APYs across strategies
-		const aggregateApy = strategiesApy.reduce((sum, strategy) => sum + strategy.apy, 0)
+			tokenApyMap.forEach((apy, tokenAddress) => {
+				currentStrategyRewards.tokens.set(tokenAddress, apy)
+			})
+			currentStrategyRewards.apy += strategyApy
+			strategyApyMap.set(strategyAddress, currentStrategyRewards)
+		}
 
 		return {
-			strategies: strategiesApy,
-			aggregateApy
+			strategyApys: Array.from(strategyApyMap.entries()).map(([strategyAddress, data]) => {
+				return {
+					strategyAddress,
+					apy: data.apy,
+					tokens: Array.from(data.tokens.entries()).map(([tokenAddress, apy]) => ({
+						tokenAddress,
+						apy
+					}))
+				}
+			})
 		}
 	} catch {}
 }

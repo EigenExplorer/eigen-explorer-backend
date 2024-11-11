@@ -1,17 +1,29 @@
+/*
+  Warnings:
+
+  - You are about to drop the column `apy` on the `Avs` table. All the data in the column will be lost.
+  - You are about to drop the column `apy` on the `Operator` table. All the data in the column will be lost.
+
+*/
+-- AlterTable
+ALTER TABLE "Avs" DROP COLUMN "apy";
+
+-- AlterTable
+ALTER TABLE "Operator" DROP COLUMN "apy";
+
 -- CreateTable
-CREATE TABLE "StakerRewardSnapshot" (
+CREATE TABLE "StakerTokenRewards" (
     "stakerAddress" TEXT NOT NULL,
     "tokenAddress" TEXT NOT NULL,
-    "snapshot" TIMESTAMP(3) NOT NULL,
-    "cumulativeAmount" DECIMAL(78,0) NOT NULL DEFAULT 0,
+    "cumulativeAmount" DECIMAL(78,18) NOT NULL DEFAULT 0,
+    "timestamp" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "StakerRewardSnapshot_pkey" PRIMARY KEY ("stakerAddress","tokenAddress")
+    CONSTRAINT "StakerTokenRewards_pkey" PRIMARY KEY ("stakerAddress","tokenAddress")
 );
 
 -- CreateTable
 CREATE TABLE "User" (
     "address" TEXT NOT NULL,
-    "apy" DECIMAL(8,4) NOT NULL DEFAULT 0,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("address")
@@ -33,10 +45,10 @@ CREATE TABLE "EventLogs_DistributionRootSubmitted" (
 );
 
 -- CreateIndex
-CREATE INDEX "StakerRewardSnapshot_stakerAddress_snapshot_idx" ON "StakerRewardSnapshot"("stakerAddress", "snapshot");
+CREATE INDEX "StakerTokenRewards_stakerAddress_idx" ON "StakerTokenRewards"("stakerAddress");
 
 -- CreateIndex
-CREATE INDEX "EventLogs_DistributionRootSubmitted_blockNumber_rewardsCalc_idx" ON "EventLogs_DistributionRootSubmitted"("blockNumber", "rewardsCalculationEndTimestamp");
+CREATE INDEX "EventLogs_DistributionRootSubmitted_rewardsCalculationEndTi_idx" ON "EventLogs_DistributionRootSubmitted"("rewardsCalculationEndTimestamp");
 
 -- AddForeignKey
 ALTER TABLE "User" ADD CONSTRAINT "User_address_fkey" FOREIGN KEY ("address") REFERENCES "Staker"("address") ON DELETE RESTRICT ON UPDATE CASCADE;

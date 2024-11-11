@@ -29,7 +29,6 @@ model Avs {
 
   totalStakers   Int     @default(0)
   totalOperators Int     @default(0)
-  apy            Decimal @default(0) @db.Decimal(8, 4)
 
   tvlEth     Decimal @default(0) @db.Decimal(20, 8)
   sharesHash String?
@@ -127,7 +126,6 @@ model Operator {
 
   totalStakers Int     @default(0)
   totalAvs     Int     @default(0)
-  apy          Decimal @default(0) @db.Decimal(8, 4)
 
   tvlEth     Decimal @default(0) @db.Decimal(20, 8)
   sharesHash String?
@@ -178,19 +176,18 @@ model StakerStrategyShares {
   @@index([stakerAddress])
 }
 
-model StakerRewardSnapshot {
+model StakerTokenRewards {
   stakerAddress    String
   tokenAddress     String
-  snapshot         DateTime
-  cumulativeAmount Decimal @default(0) @db.Decimal(78, 0)
+  cumulativeAmount Decimal @default(0) @db.Decimal(78, 18)
+  timestamp        DateTime
 
   @@id([stakerAddress, tokenAddress])
-  @@index([stakerAddress, snapshot])
+  @@index([stakerAddress])
 }
 
 model User {
   address   String  @id
-  apy       Decimal @default(0) @db.Decimal(8, 4)
   createdAt DateTime @default(now())
   
   staker Staker? @relation(fields: [address], references: [address])
@@ -699,7 +696,7 @@ model EventLogs_DistributionRootSubmitted {
   activatedAt                    BigInt
 
   @@id([transactionHash, transactionIndex])
-  @@index([blockNumber, rewardsCalculationEndTimestamp])
+  @@index([rewardsCalculationEndTimestamp])
 }
 
 model EthPricesDaily {
