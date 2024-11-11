@@ -67,7 +67,7 @@ export async function seedStakerTokenRewards() {
 			})
 
 			if (trackedStakers.length === 0) {
-				console.log('[In Sync] [Data] Staker Reward Snapshots')
+				console.log('[In Sync] [Data] Staker Token Rewards')
 				return
 			}
 
@@ -204,10 +204,7 @@ export async function seedStakerTokenRewards() {
 
 			skip += take
 		}
-	} catch (error) {
-		console.error('Error in seedStakerRewardSnapshots:', error)
-		throw error
-	}
+	} catch (error) {}
 }
 
 function processLine(
@@ -290,7 +287,7 @@ async function writeToDb(
 	if (dbTransactions.length > 0) {
 		await bulkUpdateDbTransactions(
 			dbTransactions,
-			`[Data] Staker Reward Snapshots batch size: ${batch.length}`
+			`[Data] Staker Token Rewards batch size: ${batch.length}`
 		)
 	}
 }

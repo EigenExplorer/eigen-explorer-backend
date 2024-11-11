@@ -103,8 +103,6 @@ export async function seedLogsAVSRewardsSubmission(toBlock?: bigint, fromBlock?:
 				dbTransactions,
 				`[Logs] AVS Rewards Submission from: ${fromBlock} to: ${toBlock} size: ${seedLength}`
 			)
-		} catch (error) {
-			console.log(error)
-		}
+		} catch (error) {}
 	})
 }

@@ -593,7 +593,6 @@ async function calculateOperatorApy(operator: any) {
 			return []
 
 		for (const avs of avsWithEligibleRewardSubmissions) {
-			console.log(avs.avs.restakeableStrategies)
 			const shares = withOperatorShares(avs.avs.operators).filter(
 				(s) => avs.avs.restakeableStrategies?.indexOf(s.strategyAddress.toLowerCase()) !== -1
 			)
@@ -697,9 +696,7 @@ async function calculateOperatorApy(operator: any) {
 		}
 
 		return Array.from(avsApyMap.values())
-	} catch (e) {
-		console.log(e)
-	}
+	} catch {}
 }
 
 /**

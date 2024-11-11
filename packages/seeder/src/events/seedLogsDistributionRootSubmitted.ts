@@ -85,8 +85,6 @@ export async function seedLogsDistributionRootSubmitted(toBlock?: bigint, fromBl
 				dbTransactions,
 				`[Logs] Distribution Root Submitted from: ${fromBlock} to: ${toBlock} size: ${seedLength}`
 			)
-		} catch (error) {
-			console.log(error)
-		}
+		} catch (error) {}
 	})
 }
