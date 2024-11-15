@@ -670,11 +670,19 @@ async function calculateStakerRewards(
 			}
 		})
 
+		const isTracked =
+			(await prisma.user.count({
+				where: {
+					address: staker.address.toLowerCase()
+				}
+			})) > 0
+
 		return {
 			aggregateApy: avsApys.reduce((sum, avs) => sum + avs.apy, 0),
 			tokenAmounts,
 			strategyApys,
-			avsApys
+			avsApys,
+			isTracked
 		}
 	} catch {}
 }

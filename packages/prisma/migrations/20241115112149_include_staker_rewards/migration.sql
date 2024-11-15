@@ -6,10 +6,12 @@
 
 */
 -- AlterTable
-ALTER TABLE "Avs" DROP COLUMN "apy";
+ALTER TABLE "Avs" DROP COLUMN "apy",
+ADD COLUMN     "maxApy" DECIMAL(8,4) NOT NULL DEFAULT 0;
 
 -- AlterTable
-ALTER TABLE "Operator" DROP COLUMN "apy";
+ALTER TABLE "Operator" DROP COLUMN "apy",
+ADD COLUMN     "maxApy" DECIMAL(8,4) NOT NULL DEFAULT 0;
 
 -- CreateTable
 CREATE TABLE "StakerTokenRewards" (

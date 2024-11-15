@@ -29,6 +29,7 @@ model Avs {
 
   totalStakers   Int     @default(0)
   totalOperators Int     @default(0)
+  maxApy         Decimal @default(0) @db.Decimal(8, 4)
 
   tvlEth     Decimal @default(0) @db.Decimal(20, 8)
   sharesHash String?
@@ -126,6 +127,7 @@ model Operator {
 
   totalStakers Int     @default(0)
   totalAvs     Int     @default(0)
+  maxApy       Decimal @default(0) @db.Decimal(8, 4)
 
   tvlEth     Decimal @default(0) @db.Decimal(20, 8)
   sharesHash String?
