@@ -108,13 +108,16 @@ export const DelegationStakerEventQuerySchema = refineStakerEventQuerySchema({
 		.describe('The contract address of the restaking strategy')
 }).refine(
 	(data) => {
-		if ((data.type === 'DELEGATION' || data.type === 'UNDELEGATION') && data.strategyAddress) {
-			return false
+		if (data.type === 'DELEGATION' || data.type === 'UNDELEGATION') {
+			if (data.strategyAddress || data.withTokenData || data.withEthValue) {
+				return false
+			}
 		}
 		return true
 	},
 	{
-		message: 'strategyAddress filter is not supported for DELEGATION or UNDELEGATION event types.',
+		message:
+			"'strategyAddress','withTokenData', and 'withEthValue' filters are not supported for DELEGATION or UNDELEGATION  event types.",
 		path: ['strategyAddress']
 	}
 )
@@ -155,30 +158,18 @@ export const WithdrawalStakerEventQuerySchema = refineStakerEventQuerySchema({
 		.regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address')
 		.optional()
 		.describe('The address of the withdrawer')
-})
-	.refine(
-		(data) => {
-			if (data.type === 'WITHDRAWAL_COMPLETED' && (data.delegatedTo || data.withdrawer)) {
+}).refine(
+	(data) => {
+		if (data.type === 'WITHDRAWAL_COMPLETED') {
+			if (data.delegatedTo || data.withdrawer || data.withTokenData || data.withEthValue) {
 				return false
 			}
-			return true
-		},
-		{
-			message:
-				"'delegatedTo' and 'withdrawer' filters are not supported for WITHDRAWAL_QUEUED event types.",
-			path: ['delegatedTo', 'withdrawer']
 		}
-	)
-	.refine(
-		(data) => {
-			if (data.type === 'WITHDRAWAL_COMPLETED' && (data.withTokenData || data.withEthValue)) {
-				return false
-			}
-			return true
-		},
-		{
-			message:
-				"'withTokenData' and 'withEthValue' filters are not supported for WITHDRAWAL_QUEUED event types.",
-			path: ['withTokenData', 'withEthValue']
-		}
-	)
+		return true
+	},
+	{
+		message:
+			"'delegatedTo', 'withdrawer', 'withTokenData', and 'withEthValue' filters are not supported for WITHDRAWAL_COMPLETED event types.",
+		path: ['delegatedTo', 'withdrawer', 'withTokenData', 'withEthValue']
+	}
+)
