@@ -7,6 +7,7 @@ import { getViemClient } from '../../viem/viemClient'
 import { getStrategiesWithShareUnderlying, sharesToTVL } from '../../utils/strategyShares'
 import { EthereumAddressSchema } from '../../schema/zod/schemas/base/ethereumAddress'
 import { UpdatedSinceQuerySchema } from '../../schema/zod/schemas/updatedSinceQuery'
+import { ActiveQuerySchema } from '../../schema/zod/schemas/activeQuery'
 
 /**
  * Route to get a list of all stakers
@@ -18,23 +19,50 @@ export async function getAllStakers(req: Request, res: Response) {
 	// Validate pagination query
 	const result = PaginationQuerySchema.and(WithTvlQuerySchema)
 		.and(UpdatedSinceQuerySchema)
+		.and(ActiveQuerySchema)
 		.safeParse(req.query)
 
 	if (!result.success) {
 		return handleAndReturnErrorResponse(req, res, result.error)
 	}
-	const { skip, take, withTvl, updatedSince } = result.data
+	const { skip, take, withTvl, updatedSince, active } = result.data
 
 	try {
 		// Fetch count and record
 		const stakersCount = await prisma.staker.count({
-			where: updatedSince ? { updatedAt: { gte: new Date(updatedSince) } } : {}
+			where: {
+				...(updatedSince ? { updatedAt: { gte: new Date(updatedSince) } } : {}),
+				...(active
+					? {
+							shares: {
+								some: {
+									shares: {
+										not: '0'
+									}
+								}
+							}
+					  }
+					: {})
+			}
 		})
 
 		const stakersRecords = await prisma.staker.findMany({
 			skip,
 			take,
-			where: updatedSince ? { updatedAt: { gte: new Date(updatedSince) } } : {},
+			where: {
+				...(updatedSince ? { updatedAt: { gte: new Date(updatedSince) } } : {}),
+				...(active
+					? {
+							shares: {
+								some: {
+									shares: {
+										not: '0'
+									}
+								}
+							}
+					  }
+					: {})
+			},
 			include: {
 				shares: {
 					select: { strategyAddress: true, shares: true }
