@@ -680,7 +680,7 @@ export async function getStakerWithdrawalEvents(req: Request, res: Response) {
 			if (queuedResult.eventRecords.length > 0) {
 				return res.send({
 					data: queuedResult.eventRecords,
-					meta: { total: queuedResult.eventRecords.length, skip, take }
+					meta: { total: queuedResult.eventCount, skip, take }
 				})
 			}
 
@@ -695,7 +695,7 @@ export async function getStakerWithdrawalEvents(req: Request, res: Response) {
 
 			return res.send({
 				data: completedResult.eventRecords,
-				meta: { total: completedResult.eventRecords.length, skip, take }
+				meta: { total: completedResult.eventCount, skip, take }
 			})
 		}
 
@@ -710,7 +710,7 @@ export async function getStakerWithdrawalEvents(req: Request, res: Response) {
 			)
 			return res.send({
 				data: completedResult.eventRecords,
-				meta: { total: completedResult.eventRecords.length, skip, take }
+				meta: { total: completedResult.eventCount, skip, take }
 			})
 		}
 
@@ -725,7 +725,7 @@ export async function getStakerWithdrawalEvents(req: Request, res: Response) {
 			)
 			return res.send({
 				data: queuedResult.eventRecords,
-				meta: { total: queuedResult.eventRecords.length, skip, take }
+				meta: { total: queuedResult.eventCount, skip, take }
 			})
 		}
 
@@ -744,7 +744,8 @@ export async function getStakerWithdrawalEvents(req: Request, res: Response) {
 			.map((event) => (event.args as WithdrawalArgs).withdrawalRoot)
 			.filter((root): root is string => root !== undefined)
 
-		if (withdrawalRoots.length) {
+		let completedEventCount = 0
+		if (withdrawalRoots != null && withdrawalRoots.length) {
 			const completedResult = await fetchAndMapStakerEvents(
 				'WITHDRAWAL_COMPLETED',
 				{ withdrawalRoot: { in: withdrawalRoots } },
@@ -754,13 +755,18 @@ export async function getStakerWithdrawalEvents(req: Request, res: Response) {
 				take
 			)
 			completedEvents = completedResult.eventRecords
+			completedEventCount = completedResult.eventCount
 		}
 
 		const eventRecords =
 			type === 'WITHDRAWAL_COMPLETED' ? completedEvents : [...queuedEvents, ...completedEvents]
+		const eventCount =
+			type === 'WITHDRAWAL_COMPLETED'
+				? completedEventCount
+				: queuedResult.eventCount + completedEventCount
 		res.send({
 			data: eventRecords,
-			meta: { total: eventRecords.length, skip, take }
+			meta: { total: eventCount, skip, take }
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
