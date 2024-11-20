@@ -699,7 +699,7 @@ export async function getStakerWithdrawalEvents(req: Request, res: Response) {
 			})
 		}
 
-		if (type === 'WITHDRAWAL_COMPLETED' && (withdrawalRoot || txHash)) {
+		if (type === 'WITHDRAWAL_COMPLETED' && withdrawalRoot) {
 			const completedResult = await fetchAndMapStakerEvents(
 				'WITHDRAWAL_COMPLETED',
 				completedFilterQuery,
@@ -714,22 +714,6 @@ export async function getStakerWithdrawalEvents(req: Request, res: Response) {
 			})
 		}
 
-		if (type === 'WITHDRAWAL_QUEUED') {
-			const queuedResult = await fetchAndMapStakerEvents(
-				'WITHDRAWAL_QUEUED',
-				queuedFilterQuery,
-				withTokenData,
-				withEthValue,
-				skip,
-				take
-			)
-			return res.send({
-				data: queuedResult.eventRecords,
-				meta: { total: queuedResult.eventCount, skip, take }
-			})
-		}
-
-		// Default case: Fetch queued events, then use withdrawalRoots for completed events
 		const queuedResult = await fetchAndMapStakerEvents(
 			'WITHDRAWAL_QUEUED',
 			queuedFilterQuery,
@@ -738,6 +722,15 @@ export async function getStakerWithdrawalEvents(req: Request, res: Response) {
 			skip,
 			take
 		)
+
+		if (type === 'WITHDRAWAL_QUEUED') {
+			return res.send({
+				data: queuedResult.eventRecords,
+				meta: { total: queuedResult.eventCount, skip, take }
+			})
+		}
+
+		// Default case: Fetch queued events, then use withdrawalRoots for completed events
 		queuedEvents = queuedResult.eventRecords
 
 		const withdrawalRoots = queuedEvents
