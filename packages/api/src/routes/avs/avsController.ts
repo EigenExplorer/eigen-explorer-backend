@@ -712,6 +712,10 @@ export async function getAVSRewardsEvents(req: Request, res: Response) {
 
 		const model = prisma['eventLogs_AVSRewardsSubmission'] as any
 
+		const totalRecords = await model.count({
+			where: baseFilterQuery
+		})
+
 		const eventLogs = await model.findMany({
 			where: baseFilterQuery,
 			skip,
@@ -806,7 +810,7 @@ export async function getAVSRewardsEvents(req: Request, res: Response) {
 		res.send({
 			data: eventRecords,
 			meta: {
-				total: eventRecords.length,
+				total: totalRecords,
 				skip,
 				take
 			}
