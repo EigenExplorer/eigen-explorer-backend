@@ -13,15 +13,23 @@ import {
 	WithdrawalStakerEventQuerySchema
 } from '../../schema/zod/schemas/stakerEvents'
 
+type UnderlyingTokenDetails = {
+	underlyingToken?: string
+	underlyingValue?: number
+	ethValue?: number
+}
+
+type StrategyData = {
+	strategy: string
+	shares: number
+} & UnderlyingTokenDetails
+
 type EventRecord = {
 	type: string
 	tx: string
 	blockNumber: number
 	blockTime: Date
 	args: EventArgs
-	underlyingToken?: string
-	underlyingValue?: number
-	ethValue?: number
 }
 
 type EventArgs = DelegationArgs | DepositArgs | WithdrawalArgs
@@ -30,13 +38,13 @@ type DelegationArgs = {
 	operator: string
 	strategy?: string
 	shares?: number
-}
+} & UnderlyingTokenDetails
 
 type DepositArgs = {
 	token: string
 	strategy: string
 	shares: number
-}
+} & UnderlyingTokenDetails
 
 type WithdrawalArgs = {
 	withdrawalRoot: string
@@ -44,21 +52,7 @@ type WithdrawalArgs = {
 	withdrawer?: string
 	nonce?: number
 	startBlock?: number
-	strategies?: {
-		strategy: string
-		shares: number
-		underlyingToken?: string
-		underlyingValue?: number
-		ethValue?: number
-	}[]
-}
-
-type DetailedStrategyData = {
-	strategy: string
-	shares: number
-	underlyingToken?: string
-	underlyingValue?: number
-	ethValue?: number
+	strategies?: StrategyData[]
 }
 
 /**
@@ -867,7 +861,7 @@ async function fetchAndMapStakerEvents(
 
 	const detailedEventRecords = await Promise.all(
 		eventRecords.map(async (event) => {
-			const detailedStrategies: DetailedStrategyData[] = []
+			const detailedStrategies: StrategyData[] = []
 			let underlyingToken: string | undefined
 			let underlyingValue: number | undefined
 			let ethValue: number | undefined
@@ -878,8 +872,6 @@ async function fetchAndMapStakerEvents(
 						strategyAddress,
 						BigInt(event.shares[index])
 					)
-
-					console.log('withEthValue', withEthValue)
 
 					const strategyData = {
 						strategy: strategyAddress,
