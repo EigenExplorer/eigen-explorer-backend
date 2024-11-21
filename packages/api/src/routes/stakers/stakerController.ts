@@ -667,51 +667,22 @@ export async function getStakerWithdrawalEvents(req: Request, res: Response) {
 			})
 		}
 
-		if (txHash) {
-			const queuedResult = await fetchAndMapStakerEvents(
-				'WITHDRAWAL_QUEUED',
-				queuedFilterQuery,
+		if (txHash || (type === 'WITHDRAWAL_COMPLETED' && withdrawalRoot)) {
+			const completedResult = await fetchAndMapStakerEvents(
+				'WITHDRAWAL_COMPLETED',
+				completedFilterQuery,
 				withTokenData,
 				withEthValue,
 				skip,
 				take
 			)
 
-			if (queuedResult.eventRecords.length > 0) {
+			if (completedResult.eventRecords.length > 0 && type != 'WITHDRAWAL_QUEUED') {
 				return res.send({
-					data: queuedResult.eventRecords,
-					meta: { total: queuedResult.eventCount, skip, take }
+					data: completedResult.eventRecords,
+					meta: { total: completedResult.eventCount, skip, take }
 				})
 			}
-
-			const completedResult = await fetchAndMapStakerEvents(
-				'WITHDRAWAL_COMPLETED',
-				completedFilterQuery,
-				withTokenData,
-				withEthValue,
-				skip,
-				take
-			)
-
-			return res.send({
-				data: completedResult.eventRecords,
-				meta: { total: completedResult.eventCount, skip, take }
-			})
-		}
-
-		if (type === 'WITHDRAWAL_COMPLETED' && withdrawalRoot) {
-			const completedResult = await fetchAndMapStakerEvents(
-				'WITHDRAWAL_COMPLETED',
-				completedFilterQuery,
-				withTokenData,
-				withEthValue,
-				skip,
-				take
-			)
-			return res.send({
-				data: completedResult.eventRecords,
-				meta: { total: completedResult.eventCount, skip, take }
-			})
 		}
 
 		const queuedResult = await fetchAndMapStakerEvents(
@@ -722,6 +693,20 @@ export async function getStakerWithdrawalEvents(req: Request, res: Response) {
 			skip,
 			take
 		)
+
+		if (txHash) {
+			if (queuedResult.eventRecords.length > 0 && type !== 'WITHDRAWAL_COMPLETED') {
+				return res.send({
+					data: queuedResult.eventRecords,
+					meta: { total: queuedResult.eventCount, skip, take }
+				})
+			}
+
+			return res.send({
+				data: [],
+				meta: { total: 0, skip, take }
+			})
+		}
 
 		if (type === 'WITHDRAWAL_QUEUED') {
 			return res.send({
