@@ -459,7 +459,7 @@ export async function getStakerDelegationEvents(req: Request, res: Response) {
 	try {
 		const {
 			type,
-			operator,
+			operatorAddress,
 			strategyAddress,
 			txHash,
 			startAt,
@@ -476,9 +476,9 @@ export async function getStakerDelegationEvents(req: Request, res: Response) {
 				contains: address,
 				mode: 'insensitive'
 			},
-			...(operator && {
+			...(operatorAddress && {
 				operator: {
-					contains: operator,
+					contains: operatorAddress,
 					mode: 'insensitive'
 				}
 			}),
@@ -550,8 +550,17 @@ export async function getStakerDepositEvents(req: Request, res: Response) {
 	if (!result.success) return handleAndReturnErrorResponse(req, res, result.error)
 
 	try {
-		const { txHash, startAt, endAt, token, strategy, skip, take, withTokenData, withEthValue } =
-			result.data
+		const {
+			txHash,
+			startAt,
+			endAt,
+			tokenAddress,
+			strategyAddress,
+			skip,
+			take,
+			withTokenData,
+			withEthValue
+		} = result.data
 		const { address } = req.params
 
 		const baseFilterQuery = {
@@ -559,15 +568,15 @@ export async function getStakerDepositEvents(req: Request, res: Response) {
 				contains: address,
 				mode: 'insensitive'
 			},
-			...(token && {
+			...(tokenAddress && {
 				token: {
-					contains: token,
+					contains: tokenAddress,
 					mode: 'insensitive'
 				}
 			}),
-			...(strategy && {
+			...(strategyAddress && {
 				strategy: {
-					contains: strategy,
+					contains: strategyAddress,
 					mode: 'insensitive'
 				}
 			}),

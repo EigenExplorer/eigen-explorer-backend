@@ -124,7 +124,6 @@ export const DelegationStakerEventQuerySchema = refineStakerEventQuerySchema({
 
 // Schema for Deposit events
 export const DepositStakerEventQuerySchema = refineStakerEventQuerySchema({
-	type: z.literal('DEPOSIT').optional().describe('The type of the deposit event'),
 	tokenAddress: z
 		.string()
 		.regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid token address')
