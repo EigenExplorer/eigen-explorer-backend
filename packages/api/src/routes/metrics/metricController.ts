@@ -2094,13 +2094,9 @@ async function doGetRestakingRatio(
 async function doGetDeploymentRatio(
 	withChange: boolean
 ): Promise<RatioWithoutChange | RatioWithChange> {
-	const tvlRestaking = (await doGetTvl(withChange)).tvlRestaking
-	const tvlBeaconChain = await doGetTvlBeaconChain(withChange)
-
-	const restakingTvlValue = extractTvlValue(tvlRestaking)
-	const beaconChainTvlValue = extractTvlValue(tvlBeaconChain)
-
-	const totalTvl = restakingTvlValue + beaconChainTvlValue
+	const totalTvl =
+		extractTvlValue((await doGetTvl(false)).tvlRestaking) +
+		extractTvlValue(await doGetTvlBeaconChain(false))
 
 	const ethPrices = await fetchCurrentEthPrices()
 	const lastMetricsTimestamps = await prisma.metricOperatorStrategyUnit.groupBy({
@@ -2133,6 +2129,9 @@ async function doGetDeploymentRatio(
 	if (!withChange) {
 		return currentDeploymentRatio as RatioWithoutChange
 	}
+
+	const tvlRestaking = (await doGetTvl(withChange)).tvlRestaking
+	const tvlBeaconChain = await doGetTvlBeaconChain(withChange)
 
 	const tvlEth24hChange =
 		(tvlRestaking as TvlWithChange).change24h.value +
