@@ -445,35 +445,31 @@ export async function getOperatorEvents(req: Request, res: Response) {
 			}
 		}
 
-		let eventRecords: EventRecord[] = []
-		let eventCount = 0
-
 		const eventTypesToFetch = type
 			? [type]
 			: strategyAddress
 			? ['SHARES_INCREASED', 'SHARES_DECREASED']
 			: ['SHARES_INCREASED', 'SHARES_DECREASED', 'DELEGATION', 'UNDELEGATION']
 
-		const fetchEventsForTypes = async (types: string[]) => {
-			const results = await Promise.all(
-				types.map((eventType) =>
-					fetchAndMapEvents(eventType, baseFilterQuery, withTokenData, withEthValue, skip, take)
+		const allEvents = (
+			await Promise.all(
+				eventTypesToFetch.map((eventType) =>
+					fetchAndMapEvents(eventType, baseFilterQuery, withTokenData, withEthValue)
 				)
 			)
-			return results
-		}
+		).flatMap((result) => result.eventRecords)
 
-		const results = await fetchEventsForTypes(eventTypesToFetch)
+		const sortedEvents = allEvents.sort((a, b) => {
+			if (b.blockNumber > a.blockNumber) return 1
+			if (b.blockNumber < a.blockNumber) return -1
+			return 0
+		})
 
-		eventRecords = results.flatMap((result) => result.eventRecords)
-		eventRecords = eventRecords
-			.sort((a, b) => (b.blockNumber > a.blockNumber ? 1 : -1))
-			.slice(0, take)
-
-		eventCount = results.reduce((acc, result) => acc + result.eventCount, 0)
+		const paginatedEvents = sortedEvents.slice(skip, skip + take)
+		const eventCount = allEvents.length
 
 		const response = {
-			data: eventRecords,
+			data: paginatedEvents,
 			meta: {
 				total: eventCount,
 				skip,
@@ -686,10 +682,8 @@ async function fetchAndMapEvents(
 	eventType: string,
 	baseFilterQuery: any,
 	withTokenData: boolean,
-	withEthValue: boolean,
-	skip: number,
-	take: number
-): Promise<{ eventRecords: EventRecord[]; eventCount: number }> {
+	withEthValue: boolean
+): Promise<{ eventRecords: EventRecord[] }> {
 	const modelName = (() => {
 		switch (eventType) {
 			case 'SHARES_INCREASED':
@@ -707,14 +701,8 @@ async function fetchAndMapEvents(
 
 	const model = prisma[modelName] as any
 
-	const eventCount = await model.count({
-		where: baseFilterQuery
-	})
-
 	const eventLogs = await model.findMany({
 		where: baseFilterQuery,
-		skip,
-		take,
 		orderBy: { blockNumber: 'desc' }
 	})
 
@@ -779,7 +767,6 @@ async function fetchAndMapEvents(
 	)
 
 	return {
-		eventRecords,
-		eventCount
+		eventRecords
 	}
 }
