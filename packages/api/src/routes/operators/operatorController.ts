@@ -389,13 +389,13 @@ export async function getOperatorRewards(req: Request, res: Response) {
 }
 
 /**
- * Function for route /operators/:address/events
- * Fetches and returns a list of events for a specific operator with optional filters
+ * Function for route /operators/:address/events/delegation
+ * Fetches and returns a list of delegation-related events for a specific operator with optional filters
  *
  * @param req
  * @param res
  */
-export async function getOperatorEvents(req: Request, res: Response) {
+export async function getOperatorDelegationEvents(req: Request, res: Response) {
 	const result = OperatorEventQuerySchema.and(PaginationQuerySchema).safeParse(req.query)
 	if (!result.success) {
 		return handleAndReturnErrorResponse(req, res, result.error)
