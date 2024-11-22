@@ -508,16 +508,30 @@ export async function getStakerDelegationEvents(req: Request, res: Response) {
 
 		const results = await Promise.all(
 			eventTypes.map((eventType) =>
-				fetchAndMapStakerEvents(eventType, baseFilterQuery, withTokenData, withEthValue, skip, take)
+				fetchAndMapStakerEvents(
+					eventType,
+					baseFilterQuery,
+					withTokenData,
+					withEthValue,
+					0,
+					undefined
+				)
 			)
 		)
 
-		const eventRecords = results.flatMap((result) => result.eventRecords)
-		const eventCount = results.reduce((acc, result) => acc + result.eventCount, 0)
+		const allEvents = results.flatMap((result) => result.eventRecords)
+		const sortedEvents = allEvents.sort((a, b) => {
+			if (b.blockNumber > a.blockNumber) return 1
+			if (b.blockNumber < a.blockNumber) return -1
+			return 0
+		})
+
+		const paginatedEvents = sortedEvents.slice(skip, skip + take)
+		const totalEventCount = allEvents.length
 
 		res.send({
-			data: eventRecords,
-			meta: { total: eventCount, skip, take }
+			data: paginatedEvents,
+			meta: { total: totalEventCount, skip, take }
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
@@ -690,8 +704,8 @@ export async function getStakerWithdrawalEvents(req: Request, res: Response) {
 			queuedFilterQuery,
 			withTokenData,
 			withEthValue,
-			skip,
-			take
+			0,
+			undefined
 		)
 
 		if (txHash) {
@@ -709,8 +723,10 @@ export async function getStakerWithdrawalEvents(req: Request, res: Response) {
 		}
 
 		if (type === 'WITHDRAWAL_QUEUED') {
+			const paginatedEvents = queuedResult.eventRecords.slice(skip, skip + take)
+
 			return res.send({
-				data: queuedResult.eventRecords,
+				data: paginatedEvents,
 				meta: { total: queuedResult.eventCount, skip, take }
 			})
 		}
@@ -729,8 +745,8 @@ export async function getStakerWithdrawalEvents(req: Request, res: Response) {
 				{ withdrawalRoot: { in: withdrawalRoots } },
 				withTokenData,
 				withEthValue,
-				skip,
-				take
+				0,
+				undefined
 			)
 			completedEvents = completedResult.eventRecords
 			completedEventCount = completedResult.eventCount
@@ -738,12 +754,20 @@ export async function getStakerWithdrawalEvents(req: Request, res: Response) {
 
 		const eventRecords =
 			type === 'WITHDRAWAL_COMPLETED' ? completedEvents : [...queuedEvents, ...completedEvents]
+
+		const sortedEvents = eventRecords.sort((a, b) => {
+			if (b.blockNumber > a.blockNumber) return 1
+			if (b.blockNumber < a.blockNumber) return -1
+			return 0
+		})
+
+		const paginatedEvents = sortedEvents.slice(skip, skip + take)
 		const eventCount =
 			type === 'WITHDRAWAL_COMPLETED'
 				? completedEventCount
 				: queuedResult.eventCount + completedEventCount
 		res.send({
-			data: eventRecords,
+			data: paginatedEvents,
 			meta: { total: eventCount, skip, take }
 		})
 	} catch (error) {
@@ -810,7 +834,7 @@ async function fetchAndMapStakerEvents(
 	withTokenData: boolean,
 	withEthValue: boolean,
 	skip: number,
-	take: number
+	take?: number
 ): Promise<{ eventRecords: EventRecord[]; eventCount: number }> {
 	const modelName = (() => {
 		switch (eventType) {
