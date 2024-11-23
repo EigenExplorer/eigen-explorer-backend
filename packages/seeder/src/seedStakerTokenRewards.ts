@@ -266,6 +266,7 @@ async function writeToDb(
 	const dbTransactions: any[] = []
 
 	if (action === 'update') {
+		// Delete all existing snapshots of tracked Stakers
 		dbTransactions.push(
 			prismaClient.stakerTokenRewards.deleteMany({
 				where: {
@@ -275,8 +276,23 @@ async function writeToDb(
 				}
 			})
 		)
+	} else {
+		// Mark User as tracked
+		dbTransactions.push(
+			prismaClient.user.updateMany({
+				where: {
+					address: {
+						in: batch.map((record) => record.stakerAddress)
+					}
+				},
+				data: {
+					isTracked: true
+				}
+			})
+		)
 	}
 
+	// Write all snapshots to db
 	dbTransactions.push(
 		prismaClient.stakerTokenRewards.createMany({
 			data: batch,

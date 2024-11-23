@@ -190,9 +190,12 @@ model StakerTokenRewards {
 
 model User {
   address   String  @id
+  isTracked Boolean
   createdAt DateTime @default(now())
   
   staker Staker? @relation(fields: [address], references: [address])
+
+  @@index([address])
 }
 
 model Deposit {

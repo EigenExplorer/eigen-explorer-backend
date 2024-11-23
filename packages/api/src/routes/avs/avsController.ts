@@ -557,7 +557,7 @@ export async function getAVSRewards(req: Request, res: Response) {
 				currentSubmission.rewardsSubmissionHash !== submission.rewardsSubmissionHash
 			) {
 				if (currentSubmission) {
-					currentSubmission.totalAmount = currentTotalAmount.toString()
+					currentSubmission.totalAmount = currentTotalAmount.toFixed(0)
 					result.submissions.push(currentSubmission)
 					result.totalSubmissions++
 				}
@@ -596,13 +596,13 @@ export async function getAVSRewards(req: Request, res: Response) {
 			currentSubmission.strategies.push({
 				strategyAddress,
 				multiplier: submission.multiplier?.toString() || '0',
-				amount: amount.toString()
+				amount: amount.toFixed(0)
 			})
 		}
 
 		// Add final submission
 		if (currentSubmission) {
-			currentSubmission.totalAmount = currentTotalAmount.toString()
+			currentSubmission.totalAmount = currentTotalAmount.toFixed(0)
 			result.submissions.push(currentSubmission)
 			result.totalSubmissions++
 			result.totalRewards += currentTotalAmountEth.toNumber() // 18 decimals

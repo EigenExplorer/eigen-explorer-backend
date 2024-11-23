@@ -26,6 +26,7 @@ CREATE TABLE "StakerTokenRewards" (
 -- CreateTable
 CREATE TABLE "User" (
     "address" TEXT NOT NULL,
+    "isTracked" BOOLEAN NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("address")
@@ -48,6 +49,9 @@ CREATE TABLE "EventLogs_DistributionRootSubmitted" (
 
 -- CreateIndex
 CREATE INDEX "StakerTokenRewards_stakerAddress_idx" ON "StakerTokenRewards"("stakerAddress");
+
+-- CreateIndex
+CREATE INDEX "User_address_idx" ON "User"("address");
 
 -- CreateIndex
 CREATE INDEX "EventLogs_DistributionRootSubmitted_rewardsCalculationEndTi_idx" ON "EventLogs_DistributionRootSubmitted"("rewardsCalculationEndTimestamp");
