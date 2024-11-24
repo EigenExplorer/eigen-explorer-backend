@@ -163,8 +163,6 @@ model Staker {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @default(now())
 
-  User User?
-
   @@index([operatorAddress])
 }
 
@@ -192,8 +190,6 @@ model User {
   address   String  @id
   isTracked Boolean
   createdAt DateTime @default(now())
-  
-  staker Staker? @relation(fields: [address], references: [address])
 
   @@index([address])
 }

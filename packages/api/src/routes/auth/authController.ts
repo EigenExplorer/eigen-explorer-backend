@@ -21,13 +21,17 @@ export async function checkUserStatus(req: Request, res: Response) {
 	try {
 		const { address } = req.params
 
-		const user = await prisma.user.findUnique({
-			where: { address: address.toLowerCase() },
-			include: { staker: true }
-		})
+		const [user, staker] = await Promise.all([
+			prisma.user.findUnique({
+				where: { address: address.toLowerCase() }
+			}),
+			prisma.staker.findUnique({
+				where: { address: address.toLowerCase() }
+			})
+		])
 
 		const isRegistered = !!user
-		const isStaker = !!user?.staker
+		const isStaker = !!staker
 		const isTracked = !!user?.isTracked
 
 		res.send({ isRegistered, isStaker, isTracked })

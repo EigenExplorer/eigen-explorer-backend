@@ -54,11 +54,7 @@ export async function seedStakerTokenRewards() {
 		const take = 10_000
 
 		while (true) {
-			const trackedStakers = await prismaClient.user.findMany({
-				select: {
-					address: true,
-					staker: true
-				},
+			const allUsers = await prismaClient.user.findMany({
 				orderBy: {
 					createdAt: 'desc'
 				},
@@ -66,7 +62,7 @@ export async function seedStakerTokenRewards() {
 				take
 			})
 
-			if (trackedStakers.length === 0) {
+			if (allUsers.length === 0) {
 				console.log('[In Sync] [Data] Staker Token Rewards')
 				return
 			}
@@ -82,51 +78,49 @@ export async function seedStakerTokenRewards() {
 
 			let snapshotsToUpdate: Set<string> = new Set()
 			let snapshotsToCreate: Set<string> = new Set()
+			let usersToMarkTracked: Set<string> = new Set()
 
 			if (
 				!latestIndexedSnapshot ||
 				latestIndexedSnapshot.timestamp.toISOString().split('T')[0] !== latestSnapshotTimestamp
 			) {
 				// All stakers need update
-				snapshotsToUpdate = new Set(trackedStakers.map((staker) => staker.address))
+				snapshotsToUpdate = new Set(allUsers.map((staker) => staker.address))
+
+				// Grab untracked addresses
+				usersToMarkTracked = new Set(
+					allUsers.filter((staker) => !staker.isTracked).map((staker) => staker.address)
+				)
 			} else {
 				// New/stale stakers need update
-				const [trackedSnapshots, staleSnapshots] = await Promise.all([
-					prismaClient.stakerTokenRewards.findMany({
-						where: {
-							stakerAddress: {
-								in: trackedStakers.map((staker) => staker.address)
-							}
+				const staleSnapshots = await prismaClient.stakerTokenRewards.findMany({
+					where: {
+						timestamp: {
+							not: new Date(latestSnapshotTimestamp)
 						}
-					}),
-					prismaClient.stakerTokenRewards.findMany({
-						where: {
-							timestamp: {
-								not: new Date(latestSnapshotTimestamp)
-							}
-						},
-						select: {
-							stakerAddress: true
-						},
-						distinct: ['stakerAddress']
-					})
-				])
+					},
+					select: {
+						stakerAddress: true
+					},
+					distinct: ['stakerAddress']
+				})
 
-				// Grab untracked addresses (those in `trackedStakers` but not in `trackedSnapshots`)
+				// Grab untracked addresses
 				snapshotsToCreate = new Set(
-					trackedStakers
-						.filter(
-							(staker) =>
-								!trackedSnapshots.map((snapshot) => snapshot.stakerAddress).includes(staker.address)
-						)
-						.map((staker) => staker.address)
+					allUsers.filter((staker) => !staker.isTracked).map((staker) => staker.address)
 				)
+
+				usersToMarkTracked = snapshotsToCreate
 
 				// Grab stale addresses
 				snapshotsToUpdate = new Set(staleSnapshots.map((record) => record.stakerAddress))
 			}
 
-			if (snapshotsToCreate.size === 0 && snapshotsToUpdate.size === 0) {
+			if (
+				snapshotsToCreate.size === 0 &&
+				snapshotsToUpdate.size === 0 &&
+				usersToMarkTracked.size === 0
+			) {
 				console.log('[In Sync] [Data] Staker Reward Snapshots')
 				return
 			}
@@ -174,14 +168,14 @@ export async function seedStakerTokenRewards() {
 							)
 						}
 
-						// If batch is full, save to database
+						// If batch is full, write to database
 						if (createBatchList.length >= BATCH_SIZE) {
-							await writeToDb(prismaClient, createBatchList, 'create')
+							await writeToDb(prismaClient, 'create', createBatchList)
 							createBatchList = []
 						}
 
 						if (updateBatchList.length >= BATCH_SIZE) {
-							await writeToDb(prismaClient, updateBatchList, 'update')
+							await writeToDb(prismaClient, 'update', updateBatchList)
 							updateBatchList = []
 						}
 					}
@@ -192,19 +186,25 @@ export async function seedStakerTokenRewards() {
 
 				// Save any remaining batch
 				if (createBatchList.length > 0) {
-					await writeToDb(prismaClient, createBatchList, 'create')
+					await writeToDb(prismaClient, 'create', createBatchList)
 				}
 
 				if (updateBatchList.length > 0) {
-					await writeToDb(prismaClient, updateBatchList, 'update')
+					await writeToDb(prismaClient, 'update', updateBatchList)
 				}
 			} finally {
 				reader.releaseLock()
 			}
 
+			if (usersToMarkTracked.size > 0) {
+				await writeToDb(prismaClient, undefined, undefined, usersToMarkTracked)
+			}
+
 			skip += take
 		}
-	} catch (error) {}
+	} catch (error) {
+		console.log(error)
+	}
 }
 
 function processLine(
@@ -257,32 +257,46 @@ function processLine(
 
 async function writeToDb(
 	prismaClient: prisma.PrismaClient,
-	batch: prisma.StakerTokenRewards[],
-	action: 'create' | 'update'
+	action?: 'create' | 'update',
+	batch?: prisma.StakerTokenRewards[],
+	usersToMark?: Set<string>
 ) {
-	if (batch.length === 0) return
-
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	const dbTransactions: any[] = []
 
-	if (action === 'update') {
-		// Delete all existing snapshots of tracked Stakers
-		dbTransactions.push(
-			prismaClient.stakerTokenRewards.deleteMany({
-				where: {
-					stakerAddress: {
-						in: batch.map((record) => record.stakerAddress)
+	if (batch && batch.length > 0) {
+		if (action === 'update') {
+			// Delete all existing snapshots of tracked Stakers
+			dbTransactions.push(
+				prismaClient.stakerTokenRewards.deleteMany({
+					where: {
+						stakerAddress: {
+							in: batch.map((record) => record.stakerAddress)
+						}
 					}
-				}
+				})
+			)
+		}
+
+		// Write all snapshots to db
+		dbTransactions.push(
+			prismaClient.stakerTokenRewards.createMany({
+				data: batch,
+				skipDuplicates: true
 			})
 		)
-	} else {
-		// Mark User as tracked
+
+		if (dbTransactions.length > 0) {
+			await bulkUpdateDbTransactions(dbTransactions, `[Data] Staker Token Rewards: ${batch.length}`)
+		}
+	}
+
+	if (usersToMark && usersToMark.size > 0) {
 		dbTransactions.push(
 			prismaClient.user.updateMany({
 				where: {
 					address: {
-						in: batch.map((record) => record.stakerAddress)
+						in: Array.from(usersToMark)
 					}
 				},
 				data: {
@@ -290,21 +304,10 @@ async function writeToDb(
 				}
 			})
 		)
-	}
 
-	// Write all snapshots to db
-	dbTransactions.push(
-		prismaClient.stakerTokenRewards.createMany({
-			data: batch,
-			skipDuplicates: true
-		})
-	)
-
-	if (dbTransactions.length > 0) {
-		await bulkUpdateDbTransactions(
-			dbTransactions,
-			`[Data] Staker Token Rewards batch size: ${batch.length}`
-		)
+		if (dbTransactions.length > 0) {
+			await bulkUpdateDbTransactions(dbTransactions, `[Data] Users tracked: ${usersToMark.size}`)
+		}
 	}
 }
 

@@ -55,6 +55,3 @@ CREATE INDEX "User_address_idx" ON "User"("address");
 
 -- CreateIndex
 CREATE INDEX "EventLogs_DistributionRootSubmitted_rewardsCalculationEndTi_idx" ON "EventLogs_DistributionRootSubmitted"("rewardsCalculationEndTimestamp");
-
--- AddForeignKey
-ALTER TABLE "User" ADD CONSTRAINT "User_address_fkey" FOREIGN KEY ("address") REFERENCES "Staker"("address") ON DELETE RESTRICT ON UPDATE CASCADE;
