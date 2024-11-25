@@ -8,7 +8,8 @@ import withdrawalRoutes from './withdrawals/withdrawalRoutes'
 import depositRoutes from './deposits/depositRoutes'
 import auxiliaryRoutes from './auxiliary/auxiliaryRoutes'
 import rewardRoutes from './rewards/rewardRoutes'
-import { rateLimiter } from '../utils/auth'
+import authRoutes from './auth/authRoutes'
+import { rateLimiter } from '../utils/authMiddleware'
 
 const apiRouter = express.Router()
 
@@ -30,5 +31,6 @@ apiRouter.use('/withdrawals', rateLimiter, withdrawalRoutes)
 apiRouter.use('/deposits', rateLimiter, depositRoutes)
 apiRouter.use('/aux', rateLimiter, auxiliaryRoutes)
 apiRouter.use('/rewards', rateLimiter, rewardRoutes)
+apiRouter.use('/auth', rateLimiter, authRoutes)
 
 export default apiRouter
