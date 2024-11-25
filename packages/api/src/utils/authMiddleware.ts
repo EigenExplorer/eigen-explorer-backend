@@ -4,59 +4,57 @@ import type { NextFunction, Request, Response } from 'express'
 import rateLimit from 'express-rate-limit'
 import authStore from './authStore'
 
+// --- Types ---
+
 interface User {
 	accessLevel: number
 	apiTokens: string[]
+	requests: number
 }
 
-/**
- * Rate limit settings for Free or no plan, access level = 0
- *
- */
-const unauthenticatedLimiter = rateLimit({
-	windowMs: 1 * 60 * 1000,
-	max: 30,
-	standardHeaders: true,
-	legacyHeaders: false,
-	keyGenerator: (req: Request): string => req.ip ?? 'unknown',
-	message:
-		"You've reached the limit of 30 requests per minute. Sign up for a plan on https://dev.eigenexplorer.com for increased limits."
-})
+interface Plan {
+	name: string
+	accessLevel: number
+	requestsPerMin?: number
+	requestsPerMonth?: number
+}
+
+// --- Config for plans we offer ---
+
+const PLANS: Record<number, Plan> = {
+	0: {
+		name: 'Free',
+		accessLevel: 0,
+		requestsPerMin: 30,
+		requestsPerMonth: 1_000
+	},
+	1: {
+		name: 'Basic',
+		accessLevel: 1,
+		requestsPerMin: 1_000,
+		requestsPerMonth: 10_000
+	},
+	999: {
+		name: 'Admin',
+		accessLevel: 999
+	}
+}
+
+// --- Authentication ---
 
 /**
- * Rate limit settings for Hobby plan, access level = 1
- *
- */
-const hobbyPlanLimiter = rateLimit({
-	windowMs: 1 * 60 * 1000,
-	max: 10_000,
-	standardHeaders: true,
-	legacyHeaders: false,
-	keyGenerator: (req: Request): string => req.header('X-API-Token') || '',
-	message:
-		"You've reached the limit of 10k requests per minute. Upgrade your plan for increased limits."
-})
-
-/**
- * Rate limit settings for Admin, access level = 999
- *
- */
-const adminLimiter = (_req: Request, _res: Response, next: NextFunction) => next() // No rate limit
-
-/**
- * Generate a rate limiter basis the caller's access level
+ * Authenticates the user via API Token and checks if they have hit their monthly limits.
  *
  * @param req
  * @param res
  * @param next
  * @returns
  */
-export const rateLimiter = async (req: Request, res: Response, next: NextFunction) => {
+export const authenticator = async (req: Request, res: Response, next: NextFunction) => {
 	const apiToken = req.header('X-API-Token')
 
 	if (!apiToken) {
 		req.accessLevel = 0
-		return unauthenticatedLimiter(req, res, next)
 	}
 
 	const updatedAt: number | undefined = authStore.get('updatedAt')
@@ -68,18 +66,97 @@ export const rateLimiter = async (req: Request, res: Response, next: NextFunctio
 	const accessLevel: number =
 		process.env.EE_AUTH_TOKEN === apiToken
 			? 999
-			: authStore.get(`apiToken:${apiToken}:accessLevel`) ?? 0
-	req.accessLevel = accessLevel // Access this in route functions to impose limits
+			: authStore.get(`apiToken:${apiToken}:accountRestricted`) === 0
+			? authStore.get(`apiToken:${apiToken}:accessLevel`) ?? 0
+			: -1
 
-	switch (accessLevel) {
-		case 999:
-			return adminLimiter(req, res, next)
-		case 1:
-			return hobbyPlanLimiter(req, res, next)
-		default:
-			return unauthenticatedLimiter(req, res, next)
+	/*
+	Note: Enable these checks in v2
+
+	if (accessLevel === -1) {
+		return res.status(401).json({
+			error: 'You have reached your monthly limit. Please contact us to increase limits.'
+		})
+	}
+
+	if (accessLevel === 0) {
+		return res.status(401).json({
+			error: `Missing or invalid API token. Please generate a valid token on https://dev.eigenexplorer.com and attach it with header 'X-API-Token'.`
+		})
+	}
+	*/
+
+	req.accessLevel = accessLevel
+
+	next()
+}
+
+// --- Rate Limiting ---
+
+/**
+ * Rate limit settings for each Plan
+ * Note: In v2, we remove the check for `accessLevel === 0` because unauthenticated users will not pass `authenticator`
+ *
+ */
+const createRateLimiter = (plan: Plan) => {
+	// No rate limits for admin
+	if (plan.accessLevel === 999) return (_req: Request, _res: Response, next: NextFunction) => next()
+
+	const limiter = rateLimit({
+		windowMs: 1 * 60 * 1000,
+		max: plan.requestsPerMin,
+		standardHeaders: true,
+		legacyHeaders: false,
+		keyGenerator: (req: Request): string =>
+			plan.accessLevel === 0 ? req.ip ?? 'unknown' : req.header('X-API-Token') || '',
+		message: `You've reached the limit of ${plan.requestsPerMin} requests per minute. ${
+			plan.accessLevel === 0
+				? 'Sign up for a plan on https://dev.eigenexplorer.com for increased limits.'
+				: 'Upgrade your plan for increased limits.'
+		}`
+	})
+
+	// If request passes rate limiter, increment counter
+	return (req: Request, res: Response, next: NextFunction) => {
+		const originalEnd = res.end
+
+		// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+		res.end = function (chunk?: any, encoding?: any, cb?: any) {
+			try {
+				if (res.statusCode >= 200 && res.statusCode < 300) {
+					const apiToken = req.header('X-API-Token')
+					if (apiToken) {
+						const currentCalls: number = authStore.get(`apiToken:${apiToken}:newRequests`) || 0
+						authStore.set(`apiToken:${apiToken}:newRequests`, currentCalls + 1)
+					}
+				}
+			} catch (error) {
+				console.error('Error incrementing request counter:', error)
+			}
+
+			res.end = originalEnd
+			return originalEnd.call(this, chunk, encoding, cb)
+		}
+
+		// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+		limiter(req, res, next as any)
 	}
 }
+
+/**
+ * Return a rate limiter basis the caller's access level
+ *
+ * @param req
+ * @param res
+ * @param next
+ * @returns
+ */
+export const rateLimiter = async (req: Request, res: Response, next: NextFunction) => {
+	const plan = PLANS[req.accessLevel || 0]
+	return createRateLimiter(plan)(req, res, next)
+}
+
+// --- Auth store management ---
 
 /**
  * Fetch all user auth data from Supabase edge function and refresh auth store.
@@ -106,8 +183,13 @@ export async function refreshStore() {
 		for (const user of users) {
 			const accessLevel = user.accessLevel || 0
 			const apiTokens = user.apiTokens ?? []
+			const requests = user.requests ?? 0
 			for (const apiToken of apiTokens) {
 				authStore.set(`apiToken:${apiToken}:accessLevel`, accessLevel)
+				authStore.set(
+					`apiToken:${apiToken}:accountRestricted`,
+					requests <= (PLANS[accessLevel].requestsPerMonth ?? Number.POSITIVE_INFINITY) ? 0 : 1
+				)
 			}
 		}
 
