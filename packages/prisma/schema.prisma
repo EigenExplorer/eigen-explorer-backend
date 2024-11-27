@@ -176,7 +176,7 @@ model StakerStrategyShares {
   @@index([stakerAddress])
 }
 
-model StakerTokenRewards {
+model StakerRewardSnapshot {
   stakerAddress    String
   tokenAddress     String
   cumulativeAmount Decimal @default(0) @db.Decimal(78, 18)
@@ -189,6 +189,7 @@ model StakerTokenRewards {
 model User {
   address   String  @id
   isTracked Boolean
+
   createdAt DateTime @default(now())
 
   @@index([address])
@@ -352,6 +353,20 @@ model MetricOperatorStrategyUnit {
 
   @@unique([operatorAddress, strategyAddress, timestamp])
   @@index([operatorAddress, strategyAddress])
+  @@index([timestamp])
+}
+
+model MetricStakerRewardUnit {
+  stakerAddress String
+  tokenAddress  String
+
+  cumulativeAmount       Decimal @default(0) @db.Decimal(78, 18)
+  changeCumulativeAmount Decimal @default(0) @db.Decimal(78, 18)
+
+  timestamp DateTime
+
+  @@id([stakerAddress, tokenAddress])
+  @@index([stakerAddress])
   @@index([timestamp])
 }
 

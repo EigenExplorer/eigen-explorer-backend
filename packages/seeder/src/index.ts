@@ -34,12 +34,13 @@ import { seedMetricsTvl } from './metrics/seedMetricsTvl'
 import { monitorAvsMetrics } from './monitors/avsMetrics'
 import { monitorOperatorMetrics } from './monitors/operatorMetrics'
 import { seedAvsStrategyRewards } from './seedAvsStrategyRewards'
-import { seedStakerTokenRewards } from './seedStakerTokenRewards'
+import { seedStakerRewardSnapshots } from './seedStakerRewardSnapshots'
 import { seedLogsAVSRewardsSubmission } from './events/seedLogsRewardsSubmissions'
 import { monitorAvsApy } from './monitors/avsApy'
 import { monitorOperatorApy } from './monitors/operatorApy'
 import { seedLogStrategyWhitelist } from './events/seedLogStrategyWhitelist'
 import { seedLogsDistributionRootSubmitted } from './events/seedLogsDistributionRootSubmitted'
+import { seedMetricsStakerRewards } from './metrics/seedMetricsStakerRewards'
 
 console.log('Initializing Seeder ...')
 
@@ -115,7 +116,7 @@ async function seedEigenData() {
 			await Promise.all([
 				// Rewards
 				seedAvsStrategyRewards(),
-				seedStakerTokenRewards(),
+				seedStakerRewardSnapshots(),
 
 				// Metrics
 				monitorAvsMetrics(),
@@ -160,6 +161,7 @@ async function seedEigenDailyData(retryCount = 0) {
 		await seedMetricsRestaking()
 		await seedMetricsEigenPods()
 		await seedMetricsTvl()
+		await seedMetricsStakerRewards()
 
 		console.timeEnd('Seeded daily data in')
 	} catch (error) {
