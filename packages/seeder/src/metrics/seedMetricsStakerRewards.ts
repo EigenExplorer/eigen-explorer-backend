@@ -48,7 +48,7 @@ export async function seedMetricsStakerRewards() {
 	}
 
 	const bucketUrl = getBucketUrl()
-	const BATCH_SIZE = 1000
+	const BATCH_SIZE = 10_000
 
 	try {
 		const tokenPrices = await fetchTokenPrices()
@@ -56,9 +56,10 @@ export async function seedMetricsStakerRewards() {
 		// Check if there are any untracked users
 		const untrackedUser = await prismaClient.user.findFirst({
 			where: {
-				isTracked: true
+				isTracked: false
 			}
 		})
+
 		const isTrackingRequired = !!untrackedUser
 
 		const distributionRootsTracked =
@@ -68,8 +69,8 @@ export async function seedMetricsStakerRewards() {
 				},
 				where: {
 					rewardsCalculationEndTimestamp: {
-						gt: startAt.getTime(),
-						lte: endAt.getTime()
+						gte: startAt.getTime() / 1000,
+						lt: endAt.getTime() / 1000
 					}
 				}
 			})
@@ -78,11 +79,6 @@ export async function seedMetricsStakerRewards() {
 			? await prismaClient.eventLogs_DistributionRootSubmitted.findMany({
 					select: {
 						rewardsCalculationEndTimestamp: true
-					},
-					where: {
-						rewardsCalculationEndTimestamp: {
-							lte: startAt.getTime()
-						}
 					}
 			  })
 			: undefined
@@ -98,7 +94,7 @@ export async function seedMetricsStakerRewards() {
 				(dr) => dr.rewardsCalculationEndTimestamp
 			)
 
-			// Seed data for untracked users until for timestamps last seed, so they will be in sync with tracked users
+			// Seed data for untracked users until last seed, so they will be in sync with tracked users
 			for (const timestamp of timestampsForUntrackedUsers) {
 				const snapshotDate = new Date(Number(timestamp) * 1000).toISOString().split('T')[0]
 				const response = await fetch(`${bucketUrl}/${snapshotDate}/claim-amounts.json`)
@@ -137,13 +133,22 @@ export async function seedMetricsStakerRewards() {
 						reader,
 						untrackedUserAddresses,
 						tokenPrices,
-						BATCH_SIZE,
-						true
+						BATCH_SIZE
 					)
 
 					skip += take
 				}
 			}
+
+			// Mark all untracked users as tracked
+			await prismaClient.user.updateMany({
+				where: {
+					isTracked: false
+				},
+				data: {
+					isTracked: true
+				}
+			})
 		}
 
 		// All untracked users are now in-synced with tracked ones. Now seed data for timestamps after last seed for all users.
@@ -169,9 +174,6 @@ export async function seedMetricsStakerRewards() {
 						address: true,
 						isTracked: true
 					},
-					where: {
-						isTracked: false
-					},
 					skip,
 					take
 				})
@@ -180,7 +182,7 @@ export async function seedMetricsStakerRewards() {
 
 				const userAddresses = users.map((uu) => uu.address.toLowerCase())
 
-				await processSnapshot(prismaClient, reader, userAddresses, tokenPrices, BATCH_SIZE, false)
+				await processSnapshot(prismaClient, reader, userAddresses, tokenPrices, BATCH_SIZE)
 
 				skip += take
 			}
@@ -200,11 +202,10 @@ async function processSnapshot(
 	reader: ReadableStreamDefaultReader<Uint8Array>,
 	userAddresses: string[],
 	tokenPrices: Array<{ address: string; decimals: number }>,
-	BATCH_SIZE: number,
-	unTrackedUsers: boolean
+	BATCH_SIZE: number
 ) {
-	const latestMetricsFromDb = getLatestMetricsFromDb(userAddresses)
-	let stakerRewardList: prisma.MetricStakerRewardUnit[] = []
+	const latestMetricsFromDb = await getLatestMetricsFromDb(prismaClient, userAddresses)
+	let stakerRewardList: Omit<prisma.MetricStakerRewardUnit, 'id'>[] = []
 	let buffer = ''
 	const decoder = new TextDecoder()
 
@@ -230,11 +231,7 @@ async function processSnapshot(
 				}
 
 				if (stakerRewardList.length >= BATCH_SIZE) {
-					await writeToDb(
-						prismaClient,
-						stakerRewardList,
-						unTrackedUsers ? userAddresses : undefined
-					)
+					await writeToDb(prismaClient, stakerRewardList)
 					stakerRewardList = []
 				}
 			}
@@ -243,7 +240,7 @@ async function processSnapshot(
 		}
 
 		if (stakerRewardList.length > 0) {
-			await writeToDb(prismaClient, stakerRewardList, unTrackedUsers ? userAddresses : undefined)
+			await writeToDb(prismaClient, stakerRewardList)
 		}
 	} finally {
 		reader.releaseLock()
@@ -253,42 +250,47 @@ async function processSnapshot(
 function processLine(
 	line: string,
 	addresses: string[],
-	stakerRewardList: prisma.MetricStakerRewardUnit[],
-	latestMetricsFromDb: { address: string; cumulativeAmount: prisma.Prisma.Decimal }[],
+	stakerRewardList: Omit<prisma.MetricStakerRewardUnit, 'id'>[],
+	latestMetricsFromDb: {
+		getLatestAmount: (address: string, token: string) => prisma.Prisma.Decimal
+	},
 	tokenPrices: Array<{ address: string; decimals: number }>
 ) {
 	const data = JSON.parse(line) as ClaimData
 	const earner = data.earner.toLowerCase()
+	const token = data.token.toLowerCase()
 
 	if (addresses.includes(earner)) {
 		const tokenDecimals =
-			tokenPrices.find((tp) => tp.address.toLowerCase() === data.token.toLowerCase())?.decimals ||
-			18
+			tokenPrices.find((tp) => tp.address.toLowerCase() === token)?.decimals || 18
 
-		const latestRecordForAddress = stakerRewardList
-			.filter((record) => record.stakerAddress.toLowerCase() === earner)
+		const latestRecordInBatch = stakerRewardList
+			.filter(
+				(record) =>
+					record.stakerAddress.toLowerCase() === earner &&
+					record.tokenAddress.toLowerCase() === token
+			)
 			.reduce((latest, current) => {
 				if (!latest || current.timestamp > latest.timestamp) {
 					return current
 				}
 				return latest
-			}, null as prisma.MetricStakerRewardUnit | null)
+			}, null as Omit<prisma.MetricStakerRewardUnit, 'id'> | null)
 
 		// To calculate change, first check find latest cumulativeAmount value (from stakerRewardList, if not then from db)
-		const latestCumulativeAmount = latestRecordForAddress
-			? latestRecordForAddress.cumulativeAmount
-			: latestMetricsFromDb.find((m) => m.address === earner)?.cumulativeAmount ||
-			  new prisma.Prisma.Decimal(0)
+		const lastCumulativeAmount = latestRecordInBatch
+			? latestRecordInBatch.cumulativeAmount
+			: latestMetricsFromDb.getLatestAmount(earner, token)
 
 		const cumulativeAmount = new prisma.Prisma.Decimal(data.cumulative_amount).div(
 			new prisma.Prisma.Decimal(10).pow(tokenDecimals)
 		)
 
 		stakerRewardList.push({
-			stakerAddress: data.earner.toLowerCase(),
-			tokenAddress: data.token.toLowerCase(),
+			stakerAddress: earner,
+			tokenAddress: token,
 			cumulativeAmount,
-			changeCumulativeAmount: latestCumulativeAmount.sub(cumulativeAmount),
+			changeCumulativeAmount: cumulativeAmount.sub(lastCumulativeAmount),
 			timestamp: new Date(data.snapshot)
 		})
 	}
@@ -296,8 +298,7 @@ function processLine(
 
 async function writeToDb(
 	prismaClient: prisma.PrismaClient,
-	batch: prisma.MetricStakerRewardUnit[],
-	untrackedUserAddresses?: string[]
+	batch: Omit<prisma.MetricStakerRewardUnit, 'id'>[]
 ) {
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	const dbTransactions: any[] = []
@@ -310,28 +311,8 @@ async function writeToDb(
 		})
 	)
 
-	// Mark any untracked users as tracked
-	if (untrackedUserAddresses && untrackedUserAddresses?.length > 0)
-		dbTransactions.push(
-			prismaClient.user.updateMany({
-				where: {
-					address: {
-						in: untrackedUserAddresses
-					}
-				},
-				data: {
-					isTracked: true
-				}
-			})
-		)
-
 	if (dbTransactions.length > 0) {
-		await bulkUpdateDbTransactions(
-			dbTransactions,
-			`[Data] Staker Token Rewards: ${batch.length}: tracked new users: ${
-				untrackedUserAddresses?.length || 0
-			}`
-		)
+		await bulkUpdateDbTransactions(dbTransactions, `[Data] Staker Token Rewards: ${batch.length}`)
 	}
 }
 
@@ -349,25 +330,52 @@ function getBucketUrl(): string {
 async function getFirstLogTimestamp() {
 	const prismaClient = getPrismaClient()
 
-	const firstLog = await prismaClient.withdrawalCompleted.findFirst({
-		select: { createdAt: true },
-		where: { receiveAsTokens: true },
-		orderBy: { createdAt: 'asc' }
+	const firstLog = await prismaClient.eventLogs_DistributionRootSubmitted.findFirst({
+		select: { rewardsCalculationEndTimestamp: true },
+		orderBy: { rewardsCalculationEndTimestamp: 'asc' }
 	})
 
-	return firstLog ? firstLog.createdAt : null
+	return firstLog?.rewardsCalculationEndTimestamp
+		? new Date(Number(firstLog.rewardsCalculationEndTimestamp) * 1000)
+		: null
 }
 
 /**
- * Get latest metrics for a given set of addresses. Used to help calc changeCumulativeAmount.
+ * Get latest cumulativeAmount per token for a given set of addresses. Used to help calc changeCumulativeAmount.
  *
  * @param addresses
  * @returns
  */
-function getLatestMetricsFromDb(addresses: string[]) {
-	const latestMetrics: { address: string; cumulativeAmount: prisma.Prisma.Decimal }[] = []
-	for (const address of addresses) {
-		latestMetrics.push({ address, cumulativeAmount: new prisma.Prisma.Decimal(0) })
+async function getLatestMetricsFromDb(prismaClient: prisma.PrismaClient, addresses: string[]) {
+	// First get the latest timestamp for each staker/token combination
+	const latestMetrics = await prismaClient.metricStakerRewardUnit.findMany({
+		where: {
+			stakerAddress: {
+				in: addresses
+			}
+		},
+		orderBy: {
+			timestamp: 'desc'
+		},
+		distinct: ['stakerAddress', 'tokenAddress'],
+		select: {
+			stakerAddress: true,
+			tokenAddress: true,
+			cumulativeAmount: true
+		}
+	})
+
+	const metricsMap = new Map<string, prisma.Prisma.Decimal>()
+
+	for (const metric of latestMetrics) {
+		const key = `${metric.stakerAddress.toLowerCase()}-${metric.tokenAddress.toLowerCase()}`
+		metricsMap.set(key, metric.cumulativeAmount)
 	}
-	return latestMetrics
+
+	return {
+		getLatestAmount: (address: string, token: string) => {
+			const key = `${address.toLowerCase()}-${token.toLowerCase()}`
+			return metricsMap.get(key) ?? new prisma.Prisma.Decimal(0)
+		}
+	}
 }

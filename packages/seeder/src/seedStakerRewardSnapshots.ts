@@ -19,7 +19,7 @@ interface ClaimData {
 export async function seedStakerRewardSnapshots() {
 	const prismaClient = getPrismaClient()
 	const bucketUrl = getBucketUrl()
-	const BATCH_SIZE = 1000
+	const BATCH_SIZE = 10_000
 
 	try {
 		const tokenPrices = await fetchTokenPrices()
@@ -43,12 +43,13 @@ export async function seedStakerRewardSnapshots() {
 		const snapshotRecord = await prismaClient.stakerRewardSnapshot.findFirst({
 			select: {
 				timestamp: true
+			},
+			orderBy: {
+				timestamp: 'asc' // All snapshots should ideally have the same timestamp, but we check for earliest in case of sync issues
 			}
 		})
 
-		const snapshotTimestamp = new Date(Number(snapshotRecord?.timestamp || 0) * 1000)
-			.toISOString()
-			.split('T')[0]
+		const snapshotTimestamp = snapshotRecord?.timestamp?.toISOString()?.split('T')[0]
 
 		if (latestSnapshotTimestamp === snapshotTimestamp) {
 			console.log('[In Sync] [Data] Staker Reward Snapshots')
@@ -70,84 +71,62 @@ export async function seedStakerRewardSnapshots() {
 		await prismaClient.stakerRewardSnapshot.deleteMany()
 
 		// Write new snapshots batch-wise
-		while (true) {
-			let buffer = ''
-			const decoder = new TextDecoder()
+		let buffer = ''
+		const decoder = new TextDecoder()
 
-			const snapshotList: prisma.StakerRewardSnapshot[] = []
+		let snapshotList: prisma.StakerRewardSnapshot[] = []
 
-			try {
-				while (true) {
-					const { done, value } = await reader.read()
+		try {
+			while (true) {
+				const { done, value } = await reader.read()
 
-					if (done) {
-						// Process any remaining data in buffer
-						const line = buffer.trim()
-						if (line) {
-							const data = JSON.parse(line) as ClaimData
+				if (done) {
+					// Process any remaining data in buffer
+					const line = buffer.trim()
+					if (line) {
+						const data = JSON.parse(line) as ClaimData
 
-							const tokenDecimals =
-								tokenPrices.find((tp) => tp.address.toLowerCase() === data.token.toLowerCase())
-									?.decimals || 18
+						const tokenDecimals =
+							tokenPrices.find((tp) => tp.address.toLowerCase() === data.token.toLowerCase())
+								?.decimals || 18
 
-							snapshotList.push({
-								stakerAddress: data.earner.toLowerCase(),
-								tokenAddress: data.token.toLowerCase(),
-								cumulativeAmount: new prisma.Prisma.Decimal(data.cumulative_amount).div(
-									new prisma.Prisma.Decimal(10).pow(tokenDecimals)
-								),
-								timestamp: new Date(data.snapshot)
-							})
-						}
-						break
+						snapshotList.push({
+							stakerAddress: data.earner.toLowerCase(),
+							tokenAddress: data.token.toLowerCase(),
+							cumulativeAmount: new prisma.Prisma.Decimal(data.cumulative_amount).div(
+								new prisma.Prisma.Decimal(10).pow(tokenDecimals)
+							),
+							timestamp: new Date(data.snapshot)
+						})
+					}
+					break
+				}
+
+				buffer += decoder.decode(value, { stream: true })
+				const lines = buffer.split('\n')
+
+				// Process all complete lines
+				for (let i = 0; i < lines.length - 1; i++) {
+					const line = lines[i].trim()
+					if (line) {
+						const data = JSON.parse(line) as ClaimData
+
+						const tokenDecimals =
+							tokenPrices.find((tp) => tp.address.toLowerCase() === data.token.toLowerCase())
+								?.decimals || 18
+
+						snapshotList.push({
+							stakerAddress: data.earner.toLowerCase(),
+							tokenAddress: data.token.toLowerCase(),
+							cumulativeAmount: new prisma.Prisma.Decimal(data.cumulative_amount).div(
+								new prisma.Prisma.Decimal(10).pow(tokenDecimals)
+							),
+							timestamp: new Date(data.snapshot)
+						})
 					}
 
-					buffer += decoder.decode(value, { stream: true })
-					const lines = buffer.split('\n')
-
-					// Process all complete lines
-					for (let i = 0; i < lines.length - 1; i++) {
-						const line = lines[i].trim()
-						if (line) {
-							const data = JSON.parse(line) as ClaimData
-
-							const tokenDecimals =
-								tokenPrices.find((tp) => tp.address.toLowerCase() === data.token.toLowerCase())
-									?.decimals || 18
-
-							snapshotList.push({
-								stakerAddress: data.earner.toLowerCase(),
-								tokenAddress: data.token.toLowerCase(),
-								cumulativeAmount: new prisma.Prisma.Decimal(data.cumulative_amount).div(
-									new prisma.Prisma.Decimal(10).pow(tokenDecimals)
-								),
-								timestamp: new Date(data.snapshot)
-							})
-						}
-
-						// If batch is full, write to database
-						if (snapshotList.length >= BATCH_SIZE) {
-							// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-							const dbTransactions: any[] = []
-							dbTransactions.push(
-								prismaClient.stakerRewardSnapshot.createMany({
-									data: snapshotList,
-									skipDuplicates: true
-								})
-							)
-
-							await bulkUpdateDbTransactions(
-								dbTransactions,
-								`[Data] Staker Reward Snapshots: ${snapshotList.length}`
-							)
-						}
-
-						// Keep the last incomplete line in buffer
-						buffer = lines[lines.length - 1]
-					}
-
-					// Save any remaining batch
-					if (snapshotList.length > 0) {
+					// If batch is full, write to database
+					if (snapshotList.length >= BATCH_SIZE) {
 						// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 						const dbTransactions: any[] = []
 						dbTransactions.push(
@@ -161,11 +140,33 @@ export async function seedStakerRewardSnapshots() {
 							dbTransactions,
 							`[Data] Staker Reward Snapshots: ${snapshotList.length}`
 						)
+
+						snapshotList = []
 					}
+
+					// Keep the last incomplete line in buffer
+					buffer = lines[lines.length - 1]
 				}
-			} finally {
-				reader.releaseLock()
 			}
+
+			// Save any remaining batch
+			if (snapshotList.length > 0) {
+				// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+				const dbTransactions: any[] = []
+				dbTransactions.push(
+					prismaClient.stakerRewardSnapshot.createMany({
+						data: snapshotList,
+						skipDuplicates: true
+					})
+				)
+
+				await bulkUpdateDbTransactions(
+					dbTransactions,
+					`[Data] Staker Reward Snapshots: ${snapshotList.length}`
+				)
+			}
+		} finally {
+			reader.releaseLock()
 		}
 	} catch {}
 }

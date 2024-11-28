@@ -357,6 +357,7 @@ model MetricOperatorStrategyUnit {
 }
 
 model MetricStakerRewardUnit {
+  id            Int    @id @default(autoincrement())
   stakerAddress String
   tokenAddress  String
 
@@ -365,7 +366,7 @@ model MetricStakerRewardUnit {
 
   timestamp DateTime
 
-  @@id([stakerAddress, tokenAddress])
+  @@unique([stakerAddress, tokenAddress, timestamp])
   @@index([stakerAddress])
   @@index([timestamp])
 }
