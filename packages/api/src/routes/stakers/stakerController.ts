@@ -622,7 +622,7 @@ async function calculateStakerRewards(
 		}
 
 		// Build token amounts section
-		const stakerRewardRecords = await prisma.stakerTokenRewards.findMany({
+		const stakerRewardRecords = await prisma.stakerRewardSnapshot.findMany({
 			where: {
 				stakerAddress: staker.address.toLowerCase()
 			}
@@ -670,19 +670,11 @@ async function calculateStakerRewards(
 			}
 		})
 
-		const isTracked =
-			(await prisma.user.count({
-				where: {
-					address: staker.address.toLowerCase()
-				}
-			})) > 0
-
 		return {
 			aggregateApy: avsApys.reduce((sum, avs) => sum + avs.apy, 0),
 			tokenAmounts,
 			strategyApys,
-			avsApys,
-			isTracked
+			avsApys
 		}
 	} catch {}
 }

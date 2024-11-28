@@ -13,12 +13,24 @@ import prisma from '../../utils/prismaClient'
  * @returns
  */
 export async function checkUserStatus(req: Request, res: Response) {
+	const headerCheck = RequestHeadersSchema.safeParse(req.headers)
+	if (!headerCheck.success) {
+		return handleAndReturnErrorResponse(req, res, headerCheck.error)
+	}
+
 	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
 	if (!paramCheck.success) {
 		return handleAndReturnErrorResponse(req, res, paramCheck.error)
 	}
 
 	try {
+		const apiToken = headerCheck.data['X-API-Token']
+		const authToken = process.env.EE_AUTH_TOKEN
+
+		if (!apiToken || apiToken !== authToken) {
+			throw new Error('Unauthorized access.')
+		}
+
 		const { address } = req.params
 
 		const [user, staker] = await Promise.all([
@@ -49,14 +61,14 @@ export async function checkUserStatus(req: Request, res: Response) {
  * @returns
  */
 export async function registerUser(req: Request, res: Response) {
-	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
-	if (!paramCheck.success) {
-		return handleAndReturnErrorResponse(req, res, paramCheck.error)
-	}
-
 	const headerCheck = RequestHeadersSchema.safeParse(req.headers)
 	if (!headerCheck.success) {
 		return handleAndReturnErrorResponse(req, res, headerCheck.error)
+	}
+
+	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
 	}
 
 	try {
