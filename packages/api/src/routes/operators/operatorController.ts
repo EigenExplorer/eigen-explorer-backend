@@ -193,6 +193,7 @@ export async function getOperator(req: Request, res: Response) {
 											...(withRewards
 												? {
 														address: true,
+														maxApy: true,
 														rewardSubmissions: true,
 														restakeableStrategies: true,
 														operators: {
@@ -220,7 +221,7 @@ export async function getOperator(req: Request, res: Response) {
 		const avsRegistrations = operator.avs.map((registration) => ({
 			avsAddress: registration.avsAddress,
 			isActive: registration.isActive,
-			...(withAvsData && registration.avs ? registration.avs : {})
+			...(withAvsData && registration.avs ? { ...registration.avs, operators: undefined } : {})
 		}))
 
 		const strategiesWithSharesUnderlying = withTvl ? await getStrategiesWithShareUnderlying() : []
@@ -554,6 +555,7 @@ async function calculateOperatorApy(operator: any) {
 			string,
 			{
 				avsAddress: string
+				maxApy: number
 				strategyApys: {
 					strategyAddress: string
 					apy: number
@@ -684,6 +686,7 @@ async function calculateOperatorApy(operator: any) {
 
 			avsApyMap.set(avs.avs.address, {
 				avsAddress: avs.avs.address,
+				maxApy: avs.avs.maxApy,
 				strategyApys: Array.from(strategyApyMap.entries()).map(([strategyAddress, data]) => ({
 					strategyAddress,
 					apy: data.apy,
