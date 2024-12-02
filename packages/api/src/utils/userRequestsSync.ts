@@ -1,10 +1,13 @@
-import type NodeCache from 'node-cache'
 import type { User } from './authMiddleware'
+import { requestStore } from './authCache'
 import cron from 'node-cron'
-import authStore from './authStore'
 
+/**
+ * Send updates to DB with number of requests in the past hour per user
+ * Cron jon runs at the start of every hour
+ *
+ */
 export function startUserRequestsSync() {
-	// Run cron job at the start of every hour
 	cron.schedule('0 * * * *', async () => {
 		console.log('[Data] User requests sync started')
 
@@ -37,7 +40,9 @@ export function startUserRequestsSync() {
 					const apiTokens = user.apiTokens ?? []
 					let totalNewRequests = 0
 					for (const apiToken of apiTokens) {
-						totalNewRequests += Number(authStore.get(`apiToken:${apiToken}:newRequests`))
+						const key = `apiToken:${apiToken}:newRequests`
+						totalNewRequests += Number(requestStore.get(key))
+						requestStore.del(key)
 					}
 					updateList.push({
 						id: user.id,
@@ -62,19 +67,9 @@ export function startUserRequestsSync() {
 				skip += take
 			}
 
-			deleteDynamicKeys(authStore)
+			requestStore.flushAll() // Delete stale keys once full sync is successful
 		} catch {}
 	})
 
 	console.log('[Data] User requests sync complete')
-}
-
-const deleteDynamicKeys = (cache: NodeCache) => {
-	const keys = cache.keys()
-	const patterns = ['apiToken:.*:newRequests']
-
-	const matchingKeys = keys.filter((key) => {
-		return patterns.some((pattern) => new RegExp(`^${pattern}$`).test(key))
-	})
-	for (const key of matchingKeys) cache.del(key)
 }

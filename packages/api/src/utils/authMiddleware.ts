@@ -1,9 +1,8 @@
 import 'dotenv/config'
 
-import type NodeCache from 'node-cache'
 import type { NextFunction, Request, Response } from 'express'
+import { authStore, requestStore } from './authCache'
 import rateLimit from 'express-rate-limit'
-import authStore from './authStore'
 
 // --- Types ---
 
@@ -56,35 +55,37 @@ export const authenticator = async (req: Request, res: Response, next: NextFunct
 	const apiToken = req.header('X-API-Token')
 
 	if (!apiToken) {
-		req.accessLevel = 0 // Req blocked
+		req.accessLevel = 0 // Req will be blocked (enabled in v2)
 	}
 
+	let accessLevel: number
 	const updatedAt: number | undefined = authStore.get('updatedAt')
 
-	const isStoreFunctional = !updatedAt ? await refreshStore() : true
+	if (!updatedAt && !authStore.get('isRefreshing')) refreshAuthStore()
 
-	let accessLevel: number
+	const accountRestricted = authStore.get(`apiToken:${apiToken}:accountRestricted`) || 0 // Benefit of doubt
 
 	if (process.env.EE_AUTH_TOKEN === apiToken) {
 		accessLevel = 999 // Admin access
-	} else if (!isStoreFunctional) {
-		accessLevel = 998 // Allow pass-through because of server error
-	} else if (authStore.get(`apiToken:${apiToken}:accountRestricted`) === 0) {
+	} else if (accountRestricted === 0) {
 		accessLevel = authStore.get(`apiToken:${apiToken}:accessLevel`) ?? 997 // Fallback to db
 	} else {
 		accessLevel = -1 // Monthly limit hit
 	}
 
 	if (accessLevel === 997) {
-		// Try db as last resort. Returns 0 api token not found
-		const response = await fetch(`${process.env.SUPABASE_FETCH_ACCESS_LEVEL}?${apiToken}`, {
-			method: 'GET',
-			headers: {
-				Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
-				'Content-Type': 'application/json'
+		// Db as last resort. API returns 0 in case token not found.
+		const response = await fetch(
+			`${process.env.SUPABASE_FETCH_ACCESS_LEVEL_URL}?apiToken=${apiToken}`,
+			{
+				method: 'GET',
+				headers: {
+					Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+					'Content-Type': 'application/json'
+				}
 			}
-		})
-		accessLevel = response.ok ? Number((await response.json()).accessLevel) : 998 // Allow pass-through because of db error
+		)
+		accessLevel = response.ok ? Number((await response.json()).accessLevel) : 998 // Allow pass-through in case of db error
 	}
 
 	/*
@@ -133,7 +134,7 @@ const createRateLimiter = (plan: Plan) => {
 		}`
 	})
 
-	// If request passes rate limiter, increment counter
+	// If request passes rate limiter, increment number of requests for the token in `requestStore`
 	return (req: Request, res: Response, next: NextFunction) => {
 		const originalEnd = res.end
 
@@ -143,8 +144,9 @@ const createRateLimiter = (plan: Plan) => {
 				if (res.statusCode >= 200 && res.statusCode < 300) {
 					const apiToken = req.header('X-API-Token')
 					if (apiToken) {
-						const currentCalls: number = authStore.get(`apiToken:${apiToken}:newRequests`) || 0
-						authStore.set(`apiToken:${apiToken}:newRequests`, currentCalls + 1)
+						const key = `apiToken:${apiToken}:newRequests`
+						const currentCalls: number = requestStore.get(key) || 0
+						requestStore.set(key, currentCalls + 1)
 					}
 				}
 			} catch {}
@@ -176,9 +178,14 @@ export const rateLimiter = async (req: Request, res: Response, next: NextFunctio
  * Fetch all user auth data from Supabase edge function and refresh auth store.
  *
  */
-export async function refreshStore() {
+export async function refreshAuthStore() {
+	if (authStore.get('isRefreshing')) {
+		return false
+	}
+
 	try {
-		deleteStaticKeys(authStore)
+		authStore.flushAll()
+		authStore.set('isRefreshing', true)
 
 		let skip = 0
 		const take = 10_000
@@ -216,23 +223,14 @@ export async function refreshStore() {
 					)
 				}
 			}
-
-			authStore.set('updatedAt', Date.now())
 			skip += take
 		}
+
+		authStore.set('updatedAt', Date.now())
 		return true
 	} catch {
 		return false
+	} finally {
+		authStore.set('isRefreshing', false)
 	}
-}
-
-const deleteStaticKeys = (cache: NodeCache) => {
-	const keys = cache.keys()
-	const patterns = ['apiToken:.*:accessLevel', 'apiToken:.*:accountRestricted', 'updatedAt']
-
-	const matchingKeys = keys.filter((key) => {
-		return patterns.some((pattern) => new RegExp(`^${pattern}$`).test(key))
-	})
-
-	for (const key of matchingKeys) cache.del(key)
 }
