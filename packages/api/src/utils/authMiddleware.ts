@@ -75,17 +75,14 @@ export const authenticator = async (req: Request, res: Response, next: NextFunct
 
 	if (accessLevel === 997) {
 		// Db as last resort. API returns 0 in case token not found.
-		const response = await fetch(
-			`${process.env.SUPABASE_FETCH_ACCESS_LEVEL_URL}?apiToken=${apiToken}`,
-			{
-				method: 'GET',
-				headers: {
-					Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
-					'Content-Type': 'application/json'
-				}
+		const response = await fetch(`${process.env.SUPABASE_FETCH_ACCESS_LEVEL_URL}/${apiToken}`, {
+			method: 'GET',
+			headers: {
+				Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+				'Content-Type': 'application/json'
 			}
-		)
-		accessLevel = response.ok ? Number((await response.json()).accessLevel) : 998 // Allow pass-through in case of db error
+		})
+		accessLevel = response.ok ? Number((await response.json())?.data?.accessLevel) : 998 // Allow pass-through in case of db error
 	}
 
 	/*
