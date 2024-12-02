@@ -8,7 +8,7 @@ import crypto from 'node:crypto'
 
 /**
  * Function for route /auth/users/:address/check-status
- * Returns whether a given address is registered on EE, if they are an EL staker & if we track their rewards
+ * Protected route, returns whether a given address is registered on EE, if they are an EL staker & if we track their rewards
  *
  * @param req
  * @param res
