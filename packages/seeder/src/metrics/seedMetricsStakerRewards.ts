@@ -151,7 +151,7 @@ export async function seedMetricsStakerRewards() {
 			})
 		}
 
-		// All untracked users are now in-synced with tracked ones. Now seed data for timestamps after last seed for all users.
+		// All untracked users are now in-sync with tracked ones. Now seed data for timestamps after last seed for all users.
 		for (const timestamp of timestampsForAllUsers) {
 			const snapshotDate = new Date(Number(timestamp) * 1000).toISOString().split('T')[0]
 			const response = await fetch(`${bucketUrl}/${snapshotDate}/claim-amounts.json`)
@@ -197,6 +197,15 @@ export async function seedMetricsStakerRewards() {
 	} catch {}
 }
 
+/**
+ * Processes snapshot data line-by-line from EL bucket's delimited JSON file
+ *
+ * @param prismaClient
+ * @param reader
+ * @param userAddresses
+ * @param tokenPrices
+ * @param BATCH_SIZE
+ */
 async function processSnapshot(
 	prismaClient: prisma.PrismaClient,
 	reader: ReadableStreamDefaultReader<Uint8Array>,
@@ -247,6 +256,15 @@ async function processSnapshot(
 	}
 }
 
+/**
+ * For every line in snapshot data, if the earner is a User on EE, prepares db object entry
+ *
+ * @param line
+ * @param addresses
+ * @param stakerRewardList
+ * @param latestMetricsFromDb
+ * @param tokenPrices
+ */
 function processLine(
 	line: string,
 	addresses: string[],
@@ -277,7 +295,7 @@ function processLine(
 				return latest
 			}, null as Omit<prisma.MetricStakerRewardUnit, 'id'> | null)
 
-		// To calculate change, first check find latest cumulativeAmount value (from stakerRewardList, if not then from db)
+		// To calculate change, find latest `cumulativeAmount` value (first check `stakerRewardList`, if not, get from db)
 		const lastCumulativeAmount = latestRecordInBatch
 			? latestRecordInBatch.cumulativeAmount
 			: latestMetricsFromDb.getLatestAmount(earner, token)
@@ -323,7 +341,7 @@ function getBucketUrl(): string {
 }
 
 /**
- * Get first log timestamp
+ * Gets first log timestamp
  *
  * @returns
  */
@@ -341,7 +359,7 @@ async function getFirstLogTimestamp() {
 }
 
 /**
- * Get latest cumulativeAmount per token for a given set of addresses. Used to help calc changeCumulativeAmount.
+ * Finds latest `cumulativeAmount` per token for a given set of addresses. Used to help calc `changeCumulativeAmount`.
  *
  * @param addresses
  * @returns
