@@ -15,6 +15,15 @@ export const AvsOperatorResponseSchema = z.object({
 	metadataTelegram: OperatorMetaDataSchema.shape.metadataTelegram,
 	metadataWebsite: OperatorMetaDataSchema.shape.metadataWebsite,
 	metadataX: OperatorMetaDataSchema.shape.metadataX,
+	totalStakers: z
+		.number()
+		.describe('The total number of stakers who have delegated to this AVS operator')
+		.openapi({ example: 10 }),
+	totalAvs: z
+		.number()
+		.describe('The total number of AVS opted by the AVS operator')
+		.openapi({ example: 10 }),
+	apy: z.number().describe('The latest APY recorded for the Operator').openapi({ example: 1.0 }),
 	createdAtBlock: z
 		.string()
 		.describe('The block number at which the AVS Operator was registered')
@@ -50,10 +59,6 @@ export const AvsOperatorResponseSchema = z.object({
 		.array(EthereumAddressSchema)
 		.describe('The list of restaked strategies')
 		.openapi({ example: ['0x35f4f28a8d3ff20eed10e087e8f96ea2641e6aa1'] }),
-	totalStakers: z
-		.number()
-		.describe('The total number of stakers who have delegated to this AVS operator')
-		.openapi({ example: 10 }),
 	tvl: TvlSchema.optional()
 		.describe('The total value locked (TVL) in the AVS operator')
 		.openapi({

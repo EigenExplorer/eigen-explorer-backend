@@ -3,7 +3,6 @@ import z from '../../../../api/src/schema/zod'
 import { PaginationQuerySchema } from '../../../../api/src/schema/zod/schemas/paginationQuery'
 import { openApiErrorResponses } from '../../apiResponseSchema/base/errorResponses'
 import { PaginationMetaResponsesSchema } from '../../apiResponseSchema/base/paginationMetaResponses'
-import { OperatorResponseSchema } from '../../apiResponseSchema/operatorResponse'
 import { WithTvlQuerySchema } from '../../../../api/src/schema/zod/schemas/withTvlQuery'
 import {
 	SortByApy,
@@ -12,6 +11,7 @@ import {
 	SortByTvl
 } from '../../../../api/src/schema/zod/schemas/separateSortingQueries'
 import { SearchByText } from '../../../../api/src/schema/zod/schemas/separateSearchQueries'
+import { OperatorResponseSchema } from '../../apiResponseSchema/operator/operatorResponse'
 
 const AllOperatorsResponseSchema = z.object({
 	data: z.array(OperatorResponseSchema),

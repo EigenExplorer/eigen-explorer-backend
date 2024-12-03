@@ -4,9 +4,9 @@ import { EthereumAddressSchema } from '../../../../api/src/schema/zod/schemas/ba
 import { ZodOpenApiOperationObject } from 'zod-openapi'
 import { PaginationQuerySchema } from '../../../../api/src/schema/zod/schemas/paginationQuery'
 import { PaginationMetaResponsesSchema } from '../../apiResponseSchema/base/paginationMetaResponses'
-import { StakerResponseSchema } from '../../apiResponseSchema/stakerResponse'
 import { UpdatedSinceQuerySchema } from '../../../../api/src/schema/zod/schemas/updatedSinceQuery'
 import { WithTvlQuerySchema } from '../../../../api/src/schema/zod/schemas/withTvlQuery'
+import { AvsStakerSchema } from '../../apiResponseSchema/avs/avsStakerResponse'
 
 const AvsAddressParam = z.object({
 	address: EthereumAddressSchema.describe('AVS service manager contract address').openapi({
@@ -21,7 +21,7 @@ const CombinedQuerySchema = z
 	.merge(PaginationQuerySchema)
 
 const AvsStakerResponseSchema = z.object({
-	data: z.array(StakerResponseSchema),
+	data: z.array(AvsStakerSchema),
 	meta: PaginationMetaResponsesSchema
 })
 

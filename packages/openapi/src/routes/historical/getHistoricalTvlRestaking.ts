@@ -10,9 +10,11 @@ const HistoricalIndividualStrategyTvlCombinedResponseSchema = z.object({
 })
 
 const RestakingStrategyAddressParam = z.object({
-	address: EthereumAddressSchema.describe('The address of the strategy').openapi({
-		example: '0x54945180dB7943c0ed0FEE7EdaB2Bd24620256bc'
-	})
+	address: EthereumAddressSchema.describe('The contract address of the restaking strategy').openapi(
+		{
+			example: '0x54945180dB7943c0ed0FEE7EdaB2Bd24620256bc'
+		}
+	)
 })
 
 export const getHistoricalTvlRestaking: ZodOpenApiOperationObject = {

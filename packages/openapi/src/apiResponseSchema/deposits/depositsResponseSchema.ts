@@ -21,7 +21,7 @@ export const DepositsResponseSchema = z.object({
 	shares: z
 		.string()
 		.describe('The amount of shares held in the strategy')
-		.openapi({ example: '40888428658906049' }),
+		.openapi({ example: '40000000000000000' }),
 	createdAtBlock: z
 		.number()
 		.describe('The block number when the withdrawal was recorded by EigenExplorer')
