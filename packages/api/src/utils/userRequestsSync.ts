@@ -42,18 +42,21 @@ export function startUserRequestsSync() {
 
 					for (const apiToken of apiTokens) {
 						const key = `apiToken:${apiToken}:newRequests`
-						totalNewRequests += Number(requestsStore.get(key))
+						const newRequests = Number(requestsStore.get(key)) || 0
+						if (newRequests > 0) totalNewRequests += newRequests
 						requestsStore.del(key)
 					}
 
-					updateList.push({
-						id: user.id,
-						requests: user.requests + totalNewRequests
-					})
+					if (totalNewRequests > 0) {
+						updateList.push({
+							id: user.id,
+							requests: user.requests + totalNewRequests
+						})
+					}
 				}
 
 				if (updateList.length > 0) {
-					const postResponse = await fetch(`${process.env.SUPABASE_POST_USER_REQUESTS_URL}`, {
+					const postResponse = await fetch(`${process.env.SUPABASE_POST_REQUESTS_URL}`, {
 						method: 'POST',
 						headers: {
 							Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
