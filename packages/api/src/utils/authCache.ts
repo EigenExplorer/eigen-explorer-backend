@@ -13,4 +13,4 @@ refreshAuthStore()
  * Init cache that collects `newRequests` per api token.
  *
  */
-export const requestStore = new NodeCache({ stdTTL: 7 * 24 * 60 * 60 }) // 1 week
+export const requestsStore = new NodeCache({ stdTTL: 7 * 24 * 60 * 60 }) // 1 week

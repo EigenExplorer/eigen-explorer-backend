@@ -1,21 +1,21 @@
 import type { User } from './authMiddleware'
-import { requestStore } from './authCache'
+import { requestsStore } from './authCache'
 import cron from 'node-cron'
 
 /**
  * Send updates to DB with number of requests in the past hour per user
- * Cron jon runs at the start of every hour
+ * Cron job runs at the start of every hour
  *
  */
 export function startUserRequestsSync() {
 	cron.schedule('0 * * * *', async () => {
-		console.log('[Data] User requests sync started')
+		console.time('[Data] User requests sync')
 
-		try {
-			let skip = 0
-			const take = 10_000
+		let skip = 0
+		const take = 10_000
 
-			while (true) {
+		while (true) {
+			try {
 				const getResponse = await fetch(
 					`${process.env.SUPABASE_FETCH_ALL_USERS_URL}?skip=${skip}&take=${take}`,
 					{
@@ -39,37 +39,41 @@ export function startUserRequestsSync() {
 				for (const user of users) {
 					const apiTokens = user.apiTokens ?? []
 					let totalNewRequests = 0
+
 					for (const apiToken of apiTokens) {
 						const key = `apiToken:${apiToken}:newRequests`
-						totalNewRequests += Number(requestStore.get(key))
-						requestStore.del(key)
+						totalNewRequests += Number(requestsStore.get(key))
+						requestsStore.del(key)
 					}
+
 					updateList.push({
 						id: user.id,
 						requests: user.requests + totalNewRequests
 					})
 				}
 
-				const postResponse = await fetch(`${process.env.SUPABASE_POST_USER_REQUESTS_URL}`, {
-					method: 'POST',
-					headers: {
-						Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
-						'Content-Type': 'application/json'
-					},
-					body: JSON.stringify(updateList)
-				})
+				if (updateList.length > 0) {
+					const postResponse = await fetch(`${process.env.SUPABASE_POST_USER_REQUESTS_URL}`, {
+						method: 'POST',
+						headers: {
+							Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+							'Content-Type': 'application/json'
+						},
+						body: JSON.stringify(updateList)
+					})
 
-				if (!postResponse.ok) {
-					throw new Error()
+					if (!postResponse.ok) {
+						throw new Error()
+					}
+
+					console.log(`[Data] User requests sync: size: ${updateList.length}`)
 				}
+			} catch {}
 
-				console.log(`[Data] User requests sync: size: ${updateList.length}`)
-				skip += take
-			}
+			skip += take
+		}
 
-			requestStore.flushAll() // Delete stale keys once full sync is successful
-		} catch {}
+		requestsStore.flushAll() // Delete remaining (stale) keys once full sync is successful
+		console.timeEnd('[Data] User requests sync')
 	})
-
-	console.log('[Data] User requests sync complete')
 }

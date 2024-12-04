@@ -1,7 +1,7 @@
 import 'dotenv/config'
 
 import type { NextFunction, Request, Response } from 'express'
-import { authStore, requestStore } from './authCache'
+import { authStore, requestsStore } from './authCache'
 import rateLimit from 'express-rate-limit'
 
 // --- Types ---
@@ -15,7 +15,6 @@ export interface User {
 
 interface Plan {
 	name: string
-	accessLevel: number
 	requestsPerMin?: number
 	requestsPerMonth?: number
 }
@@ -24,20 +23,22 @@ interface Plan {
 
 const PLANS: Record<number, Plan> = {
 	0: {
+		name: 'Unauthenticated',
+		requestsPerMin: 30, // Remove in v2
+		requestsPerMonth: 1_000 // Remove in v2
+	},
+	1: {
 		name: 'Free',
-		accessLevel: 0,
 		requestsPerMin: 30,
 		requestsPerMonth: 1_000
 	},
-	1: {
+	2: {
 		name: 'Basic',
-		accessLevel: 1,
 		requestsPerMin: 1_000,
 		requestsPerMonth: 10_000
 	},
 	999: {
-		name: 'Admin',
-		accessLevel: 999
+		name: 'Admin'
 	}
 }
 
@@ -70,7 +71,7 @@ export const authenticator = async (req: Request, res: Response, next: NextFunct
 	} else if (accountRestricted === 0) {
 		accessLevel = authStore.get(`apiToken:${apiToken}:accessLevel`) ?? 997 // Fallback to db
 	} else {
-		accessLevel = -1 // Monthly limit hit
+		accessLevel = -1 // Account restricted because monthly limit hit
 	}
 
 	if (accessLevel === 997) {
@@ -113,19 +114,21 @@ export const authenticator = async (req: Request, res: Response, next: NextFunct
  * Note: In v2, we remove the check for `accessLevel === 0` because unauthenticated users will not pass `authenticator`
  *
  */
-const createRateLimiter = (plan: Plan) => {
+const createRateLimiter = (accessLevel: number) => {
 	// No rate limits for admin
-	if (plan.accessLevel === 999) return (_req: Request, _res: Response, next: NextFunction) => next()
+	if (accessLevel === 999) return (_req: Request, _res: Response, next: NextFunction) => next()
+
+	const requestsPerMin = PLANS[accessLevel].requestsPerMin
 
 	const limiter = rateLimit({
 		windowMs: 1 * 60 * 1000,
-		max: plan.requestsPerMin,
+		max: requestsPerMin,
 		standardHeaders: true,
 		legacyHeaders: false,
 		keyGenerator: (req: Request): string =>
-			plan.accessLevel === 0 ? req.ip ?? 'unknown' : req.header('X-API-Token') || '',
-		message: `You've reached the limit of ${plan.requestsPerMin} requests per minute. ${
-			plan.accessLevel === 0
+			accessLevel === 0 ? req.ip ?? 'unknown' : req.header('X-API-Token') || '',
+		message: `You've reached the limit of ${requestsPerMin} requests per minute. ${
+			accessLevel === 0
 				? 'Sign up for a plan on https://dev.eigenexplorer.com for increased limits.'
 				: 'Upgrade your plan for increased limits.'
 		}`
@@ -142,8 +145,8 @@ const createRateLimiter = (plan: Plan) => {
 					const apiToken = req.header('X-API-Token')
 					if (apiToken) {
 						const key = `apiToken:${apiToken}:newRequests`
-						const currentCalls: number = requestStore.get(key) || 0
-						requestStore.set(key, currentCalls + 1)
+						const currentCalls: number = requestsStore.get(key) || 0
+						requestsStore.set(key, currentCalls + 1)
 					}
 				}
 			} catch {}
@@ -165,8 +168,7 @@ const createRateLimiter = (plan: Plan) => {
  * @returns
  */
 export const rateLimiter = async (req: Request, res: Response, next: NextFunction) => {
-	const plan = PLANS[req.accessLevel || 0]
-	return createRateLimiter(plan)(req, res, next)
+	return createRateLimiter(req.accessLevel || 0)(req, res, next)
 }
 
 // --- Auth store management ---
@@ -209,8 +211,8 @@ export async function refreshAuthStore() {
 
 			for (const user of users) {
 				const accessLevel = user.accessLevel || 0
-				const apiTokens = user.apiTokens ?? []
-				const requests = user.requests ?? 0
+				const apiTokens = user.apiTokens || []
+				const requests = user.requests || 0
 
 				for (const apiToken of apiTokens) {
 					authStore.set(`apiToken:${apiToken}:accessLevel`, accessLevel)

@@ -11,7 +11,7 @@ import { RequestHeadersSchema } from '../../schema/zod/schemas/auth'
  * @param res
  * @returns
  */
-export async function signalRefreshStore(req: Request, res: Response) {
+export async function signalRefreshAuthStore(req: Request, res: Response) {
 	const headerCheck = RequestHeadersSchema.safeParse(req.headers)
 	if (!headerCheck.success) {
 		return handleAndReturnErrorResponse(req, res, headerCheck.error)
