@@ -33,7 +33,7 @@ export const SearchByTextQuerySchema = z
 				return value.trim().split(/\s+/).join('&') // Replace spaces with '&' for tsquery compatibility
 			})
 			.describe('Case-insensitive search query')
-			.openapi({ example: 'blockless' })
+			.openapi({ example: 'eigen' })
 	})
 	.refine(
 		(data) => {
