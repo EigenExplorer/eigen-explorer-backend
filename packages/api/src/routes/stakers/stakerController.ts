@@ -7,6 +7,16 @@ import { getViemClient } from '../../viem/viemClient'
 import { getStrategiesWithShareUnderlying, sharesToTVL } from '../../utils/strategyShares'
 import { EthereumAddressSchema } from '../../schema/zod/schemas/base/ethereumAddress'
 import { UpdatedSinceQuerySchema } from '../../schema/zod/schemas/updatedSinceQuery'
+import {
+	fetchDelegationEvents,
+	fetchDepositEvents,
+	fetchStakerWithdrawalEvents
+} from '../../utils/eventUtils'
+import {
+	StakerDelegationEventQuerySchema,
+	DepositEventQuerySchema,
+	WithdrawalEventQuerySchema
+} from '../../schema/zod/schemas/eventSchemas'
 
 /**
  * Route to get a list of all stakers
@@ -392,6 +402,170 @@ export async function getStakerDeposits(req: Request, res: Response) {
 				skip,
 				take
 			}
+		})
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+/**
+ * Function for route /stakers/:address/events/delegation
+ * Fetches and returns a list of delegation-related events for a specific staker
+ *
+ * @param req
+ * @param res
+ */
+export async function getStakerDelegationEvents(req: Request, res: Response) {
+	const result = StakerDelegationEventQuerySchema.and(PaginationQuerySchema).safeParse(req.query)
+	if (!result.success) return handleAndReturnErrorResponse(req, res, result.error)
+
+	try {
+		const { address } = req.params
+
+		const {
+			type,
+			strategyAddress,
+			operatorAddress,
+			txHash,
+			startAt,
+			endAt,
+			withTokenData,
+			withEthValue,
+			skip,
+			take
+		} = result.data
+
+		const response = await fetchDelegationEvents({
+			stakerAddress: address,
+			operatorAddress,
+			type,
+			strategyAddress,
+			txHash,
+			startAt,
+			endAt,
+			withTokenData,
+			withEthValue,
+			skip,
+			take
+		})
+
+		response.eventRecords.forEach(
+			(event) => 'staker' in event.args && (event.args.staker = undefined)
+		)
+
+		res.send({
+			data: response.eventRecords,
+			meta: { total: response.total, skip, take }
+		})
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+/**
+ * Function for route /stakers/:address/events/deposit
+ * Fetches and returns a list of deposit-related events for a specific staker
+ *
+ * @param req
+ * @param res
+ */
+export async function getStakerDepositEvents(req: Request, res: Response) {
+	const result = DepositEventQuerySchema.and(PaginationQuerySchema).safeParse(req.query)
+	if (!result.success) return handleAndReturnErrorResponse(req, res, result.error)
+
+	try {
+		const { address } = req.params
+
+		const {
+			tokenAddress,
+			strategyAddress,
+			txHash,
+			startAt,
+			endAt,
+			withTokenData,
+			withEthValue,
+			skip,
+			take
+		} = result.data
+
+		const response = await fetchDepositEvents({
+			stakerAddress: address,
+			tokenAddress,
+			strategyAddress,
+			txHash,
+			startAt,
+			endAt,
+			withTokenData,
+			withEthValue,
+			skip,
+			take
+		})
+
+		response.eventRecords.forEach((event) => {
+			if ('staker' in event.args) {
+				event.args.staker = undefined
+			}
+		})
+
+		res.send({
+			data: response.eventRecords,
+			meta: { total: response.total, skip, take }
+		})
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+/**
+ * Function for route /stakers/:address/events/withdrawal
+ * Fetches and returns a list of withdrawal-related events for a specific staker with optional filters
+ *
+ * @param req
+ * @param res
+ */
+export async function getStakerWithdrawalEvents(req: Request, res: Response) {
+	const result = WithdrawalEventQuerySchema.and(PaginationQuerySchema).safeParse(req.query)
+	if (!result.success) return handleAndReturnErrorResponse(req, res, result.error)
+
+	try {
+		const { address } = req.params
+
+		const {
+			type,
+			txHash,
+			startAt,
+			endAt,
+			withdrawalRoot,
+			delegatedTo,
+			withdrawer,
+			skip,
+			take,
+			withTokenData,
+			withEthValue
+		} = result.data
+
+		const response = await fetchStakerWithdrawalEvents({
+			stakerAddress: address,
+			type,
+			txHash,
+			startAt,
+			endAt,
+			withdrawalRoot,
+			delegatedTo,
+			withdrawer,
+			skip,
+			take,
+			withTokenData,
+			withEthValue
+		})
+
+		response.eventRecords.forEach(
+			(event) => 'staker' in event.args && (event.args.staker = undefined)
+		)
+
+		res.send({
+			data: response.eventRecords,
+			meta: { total: response.total, skip, take }
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
