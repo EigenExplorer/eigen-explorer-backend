@@ -7,6 +7,7 @@ import metricRoutes from './metrics/metricRoutes'
 import withdrawalRoutes from './withdrawals/withdrawalRoutes'
 import depositRoutes from './deposits/depositRoutes'
 import auxiliaryRoutes from './auxiliary/auxiliaryRoutes'
+import authRoutes from './auth/authRoutes'
 import rewardRoutes from './rewards/rewardRoutes'
 import { rateLimiter } from '../utils/auth'
 
@@ -29,6 +30,7 @@ apiRouter.use('/metrics', rateLimiter, metricRoutes)
 apiRouter.use('/withdrawals', rateLimiter, withdrawalRoutes)
 apiRouter.use('/deposits', rateLimiter, depositRoutes)
 apiRouter.use('/aux', rateLimiter, auxiliaryRoutes)
+apiRouter.use('/auth', rateLimiter, authRoutes)
 apiRouter.use('/rewards', rateLimiter, rewardRoutes)
 
 export default apiRouter
