@@ -11,6 +11,7 @@ export function startUserRequestsSync() {
 	cron.schedule('0 * * * *', async () => {
 		console.time('[Data] User requests sync')
 
+		let isUpdateSuccess = true
 		let skip = 0
 		const take = 10_000
 
@@ -69,14 +70,24 @@ export function startUserRequestsSync() {
 						throw new Error()
 					}
 
+					for (const user of users) {
+						const apiTokens = user.apiTokens ?? []
+
+						for (const apiToken of apiTokens) {
+							requestsStore.del(`apiToken:${apiToken}:newRequests`)
+						}
+					}
+
 					console.log(`[Data] User requests sync: size: ${updateList.length}`)
 				}
-			} catch {}
+			} catch {
+				isUpdateSuccess = false
+			}
 
 			skip += take
 		}
 
-		requestsStore.flushAll() // Delete remaining (stale) keys once full sync is successful
+		if (isUpdateSuccess) requestsStore.flushAll() // Delete remaining (stale) keys once full update is successful
 		console.timeEnd('[Data] User requests sync')
 	})
 }
