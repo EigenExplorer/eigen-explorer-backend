@@ -147,8 +147,17 @@ export async function fetchDelegationEvents({
 		typesToFetch.map((eventType) => fetchAndMapEvents(eventType, baseFilterQuery, 0, skip + take))
 	)
 
-	const allEvents = results.flatMap((result) => result.eventRecords)
-	const totalCount = results.reduce((sum, result) => sum + result.eventCount, 0)
+	const { allEvents, totalCount } = results.reduce<{
+		allEvents: EventRecord[]
+		totalCount: number
+	}>(
+		(acc, result) => {
+			acc.allEvents.push(...result.eventRecords)
+			acc.totalCount += result.eventCount
+			return acc
+		},
+		{ allEvents: [], totalCount: 0 }
+	)
 
 	const sortedEvents = sortEvents(allEvents)
 	const paginatedEvents = sortedEvents.slice(skip, skip + take)
@@ -448,8 +457,17 @@ export async function fetchGlobalWithdrawalEvents({
 		typesToFetch.map((eventType) => fetchAndMapEvents(eventType, baseFilterQuery, 0, skip + take))
 	)
 
-	const allEvents = results.flatMap((result) => result.eventRecords)
-	const totalCount = results.reduce((sum, result) => sum + result.eventCount, 0)
+	const { allEvents, totalCount } = results.reduce<{
+		allEvents: EventRecord[]
+		totalCount: number
+	}>(
+		(acc, result) => {
+			acc.allEvents.push(...result.eventRecords)
+			acc.totalCount += result.eventCount
+			return acc
+		},
+		{ allEvents: [], totalCount: 0 }
+	)
 
 	const sortedEvents = sortEvents(allEvents)
 	const paginatedEvents = sortedEvents.slice(skip, skip + take)
@@ -917,10 +935,10 @@ function mapEventArgs(event: any, eventType: string): EventArgs {
 }
 
 /**
- * Utility function to sort events by blockNumber in descending order.
+ * Helper function to sort events by blockNumber in descending order.
  *
- * @param events - Array of events to sort
- * @returns Sorted array of events
+ * @param events
+ * @returns
  */
 export function sortEvents<T extends { blockNumber: number }>(events: T[]): T[] {
 	return events.sort((a, b) => {
