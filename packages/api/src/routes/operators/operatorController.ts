@@ -142,7 +142,6 @@ export async function getAllOperators(req: Request, res: Response) {
  * @param res
  */
 export async function getOperator(req: Request, res: Response) {
-	// Validate pagination query
 	const result = WithTvlQuerySchema.and(WithAdditionalDataQuerySchema)
 		.and(WithRewardsQuerySchema)
 		.safeParse(req.query)
@@ -195,6 +194,7 @@ export async function getOperator(req: Request, res: Response) {
 											...(withRewards
 												? {
 														address: true,
+														maxApy: true,
 														rewardSubmissions: true,
 														restakeableStrategies: true,
 														operators: {
@@ -222,7 +222,7 @@ export async function getOperator(req: Request, res: Response) {
 		const avsRegistrations = operator.avs.map((registration) => ({
 			avsAddress: registration.avsAddress,
 			isActive: registration.isActive,
-			...(withAvsData && registration.avs ? registration.avs : {})
+			...(withAvsData && registration.avs ? { ...registration.avs, operators: undefined } : {})
 		}))
 
 		const strategiesWithSharesUnderlying = withTvl ? await getStrategiesWithShareUnderlying() : []
@@ -564,8 +564,31 @@ export function getOperatorSearchQuery(
 // biome-ignore lint/suspicious/noExplicitAny: <explanation>
 async function calculateOperatorApy(operator: any) {
 	try {
-		const avsRewardsMap: Map<string, number> = new Map()
-		const strategyRewardsMap: Map<string, number> = new Map()
+		const avsApyMap: Map<
+			string,
+			{
+				avsAddress: string
+				maxApy: number
+				strategyApys: {
+					strategyAddress: string
+					apy: number
+					tokens: {
+						tokenAddress: string
+						apy: number
+					}[]
+				}[]
+			}
+		> = new Map()
+		const strategyApyMap: Map<
+			string,
+			{
+				apy: number
+				tokens: Map<string, number>
+			}
+		> = new Map()
+
+		const tokenPrices = await fetchTokenPrices()
+		const strategiesWithSharesUnderlying = await getStrategiesWithShareUnderlying()
 
 		// Grab the all reward submissions that the Operator is eligible for basis opted strategies & AVSs
 		const optedStrategyAddresses: Set<string> = new Set(
@@ -581,108 +604,114 @@ async function calculateOperatorApy(operator: any) {
 			}))
 			.filter((item) => item.eligibleRewards.length > 0)
 
-		if (!avsWithEligibleRewardSubmissions) {
-			return {
-				avs: [],
-				strategies: [],
-				aggregateApy: 0,
-				operatorEarningsEth: 0
-			}
-		}
+		if (!avsWithEligibleRewardSubmissions || avsWithEligibleRewardSubmissions.length === 0)
+			return []
 
-		let operatorEarningsEth = new Prisma.Prisma.Decimal(0)
-
-		const tokenPrices = await fetchTokenPrices()
-		const strategiesWithSharesUnderlying = await getStrategiesWithShareUnderlying()
-
-		// Calc aggregate APY for each AVS basis the opted-in strategies
 		for (const avs of avsWithEligibleRewardSubmissions) {
-			let aggregateApy = 0
-
-			// Get share amounts for each restakeable strategy
 			const shares = withOperatorShares(avs.avs.operators).filter(
-				(s) => avs.avs.restakeableStrategies.indexOf(s.strategyAddress.toLowerCase()) !== -1
+				(s) => avs.avs.restakeableStrategies?.indexOf(s.strategyAddress.toLowerCase()) !== -1
 			)
 
 			// Fetch the AVS tvl for each strategy
 			const tvlStrategiesEth = sharesToTVLStrategies(shares, strategiesWithSharesUnderlying)
 
 			// Iterate through each strategy and calculate all its rewards
-			for (const strategyAddress of optedStrategyAddresses) {
+			for (const strategyAddress of avs.avs.restakeableStrategies) {
 				const strategyTvl = tvlStrategiesEth[strategyAddress.toLowerCase()] || 0
 				if (strategyTvl === 0) continue
 
-				let totalRewardsEth = new Prisma.Prisma.Decimal(0)
-				let totalDuration = 0
+				const tokenApyMap: Map<string, number> = new Map()
+				const tokenRewards: Map<
+					string,
+					{
+						totalRewardsEth: Prisma.Prisma.Decimal
+						totalDuration: number
+					}
+				> = new Map()
 
-				// Find all reward submissions attributable to the strategy
-				const relevantSubmissions = avs.eligibleRewards.filter(
+				let strategyTotalRewardsEth = new Prisma.Prisma.Decimal(0)
+				let strategyTotalDuration = 0
+
+				// Find all reward submissions for the strategy
+				const relevantSubmissions = avs.avs.rewardSubmissions.filter(
 					(submission) => submission.strategyAddress.toLowerCase() === strategyAddress.toLowerCase()
 				)
 
+				// Calculate each reward amount for the strategy
 				for (const submission of relevantSubmissions) {
 					let rewardIncrementEth = new Prisma.Prisma.Decimal(0)
 					const rewardTokenAddress = submission.token.toLowerCase()
 
+					// Normalize reward amount to its ETH price
 					if (rewardTokenAddress) {
 						const tokenPrice = tokenPrices.find(
 							(tp) => tp.address.toLowerCase() === rewardTokenAddress
 						)
 						rewardIncrementEth = submission.amount
 							.mul(new Prisma.Prisma.Decimal(tokenPrice?.ethPrice ?? 0))
-							.div(new Prisma.Prisma.Decimal(10).pow(tokenPrice?.decimals ?? 18)) // No decimals
+							.div(new Prisma.Prisma.Decimal(10).pow(tokenPrice?.decimals ?? 18))
 					}
 
-					// Multiply reward amount in ETH by the strategy weight
+					// Apply operator commission (90% of rewards)
 					rewardIncrementEth = rewardIncrementEth
 						.mul(submission.multiplier)
 						.div(new Prisma.Prisma.Decimal(10).pow(18))
+						.mul(90)
+						.div(100)
 
-					// Operator takes 10% in commission
-					const operatorFeesEth = rewardIncrementEth.mul(10).div(100) // No decimals
+					// Accumulate token-specific rewards and duration
+					const tokenData = tokenRewards.get(rewardTokenAddress) || {
+						totalRewardsEth: new Prisma.Prisma.Decimal(0),
+						totalDuration: 0
+					}
+					tokenData.totalRewardsEth = tokenData.totalRewardsEth.add(rewardIncrementEth)
+					tokenData.totalDuration += submission.duration
+					tokenRewards.set(rewardTokenAddress, tokenData)
 
-					operatorEarningsEth = operatorEarningsEth.add(
-						operatorFeesEth.mul(new Prisma.Prisma.Decimal(10).pow(18))
-					) // 18 decimals
-
-					totalRewardsEth = totalRewardsEth.add(rewardIncrementEth).sub(operatorFeesEth) // No decimals
-					totalDuration += submission.duration
+					// Accumulate strategy totals
+					strategyTotalRewardsEth = strategyTotalRewardsEth.add(rewardIncrementEth)
+					strategyTotalDuration += submission.duration
 				}
 
-				if (totalDuration === 0) continue
+				if (strategyTotalDuration === 0) continue
 
-				// Annualize the reward basis its duration to find yearly APY
-				const rewardRate = totalRewardsEth.toNumber() / strategyTvl // No decimals
-				const annualizedRate = rewardRate * ((365 * 24 * 60 * 60) / totalDuration)
-				const apy = annualizedRate * 100
-				aggregateApy += apy
+				// Calculate token APYs
+				tokenRewards.forEach((data, tokenAddress) => {
+					if (data.totalDuration !== 0) {
+						const tokenRewardRate = data.totalRewardsEth.toNumber() / strategyTvl
+						const tokenAnnualizedRate =
+							tokenRewardRate * ((365 * 24 * 60 * 60) / data.totalDuration)
+						const tokenApy = tokenAnnualizedRate * 100
 
-				// Add strategy's APY to common strategy rewards store (across all Avs)
-				const currentStrategyApy = strategyRewardsMap.get(strategyAddress) || 0
-				strategyRewardsMap.set(strategyAddress, currentStrategyApy + apy)
+						tokenApyMap.set(tokenAddress, tokenApy)
+					}
+				})
+
+				// Calculate overall strategy APY
+				const strategyApy = Array.from(tokenApyMap.values()).reduce((sum, apy) => sum + apy, 0)
+				if (strategyApy > 0) {
+					strategyApyMap.set(strategyAddress, {
+						apy: strategyApy,
+						tokens: tokenApyMap
+					})
+				}
 			}
-			// Add aggregate APY to Avs rewards store
-			avsRewardsMap.set(avs.avs.address, aggregateApy)
+
+			avsApyMap.set(avs.avs.address, {
+				avsAddress: avs.avs.address,
+				maxApy: avs.avs.maxApy,
+				strategyApys: Array.from(strategyApyMap.entries()).map(([strategyAddress, data]) => ({
+					strategyAddress,
+					apy: data.apy,
+					tokens: Array.from(data.tokens.entries()).map(([tokenAddress, apy]) => ({
+						tokenAddress,
+						apy
+					}))
+				}))
+			})
 		}
 
-		const response = {
-			avs: Array.from(avsRewardsMap, ([avsAddress, apy]) => ({
-				avsAddress,
-				apy
-			})),
-			strategies: Array.from(strategyRewardsMap, ([strategyAddress, apy]) => ({
-				strategyAddress,
-				apy
-			})),
-			aggregateApy: 0,
-			operatorEarningsEth: new Prisma.Prisma.Decimal(0)
-		}
-
-		// Calculate aggregates across Avs and strategies
-		response.aggregateApy = response.avs.reduce((sum, avs) => sum + avs.apy, 0)
-		response.operatorEarningsEth = operatorEarningsEth
-
-		return response
+		return Array.from(avsApyMap.values())
 	} catch {}
 }
 

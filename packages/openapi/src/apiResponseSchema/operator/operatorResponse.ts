@@ -1,9 +1,9 @@
-import z from '../../../api/src/schema/zod'
-import { OperatorMetaDataSchema } from '../../../api/src/schema/zod/schemas/base/operatorMetaData'
-import { EthereumAddressSchema } from '../../../api/src/schema/zod/schemas/base/ethereumAddress'
-import { TvlSchema } from './base/tvlResponses'
-import { StrategySharesSchema } from '../../../api/src/schema/zod/schemas/base/strategyShares'
-import { AvsRegistrationSchema } from '../../../api/src/schema/zod/schemas/base/avsRegistrations'
+import z from '../../../../api/src/schema/zod'
+import { OperatorMetaDataSchema } from '../../../../api/src/schema/zod/schemas/base/operatorMetaData'
+import { EthereumAddressSchema } from '../../../../api/src/schema/zod/schemas/base/ethereumAddress'
+import { TvlSchema } from '.././base/tvlResponses'
+import { StrategySharesSchema } from '../../../../api/src/schema/zod/schemas/base/strategyShares'
+import { AvsRegistrationSchema } from '../../../../api/src/schema/zod/schemas/base/avsRegistrations'
 
 export const OperatorResponseSchema = z.object({
 	address: EthereumAddressSchema.describe('The contract address of the AVS operator').openapi({
@@ -24,7 +24,7 @@ export const OperatorResponseSchema = z.object({
 		.number()
 		.describe('The total number of AVS opted by the AVS operator')
 		.openapi({ example: 10 }),
-	apy: z.string().describe('The latest APY recorded for the operator').openapi({ example: '1.39' }),
+	apy: z.string().describe('The latest APY recorded for the operator').openapi({ example: '1.0' }),
 	createdAtBlock: z
 		.string()
 		.describe('The block number at which the AVS Operator was registered')
