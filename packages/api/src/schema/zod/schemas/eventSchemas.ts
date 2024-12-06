@@ -157,12 +157,12 @@ const DepositEventQuerySchemaBase = BaseEventQuerySchema.extend({
 		.string()
 		.regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid token address')
 		.optional()
-		.describe('The address of the token involved in the event'),
+		.describe('The contract address of the token'),
 	strategyAddress: z
 		.string()
 		.regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid strategy address')
 		.optional()
-		.describe('The strategy address for filtering')
+		.describe('The contract address of the restaking strategy')
 })
 	.merge(WithTokenDataQuerySchema)
 	.merge(WithEthValueQuerySchema)
