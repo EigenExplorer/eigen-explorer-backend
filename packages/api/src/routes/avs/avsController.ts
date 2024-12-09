@@ -20,6 +20,8 @@ import Prisma from '@prisma/client'
 import prisma from '../../utils/prismaClient'
 import { fetchTokenPrices } from '../../utils/tokenPrices'
 import { withOperatorShares } from '../../utils/operatorShares'
+import { fetchRewardsEvents } from '../../utils/eventUtils'
+import { RewardsEventQuerySchema } from '../../schema/zod/schemas/eventSchemas'
 
 /**
  * Function for route /avs
@@ -613,6 +615,53 @@ export async function getAVSRewards(req: Request, res: Response) {
 		result.rewardStrategies = rewardStrategies
 
 		res.send(result)
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+/**
+ * Function for route /avs/:address/events/rewards
+ * Fetches and returns a list of rewards-related events for a specific AVS
+ *
+ * @param req
+ * @param res
+ */
+export async function getAVSRewardsEvents(req: Request, res: Response) {
+	const result = RewardsEventQuerySchema.and(PaginationQuerySchema).safeParse(req.query)
+	if (!result.success) return handleAndReturnErrorResponse(req, res, result.error)
+
+	try {
+		const { address } = req.params
+
+		const {
+			rewardsSubmissionToken,
+			rewardsSubmissionHash,
+			startAt,
+			endAt,
+			withEthValue,
+			withIndividualAmount,
+			skip,
+			take
+		} = result.data
+
+		const response = await fetchRewardsEvents({
+			avsAddress: address,
+			rewardsSubmissionToken,
+			rewardsSubmissionHash,
+			startAt,
+			endAt,
+			withEthValue,
+			withIndividualAmount,
+			skip,
+			take
+		})
+
+		response.eventRecords.forEach((event) => 'avs' in event.args && (event.args.avs = undefined))
+
+		res.send({
+			data: response.eventRecords,
+			meta: { total: response.total, skip, take }
+		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
 	}

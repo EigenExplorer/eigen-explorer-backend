@@ -19,3 +19,12 @@ export const WithEthValueQuerySchema = z.object({
 		.transform((val) => val === 'true')
 		.openapi({ example: 'false' })
 })
+
+export const WithIndividualAmountQuerySchema = z.object({
+	withIndividualAmount: z
+		.enum(['true', 'false'])
+		.default('false')
+		.describe('Toggle whether the route should return individual share amount for each strategy')
+		.transform((val) => val === 'true')
+		.openapi({ example: 'false' })
+})
