@@ -6,6 +6,7 @@ import { WithAdditionalDataQuerySchema } from '../../schema/zod/schemas/withAddi
 import { SortByQuerySchema } from '../../schema/zod/schemas/sortByQuery'
 import { SearchByTextQuerySchema } from '../../schema/zod/schemas/searchByTextQuery'
 import { WithRewardsQuerySchema } from '../../schema/zod/schemas/withRewardsQuery'
+import { OperatorDelegationEventQuerySchema } from '../../schema/zod/schemas/eventSchemas'
 import { RequestHeadersSchema } from '../../schema/zod/schemas/auth'
 import { handleAndReturnErrorResponse } from '../../schema/errors'
 import {
@@ -18,7 +19,6 @@ import Prisma from '@prisma/client'
 import prisma from '../../utils/prismaClient'
 import { fetchTokenPrices } from '../../utils/tokenPrices'
 import { fetchDelegationEvents } from '../../utils/eventUtils'
-import { OperatorDelegationEventQuerySchema } from '../../schema/zod/schemas/eventSchemas'
 
 /**
  * Function for route /operators
