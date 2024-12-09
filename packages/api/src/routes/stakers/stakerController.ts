@@ -1,12 +1,20 @@
 import type { Request, Response } from 'express'
 import prisma from '../../utils/prismaClient'
+import Prisma from '@prisma/client'
 import { handleAndReturnErrorResponse } from '../../schema/errors'
 import { PaginationQuerySchema } from '../../schema/zod/schemas/paginationQuery'
 import { WithTvlQuerySchema } from '../../schema/zod/schemas/withTvlQuery'
 import { getViemClient } from '../../viem/viemClient'
-import { getStrategiesWithShareUnderlying, sharesToTVL } from '../../utils/strategyShares'
+import {
+	getStrategiesWithShareUnderlying,
+	sharesToTVL,
+	sharesToTVLStrategies
+} from '../../utils/strategyShares'
+import { fetchTokenPrices } from '../../utils/tokenPrices'
+import { withOperatorShares } from '../../utils/operatorShares'
 import { EthereumAddressSchema } from '../../schema/zod/schemas/base/ethereumAddress'
 import { UpdatedSinceQuerySchema } from '../../schema/zod/schemas/updatedSinceQuery'
+import { WithRewardsQuerySchema } from '../../schema/zod/schemas/withRewardsQuery'
 import { ActiveQuerySchema } from '../../schema/zod/schemas/activeQuery'
 import {
 	fetchDelegationEvents,
@@ -107,8 +115,7 @@ export async function getAllStakers(req: Request, res: Response) {
  * @param res
  */
 export async function getStaker(req: Request, res: Response) {
-	// Validate pagination query
-	const result = WithTvlQuerySchema.safeParse(req.query)
+	const result = WithTvlQuerySchema.and(WithRewardsQuerySchema).safeParse(req.query)
 	if (!result.success) {
 		return handleAndReturnErrorResponse(req, res, result.error)
 	}
@@ -118,7 +125,7 @@ export async function getStaker(req: Request, res: Response) {
 		return handleAndReturnErrorResponse(req, res, paramCheck.error)
 	}
 
-	const { withTvl } = result.data
+	const { withTvl, withRewards } = result.data
 
 	try {
 		const { address } = req.params
@@ -128,15 +135,57 @@ export async function getStaker(req: Request, res: Response) {
 			include: {
 				shares: {
 					select: { strategyAddress: true, shares: true }
-				}
+				},
+				...(withRewards
+					? {
+							operator: {
+								include: {
+									avs: {
+										select: {
+											avsAddress: true,
+											isActive: true,
+											avs: {
+												select: {
+													address: true,
+													rewardSubmissions: true,
+													restakeableStrategies: true,
+													operators: {
+														where: { isActive: true },
+														include: {
+															operator: {
+																include: {
+																	shares: true
+																}
+															}
+														}
+													}
+												}
+											}
+										}
+									},
+									shares: { select: { strategyAddress: true, shares: true } }
+								}
+							}
+					  }
+					: {})
 			}
 		})
 
-		const strategiesWithSharesUnderlying = withTvl ? await getStrategiesWithShareUnderlying() : []
+		const strategiesWithSharesUnderlying =
+			withTvl || withRewards ? await getStrategiesWithShareUnderlying() : []
+		const tvl = withTvl ? sharesToTVL(staker.shares, strategiesWithSharesUnderlying) : undefined
+		const tvlStrategiesEth = withTvl
+			? sharesToTVLStrategies(staker.shares, strategiesWithSharesUnderlying)
+			: null
 
 		res.send({
 			...staker,
-			tvl: withTvl ? sharesToTVL(staker.shares, strategiesWithSharesUnderlying) : undefined
+			tvl,
+			rewards:
+				withRewards && tvlStrategiesEth
+					? await calculateStakerRewards(staker, tvlStrategiesEth)
+					: undefined,
+			operator: undefined
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
@@ -598,4 +647,235 @@ export async function getStakerWithdrawalEvents(req: Request, res: Response) {
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
 	}
+=======
+// --- Helper functions ---
+
+async function calculateStakerRewards(
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+	staker: any,
+	stakerTvlStrategiesEth: { [strategyAddress: string]: number }
+) {
+	try {
+		const avsApyMap: Map<
+			string,
+			{
+				strategies: {
+					address: string
+					apy: number
+					tvlEth: number
+					tokens: Map<string, number>
+				}[]
+			}
+		> = new Map()
+		const strategyApyMap: Map<
+			string,
+			{
+				apy: number
+				tvlEth: number
+				tokens: Map<string, number>
+			}
+		> = new Map()
+
+		// Grab the all reward submissions that the Staker is eligible for basis opted strategies & the Operator's opted AVSs
+		const operatorStrategyAddresses: Set<string> = new Set(
+			staker.operator?.shares.map((share) => share.strategyAddress.toLowerCase()) || []
+		)
+
+		const optedStrategyAddresses: Set<string> = new Set(
+			Array.from(operatorStrategyAddresses).filter(
+				(strategyAddress) => Number(stakerTvlStrategiesEth[strategyAddress]) > 0
+			)
+		)
+
+		const avsWithEligibleRewardSubmissions = staker.operator?.avs
+			.filter((avsOp) => avsOp.avs.rewardSubmissions.length > 0)
+			.map((avsOp) => ({
+				avs: avsOp.avs,
+				eligibleRewards: avsOp.avs.rewardSubmissions.filter((reward) =>
+					optedStrategyAddresses.has(reward.strategyAddress.toLowerCase())
+				)
+			}))
+			.filter((item) => item.eligibleRewards.length > 0)
+
+		if (!avsWithEligibleRewardSubmissions) {
+			return {
+				aggregateApy: '0',
+				tokenRewards: [],
+				strategyApys: [],
+				avsApys: []
+			}
+		}
+
+		const tokenPrices = await fetchTokenPrices()
+		const strategiesWithSharesUnderlying = await getStrategiesWithShareUnderlying()
+
+		// Calc aggregate APY for each AVS basis the opted-in strategies
+		for (const avs of avsWithEligibleRewardSubmissions) {
+			const avsAddress = avs.avs.address.toLowerCase()
+
+			// Get share amounts for each restakeable strategy
+			const shares = withOperatorShares(avs.avs.operators).filter(
+				(s) => avs.avs.restakeableStrategies.indexOf(s.strategyAddress.toLowerCase()) !== -1
+			)
+
+			// Fetch the AVS tvl for each strategy
+			const tvlStrategiesEth = sharesToTVLStrategies(shares, strategiesWithSharesUnderlying)
+
+			// Iterate through each strategy and calculate all its rewards
+			for (const strategyAddress of optedStrategyAddresses) {
+				const strategyTvl = tvlStrategiesEth[strategyAddress.toLowerCase()] || 0
+				if (strategyTvl === 0) continue
+
+				const tokenApyMap: Map<string, number> = new Map()
+				const tokenRewards: Map<
+					string,
+					{
+						totalRewardsEth: Prisma.Prisma.Decimal
+						totalDuration: number
+					}
+				> = new Map()
+
+				let strategyTotalRewardsEth = new Prisma.Prisma.Decimal(0)
+				let strategyTotalDuration = 0
+
+				// Find all reward submissions attributable to the strategy
+				const relevantSubmissions = avs.eligibleRewards.filter(
+					(submission) => submission.strategyAddress.toLowerCase() === strategyAddress.toLowerCase()
+				)
+
+				for (const submission of relevantSubmissions) {
+					let rewardIncrementEth = new Prisma.Prisma.Decimal(0)
+					const rewardTokenAddress = submission.token.toLowerCase()
+
+					if (rewardTokenAddress) {
+						const tokenPrice = tokenPrices.find(
+							(tp) => tp.address.toLowerCase() === rewardTokenAddress
+						)
+						rewardIncrementEth = submission.amount
+							.mul(new Prisma.Prisma.Decimal(tokenPrice?.ethPrice ?? 0))
+							.div(new Prisma.Prisma.Decimal(10).pow(tokenPrice?.decimals ?? 18)) // No decimals
+					}
+
+					// Multiply reward amount in ETH by the strategy weight
+					rewardIncrementEth = rewardIncrementEth
+						.mul(submission.multiplier)
+						.div(new Prisma.Prisma.Decimal(10).pow(18))
+
+					// Operator takes 10% in commission
+					const operatorFeesEth = rewardIncrementEth.mul(10).div(100) // No decimals
+					const netRewardEth = rewardIncrementEth.sub(operatorFeesEth)
+
+					// Accumulate token-specific rewards and duration
+					const tokenData = tokenRewards.get(rewardTokenAddress) || {
+						totalRewardsEth: new Prisma.Prisma.Decimal(0),
+						totalDuration: 0
+					}
+					tokenData.totalRewardsEth = tokenData.totalRewardsEth.add(netRewardEth)
+					tokenData.totalDuration += submission.duration
+					tokenRewards.set(rewardTokenAddress, tokenData)
+
+					// Accumulate strategy totals
+					strategyTotalRewardsEth = strategyTotalRewardsEth.add(netRewardEth)
+					strategyTotalDuration += submission.duration
+				}
+
+				if (strategyTotalDuration === 0) continue
+
+				// Calculate token APYs using accumulated values
+				tokenRewards.forEach((data, tokenAddress) => {
+					if (data.totalDuration !== 0) {
+						const tokenRewardRate = data.totalRewardsEth.toNumber() / strategyTvl
+						const tokenAnnualizedRate =
+							tokenRewardRate * ((365 * 24 * 60 * 60) / data.totalDuration)
+						const tokenApy = tokenAnnualizedRate * 100
+
+						tokenApyMap.set(tokenAddress, tokenApy)
+					}
+				})
+
+				// Calculate overall strategy APY summing token APYs
+				const strategyApy = Array.from(tokenApyMap.values()).reduce((sum, apy) => sum + apy, 0)
+
+				// Update strategy rewards map (across all AVSs)
+				const currentStrategyRewards = strategyApyMap.get(strategyAddress) || {
+					apy: 0,
+					tvlEth: strategyTvl,
+					tokens: new Map()
+				}
+
+				tokenApyMap.forEach((apy, tokenAddress) => {
+					const currentTokenApy = currentStrategyRewards.tokens.get(tokenAddress) || 0
+					currentStrategyRewards.tokens.set(tokenAddress, currentTokenApy + apy)
+				})
+				currentStrategyRewards.apy += strategyApy
+				strategyApyMap.set(strategyAddress, currentStrategyRewards)
+
+				// Update AVS rewards map
+				const currentAvsRewards = avsApyMap.get(avsAddress) || { strategies: [] }
+				currentAvsRewards.strategies.push({
+					address: strategyAddress,
+					tvlEth: strategyTvl,
+					apy: strategyApy,
+					tokens: tokenApyMap
+				})
+				avsApyMap.set(avsAddress, currentAvsRewards)
+			}
+		}
+
+		// Build token amounts section
+		const stakerRewardRecords = await prisma.stakerRewardSnapshot.findMany({
+			where: {
+				stakerAddress: staker.address.toLowerCase()
+			}
+		})
+
+		const tokenAmounts = stakerRewardRecords.map((record) => ({
+			tokenAddress: record.tokenAddress.toLowerCase(),
+			cumulativeAmount: record.cumulativeAmount
+		}))
+
+		// Build strategies section
+		const strategyApys = Array.from(strategyApyMap).map(([strategyAddress, data]) => ({
+			strategyAddress,
+			apy: data.apy,
+			tokens: Array.from(data.tokens.entries()).map(([tokenAddress, apy]) => ({
+				tokenAddress,
+				apy
+			}))
+		}))
+
+		// Build Avs section
+		const avsApys = Array.from(avsApyMap).map(([avsAddress, data]) => {
+			const strategies = data.strategies.map((s) => ({
+				strategyAddress: s.address,
+				apy: s.apy,
+				tokens: Array.from(s.tokens).map(([tokenAddress, apy]) => ({
+					tokenAddress,
+					apy
+				}))
+			}))
+
+			const totalTvl = strategies.reduce(
+				(sum, s) => sum + Number(stakerTvlStrategiesEth[s.strategyAddress.toLowerCase()] || 0),
+				0
+			)
+			const weightedApy = strategies.reduce((sum, s) => {
+				const tvl = Number(stakerTvlStrategiesEth[s.strategyAddress.toLowerCase()] || 0)
+				return sum + Number(s.apy) * (tvl / totalTvl)
+			}, 0)
+
+			return {
+				avsAddress,
+				apy: weightedApy,
+				strategies
+			}
+		})
+
+		return {
+			aggregateApy: avsApys.reduce((sum, avs) => sum + avs.apy, 0),
+			tokenAmounts,
+			strategyApys,
+			avsApys
+		}
+	} catch {}
 }
