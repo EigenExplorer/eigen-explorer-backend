@@ -647,7 +647,8 @@ export async function getStakerWithdrawalEvents(req: Request, res: Response) {
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
 	}
-=======
+}
+
 // --- Helper functions ---
 
 async function calculateStakerRewards(

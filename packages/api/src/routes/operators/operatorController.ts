@@ -7,7 +7,6 @@ import { SortByQuerySchema } from '../../schema/zod/schemas/sortByQuery'
 import { SearchByTextQuerySchema } from '../../schema/zod/schemas/searchByTextQuery'
 import { WithRewardsQuerySchema } from '../../schema/zod/schemas/withRewardsQuery'
 import { RequestHeadersSchema } from '../../schema/zod/schemas/auth'
-import { OperatorEventQuerySchema } from '../../schema/zod/schemas/operatorEvents'
 import { handleAndReturnErrorResponse } from '../../schema/errors'
 import {
 	getStrategiesWithShareUnderlying,
