@@ -42,6 +42,8 @@ import { seedLogStrategyWhitelist } from './events/seedLogStrategyWhitelist'
 console.log('Initializing Seeder ...')
 
 // Constants
+import { monitorAvsMetadata } from './monitors/avsMetadata'
+import { monitorOperatorMetadata } from './monitors/operatorMetadata'
 const MAX_RETRIES = 3
 const RETRY_DELAY = 15 * 60
 const UPDATE_FREQUENCY = getNetwork().testnet ? 720 : 240
@@ -156,6 +158,9 @@ async function seedEigenDailyData(retryCount = 0) {
 		await seedMetricsRestaking()
 		await seedMetricsEigenPods()
 		await seedMetricsTvl()
+
+		await monitorAvsMetadata()
+		await monitorOperatorMetadata()
 
 		console.timeEnd('Seeded daily data in')
 	} catch (error) {
