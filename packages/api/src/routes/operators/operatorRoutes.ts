@@ -5,6 +5,7 @@ import {
 	getAllOperatorAddresses,
 	getOperatorRewards,
 	getOperatorDelegationEvents,
+	getOperatorRegistrationEvents,
 	invalidateMetadata
 } from './operatorController'
 
@@ -113,7 +114,7 @@ router.get('/:address/events/delegation', routeCache.cacheSeconds(120), getOpera
 router.get(
 	'/:address/events/registration',
 	routeCache.cacheSeconds(120),
-	getOperatorDelegationEvents
+	getOperatorRegistrationEvents
 )
 
 // Protected routes
