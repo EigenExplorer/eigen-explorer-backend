@@ -3,10 +3,12 @@ import { getAllOperators } from './getAllOperators'
 import { getOperatorByAddress } from './getOperatorByAddress'
 import { getAllOperatorAddresses } from './getAllOperatorAddresses'
 import { getOperatorRewards } from './getOperatorRewards'
+import { getOperatorDelegationEvents } from './getOperatorDelegationEvents'
 
 export const operatorsRoutes: ZodOpenApiPathsObject = {
 	'/operators': { get: getAllOperators },
 	'/operators/addresses': { get: getAllOperatorAddresses },
 	'/operators/{address}': { get: getOperatorByAddress },
-	'/operators/{address}/rewards': { get: getOperatorRewards }
+	'/operators/{address}/rewards': { get: getOperatorRewards },
+	'/operators/{address}/events/delegation': { get: getOperatorDelegationEvents }
 }
