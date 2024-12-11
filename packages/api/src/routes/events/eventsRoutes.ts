@@ -20,6 +20,6 @@ router.get('/deposit', routeCache.cacheSeconds(120), getDepositEvents)
 
 router.get('/withdrawal', routeCache.cacheSeconds(120), getWithdrawalEvents)
 
-router.get('/registration', routeCache.cacheSeconds(120), getRegistrationEvents)
+router.get('/registration-status', routeCache.cacheSeconds(120), getRegistrationEvents)
 
 export default router

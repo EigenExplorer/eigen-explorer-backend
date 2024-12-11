@@ -112,7 +112,7 @@ router.get('/:address/rewards', routeCache.cacheSeconds(120), getOperatorRewards
 router.get('/:address/events/delegation', routeCache.cacheSeconds(120), getOperatorDelegationEvents)
 
 router.get(
-	'/:address/events/registration',
+	'/:address/events/registration-status',
 	routeCache.cacheSeconds(120),
 	getOperatorRegistrationEvents
 )
