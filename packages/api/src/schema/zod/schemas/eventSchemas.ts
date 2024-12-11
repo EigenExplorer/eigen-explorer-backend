@@ -233,3 +233,29 @@ const RewardsEventQuerySchemaBase = BaseEventQuerySchema.extend({
 	.merge(WithEthValueQuerySchema)
 
 export const RewardsEventQuerySchema = refineStartEndDates(RewardsEventQuerySchemaBase)
+
+const RegistrationEventQuerySchemaBase = BaseEventQuerySchema.extend({
+	status: z.enum(['REGISTERED', 'DEREGISTERED']).optional().describe('The status of Registration')
+})
+
+export const RegistrationEventQuerySchema = refineStartEndDates(RegistrationEventQuerySchemaBase)
+
+export const OperatorRegistrationEventQuerySchema = refineStartEndDates(
+	RegistrationEventQuerySchemaBase.extend({
+		avsAddress: z
+			.string()
+			.regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address')
+			.optional()
+			.describe('The address of the avs')
+	})
+)
+
+export const AvsRegistrationEventQuerySchema = refineStartEndDates(
+	RegistrationEventQuerySchemaBase.extend({
+		operatorAddress: z
+			.string()
+			.regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address')
+			.optional()
+			.describe('The address of the operator')
+	})
+)
