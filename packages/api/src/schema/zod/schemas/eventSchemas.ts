@@ -10,7 +10,7 @@ const isoRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/
 const yyyymmddRegex = /^\d{4}-\d{2}-\d{2}$/
 
 // Reusable refinement functions
-const refineWithEthValueRequiresTokenData = (schema: z.ZodTypeAny) =>
+export const refineWithEthValueRequiresTokenData = (schema: z.ZodTypeAny) =>
 	schema.refine(
 		(data) => {
 			if (data.withEthValue && !data.withTokenData) {
@@ -24,7 +24,7 @@ const refineWithEthValueRequiresTokenData = (schema: z.ZodTypeAny) =>
 		}
 	)
 
-const refineStartEndDates = (schema: z.ZodTypeAny) =>
+export const refineStartEndDates = (schema: z.ZodTypeAny) =>
 	schema
 		.refine(
 			(data) => {
@@ -55,7 +55,7 @@ const refineStartEndDates = (schema: z.ZodTypeAny) =>
 			}
 		)
 
-const refineDelegationTypeRestrictions = (schema: z.ZodTypeAny) =>
+export const refineDelegationTypeRestrictions = (schema: z.ZodTypeAny) =>
 	schema.refine(
 		(data) => {
 			if (data.type === 'DELEGATION' || data.type === 'UNDELEGATION') {
@@ -72,7 +72,7 @@ const refineDelegationTypeRestrictions = (schema: z.ZodTypeAny) =>
 		}
 	)
 
-const refineWithdrawalTypeRestrictions = (schema: z.ZodTypeAny) =>
+export const refineWithdrawalTypeRestrictions = (schema: z.ZodTypeAny) =>
 	schema.refine(
 		(data) => {
 			if (data.type === 'WITHDRAWAL_COMPLETED') {
@@ -90,7 +90,7 @@ const refineWithdrawalTypeRestrictions = (schema: z.ZodTypeAny) =>
 	)
 
 // Base schema for shared fields
-const BaseEventQuerySchema = z.object({
+export const BaseEventQuerySchema = z.object({
 	txHash: z
 		.string()
 		.regex(/^0x([A-Fa-f0-9]{64})$/, 'Invalid transaction hash')
@@ -124,7 +124,7 @@ const BaseEventQuerySchema = z.object({
 		.describe('End date in ISO string format')
 })
 
-const WithdrawalEventQuerySchemaBase = BaseEventQuerySchema.extend({
+export const WithdrawalEventQuerySchemaBase = BaseEventQuerySchema.extend({
 	type: z
 		.enum(['WITHDRAWAL_QUEUED', 'WITHDRAWAL_COMPLETED'])
 		.optional()
@@ -152,7 +152,7 @@ export const WithdrawalEventQuerySchema = refineWithdrawalTypeRestrictions(
 	refineWithEthValueRequiresTokenData(refineStartEndDates(WithdrawalEventQuerySchemaBase))
 )
 
-const DepositEventQuerySchemaBase = BaseEventQuerySchema.extend({
+export const DepositEventQuerySchemaBase = BaseEventQuerySchema.extend({
 	tokenAddress: z
 		.string()
 		.regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid token address')
@@ -171,7 +171,7 @@ export const DepositEventQuerySchema = refineWithEthValueRequiresTokenData(
 	refineStartEndDates(DepositEventQuerySchemaBase)
 )
 
-const DelegationEventQuerySchemaBase = BaseEventQuerySchema.extend({
+export const DelegationEventQuerySchemaBase = BaseEventQuerySchema.extend({
 	type: z
 		.enum(['SHARES_INCREASED', 'SHARES_DECREASED', 'DELEGATION', 'UNDELEGATION'])
 		.optional()
@@ -182,42 +182,44 @@ const DelegationEventQuerySchemaBase = BaseEventQuerySchema.extend({
 		.optional()
 		.describe('The contract address of the restaking strategy')
 })
+
+export const DelegationEventQuerySchema = refineDelegationTypeRestrictions(
+	refineWithEthValueRequiresTokenData(
+		refineStartEndDates(
+			DelegationEventQuerySchemaBase.merge(WithTokenDataQuerySchema).merge(WithEthValueQuerySchema)
+		)
+	)
+)
+
+export const OperatorDelegationEventQuerySchemaBase = DelegationEventQuerySchemaBase.extend({
+	stakerAddress: z
+		.string()
+		.regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address')
+		.optional()
+		.describe('The address of the staker')
+})
 	.merge(WithTokenDataQuerySchema)
 	.merge(WithEthValueQuerySchema)
 
-export const DelegationEventQuerySchema = refineDelegationTypeRestrictions(
-	refineWithEthValueRequiresTokenData(refineStartEndDates(DelegationEventQuerySchemaBase))
+export const OperatorDelegationEventQuerySchema = refineDelegationTypeRestrictions(
+	refineWithEthValueRequiresTokenData(refineStartEndDates(OperatorDelegationEventQuerySchemaBase))
 )
 
-export const OperatorDelegationEventQuerySchema = refineDelegationTypeRestrictions(
-	refineWithEthValueRequiresTokenData(
-		refineStartEndDates(
-			DelegationEventQuerySchemaBase.extend({
-				stakerAddress: z
-					.string()
-					.regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address')
-					.optional()
-					.describe('The address of the staker')
-			})
-		)
-	)
-)
+export const StakerDelegationEventQuerySchemaBase = DelegationEventQuerySchemaBase.extend({
+	operatorAddress: z
+		.string()
+		.regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address')
+		.optional()
+		.describe('The address of the operator')
+})
+	.merge(WithTokenDataQuerySchema)
+	.merge(WithEthValueQuerySchema)
 
 export const StakerDelegationEventQuerySchema = refineDelegationTypeRestrictions(
-	refineWithEthValueRequiresTokenData(
-		refineStartEndDates(
-			DelegationEventQuerySchemaBase.extend({
-				operatorAddress: z
-					.string()
-					.regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address')
-					.optional()
-					.describe('The address of the operator')
-			})
-		)
-	)
+	refineWithEthValueRequiresTokenData(refineStartEndDates(StakerDelegationEventQuerySchemaBase))
 )
 
-const RewardsEventQuerySchemaBase = BaseEventQuerySchema.extend({
+export const RewardsEventQuerySchemaBase = BaseEventQuerySchema.extend({
 	rewardsSubmissionHash: z
 		.string()
 		.regex(/^0x([A-Fa-f0-9]{64})$/, 'Invalid reward submission hash')
