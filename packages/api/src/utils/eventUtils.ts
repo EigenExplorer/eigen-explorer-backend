@@ -22,7 +22,12 @@ type StrategyData = {
 	shares: number
 } & UnderlyingTokenDetails
 
-export type EventArgs = DelegationArgs | DepositArgs | WithdrawalArgs | RewardArgs
+export type EventArgs =
+	| DelegationArgs
+	| DepositArgs
+	| WithdrawalArgs
+	| RewardArgs
+	| RegistrationArgs
 
 type DelegationArgs = {
 	operator?: string
@@ -63,6 +68,12 @@ type RewardArgs = {
 		amountEthValue?: number
 	}[]
 	ethValue?: number
+}
+
+type RegistrationArgs = {
+	operator?: string
+	avs?: string
+	status: string
 }
 
 /**
@@ -648,6 +659,77 @@ export async function fetchStakerWithdrawalEvents({
 	}
 }
 
+/**
+ * Utility function to fetch registration events.
+ *
+ * @param operatorAddress
+ * @param avs
+ * @param type
+ * @param strategyAddress
+ * @param txHash
+ * @param startAt
+ * @param endAt
+ * @param withTokenData
+ * @param withEthValue
+ * @param skip
+ * @param take
+ * @returns
+ */
+export async function fetchRegistrationEvents({
+	operatorAddress,
+	avsAddress,
+	txHash,
+	status,
+	startAt,
+	endAt,
+	skip,
+	take
+}: {
+	operatorAddress?: string
+	avsAddress?: string
+	txHash?: string
+	status?: string
+	startAt?: string
+	endAt?: string
+	skip: number
+	take: number
+}): Promise<{ eventRecords: EventRecord[]; total: number }> {
+	const baseFilterQuery = {
+		...(operatorAddress && {
+			operator: {
+				contains: operatorAddress,
+				mode: 'insensitive'
+			}
+		}),
+		...(avsAddress && {
+			avs: {
+				contains: avsAddress,
+				mode: 'insensitive'
+			}
+		}),
+		...(txHash && {
+			transactionHash: {
+				contains: txHash,
+				mode: 'insensitive'
+			}
+		}),
+		...(status && {
+			status: status === 'REGISTERED' ? 1 : status === 'DEREGISTERED' ? 0 : undefined
+		}),
+		blockTime: {
+			gte: new Date(startAt as string),
+			...(endAt ? { lte: new Date(endAt as string) } : {})
+		}
+	}
+
+	const results = await fetchAndMapEvents('REGISTRATION_STATUS', baseFilterQuery, skip, take)
+
+	return {
+		eventRecords: results.eventRecords,
+		total: results.eventCount
+	}
+}
+
 // Helper Functions
 const maxDuration = 30 * 24 * 60 * 60 * 1000 // 30 days
 const defaultDuration = 7 * 24 * 60 * 60 * 1000 // 7 days
@@ -847,6 +929,8 @@ export async function fetchAndMapEvents(
 				return 'eventLogs_WithdrawalCompleted'
 			case 'REWARDS':
 				return 'eventLogs_AVSRewardsSubmission'
+			case 'REGISTRATION_STATUS':
+				return 'eventLogs_OperatorAVSRegistrationStatusUpdated'
 			default:
 				throw new Error(`Unknown event type: ${eventType}`)
 		}
@@ -923,6 +1007,12 @@ function mapEventArgs(event: any, eventType: string): EventArgs {
 						multiplier: event.strategiesAndMultipliers_multipliers[index]
 					})
 				)
+			}
+		case 'REGISTRATION_STATUS':
+			return {
+				operator: event.operator,
+				avs: event.avs,
+				status: event.status === 1 ? 'REGISTERED' : 'DEREGISTERED'
 			}
 		default:
 			return {
