@@ -57,7 +57,7 @@ export async function seedLogsAVSRewardsSubmission(toBlock?: bigint, fromBlock?:
 				if (log.args.rewardsSubmission?.strategiesAndMultipliers) {
 					for (const strategyAndMultiplier of log.args.rewardsSubmission.strategiesAndMultipliers) {
 						strategies.push(strategyAndMultiplier.strategy.toLowerCase())
-						multipliers.push(String(strategyAndMultiplier.multiplier.toString()))
+						multipliers.push(strategyAndMultiplier.multiplier.toString())
 					}
 
 					logsAvsRewardsSubmissions.push({
@@ -103,6 +103,6 @@ export async function seedLogsAVSRewardsSubmission(toBlock?: bigint, fromBlock?:
 				dbTransactions,
 				`[Logs] AVS Rewards Submission from: ${fromBlock} to: ${toBlock} size: ${seedLength}`
 			)
-		} catch (error) {}
+		} catch {}
 	})
 }

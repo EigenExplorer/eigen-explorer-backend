@@ -25,6 +25,11 @@ export async function monitorAvsApy() {
 		try {
 			// Fetch totalStakers, totalOperators & rewards data for all avs in this iteration
 			const avsMetrics = await prismaClient.avs.findMany({
+				where: {
+					rewardSubmissions: {
+						some: {}
+					}
+				},
 				include: {
 					operators: {
 						where: { isActive: true },
