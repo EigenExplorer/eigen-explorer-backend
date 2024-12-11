@@ -663,14 +663,11 @@ export async function fetchStakerWithdrawalEvents({
  * Utility function to fetch registration events.
  *
  * @param operatorAddress
- * @param avs
- * @param type
- * @param strategyAddress
+ * @param avsAddress
  * @param txHash
+ * @param status
  * @param startAt
  * @param endAt
- * @param withTokenData
- * @param withEthValue
  * @param skip
  * @param take
  * @returns
