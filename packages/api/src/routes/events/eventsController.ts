@@ -4,6 +4,7 @@ import { PaginationQuerySchema } from '../../schema/zod/schemas/paginationQuery'
 import {
 	DelegationEventQuerySchema,
 	DepositEventQuerySchema,
+	RegistrationEventQuerySchema,
 	RewardsEventQuerySchema,
 	WithdrawalEventQuerySchema
 } from '../../schema/zod/schemas/eventSchemas'
@@ -11,7 +12,8 @@ import {
 	fetchDelegationEvents,
 	fetchDepositEvents,
 	fetchGlobalWithdrawalEvents,
-	fetchRewardsEvents
+	fetchRewardsEvents,
+	fetchRegistrationEvents
 } from '../../utils/eventUtils'
 import {
 	WithEthValueQuerySchema,
@@ -192,6 +194,38 @@ export async function getWithdrawalEvents(req: Request, res: Response) {
 			take,
 			withTokenData,
 			withEthValue
+		})
+
+		res.send({
+			data: response.eventRecords,
+			meta: { total: response.total, skip, take }
+		})
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+/**
+ * Function for route /events/registration
+ * Fetches and returns a list of operator-avs registration event
+ *
+ * @param req
+ * @param res
+ */
+export async function getRegistrationEvents(req: Request, res: Response) {
+	const result = RegistrationEventQuerySchema.and(PaginationQuerySchema).safeParse(req.query)
+	if (!result.success) return handleAndReturnErrorResponse(req, res, result.error)
+
+	try {
+		const { txHash, status, startAt, endAt, skip, take } = result.data
+
+		const response = await fetchRegistrationEvents({
+			txHash,
+			status,
+			startAt,
+			endAt,
+			skip,
+			take
 		})
 
 		res.send({
