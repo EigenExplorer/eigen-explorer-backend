@@ -819,9 +819,9 @@ async function enrichEventsWithTokenData(
 						)
 
 						detailedStrategies.push({
-							strategy: strategy.strategy,
+							strategy: strategy.strategy?.toLowerCase(),
 							shares: strategy.shares,
-							underlyingToken: detailedData.underlyingToken,
+							underlyingToken: detailedData.underlyingToken?.toLowerCase(),
 							underlyingValue: detailedData.underlyingValue,
 							...(withEthValue ? { ethValue: detailedData.ethValue } : {})
 						})
@@ -838,7 +838,7 @@ async function enrichEventsWithTokenData(
 					BigInt(event.args.shares ?? 0)
 				)
 
-				underlyingToken = detailedData.underlyingToken
+				underlyingToken = detailedData.underlyingToken?.toLowerCase()
 				underlyingValue = detailedData.underlyingValue
 				ethValue = detailedData.ethValue
 			}
@@ -969,21 +969,21 @@ function mapEventArgs(event: any, eventType: string): EventArgs {
 	switch (eventType) {
 		case 'DEPOSIT':
 			return {
-				staker: event.staker,
-				token: event.token,
-				strategy: event.strategy,
+				staker: event.staker?.toLowerCase(),
+				token: event.token?.toLowerCase(),
+				strategy: event.strategy?.toLowerCase(),
 				shares: event.shares
 			}
 		case 'WITHDRAWAL_QUEUED':
 			return {
-				staker: event.staker,
+				staker: event.staker?.toLowerCase(),
 				withdrawalRoot: event.withdrawalRoot,
-				delegatedTo: event.delegatedTo,
-				withdrawer: event.withdrawer,
+				delegatedTo: event.delegatedTo?.toLowerCase(),
+				withdrawer: event.withdrawer?.toLowerCase(),
 				nonce: event.nonce,
 				startBlock: event.startBlock,
 				strategies: event.strategies?.map((strategy: string, index: number) => ({
-					strategy,
+					strategy: strategy?.toLowerCase(),
 					shares: event.shares?.[index]
 				}))
 			}
@@ -991,31 +991,31 @@ function mapEventArgs(event: any, eventType: string): EventArgs {
 			return { withdrawalRoot: event.withdrawalRoot }
 		case 'REWARDS':
 			return {
-				avs: event.avs,
+				avs: event.avs?.toLowerCase(),
 				submissionNonce: event.submissionNonce,
 				rewardsSubmissionHash: event.rewardsSubmissionHash,
-				rewardsSubmissionToken: event.rewardsSubmission_token.toLowerCase(),
+				rewardsSubmissionToken: event.rewardsSubmission_token?.toLowerCase(),
 				rewardsSubmissionAmount: event.rewardsSubmission_amount,
 				rewardsSubmissionStartTimeStamp: event.rewardsSubmission_startTimestamp,
 				rewardsSubmissionDuration: event.rewardsSubmission_duration,
 				strategies: event.strategiesAndMultipliers_strategies.map(
 					(strategy: string, index: number) => ({
-						strategy: strategy.toLowerCase(),
+						strategy: strategy?.toLowerCase(),
 						multiplier: event.strategiesAndMultipliers_multipliers[index]
 					})
 				)
 			}
 		case 'REGISTRATION_STATUS':
 			return {
-				operator: event.operator,
-				avs: event.avs,
+				operator: event.operator?.toLowerCase(),
+				avs: event.avs?.toLowerCase(),
 				status: event.status === 1 ? 'REGISTERED' : 'DEREGISTERED'
 			}
 		default:
 			return {
-				operator: event.operator,
-				staker: event.staker,
-				strategy: event.strategy,
+				operator: event.operator?.toLowerCase(),
+				staker: event.staker?.toLowerCase(),
+				strategy: event.strategy?.toLowerCase(),
 				shares: event.shares
 			}
 	}
