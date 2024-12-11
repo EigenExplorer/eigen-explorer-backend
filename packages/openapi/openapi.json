@@ -4669,6 +4669,259 @@
 				}
 			}
 		},
+		"/avs/{address}/events/rewards": {
+			"get": {
+				"operationId": "getAvsRewards",
+				"summary": "Retrieve reward events for a given AVS address",
+				"description": "Returns a list of all reward events for a given AVS address.",
+				"tags": ["AVS"],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "address",
+						"description": "AVS service manager contract address",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "AVS service manager contract address",
+							"example": "0x870679e138bcdf293b7ff14dd44b70fc97e12fc0"
+						},
+						"required": true
+					},
+					{
+						"in": "query",
+						"name": "txHash",
+						"description": "The transaction hash associated with the event",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x([A-Fa-f0-9]{64})$",
+							"description": "The transaction hash associated with the event"
+						}
+					},
+					{
+						"in": "query",
+						"name": "startAt",
+						"description": "Start date in ISO string format",
+						"schema": {
+							"type": "string",
+							"default": "",
+							"description": "Start date in ISO string format"
+						}
+					},
+					{
+						"in": "query",
+						"name": "endAt",
+						"description": "End date in ISO string format",
+						"schema": {
+							"type": "string",
+							"default": "",
+							"description": "End date in ISO string format"
+						}
+					},
+					{
+						"in": "query",
+						"name": "rewardsSubmissionHash",
+						"description": "The reward submission hash associated with the event",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x([A-Fa-f0-9]{64})$",
+							"description": "The reward submission hash associated with the event"
+						}
+					},
+					{
+						"in": "query",
+						"name": "rewardsSubmissionToken",
+						"description": "The token address used for the rewards submission",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "The token address used for the rewards submission"
+						}
+					},
+					{
+						"in": "query",
+						"name": "withIndividualAmount",
+						"description": "Toggle whether the route should return individual share amount for each strategy",
+						"schema": {
+							"type": "string",
+							"enum": ["true", "false"],
+							"default": "false",
+							"description": "Toggle whether the route should return individual share amount for each strategy",
+							"example": "false"
+						}
+					},
+					{
+						"in": "query",
+						"name": "withEthValue",
+						"description": "Toggle whether the route should return value denominated in ETH",
+						"schema": {
+							"type": "string",
+							"enum": ["true", "false"],
+							"default": "false",
+							"description": "Toggle whether the route should return value denominated in ETH",
+							"example": "false"
+						}
+					},
+					{
+						"in": "query",
+						"name": "skip",
+						"description": "The number of records to skip for pagination",
+						"schema": {
+							"type": "string",
+							"default": "0",
+							"description": "The number of records to skip for pagination",
+							"example": 0
+						}
+					},
+					{
+						"in": "query",
+						"name": "take",
+						"description": "The number of records to return for pagination",
+						"schema": {
+							"type": "string",
+							"default": "12",
+							"description": "The number of records to return for pagination",
+							"example": 12
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The reward events found for the AVS.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"type": {
+											"type": "string",
+											"description": "The name of the event",
+											"example": "Delegation"
+										},
+										"tx": {
+											"type": "string",
+											"description": "The transaction hash",
+											"example": "0x6d2b564b0f2c915c61772b7a2f23a35bd5c915e2c4d8c2eb2f2bc6a9c7075e2c"
+										},
+										"blockNumber": {
+											"type": "number",
+											"description": "The block number of the transaction",
+											"example": 17438920
+										},
+										"blockTime": {
+											"type": "string",
+											"description": "The block time of the transaction as an ISO 8601 string",
+											"example": "2024-12-01T14:20:00Z"
+										},
+										"args": {
+											"type": "object",
+											"properties": {
+												"submissionNonce": {
+													"type": "number",
+													"description": "Nonce of the submission",
+													"example": 1
+												},
+												"rewardsSubmissionHash": {
+													"type": "string",
+													"description": "Hash of the rewards submission",
+													"example": "0xe3c8e76d69f8c522a617a0f9e2158d4c785fc2f1b7c902d2b79c66309f9e7a5d"
+												},
+												"rewardsSubmissionToken": {
+													"type": "string",
+													"description": "Token used in the rewards submission",
+													"example": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+												},
+												"rewardsSubmissionAmount": {
+													"type": "string",
+													"description": "Amount of rewards submitted",
+													"example": "1000000000000000000"
+												},
+												"rewardsSubmissionStartTimeStamp": {
+													"type": "number",
+													"description": "Start timestamp for the rewards submission",
+													"example": 1700000000
+												},
+												"rewardsSubmissionDuration": {
+													"type": "number",
+													"description": "Duration of the rewards submission",
+													"example": 86400
+												},
+												"strategies": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"strategy": {
+																"type": "string",
+																"description": "The strategy address",
+																"example": "0xacb55c530acdb2849e6d4f36992cd8c9d50ed8f7"
+															},
+															"multiplier": {
+																"type": "string",
+																"description": "Multiplier applied to rewards",
+																"example": "1.5"
+															},
+															"amount": {
+																"type": "string",
+																"description": "Reward amount",
+																"example": "500000000000000000"
+															},
+															"amountEthValue": {
+																"type": "number",
+																"description": "ETH value of the reward amount",
+																"example": 0.5
+															}
+														},
+														"required": ["strategy"]
+													},
+													"description": "List of strategies involved in the rewards submission"
+												}
+											},
+											"required": [
+												"submissionNonce",
+												"rewardsSubmissionHash",
+												"rewardsSubmissionToken",
+												"rewardsSubmissionAmount",
+												"rewardsSubmissionStartTimeStamp",
+												"rewardsSubmissionDuration",
+												"strategies"
+											]
+										},
+										"ethValue": {
+											"type": "number",
+											"description": "Value in ETH",
+											"example": 1
+										}
+									},
+									"required": ["type", "tx", "blockNumber", "blockTime", "args"]
+								}
+							}
+						}
+					},
+					"400": {
+						"$ref": "#/components/responses/400"
+					},
+					"401": {
+						"$ref": "#/components/responses/401"
+					},
+					"403": {
+						"$ref": "#/components/responses/403"
+					},
+					"404": {
+						"$ref": "#/components/responses/404"
+					},
+					"422": {
+						"$ref": "#/components/responses/422"
+					},
+					"429": {
+						"$ref": "#/components/responses/429"
+					},
+					"500": {
+						"$ref": "#/components/responses/500"
+					}
+				}
+			}
+		},
 		"/operators": {
 			"get": {
 				"operationId": "getAllOperators",
@@ -6180,6 +6433,225 @@
 										}
 									},
 									"required": ["address", "rewardTokens", "rewardStrategies"]
+								}
+							}
+						}
+					},
+					"400": {
+						"$ref": "#/components/responses/400"
+					},
+					"401": {
+						"$ref": "#/components/responses/401"
+					},
+					"403": {
+						"$ref": "#/components/responses/403"
+					},
+					"404": {
+						"$ref": "#/components/responses/404"
+					},
+					"422": {
+						"$ref": "#/components/responses/422"
+					},
+					"429": {
+						"$ref": "#/components/responses/429"
+					},
+					"500": {
+						"$ref": "#/components/responses/500"
+					}
+				}
+			}
+		},
+		"/operators/{address}/events/delegation": {
+			"get": {
+				"operationId": "getOperatorDelegationEvents",
+				"summary": "Retrieve delegation events for a given Operator address",
+				"description": "Returns a list of all delegation events for a given Operator address.",
+				"tags": ["Operators"],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "address",
+						"description": "The address of the operator",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "The address of the operator",
+							"example": "0x00107cfdeaddc0a3160ed2f6fedd627f313e7b1a"
+						},
+						"required": true
+					},
+					{
+						"in": "query",
+						"name": "txHash",
+						"description": "The transaction hash associated with the event",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x([A-Fa-f0-9]{64})$",
+							"description": "The transaction hash associated with the event"
+						}
+					},
+					{
+						"in": "query",
+						"name": "startAt",
+						"description": "Start date in ISO string format",
+						"schema": {
+							"type": "string",
+							"default": "",
+							"description": "Start date in ISO string format"
+						}
+					},
+					{
+						"in": "query",
+						"name": "endAt",
+						"description": "End date in ISO string format",
+						"schema": {
+							"type": "string",
+							"default": "",
+							"description": "End date in ISO string format"
+						}
+					},
+					{
+						"in": "query",
+						"name": "type",
+						"description": "The type of the delegation event",
+						"schema": {
+							"type": "string",
+							"enum": ["SHARES_INCREASED", "SHARES_DECREASED", "DELEGATION", "UNDELEGATION"],
+							"description": "The type of the delegation event"
+						}
+					},
+					{
+						"in": "query",
+						"name": "strategyAddress",
+						"description": "The contract address of the restaking strategy",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "The contract address of the restaking strategy"
+						}
+					},
+					{
+						"in": "query",
+						"name": "stakerAddress",
+						"description": "The address of the staker",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "The address of the staker"
+						}
+					},
+					{
+						"in": "query",
+						"name": "withTokenData",
+						"description": "Toggle whether the route should return underlying token address and underlying value",
+						"schema": {
+							"type": "string",
+							"enum": ["true", "false"],
+							"default": "false",
+							"description": "Toggle whether the route should return underlying token address and underlying value",
+							"example": "false"
+						}
+					},
+					{
+						"in": "query",
+						"name": "withEthValue",
+						"description": "Toggle whether the route should return value denominated in ETH",
+						"schema": {
+							"type": "string",
+							"enum": ["true", "false"],
+							"default": "false",
+							"description": "Toggle whether the route should return value denominated in ETH",
+							"example": "false"
+						}
+					},
+					{
+						"in": "query",
+						"name": "skip",
+						"description": "The number of records to skip for pagination",
+						"schema": {
+							"type": "string",
+							"default": "0",
+							"description": "The number of records to skip for pagination",
+							"example": 0
+						}
+					},
+					{
+						"in": "query",
+						"name": "take",
+						"description": "The number of records to return for pagination",
+						"schema": {
+							"type": "string",
+							"default": "12",
+							"description": "The number of records to return for pagination",
+							"example": 12
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The delegation events found for the Operator.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"type": {
+											"type": "string",
+											"description": "The name of the event",
+											"example": "Delegation"
+										},
+										"tx": {
+											"type": "string",
+											"description": "The transaction hash",
+											"example": "0x6d2b564b0f2c915c61772b7a2f23a35bd5c915e2c4d8c2eb2f2bc6a9c7075e2c"
+										},
+										"blockNumber": {
+											"type": "number",
+											"description": "The block number of the transaction",
+											"example": 17438920
+										},
+										"blockTime": {
+											"type": "string",
+											"description": "The block time of the transaction as an ISO 8601 string",
+											"example": "2024-12-01T14:20:00Z"
+										},
+										"args": {
+											"type": "object",
+											"properties": {
+												"staker": {
+													"type": "string",
+													"description": "Staker address",
+													"example": "0x13760f50a9d7377e4f20cb8cf9e4c26586c658ff"
+												},
+												"strategy": {
+													"type": "string",
+													"description": "Strategy address",
+													"example": "0xacb55c530acdb2849e6d4f36992cd8c9d50ed8f7"
+												},
+												"shares": {
+													"type": "number",
+													"description": "Number of shares",
+													"example": 100
+												}
+											}
+										},
+										"underlyingToken": {
+											"type": "string",
+											"description": "Underlying token address",
+											"example": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+										},
+										"underlyingValue": {
+											"type": "number",
+											"description": "Underlying value of the token",
+											"example": 500
+										},
+										"ethValue": {
+											"type": "number",
+											"description": "Value in ETH",
+											"example": 1
+										}
+									},
+									"required": ["type", "tx", "blockNumber", "blockTime", "args"]
 								}
 							}
 						}
@@ -7950,6 +8422,710 @@
 				}
 			}
 		},
+		"/stakers/{address}/events/delegation": {
+			"get": {
+				"operationId": "getStakerDelegationEvents",
+				"summary": "Retrieve delegation events for a given Staker address",
+				"description": "Returns a list of all delegation events for a given Staker address.",
+				"tags": ["Stakers"],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "address",
+						"description": "The address of the staker",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "The address of the staker",
+							"example": "0x9791fdb4e9c0495efc5a1f3f9271ef226251eb34"
+						},
+						"required": true
+					},
+					{
+						"in": "query",
+						"name": "txHash",
+						"description": "The transaction hash associated with the event",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x([A-Fa-f0-9]{64})$",
+							"description": "The transaction hash associated with the event"
+						}
+					},
+					{
+						"in": "query",
+						"name": "startAt",
+						"description": "Start date in ISO string format",
+						"schema": {
+							"type": "string",
+							"default": "",
+							"description": "Start date in ISO string format"
+						}
+					},
+					{
+						"in": "query",
+						"name": "endAt",
+						"description": "End date in ISO string format",
+						"schema": {
+							"type": "string",
+							"default": "",
+							"description": "End date in ISO string format"
+						}
+					},
+					{
+						"in": "query",
+						"name": "type",
+						"description": "The type of the delegation event",
+						"schema": {
+							"type": "string",
+							"enum": ["SHARES_INCREASED", "SHARES_DECREASED", "DELEGATION", "UNDELEGATION"],
+							"description": "The type of the delegation event"
+						}
+					},
+					{
+						"in": "query",
+						"name": "strategyAddress",
+						"description": "The contract address of the restaking strategy",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "The contract address of the restaking strategy"
+						}
+					},
+					{
+						"in": "query",
+						"name": "operatorAddress",
+						"description": "The address of the operator",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "The address of the operator"
+						}
+					},
+					{
+						"in": "query",
+						"name": "withTokenData",
+						"description": "Toggle whether the route should return underlying token address and underlying value",
+						"schema": {
+							"type": "string",
+							"enum": ["true", "false"],
+							"default": "false",
+							"description": "Toggle whether the route should return underlying token address and underlying value",
+							"example": "false"
+						}
+					},
+					{
+						"in": "query",
+						"name": "withEthValue",
+						"description": "Toggle whether the route should return value denominated in ETH",
+						"schema": {
+							"type": "string",
+							"enum": ["true", "false"],
+							"default": "false",
+							"description": "Toggle whether the route should return value denominated in ETH",
+							"example": "false"
+						}
+					},
+					{
+						"in": "query",
+						"name": "skip",
+						"description": "The number of records to skip for pagination",
+						"schema": {
+							"type": "string",
+							"default": "0",
+							"description": "The number of records to skip for pagination",
+							"example": 0
+						}
+					},
+					{
+						"in": "query",
+						"name": "take",
+						"description": "The number of records to return for pagination",
+						"schema": {
+							"type": "string",
+							"default": "12",
+							"description": "The number of records to return for pagination",
+							"example": 12
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The delegation events found for the Staker.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"type": {
+											"type": "string",
+											"description": "The name of the event",
+											"example": "Delegation"
+										},
+										"tx": {
+											"type": "string",
+											"description": "The transaction hash",
+											"example": "0x6d2b564b0f2c915c61772b7a2f23a35bd5c915e2c4d8c2eb2f2bc6a9c7075e2c"
+										},
+										"blockNumber": {
+											"type": "number",
+											"description": "The block number of the transaction",
+											"example": 17438920
+										},
+										"blockTime": {
+											"type": "string",
+											"description": "The block time of the transaction as an ISO 8601 string",
+											"example": "2024-12-01T14:20:00Z"
+										},
+										"args": {
+											"type": "object",
+											"properties": {
+												"operator": {
+													"type": "string",
+													"description": "Operator address",
+													"example": "0xacb55c530acdb2849e6d4f36992cd8c9d50ed8f7"
+												},
+												"strategy": {
+													"type": "string",
+													"description": "Strategy address",
+													"example": "0xacb55c530acdb2849e6d4f36992cd8c9d50ed8f7"
+												},
+												"shares": {
+													"type": "number",
+													"description": "Number of shares",
+													"example": 100
+												}
+											},
+											"required": ["operator"]
+										},
+										"underlyingToken": {
+											"type": "string",
+											"description": "Underlying token address",
+											"example": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+										},
+										"underlyingValue": {
+											"type": "number",
+											"description": "Underlying value of the token",
+											"example": 500
+										},
+										"ethValue": {
+											"type": "number",
+											"description": "Value in ETH",
+											"example": 1
+										}
+									},
+									"required": ["type", "tx", "blockNumber", "blockTime", "args"]
+								}
+							}
+						}
+					},
+					"400": {
+						"$ref": "#/components/responses/400"
+					},
+					"401": {
+						"$ref": "#/components/responses/401"
+					},
+					"403": {
+						"$ref": "#/components/responses/403"
+					},
+					"404": {
+						"$ref": "#/components/responses/404"
+					},
+					"422": {
+						"$ref": "#/components/responses/422"
+					},
+					"429": {
+						"$ref": "#/components/responses/429"
+					},
+					"500": {
+						"$ref": "#/components/responses/500"
+					}
+				}
+			}
+		},
+		"/stakers/{address}/events/deposit": {
+			"get": {
+				"operationId": "getStakerDepositEvents",
+				"summary": "Retrieve deposit events for a given Staker address",
+				"description": "Returns a list of all deposit events for a given Staker address.",
+				"tags": ["Stakers"],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "address",
+						"description": "The address of the staker",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "The address of the staker",
+							"example": "0x9791fdb4e9c0495efc5a1f3f9271ef226251eb34"
+						},
+						"required": true
+					},
+					{
+						"in": "query",
+						"name": "txHash",
+						"description": "The transaction hash associated with the event",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x([A-Fa-f0-9]{64})$",
+							"description": "The transaction hash associated with the event"
+						}
+					},
+					{
+						"in": "query",
+						"name": "startAt",
+						"description": "Start date in ISO string format",
+						"schema": {
+							"type": "string",
+							"default": "",
+							"description": "Start date in ISO string format"
+						}
+					},
+					{
+						"in": "query",
+						"name": "endAt",
+						"description": "End date in ISO string format",
+						"schema": {
+							"type": "string",
+							"default": "",
+							"description": "End date in ISO string format"
+						}
+					},
+					{
+						"in": "query",
+						"name": "tokenAddress",
+						"description": "The contract address of the token",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "The contract address of the token"
+						}
+					},
+					{
+						"in": "query",
+						"name": "strategyAddress",
+						"description": "The contract address of the restaking strategy",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "The contract address of the restaking strategy"
+						}
+					},
+					{
+						"in": "query",
+						"name": "withTokenData",
+						"description": "Toggle whether the route should return underlying token address and underlying value",
+						"schema": {
+							"type": "string",
+							"enum": ["true", "false"],
+							"default": "false",
+							"description": "Toggle whether the route should return underlying token address and underlying value",
+							"example": "false"
+						}
+					},
+					{
+						"in": "query",
+						"name": "withEthValue",
+						"description": "Toggle whether the route should return value denominated in ETH",
+						"schema": {
+							"type": "string",
+							"enum": ["true", "false"],
+							"default": "false",
+							"description": "Toggle whether the route should return value denominated in ETH",
+							"example": "false"
+						}
+					},
+					{
+						"in": "query",
+						"name": "skip",
+						"description": "The number of records to skip for pagination",
+						"schema": {
+							"type": "string",
+							"default": "0",
+							"description": "The number of records to skip for pagination",
+							"example": 0
+						}
+					},
+					{
+						"in": "query",
+						"name": "take",
+						"description": "The number of records to return for pagination",
+						"schema": {
+							"type": "string",
+							"default": "12",
+							"description": "The number of records to return for pagination",
+							"example": 12
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The deposit events found for the Staker.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"type": {
+											"type": "string",
+											"description": "The name of the event",
+											"example": "Delegation"
+										},
+										"tx": {
+											"type": "string",
+											"description": "The transaction hash",
+											"example": "0x6d2b564b0f2c915c61772b7a2f23a35bd5c915e2c4d8c2eb2f2bc6a9c7075e2c"
+										},
+										"blockNumber": {
+											"type": "number",
+											"description": "The block number of the transaction",
+											"example": 17438920
+										},
+										"blockTime": {
+											"type": "string",
+											"description": "The block time of the transaction as an ISO 8601 string",
+											"example": "2024-12-01T14:20:00Z"
+										},
+										"args": {
+											"type": "object",
+											"properties": {
+												"token": {
+													"type": "string",
+													"description": "Token address",
+													"example": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+												},
+												"strategy": {
+													"type": "string",
+													"description": "Strategy address",
+													"example": "0xacb55c530acdb2849e6d4f36992cd8c9d50ed8f7"
+												},
+												"shares": {
+													"type": "number",
+													"description": "Number of shares",
+													"example": 100
+												}
+											},
+											"required": ["token", "strategy", "shares"]
+										},
+										"underlyingToken": {
+											"type": "string",
+											"description": "Underlying token address",
+											"example": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+										},
+										"underlyingValue": {
+											"type": "number",
+											"description": "Underlying value of the token",
+											"example": 500
+										},
+										"ethValue": {
+											"type": "number",
+											"description": "Value in ETH",
+											"example": 1
+										}
+									},
+									"required": ["type", "tx", "blockNumber", "blockTime", "args"]
+								}
+							}
+						}
+					},
+					"400": {
+						"$ref": "#/components/responses/400"
+					},
+					"401": {
+						"$ref": "#/components/responses/401"
+					},
+					"403": {
+						"$ref": "#/components/responses/403"
+					},
+					"404": {
+						"$ref": "#/components/responses/404"
+					},
+					"422": {
+						"$ref": "#/components/responses/422"
+					},
+					"429": {
+						"$ref": "#/components/responses/429"
+					},
+					"500": {
+						"$ref": "#/components/responses/500"
+					}
+				}
+			}
+		},
+		"/stakers/{address}/events/withdrawal": {
+			"get": {
+				"operationId": "getStakerWithdrawalEvents",
+				"summary": "Retrieve withdrawal events for a given Staker address",
+				"description": "Returns a list of all withdrawal events for a given Staker address.",
+				"tags": ["Stakers"],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "address",
+						"description": "The address of the staker",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "The address of the staker",
+							"example": "0x9791fdb4e9c0495efc5a1f3f9271ef226251eb34"
+						},
+						"required": true
+					},
+					{
+						"in": "query",
+						"name": "txHash",
+						"description": "The transaction hash associated with the event",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x([A-Fa-f0-9]{64})$",
+							"description": "The transaction hash associated with the event"
+						}
+					},
+					{
+						"in": "query",
+						"name": "startAt",
+						"description": "Start date in ISO string format",
+						"schema": {
+							"type": "string",
+							"default": "",
+							"description": "Start date in ISO string format"
+						}
+					},
+					{
+						"in": "query",
+						"name": "endAt",
+						"description": "End date in ISO string format",
+						"schema": {
+							"type": "string",
+							"default": "",
+							"description": "End date in ISO string format"
+						}
+					},
+					{
+						"in": "query",
+						"name": "type",
+						"description": "The type of the withdrawal event",
+						"schema": {
+							"type": "string",
+							"enum": ["WITHDRAWAL_QUEUED", "WITHDRAWAL_COMPLETED"],
+							"description": "The type of the withdrawal event"
+						}
+					},
+					{
+						"in": "query",
+						"name": "withdrawalRoot",
+						"description": "The withdrawal root associated with the event",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{64}$",
+							"description": "The withdrawal root associated with the event"
+						}
+					},
+					{
+						"in": "query",
+						"name": "delegatedTo",
+						"description": "The address to which funds were delegated",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "The address to which funds were delegated"
+						}
+					},
+					{
+						"in": "query",
+						"name": "withdrawer",
+						"description": "The address of the withdrawer",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "The address of the withdrawer"
+						}
+					},
+					{
+						"in": "query",
+						"name": "withTokenData",
+						"description": "Toggle whether the route should return underlying token address and underlying value",
+						"schema": {
+							"type": "string",
+							"enum": ["true", "false"],
+							"default": "false",
+							"description": "Toggle whether the route should return underlying token address and underlying value",
+							"example": "false"
+						}
+					},
+					{
+						"in": "query",
+						"name": "withEthValue",
+						"description": "Toggle whether the route should return value denominated in ETH",
+						"schema": {
+							"type": "string",
+							"enum": ["true", "false"],
+							"default": "false",
+							"description": "Toggle whether the route should return value denominated in ETH",
+							"example": "false"
+						}
+					},
+					{
+						"in": "query",
+						"name": "skip",
+						"description": "The number of records to skip for pagination",
+						"schema": {
+							"type": "string",
+							"default": "0",
+							"description": "The number of records to skip for pagination",
+							"example": 0
+						}
+					},
+					{
+						"in": "query",
+						"name": "take",
+						"description": "The number of records to return for pagination",
+						"schema": {
+							"type": "string",
+							"default": "12",
+							"description": "The number of records to return for pagination",
+							"example": 12
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The withdrawal events found for the Staker.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"type": {
+											"type": "string",
+											"description": "The name of the event",
+											"example": "Delegation"
+										},
+										"tx": {
+											"type": "string",
+											"description": "The transaction hash",
+											"example": "0x6d2b564b0f2c915c61772b7a2f23a35bd5c915e2c4d8c2eb2f2bc6a9c7075e2c"
+										},
+										"blockNumber": {
+											"type": "number",
+											"description": "The block number of the transaction",
+											"example": 17438920
+										},
+										"blockTime": {
+											"type": "string",
+											"description": "The block time of the transaction as an ISO 8601 string",
+											"example": "2024-12-01T14:20:00Z"
+										},
+										"args": {
+											"type": "object",
+											"properties": {
+												"withdrawalRoot": {
+													"type": "string",
+													"description": "Root of the withdrawal",
+													"example": "0x7c2c47ef61e05b65e5032f5565a0c602d8c429b8d19a45e28b37c2356f5c3fdd"
+												},
+												"delegatedTo": {
+													"type": "string",
+													"description": "Delegation address",
+													"example": "0xacb55c530acdb2849e6d4f36992cd8c9d50ed8f7"
+												},
+												"withdrawer": {
+													"type": "string",
+													"description": "Withdrawer address",
+													"example": "0x13760f50a9d7377e4f20cb8cf9e4c26586c658ff"
+												},
+												"nonce": {
+													"type": "number",
+													"description": "Nonce of the transaction",
+													"example": 42
+												},
+												"startBlock": {
+													"type": "number",
+													"description": "Starting block number",
+													"example": 17000000
+												},
+												"strategies": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"strategy": {
+																"type": "string",
+																"description": "Strategy address",
+																"example": "0xacb55c530acdb2849e6d4f36992cd8c9d50ed8f7"
+															},
+															"shares": {
+																"type": "string",
+																"description": "Shares amount",
+																"example": "1000000000000000000"
+															},
+															"underlyingToken": {
+																"type": "string",
+																"description": "Underlying token address",
+																"example": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+															},
+															"underlyingValue": {
+																"type": "number",
+																"description": "Underlying value of the token",
+																"example": 500
+															},
+															"ethValue": {
+																"type": "number",
+																"description": "Value in ETH",
+																"example": 1
+															}
+														},
+														"required": ["strategy", "shares"]
+													}
+												}
+											},
+											"required": ["withdrawalRoot"]
+										},
+										"underlyingToken": {
+											"type": "string",
+											"description": "Underlying token address",
+											"example": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+										},
+										"underlyingValue": {
+											"type": "number",
+											"description": "Underlying value of the token",
+											"example": 500
+										},
+										"ethValue": {
+											"type": "number",
+											"description": "Value in ETH",
+											"example": 1
+										}
+									},
+									"required": ["type", "tx", "blockNumber", "blockTime", "args"]
+								}
+							}
+						}
+					},
+					"400": {
+						"$ref": "#/components/responses/400"
+					},
+					"401": {
+						"$ref": "#/components/responses/401"
+					},
+					"403": {
+						"$ref": "#/components/responses/403"
+					},
+					"404": {
+						"$ref": "#/components/responses/404"
+					},
+					"422": {
+						"$ref": "#/components/responses/422"
+					},
+					"429": {
+						"$ref": "#/components/responses/429"
+					},
+					"500": {
+						"$ref": "#/components/responses/500"
+					}
+				}
+			}
+		},
 		"/deposits": {
 			"get": {
 				"operationId": "getAllDeposits",
@@ -8170,6 +9346,902 @@
 										}
 									},
 									"required": ["strategies", "total"]
+								}
+							}
+						}
+					},
+					"400": {
+						"$ref": "#/components/responses/400"
+					},
+					"401": {
+						"$ref": "#/components/responses/401"
+					},
+					"403": {
+						"$ref": "#/components/responses/403"
+					},
+					"404": {
+						"$ref": "#/components/responses/404"
+					},
+					"422": {
+						"$ref": "#/components/responses/422"
+					},
+					"429": {
+						"$ref": "#/components/responses/429"
+					},
+					"500": {
+						"$ref": "#/components/responses/500"
+					}
+				}
+			}
+		},
+		"/events/delegation": {
+			"get": {
+				"operationId": "getDelegationEvents",
+				"summary": "Retrieve all delegation events",
+				"description": "Returns a list of all delegation events.",
+				"tags": ["Events"],
+				"parameters": [
+					{
+						"in": "query",
+						"name": "txHash",
+						"description": "The transaction hash associated with the event",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x([A-Fa-f0-9]{64})$",
+							"description": "The transaction hash associated with the event"
+						}
+					},
+					{
+						"in": "query",
+						"name": "startAt",
+						"description": "Start date in ISO string format",
+						"schema": {
+							"type": "string",
+							"default": "",
+							"description": "Start date in ISO string format"
+						}
+					},
+					{
+						"in": "query",
+						"name": "endAt",
+						"description": "End date in ISO string format",
+						"schema": {
+							"type": "string",
+							"default": "",
+							"description": "End date in ISO string format"
+						}
+					},
+					{
+						"in": "query",
+						"name": "type",
+						"description": "The type of the delegation event",
+						"schema": {
+							"type": "string",
+							"enum": ["SHARES_INCREASED", "SHARES_DECREASED", "DELEGATION", "UNDELEGATION"],
+							"description": "The type of the delegation event"
+						}
+					},
+					{
+						"in": "query",
+						"name": "strategyAddress",
+						"description": "The contract address of the restaking strategy",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "The contract address of the restaking strategy"
+						}
+					},
+					{
+						"in": "query",
+						"name": "skip",
+						"description": "The number of records to skip for pagination",
+						"schema": {
+							"type": "string",
+							"default": "0",
+							"description": "The number of records to skip for pagination",
+							"example": 0
+						}
+					},
+					{
+						"in": "query",
+						"name": "take",
+						"description": "The number of records to return for pagination",
+						"schema": {
+							"type": "string",
+							"default": "12",
+							"description": "The number of records to return for pagination",
+							"example": 12
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The delegation events found.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"type": {
+											"type": "string",
+											"description": "The name of the event",
+											"example": "Delegation"
+										},
+										"tx": {
+											"type": "string",
+											"description": "The transaction hash",
+											"example": "0x6d2b564b0f2c915c61772b7a2f23a35bd5c915e2c4d8c2eb2f2bc6a9c7075e2c"
+										},
+										"blockNumber": {
+											"type": "number",
+											"description": "The block number of the transaction",
+											"example": 17438920
+										},
+										"blockTime": {
+											"type": "string",
+											"description": "The block time of the transaction as an ISO 8601 string",
+											"example": "2024-12-01T14:20:00Z"
+										},
+										"args": {
+											"type": "object",
+											"properties": {
+												"operator": {
+													"type": "string",
+													"description": "Operator address",
+													"example": "0xacb55c530acdb2849e6d4f36992cd8c9d50ed8f7"
+												},
+												"staker": {
+													"type": "string",
+													"description": "Staker address",
+													"example": "0x13760f50a9d7377e4f20cb8cf9e4c26586c658ff"
+												},
+												"strategy": {
+													"type": "string",
+													"description": "Strategy address",
+													"example": "0xacb55c530acdb2849e6d4f36992cd8c9d50ed8f7"
+												},
+												"shares": {
+													"type": "number",
+													"description": "Number of shares",
+													"example": 100
+												}
+											},
+											"required": ["operator"]
+										},
+										"underlyingToken": {
+											"type": "string",
+											"description": "Underlying token address",
+											"example": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+										},
+										"underlyingValue": {
+											"type": "number",
+											"description": "Underlying value of the token",
+											"example": 500
+										},
+										"ethValue": {
+											"type": "number",
+											"description": "Value in ETH",
+											"example": 1
+										}
+									},
+									"required": ["type", "tx", "blockNumber", "blockTime", "args"]
+								}
+							}
+						}
+					},
+					"400": {
+						"$ref": "#/components/responses/400"
+					},
+					"401": {
+						"$ref": "#/components/responses/401"
+					},
+					"403": {
+						"$ref": "#/components/responses/403"
+					},
+					"404": {
+						"$ref": "#/components/responses/404"
+					},
+					"422": {
+						"$ref": "#/components/responses/422"
+					},
+					"429": {
+						"$ref": "#/components/responses/429"
+					},
+					"500": {
+						"$ref": "#/components/responses/500"
+					}
+				}
+			}
+		},
+		"/events/rewards": {
+			"get": {
+				"operationId": "getRewardsEvents",
+				"summary": "Retrieve all reward events",
+				"description": "Returns a list of all reward events.",
+				"tags": ["Events"],
+				"parameters": [
+					{
+						"in": "query",
+						"name": "txHash",
+						"description": "The transaction hash associated with the event",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x([A-Fa-f0-9]{64})$",
+							"description": "The transaction hash associated with the event"
+						}
+					},
+					{
+						"in": "query",
+						"name": "startAt",
+						"description": "Start date in ISO string format",
+						"schema": {
+							"type": "string",
+							"default": "",
+							"description": "Start date in ISO string format"
+						}
+					},
+					{
+						"in": "query",
+						"name": "endAt",
+						"description": "End date in ISO string format",
+						"schema": {
+							"type": "string",
+							"default": "",
+							"description": "End date in ISO string format"
+						}
+					},
+					{
+						"in": "query",
+						"name": "rewardsSubmissionHash",
+						"description": "The reward submission hash associated with the event",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x([A-Fa-f0-9]{64})$",
+							"description": "The reward submission hash associated with the event"
+						}
+					},
+					{
+						"in": "query",
+						"name": "rewardsSubmissionToken",
+						"description": "The token address used for the rewards submission",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "The token address used for the rewards submission"
+						}
+					},
+					{
+						"in": "query",
+						"name": "withIndividualAmount",
+						"description": "Toggle whether the route should return individual share amount for each strategy",
+						"schema": {
+							"type": "string",
+							"enum": ["true", "false"],
+							"default": "false",
+							"description": "Toggle whether the route should return individual share amount for each strategy",
+							"example": "false"
+						}
+					},
+					{
+						"in": "query",
+						"name": "withEthValue",
+						"description": "Toggle whether the route should return value denominated in ETH",
+						"schema": {
+							"type": "string",
+							"enum": ["true", "false"],
+							"default": "false",
+							"description": "Toggle whether the route should return value denominated in ETH",
+							"example": "false"
+						}
+					},
+					{
+						"in": "query",
+						"name": "skip",
+						"description": "The number of records to skip for pagination",
+						"schema": {
+							"type": "string",
+							"default": "0",
+							"description": "The number of records to skip for pagination",
+							"example": 0
+						}
+					},
+					{
+						"in": "query",
+						"name": "take",
+						"description": "The number of records to return for pagination",
+						"schema": {
+							"type": "string",
+							"default": "12",
+							"description": "The number of records to return for pagination",
+							"example": 12
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The reward events found.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"type": {
+											"type": "string",
+											"description": "The name of the event",
+											"example": "Delegation"
+										},
+										"tx": {
+											"type": "string",
+											"description": "The transaction hash",
+											"example": "0x6d2b564b0f2c915c61772b7a2f23a35bd5c915e2c4d8c2eb2f2bc6a9c7075e2c"
+										},
+										"blockNumber": {
+											"type": "number",
+											"description": "The block number of the transaction",
+											"example": 17438920
+										},
+										"blockTime": {
+											"type": "string",
+											"description": "The block time of the transaction as an ISO 8601 string",
+											"example": "2024-12-01T14:20:00Z"
+										},
+										"args": {
+											"type": "object",
+											"properties": {
+												"avs": {
+													"type": "string",
+													"description": "AVS address",
+													"example": "0x13760f50a9d7377e4f20cb8cf9e4c26586c658ff"
+												},
+												"submissionNonce": {
+													"type": "number",
+													"description": "Nonce of the submission",
+													"example": 1
+												},
+												"rewardsSubmissionHash": {
+													"type": "string",
+													"description": "Hash of the rewards submission",
+													"example": "0xe3c8e76d69f8c522a617a0f9e2158d4c785fc2f1b7c902d2b79c66309f9e7a5d"
+												},
+												"rewardsSubmissionToken": {
+													"type": "string",
+													"description": "Token used in the rewards submission",
+													"example": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+												},
+												"rewardsSubmissionAmount": {
+													"type": "string",
+													"description": "Amount of rewards submitted",
+													"example": "1000000000000000000"
+												},
+												"rewardsSubmissionStartTimeStamp": {
+													"type": "number",
+													"description": "Start timestamp for the rewards submission",
+													"example": 1700000000
+												},
+												"rewardsSubmissionDuration": {
+													"type": "number",
+													"description": "Duration of the rewards submission",
+													"example": 86400
+												},
+												"strategies": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"strategy": {
+																"type": "string",
+																"description": "The strategy address",
+																"example": "0xacb55c530acdb2849e6d4f36992cd8c9d50ed8f7"
+															},
+															"multiplier": {
+																"type": "string",
+																"description": "Multiplier applied to rewards",
+																"example": "1.5"
+															},
+															"amount": {
+																"type": "string",
+																"description": "Reward amount",
+																"example": "500000000000000000"
+															},
+															"amountEthValue": {
+																"type": "number",
+																"description": "ETH value of the reward amount",
+																"example": 0.5
+															}
+														},
+														"required": ["strategy"]
+													},
+													"description": "List of strategies involved in the rewards submission"
+												}
+											},
+											"required": [
+												"avs",
+												"submissionNonce",
+												"rewardsSubmissionHash",
+												"rewardsSubmissionToken",
+												"rewardsSubmissionAmount",
+												"rewardsSubmissionStartTimeStamp",
+												"rewardsSubmissionDuration",
+												"strategies"
+											]
+										},
+										"ethValue": {
+											"type": "number",
+											"description": "Value in ETH",
+											"example": 1
+										}
+									},
+									"required": ["type", "tx", "blockNumber", "blockTime", "args"]
+								}
+							}
+						}
+					},
+					"400": {
+						"$ref": "#/components/responses/400"
+					},
+					"401": {
+						"$ref": "#/components/responses/401"
+					},
+					"403": {
+						"$ref": "#/components/responses/403"
+					},
+					"404": {
+						"$ref": "#/components/responses/404"
+					},
+					"422": {
+						"$ref": "#/components/responses/422"
+					},
+					"429": {
+						"$ref": "#/components/responses/429"
+					},
+					"500": {
+						"$ref": "#/components/responses/500"
+					}
+				}
+			}
+		},
+		"/events/deposit": {
+			"get": {
+				"operationId": "getDepositEvents",
+				"summary": "Retrieve all deposit events",
+				"description": "Returns a list of all deposit events.",
+				"tags": ["Events"],
+				"parameters": [
+					{
+						"in": "query",
+						"name": "txHash",
+						"description": "The transaction hash associated with the event",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x([A-Fa-f0-9]{64})$",
+							"description": "The transaction hash associated with the event"
+						}
+					},
+					{
+						"in": "query",
+						"name": "startAt",
+						"description": "Start date in ISO string format",
+						"schema": {
+							"type": "string",
+							"default": "",
+							"description": "Start date in ISO string format"
+						}
+					},
+					{
+						"in": "query",
+						"name": "endAt",
+						"description": "End date in ISO string format",
+						"schema": {
+							"type": "string",
+							"default": "",
+							"description": "End date in ISO string format"
+						}
+					},
+					{
+						"in": "query",
+						"name": "tokenAddress",
+						"description": "The contract address of the token",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "The contract address of the token"
+						}
+					},
+					{
+						"in": "query",
+						"name": "strategyAddress",
+						"description": "The contract address of the restaking strategy",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "The contract address of the restaking strategy"
+						}
+					},
+					{
+						"in": "query",
+						"name": "withTokenData",
+						"description": "Toggle whether the route should return underlying token address and underlying value",
+						"schema": {
+							"type": "string",
+							"enum": ["true", "false"],
+							"default": "false",
+							"description": "Toggle whether the route should return underlying token address and underlying value",
+							"example": "false"
+						}
+					},
+					{
+						"in": "query",
+						"name": "withEthValue",
+						"description": "Toggle whether the route should return value denominated in ETH",
+						"schema": {
+							"type": "string",
+							"enum": ["true", "false"],
+							"default": "false",
+							"description": "Toggle whether the route should return value denominated in ETH",
+							"example": "false"
+						}
+					},
+					{
+						"in": "query",
+						"name": "skip",
+						"description": "The number of records to skip for pagination",
+						"schema": {
+							"type": "string",
+							"default": "0",
+							"description": "The number of records to skip for pagination",
+							"example": 0
+						}
+					},
+					{
+						"in": "query",
+						"name": "take",
+						"description": "The number of records to return for pagination",
+						"schema": {
+							"type": "string",
+							"default": "12",
+							"description": "The number of records to return for pagination",
+							"example": 12
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The deposit events found.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"type": {
+											"type": "string",
+											"description": "The name of the event",
+											"example": "Delegation"
+										},
+										"tx": {
+											"type": "string",
+											"description": "The transaction hash",
+											"example": "0x6d2b564b0f2c915c61772b7a2f23a35bd5c915e2c4d8c2eb2f2bc6a9c7075e2c"
+										},
+										"blockNumber": {
+											"type": "number",
+											"description": "The block number of the transaction",
+											"example": 17438920
+										},
+										"blockTime": {
+											"type": "string",
+											"description": "The block time of the transaction as an ISO 8601 string",
+											"example": "2024-12-01T14:20:00Z"
+										},
+										"args": {
+											"type": "object",
+											"properties": {
+												"staker": {
+													"type": "string",
+													"description": "Staker address",
+													"example": "0x13760f50a9d7377e4f20cb8cf9e4c26586c658ff"
+												},
+												"token": {
+													"type": "string",
+													"description": "Token address",
+													"example": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+												},
+												"strategy": {
+													"type": "string",
+													"description": "Strategy address",
+													"example": "0xacb55c530acdb2849e6d4f36992cd8c9d50ed8f7"
+												},
+												"shares": {
+													"type": "number",
+													"description": "Number of shares",
+													"example": 100
+												}
+											},
+											"required": ["staker", "token", "strategy", "shares"]
+										},
+										"underlyingToken": {
+											"type": "string",
+											"description": "Underlying token address",
+											"example": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+										},
+										"underlyingValue": {
+											"type": "number",
+											"description": "Underlying value of the token",
+											"example": 500
+										},
+										"ethValue": {
+											"type": "number",
+											"description": "Value in ETH",
+											"example": 1
+										}
+									},
+									"required": ["type", "tx", "blockNumber", "blockTime", "args"]
+								}
+							}
+						}
+					},
+					"400": {
+						"$ref": "#/components/responses/400"
+					},
+					"401": {
+						"$ref": "#/components/responses/401"
+					},
+					"403": {
+						"$ref": "#/components/responses/403"
+					},
+					"404": {
+						"$ref": "#/components/responses/404"
+					},
+					"422": {
+						"$ref": "#/components/responses/422"
+					},
+					"429": {
+						"$ref": "#/components/responses/429"
+					},
+					"500": {
+						"$ref": "#/components/responses/500"
+					}
+				}
+			}
+		},
+		"/events/withdrawal": {
+			"get": {
+				"operationId": "getWithdrawalEvents",
+				"summary": "Retrieve all withdrawal events",
+				"description": "Returns a list of all withdrawal events.",
+				"tags": ["Events"],
+				"parameters": [
+					{
+						"in": "query",
+						"name": "txHash",
+						"description": "The transaction hash associated with the event",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x([A-Fa-f0-9]{64})$",
+							"description": "The transaction hash associated with the event"
+						}
+					},
+					{
+						"in": "query",
+						"name": "startAt",
+						"description": "Start date in ISO string format",
+						"schema": {
+							"type": "string",
+							"default": "",
+							"description": "Start date in ISO string format"
+						}
+					},
+					{
+						"in": "query",
+						"name": "endAt",
+						"description": "End date in ISO string format",
+						"schema": {
+							"type": "string",
+							"default": "",
+							"description": "End date in ISO string format"
+						}
+					},
+					{
+						"in": "query",
+						"name": "type",
+						"description": "The type of the withdrawal event",
+						"schema": {
+							"type": "string",
+							"enum": ["WITHDRAWAL_QUEUED", "WITHDRAWAL_COMPLETED"],
+							"description": "The type of the withdrawal event"
+						}
+					},
+					{
+						"in": "query",
+						"name": "withdrawalRoot",
+						"description": "The withdrawal root associated with the event",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{64}$",
+							"description": "The withdrawal root associated with the event"
+						}
+					},
+					{
+						"in": "query",
+						"name": "delegatedTo",
+						"description": "The address to which funds were delegated",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "The address to which funds were delegated"
+						}
+					},
+					{
+						"in": "query",
+						"name": "withdrawer",
+						"description": "The address of the withdrawer",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "The address of the withdrawer"
+						}
+					},
+					{
+						"in": "query",
+						"name": "withTokenData",
+						"description": "Toggle whether the route should return underlying token address and underlying value",
+						"schema": {
+							"type": "string",
+							"enum": ["true", "false"],
+							"default": "false",
+							"description": "Toggle whether the route should return underlying token address and underlying value",
+							"example": "false"
+						}
+					},
+					{
+						"in": "query",
+						"name": "withEthValue",
+						"description": "Toggle whether the route should return value denominated in ETH",
+						"schema": {
+							"type": "string",
+							"enum": ["true", "false"],
+							"default": "false",
+							"description": "Toggle whether the route should return value denominated in ETH",
+							"example": "false"
+						}
+					},
+					{
+						"in": "query",
+						"name": "skip",
+						"description": "The number of records to skip for pagination",
+						"schema": {
+							"type": "string",
+							"default": "0",
+							"description": "The number of records to skip for pagination",
+							"example": 0
+						}
+					},
+					{
+						"in": "query",
+						"name": "take",
+						"description": "The number of records to return for pagination",
+						"schema": {
+							"type": "string",
+							"default": "12",
+							"description": "The number of records to return for pagination",
+							"example": 12
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The withdrawal events found.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"type": {
+											"type": "string",
+											"description": "The name of the event",
+											"example": "Delegation"
+										},
+										"tx": {
+											"type": "string",
+											"description": "The transaction hash",
+											"example": "0x6d2b564b0f2c915c61772b7a2f23a35bd5c915e2c4d8c2eb2f2bc6a9c7075e2c"
+										},
+										"blockNumber": {
+											"type": "number",
+											"description": "The block number of the transaction",
+											"example": 17438920
+										},
+										"blockTime": {
+											"type": "string",
+											"description": "The block time of the transaction as an ISO 8601 string",
+											"example": "2024-12-01T14:20:00Z"
+										},
+										"args": {
+											"type": "object",
+											"properties": {
+												"staker": {
+													"type": "string",
+													"description": "Staker address",
+													"example": "0x13760f50a9d7377e4f20cb8cf9e4c26586c658ff"
+												},
+												"withdrawalRoot": {
+													"type": "string",
+													"description": "Root of the withdrawal",
+													"example": "0x7c2c47ef61e05b65e5032f5565a0c602d8c429b8d19a45e28b37c2356f5c3fdd"
+												},
+												"delegatedTo": {
+													"type": "string",
+													"description": "Delegation address",
+													"example": "0xacb55c530acdb2849e6d4f36992cd8c9d50ed8f7"
+												},
+												"withdrawer": {
+													"type": "string",
+													"description": "Withdrawer address",
+													"example": "0x13760f50a9d7377e4f20cb8cf9e4c26586c658ff"
+												},
+												"nonce": {
+													"type": "number",
+													"description": "Nonce of the transaction",
+													"example": 42
+												},
+												"startBlock": {
+													"type": "number",
+													"description": "Starting block number",
+													"example": 17000000
+												},
+												"strategies": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"strategy": {
+																"type": "string",
+																"description": "Strategy address",
+																"example": "0xacb55c530acdb2849e6d4f36992cd8c9d50ed8f7"
+															},
+															"shares": {
+																"type": "string",
+																"description": "Shares amount",
+																"example": "1000000000000000000"
+															},
+															"underlyingToken": {
+																"type": "string",
+																"description": "Underlying token address",
+																"example": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+															},
+															"underlyingValue": {
+																"type": "number",
+																"description": "Underlying value of the token",
+																"example": 500
+															},
+															"ethValue": {
+																"type": "number",
+																"description": "Value in ETH",
+																"example": 1
+															}
+														},
+														"required": ["strategy", "shares"]
+													}
+												}
+											},
+											"required": ["staker", "withdrawalRoot"]
+										},
+										"underlyingToken": {
+											"type": "string",
+											"description": "Underlying token address",
+											"example": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+										},
+										"underlyingValue": {
+											"type": "number",
+											"description": "Underlying value of the token",
+											"example": 500
+										},
+										"ethValue": {
+											"type": "number",
+											"description": "Value in ETH",
+											"example": 1
+										}
+									},
+									"required": ["type", "tx", "blockNumber", "blockTime", "args"]
 								}
 							}
 						}
