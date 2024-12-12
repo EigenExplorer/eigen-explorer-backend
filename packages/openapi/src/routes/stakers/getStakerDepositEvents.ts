@@ -28,8 +28,8 @@ const CombinedQuerySchema = applyAllRefinements(CombinedQuerySchemaBase, [
 
 export const getStakerDepositEvents: ZodOpenApiOperationObject = {
 	operationId: 'getStakerDepositEvents',
-	summary: 'Retrieve all deposit events for a given Staker address',
-	description: 'Returns a list of all deposit events for a given Staker address.',
+	summary: 'Retrieve all deposit events for a given staker address',
+	description: 'Returns a list of all deposit events for a given staker address.',
 	tags: ['Stakers'],
 	requestParams: {
 		path: StakerAddressParam,
@@ -37,7 +37,7 @@ export const getStakerDepositEvents: ZodOpenApiOperationObject = {
 	},
 	responses: {
 		'200': {
-			description: 'The deposit events found for the Staker.',
+			description: 'The deposit events found for the staker.',
 			content: {
 				'application/json': {
 					schema: StakerDepositEventSchema
