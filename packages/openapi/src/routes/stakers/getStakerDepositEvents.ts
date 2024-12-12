@@ -28,7 +28,7 @@ const CombinedQuerySchema = applyAllRefinements(CombinedQuerySchemaBase, [
 
 export const getStakerDepositEvents: ZodOpenApiOperationObject = {
 	operationId: 'getStakerDepositEvents',
-	summary: 'Retrieve deposit events for a given Staker address',
+	summary: 'Retrieve all deposit events for a given Staker address',
 	description: 'Returns a list of all deposit events for a given Staker address.',
 	tags: ['Stakers'],
 	requestParams: {

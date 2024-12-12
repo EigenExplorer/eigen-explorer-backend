@@ -30,7 +30,7 @@ const CombinedQuerySchema = applyAllRefinements(CombinedQuerySchemaBase, [
 
 export const getStakerWithdrawalEvents: ZodOpenApiOperationObject = {
 	operationId: 'getStakerWithdrawalEvents',
-	summary: 'Retrieve withdrawal events for a given Staker address',
+	summary: 'Retrieve all withdrawal events for a given Staker address',
 	description: 'Returns a list of all withdrawal events for a given Staker address.',
 	tags: ['Stakers'],
 	requestParams: {

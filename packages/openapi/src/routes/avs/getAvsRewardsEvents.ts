@@ -24,7 +24,7 @@ const CombinedQuerySchema = applyAllRefinements(CombinedQuerySchemaBase, [refine
 
 export const getAvsRewardsEvents: ZodOpenApiOperationObject = {
 	operationId: 'getAvsRewardsEvents',
-	summary: 'Retrieve reward events for a given AVS address',
+	summary: 'Retrieve all reward events for a given AVS address',
 	description: 'Returns a list of all reward events for a given AVS address.',
 	tags: ['AVS'],
 	requestParams: {

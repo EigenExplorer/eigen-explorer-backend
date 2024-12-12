@@ -30,7 +30,7 @@ const CombinedQuerySchema = applyAllRefinements(CombinedQuerySchemaBase, [
 
 export const getOperatorDelegationEvents: ZodOpenApiOperationObject = {
 	operationId: 'getOperatorDelegationEvents',
-	summary: 'Retrieve delegation events for a given Operator address',
+	summary: 'Retrieve all delegation events for a given Operator address',
 	description: 'Returns a list of all delegation events for a given Operator address.',
 	tags: ['Operators'],
 	requestParams: {

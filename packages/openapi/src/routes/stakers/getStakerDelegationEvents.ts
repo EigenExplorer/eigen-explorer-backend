@@ -18,8 +18,6 @@ const StakerAddressParam = z.object({
 	})
 })
 
-// const CombinedQuerySchema = StakerDelegationEventQuerySchema.and(PaginationQuerySchema);
-
 const CombinedQuerySchemaBase = z
 	.object({})
 	.merge(StakerDelegationEventQuerySchemaBase)
@@ -32,7 +30,7 @@ const CombinedQuerySchema = applyAllRefinements(CombinedQuerySchemaBase, [
 
 export const getStakerDelegationEvents: ZodOpenApiOperationObject = {
 	operationId: 'getStakerDelegationEvents',
-	summary: 'Retrieve delegation events for a given Staker address',
+	summary: 'Retrieve all delegation events for a given Staker address',
 	description: 'Returns a list of all delegation events for a given Staker address.',
 	tags: ['Stakers'],
 	requestParams: {
