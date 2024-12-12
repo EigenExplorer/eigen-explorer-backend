@@ -22,7 +22,6 @@ const StrategySchema = z.object({
 	}),
 	multiplier: z
 		.string()
-		.optional()
 		.describe('The multiplier associated with this strategy')
 		.openapi({ example: '1068966896363604679' }),
 	amount: z
@@ -71,7 +70,7 @@ export const GlobalDelegationEventSchema = EventDetailsSchema.extend({
 		operator: z.string().describe('The contract address of the AVS operator').openapi({
 			example: '0x71c6f7ed8c2d4925d0baf16f6a85bb1736d412eb'
 		}),
-		staker: z.string().optional().describe('The contract address of the staker').openapi({
+		staker: z.string().describe('The contract address of the staker').openapi({
 			example: '0x42318adf0773b8af4aa8ed1670ea0af7761d07c7'
 		}),
 		strategy: z
@@ -164,6 +163,7 @@ export const GlobalWithdrawalEventSchema = EventDetailsSchema.extend({
 	args: z.object({
 		staker: z
 			.string()
+			.optional()
 			.describe('The contract address of the staker who initiated the withdrawal')
 			.openapi({
 				example: '0x513ea5a99988252f3b2cd8382ac077d7fd26ef48'
@@ -214,9 +214,28 @@ export const GlobalWithdrawalEventSchema = EventDetailsSchema.extend({
 				})
 			)
 			.optional()
-	}),
-	...UnderlyingSchema.shape,
-	...EthValueSchema.shape
+	})
+})
+
+export const GlobalRegistrationEventSchema = EventDetailsSchema.extend({
+	type: z
+		.enum(['REGISTRATION_STATUS'])
+		.describe('The type of the event')
+		.openapi({ example: 'REGISTRATION_STATUS' }),
+	args: z.object({
+		operator: z.string().describe('The contract address of the AVS operator').openapi({
+			example: '0x9abce41e1486210ad83deb831afcdd214af5b49d'
+		}),
+		avs: z.string().describe('AVS service manager contract address').openapi({
+			example: '0xb73a87e8f7f9129816d40940ca19dfa396944c71'
+		}),
+		status: z
+			.enum(['REGISTERED', 'DEREGISTERED'])
+			.describe('The status of the registration')
+			.openapi({
+				example: 'REGISTERED'
+			})
+	})
 })
 
 export const OperatorDelegationEventSchema = GlobalDelegationEventSchema.extend({
@@ -237,4 +256,12 @@ export const StakerDepositEventSchema = GlobalDepositEventSchema.extend({
 
 export const StakerWithdrawalEventSchema = GlobalWithdrawalEventSchema.extend({
 	args: GlobalWithdrawalEventSchema.shape.args.omit({ staker: true })
+})
+
+export const OperatorRegistrationEventSchema = GlobalRegistrationEventSchema.extend({
+	args: GlobalRegistrationEventSchema.shape.args.omit({ operator: true })
+})
+
+export const AvsRegistrationEventSchema = GlobalRegistrationEventSchema.extend({
+	args: GlobalRegistrationEventSchema.shape.args.omit({ avs: true })
 })
