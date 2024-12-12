@@ -20,8 +20,11 @@ import Prisma from '@prisma/client'
 import prisma from '../../utils/prismaClient'
 import { fetchTokenPrices } from '../../utils/tokenPrices'
 import { withOperatorShares } from '../../utils/operatorShares'
-import { fetchRewardsEvents } from '../../utils/eventUtils'
-import { RewardsEventQuerySchema } from '../../schema/zod/schemas/eventSchemas'
+import { fetchRegistrationEvents, fetchRewardsEvents } from '../../utils/eventUtils'
+import {
+	AvsRegistrationEventQuerySchema,
+	RewardsEventQuerySchema
+} from '../../schema/zod/schemas/eventSchemas'
 
 /**
  * Function for route /avs
@@ -652,6 +655,44 @@ export async function getAVSRewardsEvents(req: Request, res: Response) {
 			endAt,
 			withEthValue,
 			withIndividualAmount,
+			skip,
+			take
+		})
+
+		response.eventRecords.forEach((event) => 'avs' in event.args && (event.args.avs = undefined))
+
+		res.send({
+			data: response.eventRecords,
+			meta: { total: response.total, skip, take }
+		})
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+/**
+ * Function for route avs/:address/events/registration
+ * Fetches and returns a list of operator-avs registration event for a specific Avs
+ *
+ * @param req
+ * @param res
+ */
+export async function getAvsRegistrationEvents(req: Request, res: Response) {
+	const result = AvsRegistrationEventQuerySchema.and(PaginationQuerySchema).safeParse(req.query)
+	if (!result.success) return handleAndReturnErrorResponse(req, res, result.error)
+
+	try {
+		const { address } = req.params
+
+		const { operatorAddress, txHash, status, startAt, endAt, skip, take } = result.data
+
+		const response = await fetchRegistrationEvents({
+			avsAddress: address,
+			operatorAddress,
+			txHash,
+			status,
+			startAt,
+			endAt,
 			skip,
 			take
 		})

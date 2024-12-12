@@ -6,7 +6,10 @@ import { WithAdditionalDataQuerySchema } from '../../schema/zod/schemas/withAddi
 import { SortByQuerySchema } from '../../schema/zod/schemas/sortByQuery'
 import { SearchByTextQuerySchema } from '../../schema/zod/schemas/searchByTextQuery'
 import { WithRewardsQuerySchema } from '../../schema/zod/schemas/withRewardsQuery'
-import { OperatorDelegationEventQuerySchema } from '../../schema/zod/schemas/eventSchemas'
+import {
+	OperatorDelegationEventQuerySchema,
+	OperatorRegistrationEventQuerySchema
+} from '../../schema/zod/schemas/eventSchemas'
 import { RequestHeadersSchema } from '../../schema/zod/schemas/auth'
 import { handleAndReturnErrorResponse } from '../../schema/errors'
 import {
@@ -18,7 +21,7 @@ import { withOperatorShares } from '../../utils/operatorShares'
 import Prisma from '@prisma/client'
 import prisma from '../../utils/prismaClient'
 import { fetchTokenPrices } from '../../utils/tokenPrices'
-import { fetchDelegationEvents } from '../../utils/eventUtils'
+import { fetchDelegationEvents, fetchRegistrationEvents } from '../../utils/eventUtils'
 
 /**
  * Function for route /operators
@@ -410,6 +413,48 @@ export async function getOperatorDelegationEvents(req: Request, res: Response) {
 			endAt,
 			withTokenData,
 			withEthValue,
+			skip,
+			take
+		})
+
+		response.eventRecords.forEach(
+			(event) => 'operator' in event.args && (event.args.operator = undefined)
+		)
+
+		res.send({
+			data: response.eventRecords,
+			meta: { total: response.total, skip, take }
+		})
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+/**
+ * Function for route operators/:address/events/registration
+ * Fetches and returns a list of operator-avs registration event for a specific operator
+ *
+ * @param req
+ * @param res
+ */
+export async function getOperatorRegistrationEvents(req: Request, res: Response) {
+	const result = OperatorRegistrationEventQuerySchema.and(PaginationQuerySchema).safeParse(
+		req.query
+	)
+	if (!result.success) return handleAndReturnErrorResponse(req, res, result.error)
+
+	try {
+		const { address } = req.params
+
+		const { avsAddress, txHash, status, startAt, endAt, skip, take } = result.data
+
+		const response = await fetchRegistrationEvents({
+			operatorAddress: address,
+			avsAddress,
+			txHash,
+			status,
+			startAt,
+			endAt,
 			skip,
 			take
 		})

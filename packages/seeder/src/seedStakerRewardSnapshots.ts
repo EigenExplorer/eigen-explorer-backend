@@ -1,7 +1,7 @@
 import prisma from '@prisma/client'
 import { getPrismaClient } from './utils/prismaClient'
 import { getNetwork } from './utils/viemClient'
-import { bulkUpdateDbTransactions } from './utils/seeder'
+import { bulkUpdateDbTransactions, fetchLastSyncTime } from './utils/seeder'
 import { fetchTokenPrices } from './utils/tokenPrices'
 
 interface ClaimData {
@@ -11,12 +11,14 @@ interface ClaimData {
 	cumulative_amount: string
 }
 
+const timeSyncKey = 'lastSyncedTimestamp_stakerRewardSnapshot'
+
 /**
  * Seeds the StakerRewardSnapshot table to maintain latest state of all EL stakers
  *
  * @returns
  */
-export async function seedStakerRewardSnapshots() {
+export async function seedStakerRewardSnapshots(timestamp?: Date) {
 	const prismaClient = getPrismaClient()
 	const bucketUrl = getBucketUrl()
 	const BATCH_SIZE = 10_000
@@ -40,18 +42,11 @@ export async function seedStakerRewardSnapshots() {
 			.split('T')[0]
 
 		// Find snapshot date of existing data
-		const snapshotRecord = await prismaClient.stakerRewardSnapshot.findFirst({
-			select: {
-				timestamp: true
-			},
-			orderBy: {
-				timestamp: 'asc' // All snapshots should ideally have the same timestamp, but we check for earliest in case of sync issues
-			}
-		})
+		const lastSyncedTimestamp = timestamp
+			? timestamp?.toISOString()?.split('T')[0]
+			: (await fetchLastSyncTime(timeSyncKey))?.toISOString()?.split('T')[0]
 
-		const snapshotTimestamp = snapshotRecord?.timestamp?.toISOString()?.split('T')[0]
-
-		if (latestSnapshotTimestamp === snapshotTimestamp) {
+		if (latestSnapshotTimestamp === lastSyncedTimestamp) {
 			console.log('[In Sync] [Data] Staker Reward Snapshots')
 			return
 		}
@@ -168,6 +163,16 @@ export async function seedStakerRewardSnapshots() {
 		} finally {
 			reader.releaseLock()
 		}
+
+		// Update latest time sync key
+		await prismaClient.settings.upsert({
+			where: { key: timeSyncKey },
+			update: { value: Number(latestLog.rewardsCalculationEndTimestamp) * 1000 },
+			create: {
+				key: timeSyncKey,
+				value: Number(latestLog.rewardsCalculationEndTimestamp) * 1000
+			}
+		})
 	} catch {}
 }
 
