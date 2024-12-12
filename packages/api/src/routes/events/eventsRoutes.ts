@@ -4,7 +4,8 @@ import {
 	getDelegationEvents,
 	getRewardsEvents,
 	getDepositEvents,
-	getWithdrawalEvents
+	getWithdrawalEvents,
+	getRegistrationEvents
 } from './eventsController'
 
 const router = express.Router()
@@ -18,5 +19,7 @@ router.get('/rewards', routeCache.cacheSeconds(120), getRewardsEvents)
 router.get('/deposit', routeCache.cacheSeconds(120), getDepositEvents)
 
 router.get('/withdrawal', routeCache.cacheSeconds(120), getWithdrawalEvents)
+
+router.get('/registration-status', routeCache.cacheSeconds(120), getRegistrationEvents)
 
 export default router

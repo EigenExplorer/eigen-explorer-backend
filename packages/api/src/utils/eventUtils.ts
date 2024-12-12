@@ -22,7 +22,12 @@ type StrategyData = {
 	shares: number
 } & UnderlyingTokenDetails
 
-export type EventArgs = DelegationArgs | DepositArgs | WithdrawalArgs | RewardArgs
+export type EventArgs =
+	| DelegationArgs
+	| DepositArgs
+	| WithdrawalArgs
+	| RewardArgs
+	| RegistrationArgs
 
 type DelegationArgs = {
 	operator?: string
@@ -63,6 +68,12 @@ type RewardArgs = {
 		amountEthValue?: number
 	}[]
 	ethValue?: number
+}
+
+type RegistrationArgs = {
+	operator?: string
+	avs?: string
+	status: string
 }
 
 /**
@@ -648,6 +659,74 @@ export async function fetchStakerWithdrawalEvents({
 	}
 }
 
+/**
+ * Utility function to fetch registration events.
+ *
+ * @param operatorAddress
+ * @param avsAddress
+ * @param txHash
+ * @param status
+ * @param startAt
+ * @param endAt
+ * @param skip
+ * @param take
+ * @returns
+ */
+export async function fetchRegistrationEvents({
+	operatorAddress,
+	avsAddress,
+	txHash,
+	status,
+	startAt,
+	endAt,
+	skip,
+	take
+}: {
+	operatorAddress?: string
+	avsAddress?: string
+	txHash?: string
+	status?: string
+	startAt?: string
+	endAt?: string
+	skip: number
+	take: number
+}): Promise<{ eventRecords: EventRecord[]; total: number }> {
+	const baseFilterQuery = {
+		...(operatorAddress && {
+			operator: {
+				contains: operatorAddress,
+				mode: 'insensitive'
+			}
+		}),
+		...(avsAddress && {
+			avs: {
+				contains: avsAddress,
+				mode: 'insensitive'
+			}
+		}),
+		...(txHash && {
+			transactionHash: {
+				contains: txHash,
+				mode: 'insensitive'
+			}
+		}),
+		...(status && {
+			status: status === 'REGISTERED' ? 1 : status === 'DEREGISTERED' ? 0 : undefined
+		}),
+		blockTime: {
+			gte: new Date(startAt as string),
+			...(endAt ? { lte: new Date(endAt as string) } : {})
+		}
+	}
+
+	const results = await fetchAndMapEvents('REGISTRATION_STATUS', baseFilterQuery, skip, take)
+
+	return {
+		eventRecords: results.eventRecords,
+		total: results.eventCount
+	}
+}
+
 // Helper Functions
 const maxDuration = 30 * 24 * 60 * 60 * 1000 // 30 days
 const defaultDuration = 7 * 24 * 60 * 60 * 1000 // 7 days
@@ -740,9 +819,9 @@ async function enrichEventsWithTokenData(
 						)
 
 						detailedStrategies.push({
-							strategy: strategy.strategy,
+							strategy: strategy.strategy?.toLowerCase(),
 							shares: strategy.shares,
-							underlyingToken: detailedData.underlyingToken,
+							underlyingToken: detailedData.underlyingToken?.toLowerCase(),
 							underlyingValue: detailedData.underlyingValue,
 							...(withEthValue ? { ethValue: detailedData.ethValue } : {})
 						})
@@ -759,7 +838,7 @@ async function enrichEventsWithTokenData(
 					BigInt(event.args.shares ?? 0)
 				)
 
-				underlyingToken = detailedData.underlyingToken
+				underlyingToken = detailedData.underlyingToken?.toLowerCase()
 				underlyingValue = detailedData.underlyingValue
 				ethValue = detailedData.ethValue
 			}
@@ -847,6 +926,8 @@ export async function fetchAndMapEvents(
 				return 'eventLogs_WithdrawalCompleted'
 			case 'REWARDS':
 				return 'eventLogs_AVSRewardsSubmission'
+			case 'REGISTRATION_STATUS':
+				return 'eventLogs_OperatorAVSRegistrationStatusUpdated'
 			default:
 				throw new Error(`Unknown event type: ${eventType}`)
 		}
@@ -888,21 +969,21 @@ function mapEventArgs(event: any, eventType: string): EventArgs {
 	switch (eventType) {
 		case 'DEPOSIT':
 			return {
-				staker: event.staker,
-				token: event.token,
-				strategy: event.strategy,
+				staker: event.staker?.toLowerCase(),
+				token: event.token?.toLowerCase(),
+				strategy: event.strategy?.toLowerCase(),
 				shares: event.shares
 			}
 		case 'WITHDRAWAL_QUEUED':
 			return {
-				staker: event.staker,
+				staker: event.staker?.toLowerCase(),
 				withdrawalRoot: event.withdrawalRoot,
-				delegatedTo: event.delegatedTo,
-				withdrawer: event.withdrawer,
+				delegatedTo: event.delegatedTo?.toLowerCase(),
+				withdrawer: event.withdrawer?.toLowerCase(),
 				nonce: event.nonce,
 				startBlock: event.startBlock,
 				strategies: event.strategies?.map((strategy: string, index: number) => ({
-					strategy,
+					strategy: strategy?.toLowerCase(),
 					shares: event.shares?.[index]
 				}))
 			}
@@ -910,25 +991,31 @@ function mapEventArgs(event: any, eventType: string): EventArgs {
 			return { withdrawalRoot: event.withdrawalRoot }
 		case 'REWARDS':
 			return {
-				avs: event.avs,
+				avs: event.avs?.toLowerCase(),
 				submissionNonce: event.submissionNonce,
 				rewardsSubmissionHash: event.rewardsSubmissionHash,
-				rewardsSubmissionToken: event.rewardsSubmission_token.toLowerCase(),
+				rewardsSubmissionToken: event.rewardsSubmission_token?.toLowerCase(),
 				rewardsSubmissionAmount: event.rewardsSubmission_amount,
 				rewardsSubmissionStartTimeStamp: event.rewardsSubmission_startTimestamp,
 				rewardsSubmissionDuration: event.rewardsSubmission_duration,
 				strategies: event.strategiesAndMultipliers_strategies.map(
 					(strategy: string, index: number) => ({
-						strategy: strategy.toLowerCase(),
+						strategy: strategy?.toLowerCase(),
 						multiplier: event.strategiesAndMultipliers_multipliers[index]
 					})
 				)
 			}
+		case 'REGISTRATION_STATUS':
+			return {
+				operator: event.operator?.toLowerCase(),
+				avs: event.avs?.toLowerCase(),
+				status: event.status === 1 ? 'REGISTERED' : 'DEREGISTERED'
+			}
 		default:
 			return {
-				operator: event.operator,
-				staker: event.staker,
-				strategy: event.strategy,
+				operator: event.operator?.toLowerCase(),
+				staker: event.staker?.toLowerCase(),
+				strategy: event.strategy?.toLowerCase(),
 				shares: event.shares
 			}
 	}
