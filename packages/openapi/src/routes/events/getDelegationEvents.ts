@@ -10,10 +10,16 @@ import {
 } from '../../../../api/src/schema/zod/schemas/eventSchemas'
 import { PaginationQuerySchema } from '../../../../api/src/schema/zod/schemas/paginationQuery'
 import { applyAllRefinements } from '../../apiResponseSchema/events/util'
+import {
+	WithTokenDataQuerySchema,
+	WithEthValueQuerySchema
+} from '../../../../api/src/schema/zod/schemas/withTokenDataQuery'
 
 const CombinedQuerySchemaBase = z
 	.object({})
 	.merge(DelegationEventQuerySchemaBase)
+	.merge(WithTokenDataQuerySchema)
+	.merge(WithEthValueQuerySchema)
 	.merge(PaginationQuerySchema)
 const CombinedQuerySchema = applyAllRefinements(CombinedQuerySchemaBase, [
 	refineStartEndDates,
