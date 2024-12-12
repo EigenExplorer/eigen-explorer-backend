@@ -6,6 +6,7 @@ import { getAvsStakersByAddress } from './getAvsStakersByAddress'
 import { getAvsOperatorsByAddress } from './getAvsOperatorsByAddress'
 import { getAvsRewards } from './getAvsRewards'
 import { getAvsRewardsEvents } from './getAvsRewardsEvents'
+import { getAvsRegistrationEvents } from './getAvsRegistrationEvents'
 
 export const avsRoutes: ZodOpenApiPathsObject = {
 	'/avs': { get: getAllAvs },
@@ -16,5 +17,6 @@ export const avsRoutes: ZodOpenApiPathsObject = {
 	'/avs/{address}/stakers': { get: getAvsStakersByAddress },
 	'/avs/{address}/operators': { get: getAvsOperatorsByAddress },
 	'/avs/{address}/rewards': { get: getAvsRewards },
-	'/avs/{address}/events/rewards': { get: getAvsRewardsEvents }
+	'/avs/{address}/events/rewards': { get: getAvsRewardsEvents },
+	'/avs/{address}/events/registration-status': { get: getAvsRegistrationEvents }
 }
