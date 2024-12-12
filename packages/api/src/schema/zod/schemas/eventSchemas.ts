@@ -9,6 +9,11 @@ import {
 const isoRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/
 const yyyymmddRegex = /^\d{4}-\d{2}-\d{2}$/
 
+const now = new Date()
+const defaultDuration = 7 * 24 * 60 * 60 * 1000
+const defaultStartAt = new Date(now.getTime() - defaultDuration).toISOString()
+const defaultEndAt = now.toISOString()
+
 // Reusable refinement functions
 export const refineWithEthValueRequiresTokenData = (schema: z.ZodTypeAny) =>
 	schema.refine(
@@ -107,7 +112,9 @@ export const BaseEventQuerySchema = z.object({
 				message: 'Invalid date format for startAt. Use YYYY-MM-DD or ISO 8601 format.'
 			}
 		)
-		.default('')
+		.openapi({
+			default: defaultStartAt
+		})
 		.describe('Start date in ISO string format'),
 	endAt: z
 		.string()
@@ -120,7 +127,9 @@ export const BaseEventQuerySchema = z.object({
 				message: 'Invalid date format for endAt. Use YYYY-MM-DD or ISO 8601 format.'
 			}
 		)
-		.default('')
+		.openapi({
+			default: defaultEndAt
+		})
 		.describe('End date in ISO string format')
 })
 
@@ -173,7 +182,7 @@ export const DepositEventQuerySchema = refineWithEthValueRequiresTokenData(
 
 export const DelegationEventQuerySchemaBase = BaseEventQuerySchema.extend({
 	type: z
-		.enum(['SHARES_INCREASED', 'SHARES_DECREASED', 'DELEGATION', 'UNDELEGATION'])
+		.enum(['DELEGATION', 'UNDELEGATION', 'SHARES_INCREASED', 'SHARES_DECREASED'])
 		.optional()
 		.describe('The type of the delegation event'),
 	strategyAddress: z
@@ -235,3 +244,33 @@ export const RewardsEventQuerySchemaBase = BaseEventQuerySchema.extend({
 	.merge(WithEthValueQuerySchema)
 
 export const RewardsEventQuerySchema = refineStartEndDates(RewardsEventQuerySchemaBase)
+
+export const RegistrationEventQuerySchemaBase = BaseEventQuerySchema.extend({
+	status: z.enum(['REGISTERED', 'DEREGISTERED']).optional().describe('The status of Registration')
+})
+
+export const RegistrationEventQuerySchema = refineStartEndDates(RegistrationEventQuerySchemaBase)
+
+export const OperatorRegistrationEventQuerySchemaBase = RegistrationEventQuerySchemaBase.extend({
+	avsAddress: z
+		.string()
+		.regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address')
+		.optional()
+		.describe('The address of the avs')
+})
+
+export const OperatorRegistrationEventQuerySchema = refineStartEndDates(
+	OperatorRegistrationEventQuerySchemaBase
+)
+
+export const AvsRegistrationEventQuerySchemaBase = RegistrationEventQuerySchemaBase.extend({
+	operatorAddress: z
+		.string()
+		.regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address')
+		.optional()
+		.describe('The address of the operator')
+})
+
+export const AvsRegistrationEventQuerySchema = refineStartEndDates(
+	AvsRegistrationEventQuerySchemaBase
+)
