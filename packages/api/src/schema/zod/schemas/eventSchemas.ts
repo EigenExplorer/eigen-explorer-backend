@@ -9,11 +9,6 @@ import {
 const isoRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/
 const yyyymmddRegex = /^\d{4}-\d{2}-\d{2}$/
 
-const now = new Date()
-const defaultDuration = 7 * 24 * 60 * 60 * 1000
-const defaultStartAt = new Date(now.getTime() - defaultDuration).toISOString()
-const defaultEndAt = now.toISOString()
-
 // Reusable refinement functions
 export const refineWithEthValueRequiresTokenData = (schema: z.ZodTypeAny) =>
 	schema.refine(
@@ -112,9 +107,6 @@ export const BaseEventQuerySchema = z.object({
 				message: 'Invalid date format for startAt. Use YYYY-MM-DD or ISO 8601 format.'
 			}
 		)
-		.openapi({
-			default: defaultStartAt
-		})
 		.describe('Start date in ISO string format'),
 	endAt: z
 		.string()
@@ -127,9 +119,6 @@ export const BaseEventQuerySchema = z.object({
 				message: 'Invalid date format for endAt. Use YYYY-MM-DD or ISO 8601 format.'
 			}
 		)
-		.openapi({
-			default: defaultEndAt
-		})
 		.describe('End date in ISO string format')
 })
 
