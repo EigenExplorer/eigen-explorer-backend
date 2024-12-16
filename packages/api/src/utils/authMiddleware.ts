@@ -151,27 +151,6 @@ export const rateLimiter = (req: Request, res: Response, next: NextFunction) => 
 
 	// Apply rate limiting
 	const limiter = rateLimiters[accessLevel]
-
-	// Increment `requestsStore` for successful requests
-	const originalEnd = res.end
-
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-	res.end = function (chunk?: any, encoding?: any, cb?: any) {
-		try {
-			if (res.statusCode >= 200 && res.statusCode < 300) {
-				const apiToken = req.header('X-API-Token')
-				if (apiToken) {
-					const key = `apiToken:${apiToken}:newRequests`
-					const currentCalls: number = requestsStore.get(key) || 0
-					requestsStore.set(key, currentCalls + 1)
-				}
-			}
-		} catch {}
-
-		res.end = originalEnd
-		return originalEnd.call(this, chunk, encoding, cb)
-	}
-
 	return limiter(req, res, next)
 }
 
