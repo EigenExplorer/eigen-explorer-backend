@@ -23,9 +23,7 @@ interface Plan {
 
 const PLANS: Record<number, Plan> = {
 	0: {
-		name: 'Unauthenticated',
-		requestsPerMin: 30, // Remove in v2
-		requestsPerMonth: 1_000 // Remove in v2
+		name: 'Unauthenticated'
 	},
 	1: {
 		name: 'Free',
@@ -49,7 +47,7 @@ const PLANS: Record<number, Plan> = {
  * Designed for speed over strictness, always giving user benefit of the doubt
  *
  * -1 -> Account restricted (monthly limit hit)
- * 0 -> No API token (req will be blocked in v2)
+ * 0 -> No API token (req blocked)
  * 1 -> Hobby plan or server/db error
  * 2 -> Basic plan
  * 998 -> Fallback to db to in case auth store is updating (temp state, gets re-assigned to another value)
@@ -95,11 +93,6 @@ export const authenticator = async (req: Request, res: Response, next: NextFunct
 		accessLevel = response.ok ? Number(payload?.data?.accessLevel) : 1 // Benefit of the doubt
 	}
 
-	// --- LIMITING TO BE ACTIVATED IN V2 ---
-	if (accessLevel === 0) accessLevel = 1
-	if (accessLevel === -1) accessLevel = 1
-
-	/*
 	if (accessLevel === 0) {
 		return res.status(401).json({
 			error: `Missing or invalid API token. Please generate a valid token on https://dev.eigenexplorer.com and attach it with header 'X-API-Token'.`
@@ -111,8 +104,6 @@ export const authenticator = async (req: Request, res: Response, next: NextFunct
 			error: 'You have reached your monthly limit. Please contact us to increase limits.'
 		})
 	}
-	*/
-	// --- LIMITING TO BE ACTIVATED IN V2 ---
 
 	req.accessLevel = accessLevel
 	next()
@@ -122,7 +113,6 @@ export const authenticator = async (req: Request, res: Response, next: NextFunct
 
 /**
  * Create rate limiters for each Plan
- * Note: In v2, we remove the check for `accessLevel === 0` because unauthenticated users would not have passed `authenticator`
  *
  */
 
@@ -138,13 +128,8 @@ for (const [level, plan] of Object.entries(PLANS)) {
 		max: plan.requestsPerMin,
 		standardHeaders: true,
 		legacyHeaders: false,
-		keyGenerator: (req: Request): string =>
-			accessLevel === 0 ? req.ip ?? 'unknown' : req.header('X-API-Token') || '',
-		message: `You've reached the limit of ${plan.requestsPerMin} requests per minute. ${
-			accessLevel === 0
-				? 'Sign up for a plan on https://dev.eigenexplorer.com for increased limits.'
-				: 'Upgrade your plan for increased limits.'
-		}`
+		keyGenerator: (req: Request): string => req.header('X-API-Token') || '',
+		message: `You've reached the limit of ${plan.requestsPerMin} requests per minute. Upgrade your plan for increased limits.`
 	})
 }
 
