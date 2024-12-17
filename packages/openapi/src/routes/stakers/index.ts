@@ -6,6 +6,9 @@ import { getQueuedStakerWithdrawals } from './getQueuedStakerWithdrawals'
 import { getQueuedWithdrawableStakerWithdrawals } from './getQueuedWithdrawableStakerWithdrawals'
 import { getCompletedStakerWithdrawals } from './getCompletedStakerWithdrawals'
 import { getStakerDeposits } from './getStakerDeposits'
+import { getStakerDelegationEvents } from './getStakerDelegationEvents'
+import { getStakerDepositEvents } from './getStakerDepositEvents'
+import { getStakerWithdrawalEvents } from './getStakerWithdrawalEvents'
 
 export const stakersRoutes: ZodOpenApiPathsObject = {
 	'/stakers': { get: getAllStakers },
@@ -24,5 +27,14 @@ export const stakersRoutes: ZodOpenApiPathsObject = {
 	},
 	'/stakers/{address}/deposits': {
 		get: getStakerDeposits
+	},
+	'/stakers/{address}/events/delegation': {
+		get: getStakerDelegationEvents
+	},
+	'/stakers/{address}/events/deposit': {
+		get: getStakerDepositEvents
+	},
+	'/stakers/{address}/events/withdrawal': {
+		get: getStakerWithdrawalEvents
 	}
 }

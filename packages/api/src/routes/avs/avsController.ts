@@ -8,6 +8,7 @@ import { UpdatedSinceQuerySchema } from '../../schema/zod/schemas/updatedSinceQu
 import { SortByQuerySchema } from '../../schema/zod/schemas/sortByQuery'
 import { SearchByTextQuerySchema } from '../../schema/zod/schemas/searchByTextQuery'
 import { WithRewardsQuerySchema } from '../../schema/zod/schemas/withRewardsQuery'
+import { RequestHeadersSchema } from '../../schema/zod/schemas/auth'
 import { getOperatorSearchQuery } from '../operators/operatorController'
 import { handleAndReturnErrorResponse } from '../../schema/errors'
 import {
@@ -19,6 +20,11 @@ import Prisma from '@prisma/client'
 import prisma from '../../utils/prismaClient'
 import { fetchTokenPrices } from '../../utils/tokenPrices'
 import { withOperatorShares } from '../../utils/operatorShares'
+import { fetchRegistrationEvents, fetchRewardsEvents } from '../../utils/eventUtils'
+import {
+	AvsRegistrationEventQuerySchema,
+	RewardsEventQuerySchema
+} from '../../schema/zod/schemas/eventSchemas'
 
 /**
  * Function for route /avs
@@ -557,7 +563,7 @@ export async function getAVSRewards(req: Request, res: Response) {
 				currentSubmission.rewardsSubmissionHash !== submission.rewardsSubmissionHash
 			) {
 				if (currentSubmission) {
-					currentSubmission.totalAmount = currentTotalAmount.toString()
+					currentSubmission.totalAmount = currentTotalAmount.toFixed(0)
 					result.submissions.push(currentSubmission)
 					result.totalSubmissions++
 				}
@@ -596,13 +602,13 @@ export async function getAVSRewards(req: Request, res: Response) {
 			currentSubmission.strategies.push({
 				strategyAddress,
 				multiplier: submission.multiplier?.toString() || '0',
-				amount: amount.toString()
+				amount: amount.toFixed(0)
 			})
 		}
 
 		// Add final submission
 		if (currentSubmission) {
-			currentSubmission.totalAmount = currentTotalAmount.toString()
+			currentSubmission.totalAmount = currentTotalAmount.toFixed(0)
 			result.submissions.push(currentSubmission)
 			result.totalSubmissions++
 			result.totalRewards += currentTotalAmountEth.toNumber() // 18 decimals
@@ -612,6 +618,91 @@ export async function getAVSRewards(req: Request, res: Response) {
 		result.rewardStrategies = rewardStrategies
 
 		res.send(result)
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+/**
+ * Function for route /avs/:address/events/rewards
+ * Fetches and returns a list of rewards-related events for a specific AVS
+ *
+ * @param req
+ * @param res
+ */
+export async function getAVSRewardsEvents(req: Request, res: Response) {
+	const result = RewardsEventQuerySchema.and(PaginationQuerySchema).safeParse(req.query)
+	if (!result.success) return handleAndReturnErrorResponse(req, res, result.error)
+
+	try {
+		const { address } = req.params
+
+		const {
+			rewardsSubmissionToken,
+			rewardsSubmissionHash,
+			startAt,
+			endAt,
+			withEthValue,
+			withIndividualAmount,
+			skip,
+			take
+		} = result.data
+
+		const response = await fetchRewardsEvents({
+			avsAddress: address,
+			rewardsSubmissionToken,
+			rewardsSubmissionHash,
+			startAt,
+			endAt,
+			withEthValue,
+			withIndividualAmount,
+			skip,
+			take
+		})
+
+		response.eventRecords.forEach((event) => 'avs' in event.args && (event.args.avs = undefined))
+
+		res.send({
+			data: response.eventRecords,
+			meta: { total: response.total, skip, take }
+		})
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+/**
+ * Function for route avs/:address/events/registration
+ * Fetches and returns a list of operator-avs registration event for a specific Avs
+ *
+ * @param req
+ * @param res
+ */
+export async function getAvsRegistrationEvents(req: Request, res: Response) {
+	const result = AvsRegistrationEventQuerySchema.and(PaginationQuerySchema).safeParse(req.query)
+	if (!result.success) return handleAndReturnErrorResponse(req, res, result.error)
+
+	try {
+		const { address } = req.params
+
+		const { operatorAddress, txHash, status, startAt, endAt, skip, take } = result.data
+
+		const response = await fetchRegistrationEvents({
+			avsAddress: address,
+			operatorAddress,
+			txHash,
+			status,
+			startAt,
+			endAt,
+			skip,
+			take
+		})
+
+		response.eventRecords.forEach((event) => 'avs' in event.args && (event.args.avs = undefined))
+
+		res.send({
+			data: response.eventRecords,
+			meta: { total: response.total, skip, take }
+		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
 	}
@@ -630,7 +721,19 @@ export async function invalidateMetadata(req: Request, res: Response) {
 		return handleAndReturnErrorResponse(req, res, paramCheck.error)
 	}
 
+	const headerCheck = RequestHeadersSchema.safeParse(req.headers)
+	if (!headerCheck.success) {
+		return handleAndReturnErrorResponse(req, res, headerCheck.error)
+	}
+
 	try {
+		const apiToken = headerCheck.data['X-API-Token']
+		const authToken = process.env.EE_AUTH_TOKEN
+
+		if (!apiToken || apiToken !== authToken) {
+			throw new Error('Unauthorized access.')
+		}
+
 		const { address } = req.params
 
 		const updateResult = await prisma.avs.updateMany({
@@ -729,6 +832,14 @@ export function getAvsSearchQuery(
 // biome-ignore lint/suspicious/noExplicitAny: <explanation>
 async function calculateAvsApy(avs: any) {
 	try {
+		const strategyApyMap: Map<
+			string,
+			{
+				apy: number
+				tokens: Map<string, number>
+			}
+		> = new Map()
+
 		const tokenPrices = await fetchTokenPrices()
 		const strategiesWithSharesUnderlying = await getStrategiesWithShareUnderlying()
 
@@ -741,12 +852,21 @@ async function calculateAvsApy(avs: any) {
 		const tvlStrategiesEth = sharesToTVLStrategies(shares, strategiesWithSharesUnderlying)
 
 		// Iterate through each strategy and calculate all its rewards
-		const strategiesApy = avs.restakeableStrategies.map((strategyAddress) => {
+		for (const strategyAddress of avs.restakeableStrategies) {
 			const strategyTvl = tvlStrategiesEth[strategyAddress.toLowerCase()] || 0
-			if (strategyTvl === 0) return { strategyAddress, apy: 0 }
+			if (strategyTvl === 0) continue
 
-			let totalRewardsEth = new Prisma.Prisma.Decimal(0)
-			let totalDuration = 0
+			const tokenApyMap: Map<string, number> = new Map()
+			const tokenRewards: Map<
+				string,
+				{
+					totalRewardsEth: Prisma.Prisma.Decimal
+					totalDuration: number
+				}
+			> = new Map()
+
+			let strategyTotalRewardsEth = new Prisma.Prisma.Decimal(0)
+			let strategyTotalDuration = 0
 
 			// Find all reward submissions attributable to the strategy
 			const relevantSubmissions = avs.rewardSubmissions.filter(
@@ -773,28 +893,60 @@ async function calculateAvsApy(avs: any) {
 					.mul(submission.multiplier)
 					.div(new Prisma.Prisma.Decimal(10).pow(18))
 
-				totalRewardsEth = totalRewardsEth.add(rewardIncrementEth) // No decimals
-				totalDuration += submission.duration
+				// Accumulate token-specific rewards and duration
+				const tokenData = tokenRewards.get(rewardTokenAddress) || {
+					totalRewardsEth: new Prisma.Prisma.Decimal(0),
+					totalDuration: 0
+				}
+				tokenData.totalRewardsEth = tokenData.totalRewardsEth.add(rewardIncrementEth)
+				tokenData.totalDuration += submission.duration
+				tokenRewards.set(rewardTokenAddress, tokenData)
+
+				// Accumulate strategy totals
+				strategyTotalRewardsEth = strategyTotalRewardsEth.add(rewardIncrementEth)
+				strategyTotalDuration += submission.duration
 			}
 
-			if (totalDuration === 0) {
-				return { strategyAddress, apy: 0 }
+			if (strategyTotalDuration === 0) continue
+
+			// Calculate token APYs using accumulated values
+			tokenRewards.forEach((data, tokenAddress) => {
+				if (data.totalDuration !== 0) {
+					const tokenRewardRate = data.totalRewardsEth.toNumber() / strategyTvl
+					const tokenAnnualizedRate = tokenRewardRate * ((365 * 24 * 60 * 60) / data.totalDuration)
+					const tokenApy = tokenAnnualizedRate * 100
+
+					tokenApyMap.set(tokenAddress, tokenApy)
+				}
+			})
+
+			// Calculate overall strategy APY summing token APYs
+			const strategyApy = Array.from(tokenApyMap.values()).reduce((sum, apy) => sum + apy, 0)
+
+			// Update strategy rewards map
+			const currentStrategyRewards = {
+				apy: 0,
+				tokens: new Map()
 			}
 
-			// Annualize the reward basis its duration to find yearly APY
-			const rewardRate = totalRewardsEth.toNumber() / strategyTvl
-			const annualizedRate = rewardRate * ((365 * 24 * 60 * 60) / totalDuration)
-			const apy = annualizedRate * 100
-
-			return { strategyAddress, apy }
-		})
-
-		// Calculate aggregate APYs across strategies
-		const aggregateApy = strategiesApy.reduce((sum, strategy) => sum + strategy.apy, 0)
+			tokenApyMap.forEach((apy, tokenAddress) => {
+				currentStrategyRewards.tokens.set(tokenAddress, apy)
+			})
+			currentStrategyRewards.apy += strategyApy
+			strategyApyMap.set(strategyAddress, currentStrategyRewards)
+		}
 
 		return {
-			strategies: strategiesApy,
-			aggregateApy
+			strategyApys: Array.from(strategyApyMap.entries()).map(([strategyAddress, data]) => {
+				return {
+					strategyAddress,
+					apy: data.apy,
+					tokens: Array.from(data.tokens.entries()).map(([tokenAddress, apy]) => ({
+						tokenAddress,
+						apy
+					}))
+				}
+			})
 		}
 	} catch {}
 }

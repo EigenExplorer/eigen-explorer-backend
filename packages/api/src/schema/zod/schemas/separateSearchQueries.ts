@@ -14,5 +14,5 @@ export const SearchByText = z.object({
 		.string()
 		.optional()
 		.describe('Case-insensitive search query')
-		.openapi({ example: 'blockless' })
+		.openapi({ example: 'eigen' })
 })

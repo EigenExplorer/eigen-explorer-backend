@@ -3,16 +3,13 @@ import { EthereumAddressSchema } from '../../../api/src/schema/zod/schemas/base/
 import { TvlSchema } from './base/tvlResponses'
 
 export const StakerSharesSchema = z.object({
-	stakerAddress: EthereumAddressSchema.describe('The contract address of the staker').openapi({
-		example: '0x0000006c21964af0d420af8992851a30fa13c68a'
-	}),
 	strategyAddress: EthereumAddressSchema.describe(
 		'The contract address of the restaking strategy'
 	).openapi({ example: '0x93c4b944d05dfe6df7645a86cd2206016c51564a' }),
 	shares: z
 		.string()
 		.describe('The amount of shares held in the strategy')
-		.openapi({ example: '40888428658906049' })
+		.openapi({ example: '40000000000000000' })
 })
 
 export const StakerResponseSchema = z.object({

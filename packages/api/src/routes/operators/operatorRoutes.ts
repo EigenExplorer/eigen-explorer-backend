@@ -4,9 +4,10 @@ import {
 	getOperator,
 	getAllOperatorAddresses,
 	getOperatorRewards,
+	getOperatorDelegationEvents,
+	getOperatorRegistrationEvents,
 	invalidateMetadata
 } from './operatorController'
-import { authenticateJWT } from '../../utils/jwtUtils'
 
 import routeCache from 'route-cache'
 
@@ -108,12 +109,15 @@ router.get('/:address', routeCache.cacheSeconds(120), getOperator)
 
 router.get('/:address/rewards', routeCache.cacheSeconds(120), getOperatorRewards)
 
-// Protected routes
+router.get('/:address/events/delegation', routeCache.cacheSeconds(120), getOperatorDelegationEvents)
+
 router.get(
-	'/:address/invalidate-metadata',
-	authenticateJWT,
+	'/:address/events/registration-status',
 	routeCache.cacheSeconds(120),
-	invalidateMetadata
+	getOperatorRegistrationEvents
 )
+
+// Protected routes
+router.get('/:address/invalidate-metadata', routeCache.cacheSeconds(120), invalidateMetadata)
 
 export default router
