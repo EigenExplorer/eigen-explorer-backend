@@ -1,12 +1,17 @@
 import { openApiErrorResponses } from '../../apiResponseSchema/base/errorResponses'
 import z from '../../../../api/src/schema/zod'
 import { EthereumAddressSchema } from '../../../../api/src/schema/zod/schemas/base/ethereumAddress'
-import { AvsSchema } from '../../apiResponseSchema/avs/avsResponse'
 import { ZodOpenApiOperationObject } from 'zod-openapi'
 import { WithTvlQuerySchema } from '../../../../api/src/schema/zod/schemas/withTvlQuery'
 import { WithCuratedMetadata } from '../../../../api/src/schema/zod/schemas/withCuratedMetadataQuery'
+import { WithRewardsQuerySchema } from '../../../../api/src/schema/zod/schemas/withRewardsQuery'
+import { AvsWithRewardsSchema } from '../../apiResponseSchema/avs/avsWithRewardsResponse'
 
-const CombinedQuerySchema = z.object({}).merge(WithTvlQuerySchema).merge(WithCuratedMetadata)
+const CombinedQuerySchema = z
+	.object({})
+	.merge(WithTvlQuerySchema)
+	.merge(WithCuratedMetadata)
+	.merge(WithRewardsQuerySchema)
 
 const AvsAddressParam = z.object({
 	address: EthereumAddressSchema.describe('AVS service manager contract address').openapi({
@@ -28,7 +33,7 @@ export const getAvsByAddress: ZodOpenApiOperationObject = {
 			description: 'The AVS record found.',
 			content: {
 				'application/json': {
-					schema: AvsSchema
+					schema: AvsWithRewardsSchema
 				}
 			}
 		},

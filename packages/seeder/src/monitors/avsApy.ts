@@ -12,7 +12,7 @@ export async function monitorAvsApy() {
 	const dbTransactions: any[] = []
 	const data: {
 		address: string
-		apy: Prisma.Prisma.Decimal
+		maxApy: Prisma.Prisma.Decimal
 	}[] = []
 
 	let skip = 0
@@ -25,6 +25,11 @@ export async function monitorAvsApy() {
 		try {
 			// Fetch totalStakers, totalOperators & rewards data for all avs in this iteration
 			const avsMetrics = await prismaClient.avs.findMany({
+				where: {
+					rewardSubmissions: {
+						some: {}
+					}
+				},
 				include: {
 					operators: {
 						where: { isActive: true },
@@ -42,26 +47,24 @@ export async function monitorAvsApy() {
 				take
 			})
 
-			if (avsMetrics.length === 0) {
-				break
-			}
+			if (avsMetrics.length === 0) break
 
 			// Setup all db transactions for this iteration
 			for (const avs of avsMetrics) {
+				const strategyRewardsMap: Map<string, number> = new Map()
+
 				const shares = withOperatorShares(avs.operators).filter(
 					(s) => avs.restakeableStrategies.indexOf(s.strategyAddress.toLowerCase()) !== -1
 				)
-
-				let apy = new Prisma.Prisma.Decimal(0)
 
 				if (avs.rewardSubmissions.length > 0) {
 					// Fetch the AVS tvl for each strategy
 					const tvlStrategiesEth = sharesToTVLStrategies(shares, strategiesWithSharesUnderlying)
 
 					// Iterate through each strategy and calculate all its rewards
-					const strategiesApy = avs.restakeableStrategies.map((strategyAddress) => {
+					for (const strategyAddress of avs.restakeableStrategies) {
 						const strategyTvl = tvlStrategiesEth[strategyAddress.toLowerCase()] || 0
-						if (strategyTvl === 0) return { strategyAddress, apy: 0 }
+						if (strategyTvl === 0) continue
 
 						let totalRewardsEth = new Prisma.Prisma.Decimal(0)
 						let totalDuration = 0
@@ -96,29 +99,27 @@ export async function monitorAvsApy() {
 							totalDuration += submission.duration
 						}
 
-						if (totalDuration === 0) {
-							return { strategyAddress, apy: 0 }
-						}
+						if (totalDuration === 0) continue
 
 						// Annualize the reward basis its duration to find yearly APY
 						const rewardRate = totalRewardsEth.toNumber() / strategyTvl
 						const annualizedRate = rewardRate * ((365 * 24 * 60 * 60) / totalDuration)
 						const apy = annualizedRate * 100
 
-						return { strategyAddress, apy }
-					})
+						strategyRewardsMap.set(strategyAddress, apy)
+					}
 
-					// Calculate aggregate APY across strategies
-					apy = new Prisma.Prisma.Decimal(
-						strategiesApy.reduce((sum, strategy) => sum + strategy.apy, 0)
-					)
-				}
+					// Calculate max achievable APY
+					if (strategyRewardsMap.size > 0) {
+						const maxApy = new Prisma.Prisma.Decimal(Math.max(...strategyRewardsMap.values()))
 
-				if (avs.apy !== apy) {
-					data.push({
-						address: avs.address,
-						apy
-					})
+						if (avs.maxApy !== maxApy) {
+							data.push({
+								address: avs.address,
+								maxApy
+							})
+						}
+					}
 				}
 			}
 
@@ -128,12 +129,12 @@ export async function monitorAvsApy() {
 				const query = `
 					UPDATE "Avs" AS a
 					SET
-						"apy" = a2."apy"
+						"maxApy" = a2."maxApy"
 					FROM
 						(
 							VALUES
-								${data.map((d) => `('${d.address}', ${d.apy})`).join(', ')}
-						) AS a2 (address, "apy")
+								${data.map((d) => `('${d.address}', ${d.maxApy})`).join(', ')}
+						) AS a2 (address, "maxApy")
 					WHERE
 						a2.address = a.address;
 				`

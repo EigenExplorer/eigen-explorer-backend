@@ -495,18 +495,19 @@
 		"/metrics/tvl/restaking/{strategy}": {
 			"get": {
 				"operationId": "getTvlRestakingMetricByStrategy",
-				"summary": "Retrieve a strategy TVL by name",
+				"summary": "Retrieve a strategy TVL by address",
 				"description": "Returns the total value locked (TVL) in a specific LST strategy.",
 				"tags": ["Metrics"],
 				"parameters": [
 					{
 						"in": "path",
 						"name": "strategy",
-						"description": "The name of the restaking strategy",
+						"description": "The address of the restaking strategy",
 						"schema": {
 							"type": "string",
-							"description": "The name of the restaking strategy",
-							"example": "cbETH"
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "The address of the restaking strategy",
+							"example": "0x0fe4f44bee93503346a3ac9ee5a26b130a5796d6"
 						},
 						"required": true
 					},
@@ -1854,11 +1855,11 @@
 					{
 						"in": "path",
 						"name": "address",
-						"description": "The address of the strategy",
+						"description": "The contract address of the restaking strategy",
 						"schema": {
 							"type": "string",
 							"pattern": "^0x[a-fA-F0-9]{40}$",
-							"description": "The address of the strategy",
+							"description": "The contract address of the restaking strategy",
 							"example": "0x54945180dB7943c0ed0FEE7EdaB2Bd24620256bc"
 						},
 						"required": true
@@ -2786,7 +2787,7 @@
 						"schema": {
 							"type": "string",
 							"description": "Case-insensitive search query",
-							"example": "blockless"
+							"example": "eigen"
 						}
 					},
 					{
@@ -2933,7 +2934,7 @@
 													"apy": {
 														"type": "string",
 														"description": "The latest APY recorded for the AVS",
-														"example": "1.302"
+														"example": "1.0"
 													},
 													"createdAtBlock": {
 														"type": "string",
@@ -3003,6 +3004,20 @@
 																"description": "The URL of the AVS's X",
 																"example": "https://twitter.com/acme"
 															},
+															"metadataGithub": {
+																"type": "string",
+																"nullable": true,
+																"format": "uri",
+																"description": "The URL of the AVS's Github",
+																"example": "https://github.com/acme"
+															},
+															"metadataTokenAddress": {
+																"type": "string",
+																"nullable": true,
+																"format": "uri",
+																"description": "The Token Address of the AVS",
+																"example": "0x2344c0fe02ccd2b32155ca0ffcb1978a6d96a552"
+															},
 															"avsAddress": {
 																"type": "string",
 																"pattern": "^0x[a-fA-F0-9]{40}$",
@@ -3036,6 +3051,8 @@
 															"metadataTelegram",
 															"metadataWebsite",
 															"metadataX",
+															"metadataGithub",
+															"metadataTokenAddress",
 															"avsAddress",
 															"tags",
 															"isVisible",
@@ -3046,11 +3063,13 @@
 															"avsAddress": "0x2344c0fe02ccd2b32155ca0ffcb1978a6d96a552",
 															"metadataName": "Example AVS",
 															"metadataDescription": "This is an example AVS",
-															"metadataDiscord": "https://discord.com/invite/abcdefghij",
+															"metadataDiscord": "https://discord.com/invite/example",
 															"metadataLogo": "The URL of the AVS's logo",
 															"metadataTelegram": "The URL of the AVS's Telegram channel",
-															"metadataWebsite": "https://acme.com",
-															"metadataX": "https://twitter.com/acme",
+															"metadataWebsite": "https://example.com",
+															"metadataX": "https://twitter.com/example",
+															"metadataGithub": "https://github.com/example",
+															"metadataTokenAddress": "0x2344c0fe02ccd2b32155ca0ffcb1978a6d96a552",
 															"tags": ["Example tag 1", "Example tag 2"],
 															"isVisible": true,
 															"isVerified": true
@@ -3079,11 +3098,11 @@
 														"example": [
 															{
 																"strategyAddress": "0x93c4b944d05dfe6df7645a86cd2206016c51564d",
-																"shares": "135064894598947935263152"
+																"shares": "1000000000000000000000"
 															},
 															{
 																"strategyAddress": "0x54945180db7943c0ed0fee7edab2bd24620256bc",
-																"shares": "9323641881708650182301"
+																"shares": "1000000000000000000000"
 															}
 														]
 													},
@@ -3259,7 +3278,7 @@
 						"schema": {
 							"type": "string",
 							"description": "Case-insensitive search query",
-							"example": "blockless"
+							"example": "eigen"
 						}
 					},
 					{
@@ -3298,19 +3317,24 @@
 											"items": {
 												"type": "object",
 												"properties": {
-													"name": {
-														"type": "string",
-														"description": "The AVS's name",
-														"example": "Example AVS"
-													},
 													"address": {
 														"type": "string",
 														"pattern": "^0x[a-fA-F0-9]{40}$",
 														"description": "AVS service manager contract address",
 														"example": "0x35f4f28a8d3ff20eed10e087e8f96ea2641e6aa1"
+													},
+													"name": {
+														"type": "string",
+														"description": "The AVS's name",
+														"example": "Example AVS"
+													},
+													"logo": {
+														"type": "string",
+														"description": "The AVS's logo URL",
+														"example": "https://example.avs/logo.png"
 													}
 												},
-												"required": ["name", "address"]
+												"required": ["address", "name", "logo"]
 											}
 										},
 										"meta": {
@@ -3406,6 +3430,18 @@
 							"description": "Toggle whether the route should send curated metadata",
 							"example": "false"
 						}
+					},
+					{
+						"in": "query",
+						"name": "withRewards",
+						"description": "Toggle whether the route should return Avs/Operator rewards APY data",
+						"schema": {
+							"type": "string",
+							"enum": ["true", "false"],
+							"default": "false",
+							"description": "Toggle whether the route should return Avs/Operator rewards APY data",
+							"example": "false"
+						}
 					}
 				],
 				"responses": {
@@ -3480,7 +3516,7 @@
 										"apy": {
 											"type": "string",
 											"description": "The latest APY recorded for the AVS",
-											"example": "1.302"
+											"example": "1.0"
 										},
 										"createdAtBlock": {
 											"type": "string",
@@ -3550,6 +3586,20 @@
 													"description": "The URL of the AVS's X",
 													"example": "https://twitter.com/acme"
 												},
+												"metadataGithub": {
+													"type": "string",
+													"nullable": true,
+													"format": "uri",
+													"description": "The URL of the AVS's Github",
+													"example": "https://github.com/acme"
+												},
+												"metadataTokenAddress": {
+													"type": "string",
+													"nullable": true,
+													"format": "uri",
+													"description": "The Token Address of the AVS",
+													"example": "0x2344c0fe02ccd2b32155ca0ffcb1978a6d96a552"
+												},
 												"avsAddress": {
 													"type": "string",
 													"pattern": "^0x[a-fA-F0-9]{40}$",
@@ -3583,6 +3633,8 @@
 												"metadataTelegram",
 												"metadataWebsite",
 												"metadataX",
+												"metadataGithub",
+												"metadataTokenAddress",
 												"avsAddress",
 												"tags",
 												"isVisible",
@@ -3593,11 +3645,13 @@
 												"avsAddress": "0x2344c0fe02ccd2b32155ca0ffcb1978a6d96a552",
 												"metadataName": "Example AVS",
 												"metadataDescription": "This is an example AVS",
-												"metadataDiscord": "https://discord.com/invite/abcdefghij",
+												"metadataDiscord": "https://discord.com/invite/example",
 												"metadataLogo": "The URL of the AVS's logo",
 												"metadataTelegram": "The URL of the AVS's Telegram channel",
-												"metadataWebsite": "https://acme.com",
-												"metadataX": "https://twitter.com/acme",
+												"metadataWebsite": "https://example.com",
+												"metadataX": "https://twitter.com/example",
+												"metadataGithub": "https://github.com/example",
+												"metadataTokenAddress": "0x2344c0fe02ccd2b32155ca0ffcb1978a6d96a552",
 												"tags": ["Example tag 1", "Example tag 2"],
 												"isVisible": true,
 												"isVerified": true
@@ -3626,11 +3680,11 @@
 											"example": [
 												{
 													"strategyAddress": "0x93c4b944d05dfe6df7645a86cd2206016c51564d",
-													"shares": "135064894598947935263152"
+													"shares": "1000000000000000000000"
 												},
 												{
 													"strategyAddress": "0x54945180db7943c0ed0fee7edab2bd24620256bc",
-													"shares": "9323641881708650182301"
+													"shares": "1000000000000000000000"
 												}
 											]
 										},
@@ -3706,6 +3760,50 @@
 													"stETH": 1000000,
 													"cbETH": 2000000
 												}
+											}
+										},
+										"rewards": {
+											"type": "object",
+											"properties": {
+												"strategies": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"strategyAddress": {
+																"type": "string",
+																"description": "The contract address of the restaking strategy",
+																"example": "0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0"
+															},
+															"apy": {
+																"type": "number",
+																"description": "The latest APY recorded for the restaking strategy",
+																"example": 0.1
+															}
+														},
+														"required": ["strategyAddress", "apy"]
+													}
+												},
+												"aggregateApy": {
+													"type": "number",
+													"description": "The aggregate APY across all strategies",
+													"example": 1
+												}
+											},
+											"required": ["strategies", "aggregateApy"],
+											"description": "The rewards and APY information of the AVS strategies",
+											"example": {
+												"strategies": [
+													{
+														"strategyAddress": "0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0",
+														"apy": 0.1
+													},
+													{
+														"strategyAddress": "0x93c4b944d05dfe6df7645a86cd2206016c51564d",
+														"apy": 0.1
+													}
+												],
+												"aggregateApy": 1
 											}
 										}
 									},
@@ -3869,6 +3967,12 @@
 														"items": {
 															"type": "object",
 															"properties": {
+																"stakerAddress": {
+																	"type": "string",
+																	"pattern": "^0x[a-fA-F0-9]{40}$",
+																	"description": "The address of the staker",
+																	"example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
+																},
 																"strategyAddress": {
 																	"type": "string",
 																	"pattern": "^0x[a-fA-F0-9]{40}$",
@@ -3878,10 +3982,10 @@
 																"shares": {
 																	"type": "string",
 																	"description": "The amount of shares held in the strategy",
-																	"example": "40888428658906049"
+																	"example": "40000000000000000"
 																}
 															},
-															"required": ["strategyAddress", "shares"]
+															"required": ["stakerAddress", "strategyAddress", "shares"]
 														}
 													},
 													"tvl": {
@@ -4059,7 +4163,7 @@
 						"schema": {
 							"type": "string",
 							"description": "Case-insensitive search query",
-							"example": "blockless"
+							"example": "eigen"
 						}
 					},
 					{
@@ -4172,6 +4276,21 @@
 														"description": "The URL of the AVS operator's X",
 														"example": "https://twitter.com/acme"
 													},
+													"totalStakers": {
+														"type": "number",
+														"description": "The total number of stakers who have delegated to this AVS operator",
+														"example": 10
+													},
+													"totalAvs": {
+														"type": "number",
+														"description": "The total number of AVS opted by the AVS operator",
+														"example": 10
+													},
+													"apy": {
+														"type": "number",
+														"description": "The latest APY recorded for the Operator",
+														"example": 1
+													},
 													"createdAtBlock": {
 														"type": "string",
 														"description": "The block number at which the AVS Operator was registered",
@@ -4231,11 +4350,6 @@
 														},
 														"description": "The list of restaked strategies",
 														"example": ["0x35f4f28a8d3ff20eed10e087e8f96ea2641e6aa1"]
-													},
-													"totalStakers": {
-														"type": "number",
-														"description": "The total number of stakers who have delegated to this AVS operator",
-														"example": 10
 													},
 													"tvl": {
 														"type": "object",
@@ -4321,13 +4435,15 @@
 													"metadataTelegram",
 													"metadataWebsite",
 													"metadataX",
+													"totalStakers",
+													"totalAvs",
+													"apy",
 													"createdAtBlock",
 													"updatedAtBlock",
 													"createdAt",
 													"updatedAt",
 													"shares",
-													"restakedStrategies",
-													"totalStakers"
+													"restakedStrategies"
 												]
 											}
 										},
@@ -4382,6 +4498,595 @@
 				}
 			}
 		},
+		"/avs/{address}/rewards": {
+			"get": {
+				"operationId": "getAvsRewards",
+				"summary": "Retrieve all rewards for a given AVS address",
+				"description": "Returns a list of all rewards for a given AVS address.",
+				"tags": ["AVS"],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "address",
+						"description": "AVS service manager contract address",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "AVS service manager contract address",
+							"example": "0x870679e138bcdf293b7ff14dd44b70fc97e12fc0"
+						},
+						"required": true
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The rewards found for the AVS.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"address": {
+											"type": "string",
+											"pattern": "^0x[a-fA-F0-9]{40}$",
+											"description": "AVS service manager contract address",
+											"example": "0x870679e138bcdf293b7ff14dd44b70fc97e12fc0"
+										},
+										"submissions": {
+											"type": "array",
+											"items": {
+												"type": "object",
+												"properties": {
+													"rewardsSubmissionHash": {
+														"type": "string",
+														"description": "The hash of the rewards submission",
+														"example": "0x141e6ea51d92c9ceaefbd5d1ac1b5f1c2ee06555ef20e224ff23ec3448edb7dd"
+													},
+													"startTimestamp": {
+														"type": "number",
+														"description": "The timestamp marking the start of this rewards distribution period",
+														"example": 1720000000
+													},
+													"duration": {
+														"type": "number",
+														"description": "The duration (in seconds) over which the rewards are distributed",
+														"example": 2500000
+													},
+													"totalAmount": {
+														"type": "string",
+														"description": "The total amount of rewards allocated in this submission",
+														"example": "5000000000000000000"
+													},
+													"tokenAddress": {
+														"type": "string",
+														"pattern": "^0x[a-fA-F0-9]{40}$",
+														"description": "The contract address of the token used for rewards distribution",
+														"example": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+													},
+													"strategies": {
+														"type": "array",
+														"items": {
+															"type": "object",
+															"properties": {
+																"strategyAddress": {
+																	"type": "string",
+																	"pattern": "^0x[a-fA-F0-9]{40}$",
+																	"description": "The address of the restaking strategy",
+																	"example": "0xacb55c530acdb2849e6d4f36992cd8c9d50ed8f7"
+																},
+																"multiplier": {
+																	"type": "string",
+																	"description": "The multiplier associated with this strategy",
+																	"example": "1000000000000000000"
+																},
+																"amount": {
+																	"type": "string",
+																	"description": "The amount of rewards allocated to this strategy from the total rewards in this submissionn",
+																	"example": "5000000000000000000"
+																}
+															},
+															"required": ["strategyAddress", "multiplier", "amount"]
+														},
+														"description": "List of strategies involved in the rewards submission"
+													}
+												},
+												"required": [
+													"rewardsSubmissionHash",
+													"startTimestamp",
+													"duration",
+													"totalAmount",
+													"tokenAddress",
+													"strategies"
+												]
+											},
+											"description": "The list of of individual rewards submissions associated with the AVS"
+										},
+										"totalRewards": {
+											"type": "string",
+											"description": "The aggregate amount of rewards distributed across all submissions",
+											"example": "1000000000000000000"
+										},
+										"totalSubmissions": {
+											"type": "number",
+											"description": "The total count of rewards submissions associated with the AVS",
+											"example": 10
+										},
+										"rewardTokens": {
+											"type": "array",
+											"items": {
+												"type": "string",
+												"pattern": "^0x[a-fA-F0-9]{40}$"
+											},
+											"description": "The list of token addresses used for reward distribution",
+											"example": ["0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"]
+										},
+										"rewardStrategies": {
+											"type": "array",
+											"items": {
+												"type": "string",
+												"pattern": "^0x[a-fA-F0-9]{40}$"
+											},
+											"description": "The list of strategy addresses for which rewards are distributed",
+											"example": [
+												"0xacb55c530acdb2849e6d4f36992cd8c9d50ed8f7",
+												"0x13760f50a9d7377e4f20cb8cf9e4c26586c658ff"
+											]
+										}
+									},
+									"required": [
+										"address",
+										"submissions",
+										"totalRewards",
+										"totalSubmissions",
+										"rewardTokens",
+										"rewardStrategies"
+									]
+								}
+							}
+						}
+					},
+					"400": {
+						"$ref": "#/components/responses/400"
+					},
+					"401": {
+						"$ref": "#/components/responses/401"
+					},
+					"403": {
+						"$ref": "#/components/responses/403"
+					},
+					"404": {
+						"$ref": "#/components/responses/404"
+					},
+					"422": {
+						"$ref": "#/components/responses/422"
+					},
+					"429": {
+						"$ref": "#/components/responses/429"
+					},
+					"500": {
+						"$ref": "#/components/responses/500"
+					}
+				}
+			}
+		},
+		"/avs/{address}/events/rewards": {
+			"get": {
+				"operationId": "getAvsRewardsEvents",
+				"summary": "Retrieve all reward events for a given AVS address",
+				"description": "Returns a list of all reward events for a given AVS address.",
+				"tags": ["AVS"],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "address",
+						"description": "AVS service manager contract address",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "AVS service manager contract address",
+							"example": "0x870679e138bcdf293b7ff14dd44b70fc97e12fc0"
+						},
+						"required": true
+					},
+					{
+						"in": "query",
+						"name": "txHash",
+						"description": "The transaction hash associated with the event",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x([A-Fa-f0-9]{64})$",
+							"description": "The transaction hash associated with the event"
+						}
+					},
+					{
+						"in": "query",
+						"name": "startAt",
+						"description": "Start date in ISO string format",
+						"schema": {
+							"type": "string",
+							"description": "Start date in ISO string format"
+						}
+					},
+					{
+						"in": "query",
+						"name": "endAt",
+						"description": "End date in ISO string format",
+						"schema": {
+							"type": "string",
+							"description": "End date in ISO string format"
+						}
+					},
+					{
+						"in": "query",
+						"name": "rewardsSubmissionHash",
+						"description": "The reward submission hash associated with the event",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x([A-Fa-f0-9]{64})$",
+							"description": "The reward submission hash associated with the event"
+						}
+					},
+					{
+						"in": "query",
+						"name": "rewardsSubmissionToken",
+						"description": "The token address used for the rewards submission",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "The token address used for the rewards submission"
+						}
+					},
+					{
+						"in": "query",
+						"name": "withIndividualAmount",
+						"description": "Toggle whether the route should return individual share amount for each strategy",
+						"schema": {
+							"type": "string",
+							"enum": ["true", "false"],
+							"default": "false",
+							"description": "Toggle whether the route should return individual share amount for each strategy",
+							"example": "false"
+						}
+					},
+					{
+						"in": "query",
+						"name": "withEthValue",
+						"description": "Toggle whether the route should return value denominated in ETH",
+						"schema": {
+							"type": "string",
+							"enum": ["true", "false"],
+							"default": "false",
+							"description": "Toggle whether the route should return value denominated in ETH",
+							"example": "false"
+						}
+					},
+					{
+						"in": "query",
+						"name": "skip",
+						"description": "The number of records to skip for pagination",
+						"schema": {
+							"type": "string",
+							"default": "0",
+							"description": "The number of records to skip for pagination",
+							"example": 0
+						}
+					},
+					{
+						"in": "query",
+						"name": "take",
+						"description": "The number of records to return for pagination",
+						"schema": {
+							"type": "string",
+							"default": "12",
+							"description": "The number of records to return for pagination",
+							"example": 12
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The reward events found for the AVS.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"tx": {
+											"type": "string",
+											"description": "The transaction hash",
+											"example": "0xae41958d0342a4485536f701c72723625131680f182eb21f95abdac6d74d0ff0"
+										},
+										"blockNumber": {
+											"type": "number",
+											"description": "The block number of the transaction",
+											"example": 21045085
+										},
+										"blockTime": {
+											"type": "string",
+											"description": "The block time of the transaction as an ISO 8601 string",
+											"example": "2024-10-25T20:41:11.000Z"
+										},
+										"type": {
+											"type": "string",
+											"enum": ["REWARDS"],
+											"description": "The type of the event",
+											"example": "REWARDS"
+										},
+										"args": {
+											"type": "object",
+											"properties": {
+												"submissionNonce": {
+													"type": "number",
+													"description": "The nonce of the rewards submission",
+													"example": 2
+												},
+												"rewardsSubmissionHash": {
+													"type": "string",
+													"description": "The hash of the rewards submission",
+													"example": "0x1e391c015c923972811a27e1c6c3a874511e47033f1022021f29967a60ab2c87"
+												},
+												"rewardsSubmissionToken": {
+													"type": "string",
+													"description": "The contract address of the token used for rewards distribution",
+													"example": "0xba50933c268f567bdc86e1ac131be072c6b0b71a"
+												},
+												"rewardsSubmissionAmount": {
+													"type": "string",
+													"description": "The total amount of rewards allocated in this submission",
+													"example": "49000000000000000000000"
+												},
+												"rewardsSubmissionStartTimeStamp": {
+													"type": "number",
+													"description": "The timestamp marking the start of this rewards distribution period",
+													"example": 1728518400
+												},
+												"rewardsSubmissionDuration": {
+													"type": "number",
+													"description": "The duration (in seconds) over which the rewards are distributed",
+													"example": 6048000
+												},
+												"strategies": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"strategy": {
+																"type": "string",
+																"description": "The contract address of the restaking strategy",
+																"example": "0x0fe4f44bee93503346a3ac9ee5a26b130a5796d6"
+															},
+															"multiplier": {
+																"type": "string",
+																"description": "The multiplier associated with this strategy",
+																"example": "1068966896363604679"
+															},
+															"amount": {
+																"type": "string",
+																"description": "The amount of rewards allocated to this strategy from the total rewards in this submissionn",
+																"example": "3.7932452554246293e+21"
+															},
+															"amountEthValue": {
+																"type": "number",
+																"description": "The value of the rewards amount allocated to this strategy in ETH",
+																"example": 0.0638779707245759
+															}
+														},
+														"required": ["strategy", "multiplier"]
+													},
+													"description": "List of strategies involved in the rewards submission"
+												}
+											},
+											"required": [
+												"submissionNonce",
+												"rewardsSubmissionHash",
+												"rewardsSubmissionToken",
+												"rewardsSubmissionAmount",
+												"rewardsSubmissionStartTimeStamp",
+												"rewardsSubmissionDuration",
+												"strategies"
+											]
+										},
+										"ethValue": {
+											"type": "number",
+											"description": "The value of the shares in ETH",
+											"example": 1
+										}
+									},
+									"required": ["tx", "blockNumber", "blockTime", "type", "args"]
+								}
+							}
+						}
+					},
+					"400": {
+						"$ref": "#/components/responses/400"
+					},
+					"401": {
+						"$ref": "#/components/responses/401"
+					},
+					"403": {
+						"$ref": "#/components/responses/403"
+					},
+					"404": {
+						"$ref": "#/components/responses/404"
+					},
+					"422": {
+						"$ref": "#/components/responses/422"
+					},
+					"429": {
+						"$ref": "#/components/responses/429"
+					},
+					"500": {
+						"$ref": "#/components/responses/500"
+					}
+				}
+			}
+		},
+		"/avs/{address}/events/registration-status": {
+			"get": {
+				"operationId": "getAvsRegistrationEvents",
+				"summary": "Retrieve all registration events for a given AVS address",
+				"description": "Returns a list of all registration events for a given AVS address.",
+				"tags": ["AVS"],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "address",
+						"description": "AVS service manager contract address",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "AVS service manager contract address",
+							"example": "0x870679e138bcdf293b7ff14dd44b70fc97e12fc0"
+						},
+						"required": true
+					},
+					{
+						"in": "query",
+						"name": "txHash",
+						"description": "The transaction hash associated with the event",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x([A-Fa-f0-9]{64})$",
+							"description": "The transaction hash associated with the event"
+						}
+					},
+					{
+						"in": "query",
+						"name": "startAt",
+						"description": "Start date in ISO string format",
+						"schema": {
+							"type": "string",
+							"description": "Start date in ISO string format"
+						}
+					},
+					{
+						"in": "query",
+						"name": "endAt",
+						"description": "End date in ISO string format",
+						"schema": {
+							"type": "string",
+							"description": "End date in ISO string format"
+						}
+					},
+					{
+						"in": "query",
+						"name": "status",
+						"description": "The status of Registration",
+						"schema": {
+							"type": "string",
+							"enum": ["REGISTERED", "DEREGISTERED"],
+							"description": "The status of Registration"
+						}
+					},
+					{
+						"in": "query",
+						"name": "operatorAddress",
+						"description": "The address of the operator",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "The address of the operator"
+						}
+					},
+					{
+						"in": "query",
+						"name": "skip",
+						"description": "The number of records to skip for pagination",
+						"schema": {
+							"type": "string",
+							"default": "0",
+							"description": "The number of records to skip for pagination",
+							"example": 0
+						}
+					},
+					{
+						"in": "query",
+						"name": "take",
+						"description": "The number of records to return for pagination",
+						"schema": {
+							"type": "string",
+							"default": "12",
+							"description": "The number of records to return for pagination",
+							"example": 12
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The registration events found for the AVS.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"tx": {
+											"type": "string",
+											"description": "The transaction hash",
+											"example": "0xae41958d0342a4485536f701c72723625131680f182eb21f95abdac6d74d0ff0"
+										},
+										"blockNumber": {
+											"type": "number",
+											"description": "The block number of the transaction",
+											"example": 21045085
+										},
+										"blockTime": {
+											"type": "string",
+											"description": "The block time of the transaction as an ISO 8601 string",
+											"example": "2024-10-25T20:41:11.000Z"
+										},
+										"type": {
+											"type": "string",
+											"enum": ["REGISTRATION_STATUS"],
+											"description": "The type of the event",
+											"example": "REGISTRATION_STATUS"
+										},
+										"args": {
+											"type": "object",
+											"properties": {
+												"operator": {
+													"type": "string",
+													"description": "The contract address of the AVS operator",
+													"example": "0x9abce41e1486210ad83deb831afcdd214af5b49d"
+												},
+												"status": {
+													"type": "string",
+													"enum": ["REGISTERED", "DEREGISTERED"],
+													"description": "The status of the registration",
+													"example": "REGISTERED"
+												}
+											},
+											"required": ["operator", "status"]
+										}
+									},
+									"required": ["tx", "blockNumber", "blockTime", "type", "args"]
+								}
+							}
+						}
+					},
+					"400": {
+						"$ref": "#/components/responses/400"
+					},
+					"401": {
+						"$ref": "#/components/responses/401"
+					},
+					"403": {
+						"$ref": "#/components/responses/403"
+					},
+					"404": {
+						"$ref": "#/components/responses/404"
+					},
+					"422": {
+						"$ref": "#/components/responses/422"
+					},
+					"429": {
+						"$ref": "#/components/responses/429"
+					},
+					"500": {
+						"$ref": "#/components/responses/500"
+					}
+				}
+			}
+		},
 		"/operators": {
 			"get": {
 				"operationId": "getAllOperators",
@@ -4408,7 +5113,7 @@
 						"schema": {
 							"type": "string",
 							"description": "Case-insensitive search query",
-							"example": "blockless"
+							"example": "eigen"
 						}
 					},
 					{
@@ -4555,7 +5260,7 @@
 													"apy": {
 														"type": "string",
 														"description": "The latest APY recorded for the operator",
-														"example": "1.39"
+														"example": "1.0"
 													},
 													"createdAtBlock": {
 														"type": "string",
@@ -4786,6 +5491,142 @@
 				}
 			}
 		},
+		"/operators/addresses": {
+			"get": {
+				"operationId": "getAllOperatorAddresses",
+				"summary": "Retrieve all operator addresses",
+				"description": "Returns a list of all operator addresses. This page supports pagination.",
+				"tags": ["Operators"],
+				"parameters": [
+					{
+						"in": "query",
+						"name": "searchMode",
+						"description": "Search mode",
+						"schema": {
+							"type": "string",
+							"enum": ["contains", "startsWith"],
+							"default": "contains",
+							"description": "Search mode",
+							"example": "contains"
+						}
+					},
+					{
+						"in": "query",
+						"name": "searchByText",
+						"description": "Case-insensitive search query",
+						"schema": {
+							"type": "string",
+							"description": "Case-insensitive search query",
+							"example": "eigen"
+						}
+					},
+					{
+						"in": "query",
+						"name": "skip",
+						"description": "The number of records to skip for pagination",
+						"schema": {
+							"type": "string",
+							"default": "0",
+							"description": "The number of records to skip for pagination",
+							"example": 0
+						}
+					},
+					{
+						"in": "query",
+						"name": "take",
+						"description": "The number of records to return for pagination",
+						"schema": {
+							"type": "string",
+							"default": "12",
+							"description": "The number of records to return for pagination",
+							"example": 12
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The list of operator addresses.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"data": {
+											"type": "array",
+											"items": {
+												"type": "object",
+												"properties": {
+													"address": {
+														"type": "string",
+														"pattern": "^0x[a-fA-F0-9]{40}$",
+														"description": "The contract address of the AVS operator",
+														"example": "0x0000039b2f2ac9e3492a0f805ec7aea9eaee0c25"
+													},
+													"name": {
+														"type": "string",
+														"description": "The Operator's name",
+														"example": "Example Operator"
+													},
+													"logo": {
+														"type": "string",
+														"description": "The Operator's logo URL",
+														"example": "https://example.operator/logo.png"
+													}
+												},
+												"required": ["address", "name", "logo"]
+											}
+										},
+										"meta": {
+											"type": "object",
+											"properties": {
+												"total": {
+													"type": "number",
+													"description": "Total number of records in the database",
+													"example": 30
+												},
+												"skip": {
+													"type": "number",
+													"description": "The number of skiped records for this query",
+													"example": 0
+												},
+												"take": {
+													"type": "number",
+													"description": "The number of records returned for this query",
+													"example": 12
+												}
+											},
+											"required": ["total", "skip", "take"]
+										}
+									},
+									"required": ["data", "meta"]
+								}
+							}
+						}
+					},
+					"400": {
+						"$ref": "#/components/responses/400"
+					},
+					"401": {
+						"$ref": "#/components/responses/401"
+					},
+					"403": {
+						"$ref": "#/components/responses/403"
+					},
+					"404": {
+						"$ref": "#/components/responses/404"
+					},
+					"422": {
+						"$ref": "#/components/responses/422"
+					},
+					"429": {
+						"$ref": "#/components/responses/429"
+					},
+					"500": {
+						"$ref": "#/components/responses/500"
+					}
+				}
+			}
+		},
 		"/operators/{address}": {
 			"get": {
 				"operationId": "getOperatorByAddress",
@@ -4826,6 +5667,18 @@
 							"enum": ["true", "false"],
 							"default": "false",
 							"description": "Toggle whether to return additional data for each AVS registration for a given Operator",
+							"example": "false"
+						}
+					},
+					{
+						"in": "query",
+						"name": "withRewards",
+						"description": "Toggle whether the route should return Avs/Operator rewards APY data",
+						"schema": {
+							"type": "string",
+							"enum": ["true", "false"],
+							"default": "false",
+							"description": "Toggle whether the route should return Avs/Operator rewards APY data",
 							"example": "false"
 						}
 					}
@@ -4902,7 +5755,7 @@
 										"apy": {
 											"type": "string",
 											"description": "The latest APY recorded for the operator",
-											"example": "1.39"
+											"example": "1.0"
 										},
 										"createdAtBlock": {
 											"type": "string",
@@ -4963,28 +5816,547 @@
 													"avsAddress": {
 														"type": "string",
 														"pattern": "^0x[a-fA-F0-9]{40}$",
-														"description": "AVS service manager contract address",
+														"description": "The address of the AVS contract",
 														"example": "0x870679e138bcdf293b7ff14dd44b70fc97e12fc0"
 													},
 													"isActive": {
 														"type": "boolean",
 														"description": "True indicates operator is an active participant while False indicates it used to be one but not anymore",
 														"example": false
+													},
+													"metadataName": {
+														"type": "string",
+														"description": "The name of the AVS",
+														"example": "Example AVS"
+													},
+													"metadataDescription": {
+														"type": "string",
+														"nullable": true,
+														"description": "The description of the AVS",
+														"example": "This is an example AVS"
+													},
+													"metadataDiscord": {
+														"type": "string",
+														"nullable": true,
+														"format": "uri",
+														"description": "The URL of the AVS's Discord server",
+														"example": "https://discord.com/invite/abcdefghij"
+													},
+													"metadataLogo": {
+														"type": "string",
+														"nullable": true,
+														"format": "uri",
+														"description": "The URL of the AVS's logo"
+													},
+													"metadataTelegram": {
+														"type": "string",
+														"nullable": true,
+														"format": "uri",
+														"description": "The URL of the AVS's Telegram channel",
+														"example": "https://t.me/acme"
+													},
+													"metadataWebsite": {
+														"type": "string",
+														"nullable": true,
+														"format": "uri",
+														"description": "The URL of the AVS's website",
+														"example": "https://acme.com"
+													},
+													"metadataX": {
+														"type": "string",
+														"nullable": true,
+														"format": "uri",
+														"description": "The URL of the AVS's X",
+														"example": "https://twitter.com/acme"
+													},
+													"metadataUrl": {
+														"type": "string",
+														"description": "URL for AVS metadata",
+														"example": "https://example.json"
+													},
+													"curatedMetadata": {
+														"type": "object",
+														"properties": {
+															"metadataName": {
+																"type": "string",
+																"description": "The name of the AVS",
+																"example": "Example AVS"
+															},
+															"metadataDescription": {
+																"type": "string",
+																"nullable": true,
+																"description": "The description of the AVS",
+																"example": "This is an example AVS"
+															},
+															"metadataDiscord": {
+																"type": "string",
+																"nullable": true,
+																"format": "uri",
+																"description": "The URL of the AVS's Discord server",
+																"example": "https://discord.com/invite/abcdefghij"
+															},
+															"metadataLogo": {
+																"type": "string",
+																"nullable": true,
+																"format": "uri",
+																"description": "The URL of the AVS's logo"
+															},
+															"metadataTelegram": {
+																"type": "string",
+																"nullable": true,
+																"format": "uri",
+																"description": "The URL of the AVS's Telegram channel",
+																"example": "https://t.me/acme"
+															},
+															"metadataWebsite": {
+																"type": "string",
+																"nullable": true,
+																"format": "uri",
+																"description": "The URL of the AVS's website",
+																"example": "https://acme.com"
+															},
+															"metadataX": {
+																"type": "string",
+																"nullable": true,
+																"format": "uri",
+																"description": "The URL of the AVS's X",
+																"example": "https://twitter.com/acme"
+															},
+															"metadataGithub": {
+																"type": "string",
+																"nullable": true,
+																"format": "uri",
+																"description": "The URL of the AVS's Github",
+																"example": "https://github.com/acme"
+															},
+															"metadataTokenAddress": {
+																"type": "string",
+																"nullable": true,
+																"format": "uri",
+																"description": "The Token Address of the AVS",
+																"example": "0x2344c0fe02ccd2b32155ca0ffcb1978a6d96a552"
+															},
+															"tags": {
+																"type": "array",
+																"items": {
+																	"type": "string"
+																},
+																"description": "Tags to describe the AVS",
+																"example": ["Example tag 1", "Example tag 2"]
+															},
+															"isVisible": {
+																"type": "boolean",
+																"description": "Indicates if AVS visibility is allowed",
+																"example": false
+															},
+															"isVerified": {
+																"type": "boolean",
+																"description": "Indicates if the AVS has been verified by the EigenExplorer team",
+																"example": false
+															}
+														},
+														"required": [
+															"metadataName",
+															"metadataDescription",
+															"metadataDiscord",
+															"metadataLogo",
+															"metadataTelegram",
+															"metadataWebsite",
+															"metadataX",
+															"metadataGithub",
+															"metadataTokenAddress",
+															"tags",
+															"isVisible",
+															"isVerified"
+														],
+														"description": "Curated metadata information for AVS"
+													},
+													"restakeableStrategies": {
+														"type": "array",
+														"items": {
+															"type": "string",
+															"pattern": "^0x[a-fA-F0-9]{40}$"
+														},
+														"description": "The list of restakeable strategies for AVS"
+													},
+													"totalStakers": {
+														"type": "number",
+														"description": "Total number of stakers",
+														"example": 80000
+													},
+													"totalOperators": {
+														"type": "number",
+														"description": "Total number of operators",
+														"example": 200
+													},
+													"tvlEth": {
+														"type": "string",
+														"description": "Total TVL in ETH",
+														"example": "3000000"
+													},
+													"createdAtBlock": {
+														"type": "number",
+														"description": "The block number at which the AVS was created",
+														"example": 19592323
+													},
+													"updatedAtBlock": {
+														"type": "number",
+														"description": "The block number at which the AVS was last updated",
+														"example": 19592323
+													},
+													"createdAt": {
+														"type": "string",
+														"description": "The time stamp at which the AVS was created",
+														"example": "2024-04-05T21:49:59.000Z"
+													},
+													"updatedAt": {
+														"type": "string",
+														"description": "The time stamp at which the AVS was last updated",
+														"example": "2024-04-05T21:49:59.000Z"
+													},
+													"address": {
+														"type": "string",
+														"pattern": "^0x[a-fA-F0-9]{40}$",
+														"description": "AVS service manager contract address",
+														"example": "0x870679e138bcdf293b7ff14dd44b70fc97e12fc0"
+													},
+													"rewardsSubmissions": {
+														"type": "array",
+														"items": {
+															"type": "object",
+															"properties": {
+																"id": {
+																	"type": "number",
+																	"description": "Id for the rewards submission",
+																	"example": 1
+																},
+																"submissionNonce": {
+																	"type": "number",
+																	"description": "The nonce of the rewards submission",
+																	"example": 0
+																},
+																"rewardsSubmissionHash": {
+																	"type": "string",
+																	"description": "The hash of the rewards submission",
+																	"example": "0x2bc2f7cef0974f7064dbdae054f9a0e5ea1c2293d180a749c70100506382d85"
+																},
+																"avsAddress": {
+																	"type": "string",
+																	"pattern": "^0x[a-fA-F0-9]{40}$",
+																	"description": "AVS address for the rewards submission",
+																	"example": "0x870679e138bcdf293b7ff14dd44b70fc97e12fc0"
+																},
+																"strategyAddress": {
+																	"type": "string",
+																	"pattern": "^0x[a-fA-F0-9]{40}$",
+																	"description": "Strategy address for the rewards submission",
+																	"example": "0x0fe4f44bee93503346a3ac9ee5a26b130a5796d6"
+																},
+																"multiplier": {
+																	"type": "string",
+																	"description": "The multiplier associated with this strategy",
+																	"example": "1000000000000000000"
+																},
+																"token": {
+																	"type": "string",
+																	"pattern": "^0x[a-fA-F0-9]{40}$",
+																	"description": "The contract address of the token used for rewards distribution",
+																	"example": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+																},
+																"amount": {
+																	"type": "string",
+																	"description": "The amount of rewards allocated to this strategy from the total rewards",
+																	"example": "300000000000000000"
+																},
+																"startTimestamp": {
+																	"type": "number",
+																	"description": "The timestamp marking the start of this rewards distribution period",
+																	"example": 1720000000
+																},
+																"duration": {
+																	"type": "number",
+																	"description": "The duration (in seconds) over which the rewards are distributed",
+																	"example": 2500000
+																},
+																"createdAtBlock": {
+																	"type": "number",
+																	"description": "The block number at which the reward submission was recorded",
+																	"example": 20495824
+																},
+																"createdAt": {
+																	"type": "string",
+																	"description": "The timestamp at which the reward submission was recorded",
+																	"example": "2024-08-10T04:28:47.000Z"
+																}
+															},
+															"required": [
+																"id",
+																"submissionNonce",
+																"rewardsSubmissionHash",
+																"avsAddress",
+																"strategyAddress",
+																"multiplier",
+																"token",
+																"amount",
+																"startTimestamp",
+																"duration",
+																"createdAtBlock",
+																"createdAt"
+															]
+														},
+														"description": "List of rewards submissions associated with AVS"
+													},
+													"operators": {
+														"type": "array",
+														"items": {
+															"type": "object",
+															"properties": {
+																"avsAddress": {
+																	"type": "string",
+																	"pattern": "^0x[a-fA-F0-9]{40}$",
+																	"description": "AVS service manager contract address",
+																	"example": "0x870679e138bcdf293b7ff14dd44b70fc97e12fc0"
+																},
+																"operatorAddress": {
+																	"type": "string",
+																	"pattern": "^0x[a-fA-F0-9]{40}$",
+																	"description": "The contract address of the AVS operator",
+																	"example": "0x4cd2086e1d708e65db5d4f5712a9ca46ed4bbd0a"
+																},
+																"isActive": {
+																	"type": "boolean",
+																	"description": "True indicates operator is an active participant while False indicates it used to be one but not anymore",
+																	"example": true
+																},
+																"restakedStrategies": {
+																	"type": "array",
+																	"items": {
+																		"type": "string",
+																		"pattern": "^0x[a-fA-F0-9]{40}$"
+																	},
+																	"description": "List of strategies restaked by the operator",
+																	"example": [
+																		"0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0",
+																		"0x93c4b944d05dfe6df7645a86cd2206016c51564d"
+																	]
+																},
+																"createdAtBlock": {
+																	"type": "number",
+																	"description": "The block number at which the AVS Operator was registered",
+																	"example": 19614553
+																},
+																"updatedAtBlock": {
+																	"type": "number",
+																	"description": "The block number at which the AVS Operator registration was last updated",
+																	"example": 19614553
+																},
+																"createdAt": {
+																	"type": "string",
+																	"description": "The time stamp at which the AVS Operator was registered",
+																	"example": "2024-04-09T00:35:35.000Z"
+																},
+																"updatedAt": {
+																	"type": "string",
+																	"description": "The time stamp at which the AVS Operator registration was last updated",
+																	"example": "2024-04-09T00:35:35.000Z"
+																},
+																"operator": {
+																	"type": "object",
+																	"properties": {
+																		"address": {
+																			"type": "string",
+																			"pattern": "^0x[a-fA-F0-9]{40}$",
+																			"description": "The contract address of the AVS operator",
+																			"example": "0x09e6eb09213bdd3698bd8afb43ec3cb0ecff683a"
+																		},
+																		"metadataUrl": {
+																			"type": "string",
+																			"description": "URL for operator metadata",
+																			"example": "https://raw.githubusercontent.com/github-infstones/eigenlayer/main/metadata.json"
+																		},
+																		"metadataName": {
+																			"type": "string",
+																			"description": "The name of the AVS operator",
+																			"example": "Example AVS Operator"
+																		},
+																		"metadataDescription": {
+																			"type": "string",
+																			"nullable": true,
+																			"description": "Description of the operator",
+																			"example": "This is an example AVS operator"
+																		},
+																		"metadataDiscord": {
+																			"type": "string",
+																			"nullable": true,
+																			"description": "The URL of the AVS operator's Discord server",
+																			"example": "https://discord.com/invite/example"
+																		},
+																		"metadataLogo": {
+																			"type": "string",
+																			"nullable": true,
+																			"description": "Logo URL",
+																			"example": "<string>"
+																		},
+																		"metadataTelegram": {
+																			"type": "string",
+																			"nullable": true,
+																			"description": "The URL of the AVS operator's Telegram channel",
+																			"example": "https://t.me/example"
+																		},
+																		"metadataWebsite": {
+																			"type": "string",
+																			"nullable": true,
+																			"description": "The URL of the AVS operator's website",
+																			"example": "https://example.com"
+																		},
+																		"metadataX": {
+																			"type": "string",
+																			"nullable": true,
+																			"description": "The URL of the AVS operator's X",
+																			"example": "https://twitter.com/example"
+																		},
+																		"isMetadataSynced": {
+																			"type": "boolean",
+																			"description": "Indicates if metadata is synced",
+																			"example": true
+																		},
+																		"totalStakers": {
+																			"type": "number",
+																			"description": "The total number of stakers who have delegated to this AVS operator",
+																			"example": 20000
+																		},
+																		"totalAvs": {
+																			"type": "number",
+																			"description": "The total number of AVS opted by the AVS operator",
+																			"example": 10
+																		},
+																		"apy": {
+																			"type": "string",
+																			"description": "The latest APY recorded for the operator",
+																			"example": "1.0"
+																		},
+																		"tvlEth": {
+																			"type": "string",
+																			"description": "Total TVL in ETH",
+																			"example": "30000"
+																		},
+																		"sharesHash": {
+																			"type": "string",
+																			"description": "Shares hash for the operator",
+																			"example": "0c67d2a677454013c442732ee3bcf07b"
+																		},
+																		"createdAtBlock": {
+																			"type": "number",
+																			"description": "The block number at which the AVS Operator was registered",
+																			"example": 19613775
+																		},
+																		"updatedAtBlock": {
+																			"type": "number",
+																			"description": "The block number at which the AVS Operator registration was last updated",
+																			"example": 19613775
+																		},
+																		"createdAt": {
+																			"type": "string",
+																			"description": "The time stamp at which the AVS Operator was registered",
+																			"example": "2024-04-08T21:58:35.000Z"
+																		},
+																		"updatedAt": {
+																			"type": "string",
+																			"description": "The time stamp at which the AVS Operator registration was last updated",
+																			"example": "2024-04-08T21:58:35.000Z"
+																		},
+																		"shares": {
+																			"type": "array",
+																			"items": {
+																				"type": "object",
+																				"properties": {
+																					"operatorAddress": {
+																						"type": "string",
+																						"pattern": "^0x[a-fA-F0-9]{40}$",
+																						"description": "The contract address of the AVS operator",
+																						"example": "0x4cd2086e1d708e65db5d4f5712a9ca46ed4bbd0a"
+																					},
+																					"strategyAddress": {
+																						"type": "string",
+																						"pattern": "^0x[a-fA-F0-9]{40}$",
+																						"description": "The contract address of the restaking strategy",
+																						"example": "0x73a18a6304d05b495ecb161dbf1ab496461bbf2e"
+																					},
+																					"shares": {
+																						"type": "string",
+																						"description": "The amount of shares held in the strategy",
+																						"example": "1000000000000000000000"
+																					}
+																				},
+																				"required": ["operatorAddress", "strategyAddress", "shares"]
+																			},
+																			"description": "The strategy shares held in the AVS operator"
+																		}
+																	},
+																	"required": [
+																		"address",
+																		"metadataUrl",
+																		"metadataName",
+																		"metadataDescription",
+																		"metadataDiscord",
+																		"metadataLogo",
+																		"metadataTelegram",
+																		"metadataWebsite",
+																		"metadataX",
+																		"isMetadataSynced",
+																		"totalStakers",
+																		"totalAvs",
+																		"apy",
+																		"tvlEth",
+																		"sharesHash",
+																		"createdAtBlock",
+																		"updatedAtBlock",
+																		"createdAt",
+																		"updatedAt",
+																		"shares"
+																	]
+																}
+															},
+															"required": [
+																"avsAddress",
+																"operatorAddress",
+																"isActive",
+																"restakedStrategies",
+																"createdAtBlock",
+																"updatedAtBlock",
+																"createdAt",
+																"updatedAt",
+																"operator"
+															]
+														},
+														"description": "List of operators associated with the AVS registration"
 													}
 												},
-												"required": ["avsAddress", "isActive"]
+												"required": [
+													"avsAddress",
+													"isActive",
+													"metadataName",
+													"metadataDescription",
+													"metadataDiscord",
+													"metadataLogo",
+													"metadataTelegram",
+													"metadataWebsite",
+													"metadataX",
+													"metadataUrl",
+													"restakeableStrategies",
+													"totalStakers",
+													"totalOperators",
+													"tvlEth",
+													"createdAtBlock",
+													"updatedAtBlock",
+													"createdAt",
+													"updatedAt",
+													"address",
+													"rewardsSubmissions",
+													"operators"
+												]
 											},
-											"description": "Operator AVS registrations and their participation status",
-											"example": [
-												{
-													"avsAddress": "0x870679e138bcdf293b7ff14dd44b70fc97e12fc0",
-													"isActive": true
-												},
-												{
-													"avsAddress": "0xe8e59c6c8b56f2c178f63bcfc4ce5e5e2359c8fc",
-													"isActive": false
-												}
-											]
+											"description": "Detailed AVS registrations information for the operator"
 										},
 										"tvl": {
 											"type": "object",
@@ -5059,6 +6431,63 @@
 													"cbETH": 2000000
 												}
 											}
+										},
+										"rewards": {
+											"type": "object",
+											"properties": {
+												"avs": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"avsAddress": {
+																"type": "string",
+																"pattern": "^0x[a-fA-F0-9]{40}$",
+																"description": "AVS service manager contract address",
+																"example": "0x870679e138bcdf293b7ff14dd44b70fc97e12fc0"
+															},
+															"apy": {
+																"type": "number",
+																"description": "Latest APY recorded for the AVS",
+																"example": 0.15973119826488588
+															}
+														},
+														"required": ["avsAddress", "apy"]
+													}
+												},
+												"strategies": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"strategyAddress": {
+																"type": "string",
+																"pattern": "^0x[a-fA-F0-9]{40}$",
+																"description": "The contract address of the restaking strategy",
+																"example": "0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0"
+															},
+															"apy": {
+																"type": "number",
+																"description": "APY of the restaking strategy",
+																"example": 0.1
+															}
+														},
+														"required": ["strategyAddress", "apy"]
+													}
+												},
+												"aggregateApy": {
+													"type": "number",
+													"description": "The aggregate APY across all strategies",
+													"example": 1
+												},
+												"operatorEarningsEth": {
+													"type": "string",
+													"description": "Total earnings for the operator in ETH",
+													"example": "1000000000000000000"
+												}
+											},
+											"required": ["avs", "strategies", "aggregateApy", "operatorEarningsEth"],
+											"description": "The rewards information for the operator"
 										}
 									},
 									"required": [
@@ -5078,8 +6507,487 @@
 										"createdAt",
 										"updatedAt",
 										"shares",
-										"avsRegistrations"
+										"avsRegistrations",
+										"rewards"
 									]
+								}
+							}
+						}
+					},
+					"400": {
+						"$ref": "#/components/responses/400"
+					},
+					"401": {
+						"$ref": "#/components/responses/401"
+					},
+					"403": {
+						"$ref": "#/components/responses/403"
+					},
+					"404": {
+						"$ref": "#/components/responses/404"
+					},
+					"422": {
+						"$ref": "#/components/responses/422"
+					},
+					"429": {
+						"$ref": "#/components/responses/429"
+					},
+					"500": {
+						"$ref": "#/components/responses/500"
+					}
+				}
+			}
+		},
+		"/operators/{address}/rewards": {
+			"get": {
+				"operationId": "getOperatorRewards",
+				"summary": "Retrieve rewards info for an operator",
+				"description": "Returns a list of strategies that the Operator is rewarded for, and the tokens they are rewarded in.",
+				"tags": ["Operators"],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "address",
+						"description": "The address of the operator",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "The address of the operator",
+							"example": "0x00107cfdeaddc0a3160ed2f6fedd627f313e7b1a"
+						},
+						"required": true
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The reward strategies and tokens found for the Operator.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"address": {
+											"type": "string",
+											"pattern": "^0x[a-fA-F0-9]{40}$",
+											"description": "The contract address of the AVS operator",
+											"example": "0xdbed88d83176316fc46797b43adee927dc2ff2f5"
+										},
+										"rewardTokens": {
+											"type": "array",
+											"items": {
+												"type": "string",
+												"pattern": "^0x[a-fA-F0-9]{40}$"
+											},
+											"description": "List of tokens in which the operator receives rewards",
+											"example": [
+												"0xba50933c268f567bdc86e1ac131be072c6b0b71a",
+												"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+											]
+										},
+										"rewardStrategies": {
+											"type": "array",
+											"items": {
+												"type": "string",
+												"pattern": "^0x[a-fA-F0-9]{40}$"
+											},
+											"description": "List of strategies for which the operator receives rewards",
+											"example": [
+												"0x0fe4f44bee93503346a3ac9ee5a26b130a5796d6",
+												"0x13760f50a9d7377e4f20cb8cf9e4c26586c658ff"
+											]
+										}
+									},
+									"required": ["address", "rewardTokens", "rewardStrategies"]
+								}
+							}
+						}
+					},
+					"400": {
+						"$ref": "#/components/responses/400"
+					},
+					"401": {
+						"$ref": "#/components/responses/401"
+					},
+					"403": {
+						"$ref": "#/components/responses/403"
+					},
+					"404": {
+						"$ref": "#/components/responses/404"
+					},
+					"422": {
+						"$ref": "#/components/responses/422"
+					},
+					"429": {
+						"$ref": "#/components/responses/429"
+					},
+					"500": {
+						"$ref": "#/components/responses/500"
+					}
+				}
+			}
+		},
+		"/operators/{address}/events/delegation": {
+			"get": {
+				"operationId": "getOperatorDelegationEvents",
+				"summary": "Retrieve all delegation events for a given operator address",
+				"description": "Returns a list of all delegation events for a given operator address.",
+				"tags": ["Operators"],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "address",
+						"description": "The address of the operator",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "The address of the operator",
+							"example": "0x00107cfdeaddc0a3160ed2f6fedd627f313e7b1a"
+						},
+						"required": true
+					},
+					{
+						"in": "query",
+						"name": "txHash",
+						"description": "The transaction hash associated with the event",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x([A-Fa-f0-9]{64})$",
+							"description": "The transaction hash associated with the event"
+						}
+					},
+					{
+						"in": "query",
+						"name": "startAt",
+						"description": "Start date in ISO string format",
+						"schema": {
+							"type": "string",
+							"description": "Start date in ISO string format"
+						}
+					},
+					{
+						"in": "query",
+						"name": "endAt",
+						"description": "End date in ISO string format",
+						"schema": {
+							"type": "string",
+							"description": "End date in ISO string format"
+						}
+					},
+					{
+						"in": "query",
+						"name": "type",
+						"description": "The type of the delegation event",
+						"schema": {
+							"type": "string",
+							"enum": ["DELEGATION", "UNDELEGATION", "SHARES_INCREASED", "SHARES_DECREASED"],
+							"description": "The type of the delegation event"
+						}
+					},
+					{
+						"in": "query",
+						"name": "strategyAddress",
+						"description": "The contract address of the restaking strategy",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "The contract address of the restaking strategy"
+						}
+					},
+					{
+						"in": "query",
+						"name": "stakerAddress",
+						"description": "The address of the staker",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "The address of the staker"
+						}
+					},
+					{
+						"in": "query",
+						"name": "withTokenData",
+						"description": "Toggle whether the route should return underlying token address and underlying value",
+						"schema": {
+							"type": "string",
+							"enum": ["true", "false"],
+							"default": "false",
+							"description": "Toggle whether the route should return underlying token address and underlying value",
+							"example": "false"
+						}
+					},
+					{
+						"in": "query",
+						"name": "withEthValue",
+						"description": "Toggle whether the route should return value denominated in ETH",
+						"schema": {
+							"type": "string",
+							"enum": ["true", "false"],
+							"default": "false",
+							"description": "Toggle whether the route should return value denominated in ETH",
+							"example": "false"
+						}
+					},
+					{
+						"in": "query",
+						"name": "skip",
+						"description": "The number of records to skip for pagination",
+						"schema": {
+							"type": "string",
+							"default": "0",
+							"description": "The number of records to skip for pagination",
+							"example": 0
+						}
+					},
+					{
+						"in": "query",
+						"name": "take",
+						"description": "The number of records to return for pagination",
+						"schema": {
+							"type": "string",
+							"default": "12",
+							"description": "The number of records to return for pagination",
+							"example": 12
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The delegation events found for the operator.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"tx": {
+											"type": "string",
+											"description": "The transaction hash",
+											"example": "0xae41958d0342a4485536f701c72723625131680f182eb21f95abdac6d74d0ff0"
+										},
+										"blockNumber": {
+											"type": "number",
+											"description": "The block number of the transaction",
+											"example": 21045085
+										},
+										"blockTime": {
+											"type": "string",
+											"description": "The block time of the transaction as an ISO 8601 string",
+											"example": "2024-10-25T20:41:11.000Z"
+										},
+										"type": {
+											"type": "string",
+											"enum": [
+												"DELEGATION",
+												"UNDELEGATION",
+												"SHARES_INCREASED",
+												"SHARES_DECREASED"
+											],
+											"description": "The type of the event",
+											"example": "DELEGATION"
+										},
+										"args": {
+											"type": "object",
+											"properties": {
+												"staker": {
+													"type": "string",
+													"description": "The contract address of the staker",
+													"example": "0x42318adf0773b8af4aa8ed1670ea0af7761d07c7"
+												},
+												"strategy": {
+													"type": "string",
+													"description": "The contract address of the restaking strategy",
+													"example": "0x93c4b944d05dfe6df7645a86cd2206016c51564d"
+												},
+												"shares": {
+													"type": "number",
+													"description": "The change in the operator's delegated shares, added or subtracted from the total.",
+													"example": 62816824424188010
+												}
+											},
+											"required": ["staker"]
+										},
+										"underlyingToken": {
+											"type": "string",
+											"description": "The contract address of the token associated with this strategy",
+											"example": "0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84"
+										},
+										"underlyingValue": {
+											"type": "number",
+											"description": "The value of the shares in terms of the underlying token",
+											"example": 5
+										},
+										"ethValue": {
+											"type": "number",
+											"description": "The value of the shares in ETH",
+											"example": 1
+										}
+									},
+									"required": ["tx", "blockNumber", "blockTime", "type", "args"]
+								}
+							}
+						}
+					},
+					"400": {
+						"$ref": "#/components/responses/400"
+					},
+					"401": {
+						"$ref": "#/components/responses/401"
+					},
+					"403": {
+						"$ref": "#/components/responses/403"
+					},
+					"404": {
+						"$ref": "#/components/responses/404"
+					},
+					"422": {
+						"$ref": "#/components/responses/422"
+					},
+					"429": {
+						"$ref": "#/components/responses/429"
+					},
+					"500": {
+						"$ref": "#/components/responses/500"
+					}
+				}
+			}
+		},
+		"/operators/{address}/events/registration-status": {
+			"get": {
+				"operationId": "getOperatorRegistrationEvents",
+				"summary": "Retrieve all registration events for a given operator address",
+				"description": "Returns a list of all registration events for a given operator address.",
+				"tags": ["Operators"],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "address",
+						"description": "The address of the operator",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "The address of the operator",
+							"example": "0x00107cfdeaddc0a3160ed2f6fedd627f313e7b1a"
+						},
+						"required": true
+					},
+					{
+						"in": "query",
+						"name": "txHash",
+						"description": "The transaction hash associated with the event",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x([A-Fa-f0-9]{64})$",
+							"description": "The transaction hash associated with the event"
+						}
+					},
+					{
+						"in": "query",
+						"name": "startAt",
+						"description": "Start date in ISO string format",
+						"schema": {
+							"type": "string",
+							"description": "Start date in ISO string format"
+						}
+					},
+					{
+						"in": "query",
+						"name": "endAt",
+						"description": "End date in ISO string format",
+						"schema": {
+							"type": "string",
+							"description": "End date in ISO string format"
+						}
+					},
+					{
+						"in": "query",
+						"name": "status",
+						"description": "The status of Registration",
+						"schema": {
+							"type": "string",
+							"enum": ["REGISTERED", "DEREGISTERED"],
+							"description": "The status of Registration"
+						}
+					},
+					{
+						"in": "query",
+						"name": "avsAddress",
+						"description": "The address of the avs",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "The address of the avs"
+						}
+					},
+					{
+						"in": "query",
+						"name": "skip",
+						"description": "The number of records to skip for pagination",
+						"schema": {
+							"type": "string",
+							"default": "0",
+							"description": "The number of records to skip for pagination",
+							"example": 0
+						}
+					},
+					{
+						"in": "query",
+						"name": "take",
+						"description": "The number of records to return for pagination",
+						"schema": {
+							"type": "string",
+							"default": "12",
+							"description": "The number of records to return for pagination",
+							"example": 12
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The registration events found for the operator.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"tx": {
+											"type": "string",
+											"description": "The transaction hash",
+											"example": "0xae41958d0342a4485536f701c72723625131680f182eb21f95abdac6d74d0ff0"
+										},
+										"blockNumber": {
+											"type": "number",
+											"description": "The block number of the transaction",
+											"example": 21045085
+										},
+										"blockTime": {
+											"type": "string",
+											"description": "The block time of the transaction as an ISO 8601 string",
+											"example": "2024-10-25T20:41:11.000Z"
+										},
+										"type": {
+											"type": "string",
+											"enum": ["REGISTRATION_STATUS"],
+											"description": "The type of the event",
+											"example": "REGISTRATION_STATUS"
+										},
+										"args": {
+											"type": "object",
+											"properties": {
+												"avs": {
+													"type": "string",
+													"description": "AVS service manager contract address",
+													"example": "0xb73a87e8f7f9129816d40940ca19dfa396944c71"
+												},
+												"status": {
+													"type": "string",
+													"enum": ["REGISTERED", "DEREGISTERED"],
+													"description": "The status of the registration",
+													"example": "REGISTERED"
+												}
+											},
+											"required": ["avs", "status"]
+										}
+									},
+									"required": ["tx", "blockNumber", "blockTime", "type", "args"]
 								}
 							}
 						}
@@ -5202,22 +7110,22 @@
 													},
 													"nonce": {
 														"type": "number",
-														"description": "The nonce of the withdrawal",
+														"description": "The nonce of the withdrawal, ensuring unique hashes for otherwise identical withdrawals",
 														"example": 0
 													},
 													"stakerAddress": {
 														"type": "string",
-														"description": "The address of the staker",
+														"description": "The contract address of the staker who initiated the withdrawal",
 														"example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
 													},
 													"delegatedTo": {
 														"type": "string",
-														"description": "The operator address to which staking is delegated",
+														"description": "The address to which the staker was delegated when the withdrawal was initiated",
 														"example": "0x0000000000000000000000000000000000000000"
 													},
 													"withdrawerAddress": {
 														"type": "string",
-														"description": "The address of the withdrawer",
+														"description": "The address of the withdrawer, authorized to complete the withdrawal and receive the funds",
 														"example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
 													},
 													"shares": {
@@ -5373,22 +7281,22 @@
 										},
 										"nonce": {
 											"type": "number",
-											"description": "The nonce of the withdrawal",
+											"description": "The nonce of the withdrawal, ensuring unique hashes for otherwise identical withdrawals",
 											"example": 0
 										},
 										"stakerAddress": {
 											"type": "string",
-											"description": "The address of the staker",
+											"description": "The contract address of the staker who initiated the withdrawal",
 											"example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
 										},
 										"delegatedTo": {
 											"type": "string",
-											"description": "The operator address to which staking is delegated",
+											"description": "The address to which the staker was delegated when the withdrawal was initiated",
 											"example": "0x0000000000000000000000000000000000000000"
 										},
 										"withdrawerAddress": {
 											"type": "string",
-											"description": "The address of the withdrawer",
+											"description": "The address of the withdrawer, authorized to complete the withdrawal and receive the funds",
 											"example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
 										},
 										"shares": {
@@ -5596,7 +7504,7 @@
 																"shares": {
 																	"type": "string",
 																	"description": "The amount of shares held in the strategy",
-																	"example": "40888428658906049"
+																	"example": "40000000000000000"
 																}
 															},
 															"required": ["strategyAddress", "shares"]
@@ -5825,7 +7733,7 @@
 													"shares": {
 														"type": "string",
 														"description": "The amount of shares held in the strategy",
-														"example": "40888428658906049"
+														"example": "40000000000000000"
 													}
 												},
 												"required": ["strategyAddress", "shares"]
@@ -6005,22 +7913,22 @@
 													},
 													"nonce": {
 														"type": "number",
-														"description": "The nonce of the withdrawal",
+														"description": "The nonce of the withdrawal, ensuring unique hashes for otherwise identical withdrawals",
 														"example": 0
 													},
 													"stakerAddress": {
 														"type": "string",
-														"description": "The address of the staker",
+														"description": "The contract address of the staker who initiated the withdrawal",
 														"example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
 													},
 													"delegatedTo": {
 														"type": "string",
-														"description": "The operator address to which staking is delegated",
+														"description": "The address to which the staker was delegated when the withdrawal was initiated",
 														"example": "0x0000000000000000000000000000000000000000"
 													},
 													"withdrawerAddress": {
 														"type": "string",
-														"description": "The address of the withdrawer",
+														"description": "The address of the withdrawer, authorized to complete the withdrawal and receive the funds",
 														"example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
 													},
 													"shares": {
@@ -6204,22 +8112,22 @@
 													},
 													"nonce": {
 														"type": "number",
-														"description": "The nonce of the withdrawal",
+														"description": "The nonce of the withdrawal, ensuring unique hashes for otherwise identical withdrawals",
 														"example": 0
 													},
 													"stakerAddress": {
 														"type": "string",
-														"description": "The address of the staker",
+														"description": "The contract address of the staker who initiated the withdrawal",
 														"example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
 													},
 													"delegatedTo": {
 														"type": "string",
-														"description": "The operator address to which staking is delegated",
+														"description": "The address to which the staker was delegated when the withdrawal was initiated",
 														"example": "0x0000000000000000000000000000000000000000"
 													},
 													"withdrawerAddress": {
 														"type": "string",
-														"description": "The address of the withdrawer",
+														"description": "The address of the withdrawer, authorized to complete the withdrawal and receive the funds",
 														"example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
 													},
 													"shares": {
@@ -6385,22 +8293,22 @@
 													},
 													"nonce": {
 														"type": "number",
-														"description": "The nonce of the withdrawal",
+														"description": "The nonce of the withdrawal, ensuring unique hashes for otherwise identical withdrawals",
 														"example": 0
 													},
 													"stakerAddress": {
 														"type": "string",
-														"description": "The address of the staker",
+														"description": "The contract address of the staker who initiated the withdrawal",
 														"example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
 													},
 													"delegatedTo": {
 														"type": "string",
-														"description": "The operator address to which staking is delegated",
+														"description": "The address to which the staker was delegated when the withdrawal was initiated",
 														"example": "0x0000000000000000000000000000000000000000"
 													},
 													"withdrawerAddress": {
 														"type": "string",
-														"description": "The address of the withdrawer",
+														"description": "The address of the withdrawer, authorized to complete the withdrawal and receive the funds",
 														"example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
 													},
 													"shares": {
@@ -6566,22 +8474,22 @@
 													},
 													"nonce": {
 														"type": "number",
-														"description": "The nonce of the withdrawal",
+														"description": "The nonce of the withdrawal, ensuring unique hashes for otherwise identical withdrawals",
 														"example": 0
 													},
 													"stakerAddress": {
 														"type": "string",
-														"description": "The address of the staker",
+														"description": "The contract address of the staker who initiated the withdrawal",
 														"example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
 													},
 													"delegatedTo": {
 														"type": "string",
-														"description": "The operator address to which staking is delegated",
+														"description": "The address to which the staker was delegated when the withdrawal was initiated",
 														"example": "0x0000000000000000000000000000000000000000"
 													},
 													"withdrawerAddress": {
 														"type": "string",
-														"description": "The address of the withdrawer",
+														"description": "The address of the withdrawer, authorized to complete the withdrawal and receive the funds",
 														"example": "0x74ede5f75247fbdb9266d2b3a7be63b3db7611dd"
 													},
 													"shares": {
@@ -6775,7 +8683,7 @@
 													"shares": {
 														"type": "string",
 														"description": "The amount of shares held in the strategy",
-														"example": "40888428658906049"
+														"example": "40000000000000000"
 													},
 													"createdAtBlock": {
 														"type": "number",
@@ -6822,6 +8730,697 @@
 										}
 									},
 									"required": ["data", "meta"]
+								}
+							}
+						}
+					},
+					"400": {
+						"$ref": "#/components/responses/400"
+					},
+					"401": {
+						"$ref": "#/components/responses/401"
+					},
+					"403": {
+						"$ref": "#/components/responses/403"
+					},
+					"404": {
+						"$ref": "#/components/responses/404"
+					},
+					"422": {
+						"$ref": "#/components/responses/422"
+					},
+					"429": {
+						"$ref": "#/components/responses/429"
+					},
+					"500": {
+						"$ref": "#/components/responses/500"
+					}
+				}
+			}
+		},
+		"/stakers/{address}/events/delegation": {
+			"get": {
+				"operationId": "getStakerDelegationEvents",
+				"summary": "Retrieve all delegation events for a given staker address",
+				"description": "Returns a list of all delegation events for a given staker address.",
+				"tags": ["Stakers"],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "address",
+						"description": "The address of the staker",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "The address of the staker",
+							"example": "0x9791fdb4e9c0495efc5a1f3f9271ef226251eb34"
+						},
+						"required": true
+					},
+					{
+						"in": "query",
+						"name": "txHash",
+						"description": "The transaction hash associated with the event",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x([A-Fa-f0-9]{64})$",
+							"description": "The transaction hash associated with the event"
+						}
+					},
+					{
+						"in": "query",
+						"name": "startAt",
+						"description": "Start date in ISO string format",
+						"schema": {
+							"type": "string",
+							"description": "Start date in ISO string format"
+						}
+					},
+					{
+						"in": "query",
+						"name": "endAt",
+						"description": "End date in ISO string format",
+						"schema": {
+							"type": "string",
+							"description": "End date in ISO string format"
+						}
+					},
+					{
+						"in": "query",
+						"name": "type",
+						"description": "The type of the delegation event",
+						"schema": {
+							"type": "string",
+							"enum": ["DELEGATION", "UNDELEGATION", "SHARES_INCREASED", "SHARES_DECREASED"],
+							"description": "The type of the delegation event"
+						}
+					},
+					{
+						"in": "query",
+						"name": "strategyAddress",
+						"description": "The contract address of the restaking strategy",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "The contract address of the restaking strategy"
+						}
+					},
+					{
+						"in": "query",
+						"name": "operatorAddress",
+						"description": "The address of the operator",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "The address of the operator"
+						}
+					},
+					{
+						"in": "query",
+						"name": "withTokenData",
+						"description": "Toggle whether the route should return underlying token address and underlying value",
+						"schema": {
+							"type": "string",
+							"enum": ["true", "false"],
+							"default": "false",
+							"description": "Toggle whether the route should return underlying token address and underlying value",
+							"example": "false"
+						}
+					},
+					{
+						"in": "query",
+						"name": "withEthValue",
+						"description": "Toggle whether the route should return value denominated in ETH",
+						"schema": {
+							"type": "string",
+							"enum": ["true", "false"],
+							"default": "false",
+							"description": "Toggle whether the route should return value denominated in ETH",
+							"example": "false"
+						}
+					},
+					{
+						"in": "query",
+						"name": "skip",
+						"description": "The number of records to skip for pagination",
+						"schema": {
+							"type": "string",
+							"default": "0",
+							"description": "The number of records to skip for pagination",
+							"example": 0
+						}
+					},
+					{
+						"in": "query",
+						"name": "take",
+						"description": "The number of records to return for pagination",
+						"schema": {
+							"type": "string",
+							"default": "12",
+							"description": "The number of records to return for pagination",
+							"example": 12
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The delegation events found for the staker.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"tx": {
+											"type": "string",
+											"description": "The transaction hash",
+											"example": "0xae41958d0342a4485536f701c72723625131680f182eb21f95abdac6d74d0ff0"
+										},
+										"blockNumber": {
+											"type": "number",
+											"description": "The block number of the transaction",
+											"example": 21045085
+										},
+										"blockTime": {
+											"type": "string",
+											"description": "The block time of the transaction as an ISO 8601 string",
+											"example": "2024-10-25T20:41:11.000Z"
+										},
+										"type": {
+											"type": "string",
+											"enum": [
+												"DELEGATION",
+												"UNDELEGATION",
+												"SHARES_INCREASED",
+												"SHARES_DECREASED"
+											],
+											"description": "The type of the event",
+											"example": "DELEGATION"
+										},
+										"args": {
+											"type": "object",
+											"properties": {
+												"operator": {
+													"type": "string",
+													"description": "The contract address of the AVS operator",
+													"example": "0x71c6f7ed8c2d4925d0baf16f6a85bb1736d412eb"
+												},
+												"strategy": {
+													"type": "string",
+													"description": "The contract address of the restaking strategy",
+													"example": "0x93c4b944d05dfe6df7645a86cd2206016c51564d"
+												},
+												"shares": {
+													"type": "number",
+													"description": "The change in the operator's delegated shares, added or subtracted from the total.",
+													"example": 62816824424188010
+												}
+											},
+											"required": ["operator"]
+										},
+										"underlyingToken": {
+											"type": "string",
+											"description": "The contract address of the token associated with this strategy",
+											"example": "0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84"
+										},
+										"underlyingValue": {
+											"type": "number",
+											"description": "The value of the shares in terms of the underlying token",
+											"example": 5
+										},
+										"ethValue": {
+											"type": "number",
+											"description": "The value of the shares in ETH",
+											"example": 1
+										}
+									},
+									"required": ["tx", "blockNumber", "blockTime", "type", "args"]
+								}
+							}
+						}
+					},
+					"400": {
+						"$ref": "#/components/responses/400"
+					},
+					"401": {
+						"$ref": "#/components/responses/401"
+					},
+					"403": {
+						"$ref": "#/components/responses/403"
+					},
+					"404": {
+						"$ref": "#/components/responses/404"
+					},
+					"422": {
+						"$ref": "#/components/responses/422"
+					},
+					"429": {
+						"$ref": "#/components/responses/429"
+					},
+					"500": {
+						"$ref": "#/components/responses/500"
+					}
+				}
+			}
+		},
+		"/stakers/{address}/events/deposit": {
+			"get": {
+				"operationId": "getStakerDepositEvents",
+				"summary": "Retrieve all deposit events for a given staker address",
+				"description": "Returns a list of all deposit events for a given staker address.",
+				"tags": ["Stakers"],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "address",
+						"description": "The address of the staker",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "The address of the staker",
+							"example": "0x9791fdb4e9c0495efc5a1f3f9271ef226251eb34"
+						},
+						"required": true
+					},
+					{
+						"in": "query",
+						"name": "txHash",
+						"description": "The transaction hash associated with the event",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x([A-Fa-f0-9]{64})$",
+							"description": "The transaction hash associated with the event"
+						}
+					},
+					{
+						"in": "query",
+						"name": "startAt",
+						"description": "Start date in ISO string format",
+						"schema": {
+							"type": "string",
+							"description": "Start date in ISO string format"
+						}
+					},
+					{
+						"in": "query",
+						"name": "endAt",
+						"description": "End date in ISO string format",
+						"schema": {
+							"type": "string",
+							"description": "End date in ISO string format"
+						}
+					},
+					{
+						"in": "query",
+						"name": "tokenAddress",
+						"description": "The contract address of the token",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "The contract address of the token"
+						}
+					},
+					{
+						"in": "query",
+						"name": "strategyAddress",
+						"description": "The contract address of the restaking strategy",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "The contract address of the restaking strategy"
+						}
+					},
+					{
+						"in": "query",
+						"name": "withTokenData",
+						"description": "Toggle whether the route should return underlying token address and underlying value",
+						"schema": {
+							"type": "string",
+							"enum": ["true", "false"],
+							"default": "false",
+							"description": "Toggle whether the route should return underlying token address and underlying value",
+							"example": "false"
+						}
+					},
+					{
+						"in": "query",
+						"name": "withEthValue",
+						"description": "Toggle whether the route should return value denominated in ETH",
+						"schema": {
+							"type": "string",
+							"enum": ["true", "false"],
+							"default": "false",
+							"description": "Toggle whether the route should return value denominated in ETH",
+							"example": "false"
+						}
+					},
+					{
+						"in": "query",
+						"name": "skip",
+						"description": "The number of records to skip for pagination",
+						"schema": {
+							"type": "string",
+							"default": "0",
+							"description": "The number of records to skip for pagination",
+							"example": 0
+						}
+					},
+					{
+						"in": "query",
+						"name": "take",
+						"description": "The number of records to return for pagination",
+						"schema": {
+							"type": "string",
+							"default": "12",
+							"description": "The number of records to return for pagination",
+							"example": 12
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The deposit events found for the staker.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"tx": {
+											"type": "string",
+											"description": "The transaction hash",
+											"example": "0xae41958d0342a4485536f701c72723625131680f182eb21f95abdac6d74d0ff0"
+										},
+										"blockNumber": {
+											"type": "number",
+											"description": "The block number of the transaction",
+											"example": 21045085
+										},
+										"blockTime": {
+											"type": "string",
+											"description": "The block time of the transaction as an ISO 8601 string",
+											"example": "2024-10-25T20:41:11.000Z"
+										},
+										"type": {
+											"type": "string",
+											"enum": ["DEPOSIT"],
+											"description": "The type of the event",
+											"example": "DEPOSIT"
+										},
+										"args": {
+											"type": "object",
+											"properties": {
+												"token": {
+													"type": "string",
+													"description": "The contract address of the token deposited",
+													"example": "0xec53bf9167f50cdeb3ae105f56099aaab9061f83"
+												},
+												"strategy": {
+													"type": "string",
+													"description": "The contract address of the restaking strategy",
+													"example": "0xacb55c530acdb2849e6d4f36992cd8c9d50ed8f7"
+												},
+												"shares": {
+													"type": "number",
+													"description": "The amount of new shares given to the staker in this strategy",
+													"example": 10190000000000000000
+												}
+											},
+											"required": ["token", "strategy", "shares"]
+										},
+										"underlyingToken": {
+											"type": "string",
+											"description": "The contract address of the token associated with this strategy",
+											"example": "0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84"
+										},
+										"underlyingValue": {
+											"type": "number",
+											"description": "The value of the shares in terms of the underlying token",
+											"example": 5
+										},
+										"ethValue": {
+											"type": "number",
+											"description": "The value of the shares in ETH",
+											"example": 1
+										}
+									},
+									"required": ["tx", "blockNumber", "blockTime", "type", "args"]
+								}
+							}
+						}
+					},
+					"400": {
+						"$ref": "#/components/responses/400"
+					},
+					"401": {
+						"$ref": "#/components/responses/401"
+					},
+					"403": {
+						"$ref": "#/components/responses/403"
+					},
+					"404": {
+						"$ref": "#/components/responses/404"
+					},
+					"422": {
+						"$ref": "#/components/responses/422"
+					},
+					"429": {
+						"$ref": "#/components/responses/429"
+					},
+					"500": {
+						"$ref": "#/components/responses/500"
+					}
+				}
+			}
+		},
+		"/stakers/{address}/events/withdrawal": {
+			"get": {
+				"operationId": "getStakerWithdrawalEvents",
+				"summary": "Retrieve all withdrawal events for a given staker address",
+				"description": "Returns a list of all withdrawal events for a given staker address.",
+				"tags": ["Stakers"],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "address",
+						"description": "The address of the staker",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "The address of the staker",
+							"example": "0x9791fdb4e9c0495efc5a1f3f9271ef226251eb34"
+						},
+						"required": true
+					},
+					{
+						"in": "query",
+						"name": "txHash",
+						"description": "The transaction hash associated with the event",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x([A-Fa-f0-9]{64})$",
+							"description": "The transaction hash associated with the event"
+						}
+					},
+					{
+						"in": "query",
+						"name": "startAt",
+						"description": "Start date in ISO string format",
+						"schema": {
+							"type": "string",
+							"description": "Start date in ISO string format"
+						}
+					},
+					{
+						"in": "query",
+						"name": "endAt",
+						"description": "End date in ISO string format",
+						"schema": {
+							"type": "string",
+							"description": "End date in ISO string format"
+						}
+					},
+					{
+						"in": "query",
+						"name": "type",
+						"description": "The type of the withdrawal event",
+						"schema": {
+							"type": "string",
+							"enum": ["WITHDRAWAL_QUEUED", "WITHDRAWAL_COMPLETED"],
+							"description": "The type of the withdrawal event"
+						}
+					},
+					{
+						"in": "query",
+						"name": "withdrawalRoot",
+						"description": "The withdrawal root associated with the event",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{64}$",
+							"description": "The withdrawal root associated with the event"
+						}
+					},
+					{
+						"in": "query",
+						"name": "delegatedTo",
+						"description": "The address to which funds were delegated",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "The address to which funds were delegated"
+						}
+					},
+					{
+						"in": "query",
+						"name": "withdrawer",
+						"description": "The address of the withdrawer",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "The address of the withdrawer"
+						}
+					},
+					{
+						"in": "query",
+						"name": "withTokenData",
+						"description": "Toggle whether the route should return underlying token address and underlying value",
+						"schema": {
+							"type": "string",
+							"enum": ["true", "false"],
+							"default": "false",
+							"description": "Toggle whether the route should return underlying token address and underlying value",
+							"example": "false"
+						}
+					},
+					{
+						"in": "query",
+						"name": "withEthValue",
+						"description": "Toggle whether the route should return value denominated in ETH",
+						"schema": {
+							"type": "string",
+							"enum": ["true", "false"],
+							"default": "false",
+							"description": "Toggle whether the route should return value denominated in ETH",
+							"example": "false"
+						}
+					},
+					{
+						"in": "query",
+						"name": "skip",
+						"description": "The number of records to skip for pagination",
+						"schema": {
+							"type": "string",
+							"default": "0",
+							"description": "The number of records to skip for pagination",
+							"example": 0
+						}
+					},
+					{
+						"in": "query",
+						"name": "take",
+						"description": "The number of records to return for pagination",
+						"schema": {
+							"type": "string",
+							"default": "12",
+							"description": "The number of records to return for pagination",
+							"example": 12
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The withdrawal events found for the staker.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"tx": {
+											"type": "string",
+											"description": "The transaction hash",
+											"example": "0xae41958d0342a4485536f701c72723625131680f182eb21f95abdac6d74d0ff0"
+										},
+										"blockNumber": {
+											"type": "number",
+											"description": "The block number of the transaction",
+											"example": 21045085
+										},
+										"blockTime": {
+											"type": "string",
+											"description": "The block time of the transaction as an ISO 8601 string",
+											"example": "2024-10-25T20:41:11.000Z"
+										},
+										"type": {
+											"type": "string",
+											"enum": ["WITHDRAWAL_QUEUED", "WITHDRAWAL_COMPLETED"],
+											"description": "The type of the event",
+											"example": "WITHDRAWAL_QUEUED"
+										},
+										"args": {
+											"type": "object",
+											"properties": {
+												"withdrawalRoot": {
+													"type": "string",
+													"description": "The root hash of the withdrawal",
+													"example": "0xe6cdf9110330e1648039cb98e680aeb9d1c63e022764186f1131eb9432605421"
+												},
+												"delegatedTo": {
+													"type": "string",
+													"description": "The address to which the staker was delegated when the withdrawal was initiated",
+													"example": "0x4cd2086e1d708e65db5d4f5712a9ca46ed4bbd0a"
+												},
+												"withdrawer": {
+													"type": "string",
+													"description": "The address of the withdrawer, authorized to complete the withdrawal and receive the funds",
+													"example": "0x513ea5a99988252f3b2cd8382ac077d7fd26ef48"
+												},
+												"nonce": {
+													"type": "number",
+													"description": "The nonce of the withdrawal, ensuring unique hashes for otherwise identical withdrawals",
+													"example": 0
+												},
+												"startBlock": {
+													"type": "number",
+													"description": "The block number when the withdrawal was created",
+													"example": 21054925
+												},
+												"strategies": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"strategy": {
+																"type": "string",
+																"description": "The contract address of the restaking strategy",
+																"example": "0xacb55c530acdb2849e6d4f36992cd8c9d50ed8f7"
+															},
+															"shares": {
+																"type": "string",
+																"description": "The amount of shares withdrawn for each strategy",
+																"example": "1000000000000000000"
+															},
+															"underlyingToken": {
+																"type": "string",
+																"description": "The contract address of the token associated with this strategy",
+																"example": "0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84"
+															},
+															"underlyingValue": {
+																"type": "number",
+																"description": "The value of the shares in terms of the underlying token",
+																"example": 5
+															},
+															"ethValue": {
+																"type": "number",
+																"description": "The value of the shares in ETH",
+																"example": 1
+															}
+														},
+														"required": ["strategy", "shares"]
+													}
+												}
+											},
+											"required": ["withdrawalRoot"]
+										}
+									},
+									"required": ["tx", "blockNumber", "blockTime", "type", "args"]
 								}
 							}
 						}
@@ -6949,7 +9548,7 @@
 													"shares": {
 														"type": "string",
 														"description": "The amount of shares held in the strategy",
-														"example": "40888428658906049"
+														"example": "40000000000000000"
 													},
 													"createdAtBlock": {
 														"type": "number",
@@ -6996,6 +9595,1135 @@
 										}
 									},
 									"required": ["data", "meta"]
+								}
+							}
+						}
+					},
+					"400": {
+						"$ref": "#/components/responses/400"
+					},
+					"401": {
+						"$ref": "#/components/responses/401"
+					},
+					"403": {
+						"$ref": "#/components/responses/403"
+					},
+					"404": {
+						"$ref": "#/components/responses/404"
+					},
+					"422": {
+						"$ref": "#/components/responses/422"
+					},
+					"429": {
+						"$ref": "#/components/responses/429"
+					},
+					"500": {
+						"$ref": "#/components/responses/500"
+					}
+				}
+			}
+		},
+		"/rewards/strategies": {
+			"get": {
+				"operationId": "getStrategies",
+				"summary": "Retrieve all strategies with their reward tokens",
+				"description": "Returns a list of strategies with their corresponding reward tokens, including strategy addresses and associated token addresses.",
+				"tags": ["Rewards"],
+				"responses": {
+					"200": {
+						"description": "List of strategies along with associated reward tokens.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"strategies": {
+											"type": "array",
+											"items": {
+												"type": "object",
+												"properties": {
+													"strategyAddress": {
+														"type": "string",
+														"description": "The contract address of the restaking strategy",
+														"example": "0x0fe4f44bee93503346a3ac9ee5a26b130a5796d6"
+													},
+													"tokens": {
+														"type": "array",
+														"items": {
+															"type": "string"
+														},
+														"description": "List of reward token addresses associated with the strategy",
+														"example": [
+															"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+															"0xba50933c268f567bdc86e1ac131be072c6b0b71a"
+														]
+													}
+												},
+												"required": ["strategyAddress", "tokens"]
+											}
+										},
+										"total": {
+											"type": "number",
+											"description": "The total number of strategies",
+											"example": 15
+										}
+									},
+									"required": ["strategies", "total"]
+								}
+							}
+						}
+					},
+					"400": {
+						"$ref": "#/components/responses/400"
+					},
+					"401": {
+						"$ref": "#/components/responses/401"
+					},
+					"403": {
+						"$ref": "#/components/responses/403"
+					},
+					"404": {
+						"$ref": "#/components/responses/404"
+					},
+					"422": {
+						"$ref": "#/components/responses/422"
+					},
+					"429": {
+						"$ref": "#/components/responses/429"
+					},
+					"500": {
+						"$ref": "#/components/responses/500"
+					}
+				}
+			}
+		},
+		"/events/delegation": {
+			"get": {
+				"operationId": "getDelegationEvents",
+				"summary": "Retrieve all delegation events",
+				"description": "Returns a list of all delegation events.",
+				"tags": ["Events"],
+				"parameters": [
+					{
+						"in": "query",
+						"name": "txHash",
+						"description": "The transaction hash associated with the event",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x([A-Fa-f0-9]{64})$",
+							"description": "The transaction hash associated with the event"
+						}
+					},
+					{
+						"in": "query",
+						"name": "startAt",
+						"description": "Start date in ISO string format",
+						"schema": {
+							"type": "string",
+							"description": "Start date in ISO string format"
+						}
+					},
+					{
+						"in": "query",
+						"name": "endAt",
+						"description": "End date in ISO string format",
+						"schema": {
+							"type": "string",
+							"description": "End date in ISO string format"
+						}
+					},
+					{
+						"in": "query",
+						"name": "type",
+						"description": "The type of the delegation event",
+						"schema": {
+							"type": "string",
+							"enum": ["DELEGATION", "UNDELEGATION", "SHARES_INCREASED", "SHARES_DECREASED"],
+							"description": "The type of the delegation event"
+						}
+					},
+					{
+						"in": "query",
+						"name": "strategyAddress",
+						"description": "The contract address of the restaking strategy",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "The contract address of the restaking strategy"
+						}
+					},
+					{
+						"in": "query",
+						"name": "withTokenData",
+						"description": "Toggle whether the route should return underlying token address and underlying value",
+						"schema": {
+							"type": "string",
+							"enum": ["true", "false"],
+							"default": "false",
+							"description": "Toggle whether the route should return underlying token address and underlying value",
+							"example": "false"
+						}
+					},
+					{
+						"in": "query",
+						"name": "withEthValue",
+						"description": "Toggle whether the route should return value denominated in ETH",
+						"schema": {
+							"type": "string",
+							"enum": ["true", "false"],
+							"default": "false",
+							"description": "Toggle whether the route should return value denominated in ETH",
+							"example": "false"
+						}
+					},
+					{
+						"in": "query",
+						"name": "skip",
+						"description": "The number of records to skip for pagination",
+						"schema": {
+							"type": "string",
+							"default": "0",
+							"description": "The number of records to skip for pagination",
+							"example": 0
+						}
+					},
+					{
+						"in": "query",
+						"name": "take",
+						"description": "The number of records to return for pagination",
+						"schema": {
+							"type": "string",
+							"default": "12",
+							"description": "The number of records to return for pagination",
+							"example": 12
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The delegation events found.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"tx": {
+											"type": "string",
+											"description": "The transaction hash",
+											"example": "0xae41958d0342a4485536f701c72723625131680f182eb21f95abdac6d74d0ff0"
+										},
+										"blockNumber": {
+											"type": "number",
+											"description": "The block number of the transaction",
+											"example": 21045085
+										},
+										"blockTime": {
+											"type": "string",
+											"description": "The block time of the transaction as an ISO 8601 string",
+											"example": "2024-10-25T20:41:11.000Z"
+										},
+										"type": {
+											"type": "string",
+											"enum": [
+												"DELEGATION",
+												"UNDELEGATION",
+												"SHARES_INCREASED",
+												"SHARES_DECREASED"
+											],
+											"description": "The type of the event",
+											"example": "DELEGATION"
+										},
+										"args": {
+											"type": "object",
+											"properties": {
+												"operator": {
+													"type": "string",
+													"description": "The contract address of the AVS operator",
+													"example": "0x71c6f7ed8c2d4925d0baf16f6a85bb1736d412eb"
+												},
+												"staker": {
+													"type": "string",
+													"description": "The contract address of the staker",
+													"example": "0x42318adf0773b8af4aa8ed1670ea0af7761d07c7"
+												},
+												"strategy": {
+													"type": "string",
+													"description": "The contract address of the restaking strategy",
+													"example": "0x93c4b944d05dfe6df7645a86cd2206016c51564d"
+												},
+												"shares": {
+													"type": "number",
+													"description": "The change in the operator's delegated shares, added or subtracted from the total.",
+													"example": 62816824424188010
+												}
+											},
+											"required": ["operator", "staker"]
+										},
+										"underlyingToken": {
+											"type": "string",
+											"description": "The contract address of the token associated with this strategy",
+											"example": "0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84"
+										},
+										"underlyingValue": {
+											"type": "number",
+											"description": "The value of the shares in terms of the underlying token",
+											"example": 5
+										},
+										"ethValue": {
+											"type": "number",
+											"description": "The value of the shares in ETH",
+											"example": 1
+										}
+									},
+									"required": ["tx", "blockNumber", "blockTime", "type", "args"]
+								}
+							}
+						}
+					},
+					"400": {
+						"$ref": "#/components/responses/400"
+					},
+					"401": {
+						"$ref": "#/components/responses/401"
+					},
+					"403": {
+						"$ref": "#/components/responses/403"
+					},
+					"404": {
+						"$ref": "#/components/responses/404"
+					},
+					"422": {
+						"$ref": "#/components/responses/422"
+					},
+					"429": {
+						"$ref": "#/components/responses/429"
+					},
+					"500": {
+						"$ref": "#/components/responses/500"
+					}
+				}
+			}
+		},
+		"/events/rewards": {
+			"get": {
+				"operationId": "getRewardsEvents",
+				"summary": "Retrieve all reward events",
+				"description": "Returns a list of all reward events.",
+				"tags": ["Events"],
+				"parameters": [
+					{
+						"in": "query",
+						"name": "txHash",
+						"description": "The transaction hash associated with the event",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x([A-Fa-f0-9]{64})$",
+							"description": "The transaction hash associated with the event"
+						}
+					},
+					{
+						"in": "query",
+						"name": "startAt",
+						"description": "Start date in ISO string format",
+						"schema": {
+							"type": "string",
+							"description": "Start date in ISO string format"
+						}
+					},
+					{
+						"in": "query",
+						"name": "endAt",
+						"description": "End date in ISO string format",
+						"schema": {
+							"type": "string",
+							"description": "End date in ISO string format"
+						}
+					},
+					{
+						"in": "query",
+						"name": "rewardsSubmissionHash",
+						"description": "The reward submission hash associated with the event",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x([A-Fa-f0-9]{64})$",
+							"description": "The reward submission hash associated with the event"
+						}
+					},
+					{
+						"in": "query",
+						"name": "rewardsSubmissionToken",
+						"description": "The token address used for the rewards submission",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "The token address used for the rewards submission"
+						}
+					},
+					{
+						"in": "query",
+						"name": "withIndividualAmount",
+						"description": "Toggle whether the route should return individual share amount for each strategy",
+						"schema": {
+							"type": "string",
+							"enum": ["true", "false"],
+							"default": "false",
+							"description": "Toggle whether the route should return individual share amount for each strategy",
+							"example": "false"
+						}
+					},
+					{
+						"in": "query",
+						"name": "withEthValue",
+						"description": "Toggle whether the route should return value denominated in ETH",
+						"schema": {
+							"type": "string",
+							"enum": ["true", "false"],
+							"default": "false",
+							"description": "Toggle whether the route should return value denominated in ETH",
+							"example": "false"
+						}
+					},
+					{
+						"in": "query",
+						"name": "skip",
+						"description": "The number of records to skip for pagination",
+						"schema": {
+							"type": "string",
+							"default": "0",
+							"description": "The number of records to skip for pagination",
+							"example": 0
+						}
+					},
+					{
+						"in": "query",
+						"name": "take",
+						"description": "The number of records to return for pagination",
+						"schema": {
+							"type": "string",
+							"default": "12",
+							"description": "The number of records to return for pagination",
+							"example": 12
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The reward events found.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"tx": {
+											"type": "string",
+											"description": "The transaction hash",
+											"example": "0xae41958d0342a4485536f701c72723625131680f182eb21f95abdac6d74d0ff0"
+										},
+										"blockNumber": {
+											"type": "number",
+											"description": "The block number of the transaction",
+											"example": 21045085
+										},
+										"blockTime": {
+											"type": "string",
+											"description": "The block time of the transaction as an ISO 8601 string",
+											"example": "2024-10-25T20:41:11.000Z"
+										},
+										"type": {
+											"type": "string",
+											"enum": ["REWARDS"],
+											"description": "The type of the event",
+											"example": "REWARDS"
+										},
+										"args": {
+											"type": "object",
+											"properties": {
+												"avs": {
+													"type": "string",
+													"description": "AVS service manager contract address",
+													"example": "0x1de75eaab2df55d467494a172652579e6fa4540e"
+												},
+												"submissionNonce": {
+													"type": "number",
+													"description": "The nonce of the rewards submission",
+													"example": 2
+												},
+												"rewardsSubmissionHash": {
+													"type": "string",
+													"description": "The hash of the rewards submission",
+													"example": "0x1e391c015c923972811a27e1c6c3a874511e47033f1022021f29967a60ab2c87"
+												},
+												"rewardsSubmissionToken": {
+													"type": "string",
+													"description": "The contract address of the token used for rewards distribution",
+													"example": "0xba50933c268f567bdc86e1ac131be072c6b0b71a"
+												},
+												"rewardsSubmissionAmount": {
+													"type": "string",
+													"description": "The total amount of rewards allocated in this submission",
+													"example": "49000000000000000000000"
+												},
+												"rewardsSubmissionStartTimeStamp": {
+													"type": "number",
+													"description": "The timestamp marking the start of this rewards distribution period",
+													"example": 1728518400
+												},
+												"rewardsSubmissionDuration": {
+													"type": "number",
+													"description": "The duration (in seconds) over which the rewards are distributed",
+													"example": 6048000
+												},
+												"strategies": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"strategy": {
+																"type": "string",
+																"description": "The contract address of the restaking strategy",
+																"example": "0x0fe4f44bee93503346a3ac9ee5a26b130a5796d6"
+															},
+															"multiplier": {
+																"type": "string",
+																"description": "The multiplier associated with this strategy",
+																"example": "1068966896363604679"
+															},
+															"amount": {
+																"type": "string",
+																"description": "The amount of rewards allocated to this strategy from the total rewards in this submissionn",
+																"example": "3.7932452554246293e+21"
+															},
+															"amountEthValue": {
+																"type": "number",
+																"description": "The value of the rewards amount allocated to this strategy in ETH",
+																"example": 0.0638779707245759
+															}
+														},
+														"required": ["strategy", "multiplier"]
+													},
+													"description": "List of strategies involved in the rewards submission"
+												}
+											},
+											"required": [
+												"avs",
+												"submissionNonce",
+												"rewardsSubmissionHash",
+												"rewardsSubmissionToken",
+												"rewardsSubmissionAmount",
+												"rewardsSubmissionStartTimeStamp",
+												"rewardsSubmissionDuration",
+												"strategies"
+											]
+										},
+										"ethValue": {
+											"type": "number",
+											"description": "The value of the shares in ETH",
+											"example": 1
+										}
+									},
+									"required": ["tx", "blockNumber", "blockTime", "type", "args"]
+								}
+							}
+						}
+					},
+					"400": {
+						"$ref": "#/components/responses/400"
+					},
+					"401": {
+						"$ref": "#/components/responses/401"
+					},
+					"403": {
+						"$ref": "#/components/responses/403"
+					},
+					"404": {
+						"$ref": "#/components/responses/404"
+					},
+					"422": {
+						"$ref": "#/components/responses/422"
+					},
+					"429": {
+						"$ref": "#/components/responses/429"
+					},
+					"500": {
+						"$ref": "#/components/responses/500"
+					}
+				}
+			}
+		},
+		"/events/deposit": {
+			"get": {
+				"operationId": "getDepositEvents",
+				"summary": "Retrieve all deposit events",
+				"description": "Returns a list of all deposit events.",
+				"tags": ["Events"],
+				"parameters": [
+					{
+						"in": "query",
+						"name": "txHash",
+						"description": "The transaction hash associated with the event",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x([A-Fa-f0-9]{64})$",
+							"description": "The transaction hash associated with the event"
+						}
+					},
+					{
+						"in": "query",
+						"name": "startAt",
+						"description": "Start date in ISO string format",
+						"schema": {
+							"type": "string",
+							"description": "Start date in ISO string format"
+						}
+					},
+					{
+						"in": "query",
+						"name": "endAt",
+						"description": "End date in ISO string format",
+						"schema": {
+							"type": "string",
+							"description": "End date in ISO string format"
+						}
+					},
+					{
+						"in": "query",
+						"name": "tokenAddress",
+						"description": "The contract address of the token",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "The contract address of the token"
+						}
+					},
+					{
+						"in": "query",
+						"name": "strategyAddress",
+						"description": "The contract address of the restaking strategy",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "The contract address of the restaking strategy"
+						}
+					},
+					{
+						"in": "query",
+						"name": "withTokenData",
+						"description": "Toggle whether the route should return underlying token address and underlying value",
+						"schema": {
+							"type": "string",
+							"enum": ["true", "false"],
+							"default": "false",
+							"description": "Toggle whether the route should return underlying token address and underlying value",
+							"example": "false"
+						}
+					},
+					{
+						"in": "query",
+						"name": "withEthValue",
+						"description": "Toggle whether the route should return value denominated in ETH",
+						"schema": {
+							"type": "string",
+							"enum": ["true", "false"],
+							"default": "false",
+							"description": "Toggle whether the route should return value denominated in ETH",
+							"example": "false"
+						}
+					},
+					{
+						"in": "query",
+						"name": "skip",
+						"description": "The number of records to skip for pagination",
+						"schema": {
+							"type": "string",
+							"default": "0",
+							"description": "The number of records to skip for pagination",
+							"example": 0
+						}
+					},
+					{
+						"in": "query",
+						"name": "take",
+						"description": "The number of records to return for pagination",
+						"schema": {
+							"type": "string",
+							"default": "12",
+							"description": "The number of records to return for pagination",
+							"example": 12
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The deposit events found.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"tx": {
+											"type": "string",
+											"description": "The transaction hash",
+											"example": "0xae41958d0342a4485536f701c72723625131680f182eb21f95abdac6d74d0ff0"
+										},
+										"blockNumber": {
+											"type": "number",
+											"description": "The block number of the transaction",
+											"example": 21045085
+										},
+										"blockTime": {
+											"type": "string",
+											"description": "The block time of the transaction as an ISO 8601 string",
+											"example": "2024-10-25T20:41:11.000Z"
+										},
+										"type": {
+											"type": "string",
+											"enum": ["DEPOSIT"],
+											"description": "The type of the event",
+											"example": "DEPOSIT"
+										},
+										"args": {
+											"type": "object",
+											"properties": {
+												"staker": {
+													"type": "string",
+													"description": "The contract address of the staker",
+													"example": "0xa0e32344405b2097e738718dc27d2c2daf73e706"
+												},
+												"token": {
+													"type": "string",
+													"description": "The contract address of the token deposited",
+													"example": "0xec53bf9167f50cdeb3ae105f56099aaab9061f83"
+												},
+												"strategy": {
+													"type": "string",
+													"description": "The contract address of the restaking strategy",
+													"example": "0xacb55c530acdb2849e6d4f36992cd8c9d50ed8f7"
+												},
+												"shares": {
+													"type": "number",
+													"description": "The amount of new shares given to the staker in this strategy",
+													"example": 10190000000000000000
+												}
+											},
+											"required": ["staker", "token", "strategy", "shares"]
+										},
+										"underlyingToken": {
+											"type": "string",
+											"description": "The contract address of the token associated with this strategy",
+											"example": "0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84"
+										},
+										"underlyingValue": {
+											"type": "number",
+											"description": "The value of the shares in terms of the underlying token",
+											"example": 5
+										},
+										"ethValue": {
+											"type": "number",
+											"description": "The value of the shares in ETH",
+											"example": 1
+										}
+									},
+									"required": ["tx", "blockNumber", "blockTime", "type", "args"]
+								}
+							}
+						}
+					},
+					"400": {
+						"$ref": "#/components/responses/400"
+					},
+					"401": {
+						"$ref": "#/components/responses/401"
+					},
+					"403": {
+						"$ref": "#/components/responses/403"
+					},
+					"404": {
+						"$ref": "#/components/responses/404"
+					},
+					"422": {
+						"$ref": "#/components/responses/422"
+					},
+					"429": {
+						"$ref": "#/components/responses/429"
+					},
+					"500": {
+						"$ref": "#/components/responses/500"
+					}
+				}
+			}
+		},
+		"/events/withdrawal": {
+			"get": {
+				"operationId": "getWithdrawalEvents",
+				"summary": "Retrieve all withdrawal events",
+				"description": "Returns a list of all withdrawal events.",
+				"tags": ["Events"],
+				"parameters": [
+					{
+						"in": "query",
+						"name": "txHash",
+						"description": "The transaction hash associated with the event",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x([A-Fa-f0-9]{64})$",
+							"description": "The transaction hash associated with the event"
+						}
+					},
+					{
+						"in": "query",
+						"name": "startAt",
+						"description": "Start date in ISO string format",
+						"schema": {
+							"type": "string",
+							"description": "Start date in ISO string format"
+						}
+					},
+					{
+						"in": "query",
+						"name": "endAt",
+						"description": "End date in ISO string format",
+						"schema": {
+							"type": "string",
+							"description": "End date in ISO string format"
+						}
+					},
+					{
+						"in": "query",
+						"name": "type",
+						"description": "The type of the withdrawal event",
+						"schema": {
+							"type": "string",
+							"enum": ["WITHDRAWAL_QUEUED", "WITHDRAWAL_COMPLETED"],
+							"description": "The type of the withdrawal event"
+						}
+					},
+					{
+						"in": "query",
+						"name": "withdrawalRoot",
+						"description": "The withdrawal root associated with the event",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{64}$",
+							"description": "The withdrawal root associated with the event"
+						}
+					},
+					{
+						"in": "query",
+						"name": "delegatedTo",
+						"description": "The address to which funds were delegated",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "The address to which funds were delegated"
+						}
+					},
+					{
+						"in": "query",
+						"name": "withdrawer",
+						"description": "The address of the withdrawer",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "The address of the withdrawer"
+						}
+					},
+					{
+						"in": "query",
+						"name": "withTokenData",
+						"description": "Toggle whether the route should return underlying token address and underlying value",
+						"schema": {
+							"type": "string",
+							"enum": ["true", "false"],
+							"default": "false",
+							"description": "Toggle whether the route should return underlying token address and underlying value",
+							"example": "false"
+						}
+					},
+					{
+						"in": "query",
+						"name": "withEthValue",
+						"description": "Toggle whether the route should return value denominated in ETH",
+						"schema": {
+							"type": "string",
+							"enum": ["true", "false"],
+							"default": "false",
+							"description": "Toggle whether the route should return value denominated in ETH",
+							"example": "false"
+						}
+					},
+					{
+						"in": "query",
+						"name": "skip",
+						"description": "The number of records to skip for pagination",
+						"schema": {
+							"type": "string",
+							"default": "0",
+							"description": "The number of records to skip for pagination",
+							"example": 0
+						}
+					},
+					{
+						"in": "query",
+						"name": "take",
+						"description": "The number of records to return for pagination",
+						"schema": {
+							"type": "string",
+							"default": "12",
+							"description": "The number of records to return for pagination",
+							"example": 12
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The withdrawal events found.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"tx": {
+											"type": "string",
+											"description": "The transaction hash",
+											"example": "0xae41958d0342a4485536f701c72723625131680f182eb21f95abdac6d74d0ff0"
+										},
+										"blockNumber": {
+											"type": "number",
+											"description": "The block number of the transaction",
+											"example": 21045085
+										},
+										"blockTime": {
+											"type": "string",
+											"description": "The block time of the transaction as an ISO 8601 string",
+											"example": "2024-10-25T20:41:11.000Z"
+										},
+										"type": {
+											"type": "string",
+											"enum": ["WITHDRAWAL_QUEUED", "WITHDRAWAL_COMPLETED"],
+											"description": "The type of the event",
+											"example": "WITHDRAWAL_QUEUED"
+										},
+										"args": {
+											"type": "object",
+											"properties": {
+												"staker": {
+													"type": "string",
+													"description": "The contract address of the staker who initiated the withdrawal",
+													"example": "0x513ea5a99988252f3b2cd8382ac077d7fd26ef48"
+												},
+												"withdrawalRoot": {
+													"type": "string",
+													"description": "The root hash of the withdrawal",
+													"example": "0xe6cdf9110330e1648039cb98e680aeb9d1c63e022764186f1131eb9432605421"
+												},
+												"delegatedTo": {
+													"type": "string",
+													"description": "The address to which the staker was delegated when the withdrawal was initiated",
+													"example": "0x4cd2086e1d708e65db5d4f5712a9ca46ed4bbd0a"
+												},
+												"withdrawer": {
+													"type": "string",
+													"description": "The address of the withdrawer, authorized to complete the withdrawal and receive the funds",
+													"example": "0x513ea5a99988252f3b2cd8382ac077d7fd26ef48"
+												},
+												"nonce": {
+													"type": "number",
+													"description": "The nonce of the withdrawal, ensuring unique hashes for otherwise identical withdrawals",
+													"example": 0
+												},
+												"startBlock": {
+													"type": "number",
+													"description": "The block number when the withdrawal was created",
+													"example": 21054925
+												},
+												"strategies": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"strategy": {
+																"type": "string",
+																"description": "The contract address of the restaking strategy",
+																"example": "0xacb55c530acdb2849e6d4f36992cd8c9d50ed8f7"
+															},
+															"shares": {
+																"type": "string",
+																"description": "The amount of shares withdrawn for each strategy",
+																"example": "1000000000000000000"
+															},
+															"underlyingToken": {
+																"type": "string",
+																"description": "The contract address of the token associated with this strategy",
+																"example": "0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84"
+															},
+															"underlyingValue": {
+																"type": "number",
+																"description": "The value of the shares in terms of the underlying token",
+																"example": 5
+															},
+															"ethValue": {
+																"type": "number",
+																"description": "The value of the shares in ETH",
+																"example": 1
+															}
+														},
+														"required": ["strategy", "shares"]
+													}
+												}
+											},
+											"required": ["withdrawalRoot"]
+										}
+									},
+									"required": ["tx", "blockNumber", "blockTime", "type", "args"]
+								}
+							}
+						}
+					},
+					"400": {
+						"$ref": "#/components/responses/400"
+					},
+					"401": {
+						"$ref": "#/components/responses/401"
+					},
+					"403": {
+						"$ref": "#/components/responses/403"
+					},
+					"404": {
+						"$ref": "#/components/responses/404"
+					},
+					"422": {
+						"$ref": "#/components/responses/422"
+					},
+					"429": {
+						"$ref": "#/components/responses/429"
+					},
+					"500": {
+						"$ref": "#/components/responses/500"
+					}
+				}
+			}
+		},
+		"/events/registration-status": {
+			"get": {
+				"operationId": "getRegistrationEvents",
+				"summary": "Retrieve all registration events",
+				"description": "Returns a list of all registration events.",
+				"tags": ["Events"],
+				"parameters": [
+					{
+						"in": "query",
+						"name": "txHash",
+						"description": "The transaction hash associated with the event",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x([A-Fa-f0-9]{64})$",
+							"description": "The transaction hash associated with the event"
+						}
+					},
+					{
+						"in": "query",
+						"name": "startAt",
+						"description": "Start date in ISO string format",
+						"schema": {
+							"type": "string",
+							"description": "Start date in ISO string format"
+						}
+					},
+					{
+						"in": "query",
+						"name": "endAt",
+						"description": "End date in ISO string format",
+						"schema": {
+							"type": "string",
+							"description": "End date in ISO string format"
+						}
+					},
+					{
+						"in": "query",
+						"name": "status",
+						"description": "The status of Registration",
+						"schema": {
+							"type": "string",
+							"enum": ["REGISTERED", "DEREGISTERED"],
+							"description": "The status of Registration"
+						}
+					},
+					{
+						"in": "query",
+						"name": "skip",
+						"description": "The number of records to skip for pagination",
+						"schema": {
+							"type": "string",
+							"default": "0",
+							"description": "The number of records to skip for pagination",
+							"example": 0
+						}
+					},
+					{
+						"in": "query",
+						"name": "take",
+						"description": "The number of records to return for pagination",
+						"schema": {
+							"type": "string",
+							"default": "12",
+							"description": "The number of records to return for pagination",
+							"example": 12
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The registration events found.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"tx": {
+											"type": "string",
+											"description": "The transaction hash",
+											"example": "0xae41958d0342a4485536f701c72723625131680f182eb21f95abdac6d74d0ff0"
+										},
+										"blockNumber": {
+											"type": "number",
+											"description": "The block number of the transaction",
+											"example": 21045085
+										},
+										"blockTime": {
+											"type": "string",
+											"description": "The block time of the transaction as an ISO 8601 string",
+											"example": "2024-10-25T20:41:11.000Z"
+										},
+										"type": {
+											"type": "string",
+											"enum": ["REGISTRATION_STATUS"],
+											"description": "The type of the event",
+											"example": "REGISTRATION_STATUS"
+										},
+										"args": {
+											"type": "object",
+											"properties": {
+												"operator": {
+													"type": "string",
+													"description": "The contract address of the AVS operator",
+													"example": "0x9abce41e1486210ad83deb831afcdd214af5b49d"
+												},
+												"avs": {
+													"type": "string",
+													"description": "AVS service manager contract address",
+													"example": "0xb73a87e8f7f9129816d40940ca19dfa396944c71"
+												},
+												"status": {
+													"type": "string",
+													"enum": ["REGISTERED", "DEREGISTERED"],
+													"description": "The status of the registration",
+													"example": "REGISTERED"
+												}
+											},
+											"required": ["operator", "avs", "status"]
+										}
+									},
+									"required": ["tx", "blockNumber", "blockTime", "type", "args"]
 								}
 							}
 						}

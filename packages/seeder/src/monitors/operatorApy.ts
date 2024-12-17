@@ -12,7 +12,7 @@ export async function monitorOperatorApy() {
 	const dbTransactions: any[] = []
 	const data: {
 		address: string
-		apy: Prisma.Prisma.Decimal
+		maxApy: Prisma.Prisma.Decimal
 	}[] = []
 
 	let skip = 0
@@ -30,9 +30,9 @@ export async function monitorOperatorApy() {
 						select: { strategyAddress: true, shares: true }
 					},
 					avs: {
+						where: { isActive: true },
 						select: {
 							avsAddress: true,
-							isActive: true,
 							avs: {
 								select: {
 									address: true,
@@ -60,15 +60,10 @@ export async function monitorOperatorApy() {
 				take
 			})
 
-			if (operatorMetrics.length === 0) {
-				break
-			}
+			if (operatorMetrics.length === 0) break
 
 			// Setup all db transactions for this iteration
 			for (const operator of operatorMetrics) {
-				let apy = new Prisma.Prisma.Decimal(0)
-
-				const avsRewardsMap: Map<string, number> = new Map()
 				const strategyRewardsMap: Map<string, number> = new Map()
 
 				// Grab the all reward submissions that the Operator is eligible for basis opted strategies & AVSs
@@ -90,8 +85,6 @@ export async function monitorOperatorApy() {
 
 					// Calc aggregate APY for each AVS basis the opted-in strategies
 					for (const avs of avsWithEligibleRewardSubmissions) {
-						let aggregateApy = 0
-
 						// Get share amounts for each restakeable strategy
 						const shares = withOperatorShares(avs.avs.operators).filter(
 							(s) => avs.avs.restakeableStrategies.indexOf(s.strategyAddress.toLowerCase()) !== -1
@@ -150,30 +143,24 @@ export async function monitorOperatorApy() {
 							const rewardRate = totalRewardsEth.toNumber() / strategyTvl // No decimals
 							const annualizedRate = rewardRate * ((365 * 24 * 60 * 60) / totalDuration)
 							const apy = annualizedRate * 100
-							aggregateApy += apy
 
 							// Add strategy's APY to common strategy rewards store (across all Avs)
 							const currentStrategyApy = strategyRewardsMap.get(strategyAddress) || 0
 							strategyRewardsMap.set(strategyAddress, currentStrategyApy + apy)
 						}
-						// Add aggregate APY to Avs rewards store
-						avsRewardsMap.set(avs.avs.address, aggregateApy)
 					}
 
-					const avs = Array.from(avsRewardsMap, ([avsAddress, apy]) => ({
-						avsAddress,
-						apy
-					}))
+					// Calculate max achievable APY
+					if (strategyRewardsMap.size > 0) {
+						const maxApy = new Prisma.Prisma.Decimal(Math.max(...strategyRewardsMap.values()))
 
-					// Calculate aggregates across Avs and strategies
-					apy = new Prisma.Prisma.Decimal(avs.reduce((sum, avs) => sum + avs.apy, 0))
-				}
-
-				if (operator.apy !== apy) {
-					data.push({
-						address: operator.address,
-						apy
-					})
+						if (operator.maxApy !== maxApy) {
+							data.push({
+								address: operator.address,
+								maxApy
+							})
+						}
+					}
 				}
 			}
 
@@ -183,12 +170,12 @@ export async function monitorOperatorApy() {
 				const query = `
 					UPDATE "Operator" AS o
 					SET
-						"apy" = o2."apy"
+						"maxApy" = o2."maxApy"
 					FROM
 						(
 							VALUES
-								${data.map((d) => `('${d.address}', ${d.apy})`).join(', ')}
-						) AS o2 (address, "apy")
+								${data.map((d) => `('${d.address}', ${d.maxApy})`).join(', ')}
+						) AS o2 (address, "maxApy")
 					WHERE
 						o2.address = o.address;
 				`
