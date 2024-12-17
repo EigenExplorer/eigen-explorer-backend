@@ -107,7 +107,10 @@ export const BaseEventQuerySchema = z.object({
 				message: 'Invalid date format for startAt. Use YYYY-MM-DD or ISO 8601 format.'
 			}
 		)
-		.describe('Start date in ISO string format'),
+		.describe('Start date in ISO string format')
+		.openapi({
+			example: '2024-11-15T00:00:00.000Z'
+		}),
 	endAt: z
 		.string()
 		.optional()
@@ -120,6 +123,9 @@ export const BaseEventQuerySchema = z.object({
 			}
 		)
 		.describe('End date in ISO string format')
+		.openapi({
+			example: '2024-12-15T00:00:00.000Z'
+		})
 })
 
 export const WithdrawalEventQuerySchemaBase = BaseEventQuerySchema.extend({

@@ -14,7 +14,7 @@ import { applyAllRefinements } from '../../apiResponseSchema/events/util'
 
 const OperatorAddressParam = z.object({
 	address: EthereumAddressSchema.describe('The address of the operator').openapi({
-		example: '0x00107cfdeaddc0a3160ed2f6fedd627f313e7b1a'
+		example: '0xDbEd88D83176316fc46797B43aDeE927Dc2ff2F5'
 	})
 })
 
