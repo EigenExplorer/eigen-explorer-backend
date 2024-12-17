@@ -102,7 +102,7 @@ export const authenticator = async (req: Request, res: Response, next: NextFunct
 	/*
 	if (accessLevel === 0) {
 		return res.status(401).json({
-			error: `Missing or invalid API token. Please generate a valid token on https://dev.eigenexplorer.com and attach it with header 'X-API-Token'.`
+			error: `Missing or invalid API token. Please generate a valid token on https://developer.eigenexplorer.com and attach it with header 'X-API-Token'.`
 		})
 	}
 
@@ -142,7 +142,7 @@ for (const [level, plan] of Object.entries(PLANS)) {
 			accessLevel === 0 ? req.ip ?? 'unknown' : req.header('X-API-Token') || '',
 		message: `You've reached the limit of ${plan.requestsPerMin} requests per minute. ${
 			accessLevel === 0
-				? 'Sign up for a plan on https://dev.eigenexplorer.com for increased limits.'
+				? 'Sign up for a plan on https://developer.eigenexplorer.com for increased limits.'
 				: 'Upgrade your plan for increased limits.'
 		}`
 	})
