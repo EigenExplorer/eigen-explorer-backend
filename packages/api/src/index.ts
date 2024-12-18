@@ -8,7 +8,6 @@ import helmet from 'helmet'
 import cors from 'cors'
 import apiRouter from './routes'
 import { EigenExplorerApiError, handleAndReturnErrorResponse } from './schema/errors'
-import { startUserRequestsSync } from './utils/userRequestsSync'
 
 const PORT = process.env.PORT ? Number.parseInt(process.env.PORT) : 3002
 
@@ -51,6 +50,4 @@ app.use((err: Error, req: Request, res: Response) => {
 // Start the server
 app.listen(PORT, () => {
 	console.log(`Server is running on port ${PORT}`)
-
-	startUserRequestsSync()
 })
