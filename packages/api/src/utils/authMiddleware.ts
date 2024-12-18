@@ -159,11 +159,12 @@ for (const [level, plan] of Object.entries(PLANS)) {
 export const rateLimiter = (req: Request, res: Response, next: NextFunction) => {
 	const accessLevel = req.accessLevel || 0
 
-	// No rate limiting for admin
-	if (accessLevel === 999) {
+	// --- LIMITING TO BE ACTIVATED IN V2 ---
+	if (accessLevel >= 0) {
 		return next()
 	}
 
+	/*
 	// Apply rate limiting
 	const limiter = rateLimiters[accessLevel]
 
@@ -186,8 +187,9 @@ export const rateLimiter = (req: Request, res: Response, next: NextFunction) => 
 		res.end = originalEnd
 		return originalEnd.call(this, chunk, encoding, cb)
 	}
-
 	return limiter(req, res, next)
+	*/
+	// --- LIMITING TO BE ACTIVATED IN V2 ---
 }
 
 // --- Auth store management ---
