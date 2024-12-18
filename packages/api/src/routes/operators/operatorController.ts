@@ -61,7 +61,7 @@ export async function getAllOperators(req: Request, res: Response) {
 			: sortByTvl
 			? { field: 'tvlEth', order: sortByTvl }
 			: sortByApy
-			? { field: 'apy', order: sortByApy }
+			? { field: 'maxApy', order: sortByApy }
 			: null
 
 		// Fetch records and apply search/sort
