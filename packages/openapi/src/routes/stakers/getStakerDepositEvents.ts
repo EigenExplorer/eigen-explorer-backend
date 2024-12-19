@@ -13,7 +13,7 @@ import { applyAllRefinements } from '../../apiResponseSchema/events/util'
 
 const StakerAddressParam = z.object({
 	address: EthereumAddressSchema.describe('The address of the staker').openapi({
-		example: '0x9791fdb4e9c0495efc5a1f3f9271ef226251eb34'
+		example: '0xd4fcde9bb1d746Dd7e5463b01Dd819EE06aF25db'
 	})
 })
 
