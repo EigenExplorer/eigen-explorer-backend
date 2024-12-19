@@ -67,7 +67,7 @@ export async function getAllAVS(req: Request, res: Response) {
 			: sortByTvl
 			? { field: 'tvlEth', order: sortByTvl }
 			: sortByApy
-			? { field: 'apy', order: sortByApy }
+			? { field: 'maxApy', order: sortByApy }
 			: null
 
 		// Setup search query
