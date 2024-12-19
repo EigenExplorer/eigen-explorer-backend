@@ -152,7 +152,7 @@ export async function registerUser(req: Request, res: Response) {
 }
 
 /**
- * Protected route, refreshes the server's entire auth store. Called by Supabase edge fn signal-refresh.
+ * Protected route, refreshes the server's entire auth store. Called by Supabase edge fn signal-refresh
  * This function will fail if the caller does not use admin-level auth token
  *
  * @param req

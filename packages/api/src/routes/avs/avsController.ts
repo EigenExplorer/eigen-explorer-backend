@@ -67,7 +67,7 @@ export async function getAllAVS(req: Request, res: Response) {
 			: sortByTvl
 			? { field: 'tvlEth', order: sortByTvl }
 			: sortByApy
-			? { field: 'apy', order: sortByApy }
+			? { field: 'maxApy', order: sortByApy }
 			: null
 
 		// Setup search query
@@ -528,12 +528,6 @@ export async function getAVSRewards(req: Request, res: Response) {
 			}
 		})
 
-		if (!rewardsSubmissions || rewardsSubmissions.length === 0) {
-			throw new Error('AVS not found.')
-		}
-
-		const tokenPrices = await fetchTokenPrices()
-
 		const result: {
 			address: string
 			submissions: Submission[]
@@ -550,6 +544,11 @@ export async function getAVSRewards(req: Request, res: Response) {
 			rewardStrategies: []
 		}
 
+		if (!rewardsSubmissions || rewardsSubmissions.length === 0) {
+			return res.send(result)
+		}
+
+		const tokenPrices = await fetchTokenPrices()
 		const rewardTokens: string[] = []
 		const rewardStrategies: string[] = []
 		let currentSubmission: Submission | null = null
