@@ -7,7 +7,7 @@ const router = express.Router()
 
 // API routes for /auth
 
-router.get('/refresh-store', routeCache.cacheSeconds(5), signalRefreshAuthStore)
+router.post('/refresh-store', signalRefreshAuthStore)
 router.get('/users/:address/check-status', routeCache.cacheSeconds(30), checkUserStatus)
 router.get('/users/:address/nonce', routeCache.cacheSeconds(10), generateNonce)
 router.post('/users/:address/register', routeCache.cacheSeconds(10), registerUser)
