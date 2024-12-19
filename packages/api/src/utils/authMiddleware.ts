@@ -3,6 +3,7 @@ import 'dotenv/config'
 import type { NextFunction, Request, Response } from 'express'
 import { authStore, requestsStore } from './authCache'
 import rateLimit from 'express-rate-limit'
+import { triggerUserRequestsSync } from './requestsUpdateManager'
 
 // --- Types ---
 
@@ -24,8 +25,7 @@ interface Plan {
 const PLANS: Record<number, Plan> = {
 	0: {
 		name: 'Unauthenticated',
-		requestsPerMin: 30, // Remove in v2
-		requestsPerMonth: 1_000 // Remove in v2
+		requestsPerMin: 10_000 // Remove in v2
 	},
 	1: {
 		name: 'Free',
@@ -36,6 +36,10 @@ const PLANS: Record<number, Plan> = {
 		name: 'Basic',
 		requestsPerMin: 1_000,
 		requestsPerMonth: 10_000
+	},
+	998: {
+		name: 'Unknown',
+		requestsPerMin: 100_000
 	},
 	999: {
 		name: 'Admin'
@@ -49,10 +53,11 @@ const PLANS: Record<number, Plan> = {
  * Designed for speed over strictness, always giving user benefit of the doubt
  *
  * -1 -> Account restricted (monthly limit hit)
- * 0 -> No API token (req will be blocked in v2)
+ * 0 -> Unauthenticated (req will be blocked in v2)
  * 1 -> Hobby plan or server/db error
  * 2 -> Basic plan
- * 998 -> Fallback to db to in case auth store is updating (temp state, gets re-assigned to another value)
+ * 997 -> Fallback to db to in case auth store is updating (temp state, gets re-assigned to another value)
+ * 998 -> Unauthenticated and unknown IP. Since this can be multiple diff users, we set a higher rate limit (remove in v2)
  * 999 -> Admin access
  *
  * @param req
@@ -64,10 +69,17 @@ export const authenticator = async (req: Request, res: Response, next: NextFunct
 	const apiToken = req.header('X-API-Token')
 	let accessLevel: number
 
-	// Find access level
+	// Find access level & set rate limiting key
 	if (!apiToken) {
-		accessLevel = 0
+		if (!req.ip) {
+			accessLevel = 998
+			req.key = 'unknown'
+		} else {
+			accessLevel = 0
+			req.key = req.ip
+		}
 	} else {
+		req.key = apiToken
 		const updatedAt: number | undefined = authStore.get('updatedAt')
 
 		if (!updatedAt && !authStore.get('isRefreshing')) refreshAuthStore()
@@ -76,14 +88,14 @@ export const authenticator = async (req: Request, res: Response, next: NextFunct
 		if (process.env.EE_AUTH_TOKEN === apiToken) {
 			accessLevel = 999
 		} else if (accountRestricted === 0) {
-			accessLevel = authStore.get(`apiToken:${apiToken}:accessLevel`) ?? 998
+			accessLevel = authStore.get(`apiToken:${apiToken}:accessLevel`) ?? 997
 		} else {
 			accessLevel = -1
 		}
 	}
 
 	// Handle limiting basis access level
-	if (accessLevel === 998) {
+	if (accessLevel === 997) {
 		const response = await fetch(`${process.env.SUPABASE_FETCH_ACCESS_LEVEL_URL}/${apiToken}`, {
 			method: 'GET',
 			headers: {
@@ -96,8 +108,7 @@ export const authenticator = async (req: Request, res: Response, next: NextFunct
 	}
 
 	// --- LIMITING TO BE ACTIVATED IN V2 ---
-	if (accessLevel === 0) accessLevel = 1
-	if (accessLevel === -1) accessLevel = 1
+	if (accessLevel === -1) accessLevel = 0
 
 	/*
 	if (accessLevel === 0) {
@@ -138,8 +149,7 @@ for (const [level, plan] of Object.entries(PLANS)) {
 		max: plan.requestsPerMin,
 		standardHeaders: true,
 		legacyHeaders: false,
-		keyGenerator: (req: Request): string =>
-			accessLevel === 0 ? req.ip ?? 'unknown' : req.header('X-API-Token') || '',
+		keyGenerator: (req: Request): string => req.key,
 		message: `You've reached the limit of ${plan.requestsPerMin} requests per minute. ${
 			accessLevel === 0
 				? 'Sign up for a plan on https://developer.eigenexplorer.com for increased limits.'
@@ -157,7 +167,7 @@ for (const [level, plan] of Object.entries(PLANS)) {
  * @returns
  */
 export const rateLimiter = (req: Request, res: Response, next: NextFunction) => {
-	const accessLevel = req.accessLevel || 0
+	const accessLevel = req.accessLevel
 
 	// No rate limiting for admin
 	if (accessLevel === 999) {
@@ -179,6 +189,7 @@ export const rateLimiter = (req: Request, res: Response, next: NextFunction) => 
 					const key = `apiToken:${apiToken}:newRequests`
 					const currentCalls: number = requestsStore.get(key) || 0
 					requestsStore.set(key, currentCalls + 1)
+					triggerUserRequestsSync(apiToken)
 				}
 			}
 		} catch {}
