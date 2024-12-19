@@ -252,6 +252,9 @@ export async function refreshAuthStore() {
 					)
 				}
 			}
+
+			if (users.length < take) break
+
 			skip += take
 		}
 
