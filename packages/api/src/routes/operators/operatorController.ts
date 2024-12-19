@@ -563,6 +563,13 @@ async function calculateOperatorApy(operator: any) {
 				}[]
 			}
 		> = new Map()
+		const strategyApyMap: Map<
+			string,
+			{
+				apy: number
+				tokens: Map<string, number>
+			}
+		> = new Map()
 
 		const tokenPrices = await fetchTokenPrices()
 		const strategiesWithSharesUnderlying = await getStrategiesWithShareUnderlying()
@@ -585,14 +592,6 @@ async function calculateOperatorApy(operator: any) {
 			return []
 
 		for (const avs of avsWithEligibleRewardSubmissions) {
-			const strategyApyMap: Map<
-				string,
-				{
-					apy: number
-					tokens: Map<string, number>
-				}
-			> = new Map()
-
 			const shares = withOperatorShares(avs.avs.operators).filter(
 				(s) => avs.avs.restakeableStrategies?.indexOf(s.strategyAddress.toLowerCase()) !== -1
 			)
