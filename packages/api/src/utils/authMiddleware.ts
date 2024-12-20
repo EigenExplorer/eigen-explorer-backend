@@ -28,14 +28,14 @@ const PLANS: Record<number, Plan> = {
 		requestsPerMin: 10_000 // Remove in v2
 	},
 	1: {
-		name: 'Free',
-		requestsPerMin: 30,
-		requestsPerMonth: 1_000
+		name: 'Hobby',
+		requestsPerMin: 100,
+		requestsPerMonth: 10_000
 	},
 	2: {
-		name: 'Basic',
+		name: 'Pro',
 		requestsPerMin: 1_000,
-		requestsPerMonth: 10_000
+		requestsPerMonth: 100_000
 	},
 	998: {
 		name: 'Unknown',
