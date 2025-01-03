@@ -99,7 +99,7 @@ export const authenticator = async (req: Request, res: Response, next: NextFunct
 	if (accessLevel === 0) {
 		const err = new EigenExplorerApiError({
 			code: 'unauthorized',
-			message: `Missing or invalid API token. Please generate a valid token on https://dev.eigenexplorer.com and attach it with header 'X-API-Token'.`
+			message: `Missing or invalid API token. Please generate a valid token on https://developer.eigenexplorer.com and attach it with header 'X-API-Token'.`
 		})
 
 		return handleAndReturnErrorResponse(req, res, err)
