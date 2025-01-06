@@ -107,7 +107,7 @@ export const authenticator = async (req: Request, res: Response, next: NextFunct
 
 	if (accessLevel === -1) {
 		const err = new EigenExplorerApiError({
-			code: 'rate_limit_exceeded',
+			code: 'unauthorized',
 			message: 'You have reached your monthly limit. Please contact us to increase limits.'
 		})
 

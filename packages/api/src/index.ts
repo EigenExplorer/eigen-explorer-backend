@@ -7,6 +7,7 @@ import logger from 'morgan'
 import helmet from 'helmet'
 import cors from 'cors'
 import apiRouter from './routes'
+import { requestsStore } from './utils/authCache'
 import { EigenExplorerApiError, handleAndReturnErrorResponse } from './schema/errors'
 
 const PORT = process.env.PORT ? Number.parseInt(process.env.PORT) : 3002
@@ -21,6 +22,24 @@ app.use(logger('dev'))
 app.use(express.json())
 app.use(express.urlencoded({ extended: false }))
 app.use(cookieParser())
+
+// Route cost increment
+app.use((req, res, next) => {
+	res.on('finish', () => {
+		try {
+			if (res.statusCode >= 200 && res.statusCode < 300) {
+				const apiToken = req.header('X-API-Token')
+				if (apiToken) {
+					const key = `apiToken:${apiToken}:newRequests`
+					const currentCalls: number = requestsStore.get(key) || 0
+					const cost = req.cost || 1
+					requestsStore.set(key, currentCalls + cost)
+				}
+			}
+		} catch {}
+	})
+	next()
+})
 
 // Routes
 app.use('/', apiRouter)
