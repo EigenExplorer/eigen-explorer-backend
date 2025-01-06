@@ -1,4 +1,5 @@
 import { requestsStore } from './authCache'
+import { constructEfUrl } from './edgeFunctions'
 
 interface UpdatePayload {
 	key: string
@@ -20,13 +21,12 @@ interface QueueState {
  */
 class RequestsUpdateManager {
 	private updateInterval = 60_000 // 1 minute
+	private edgeFunctionIndex = 3
 	private updateTimeout: NodeJS.Timeout | null = null
 	private queue: QueueState = {
 		current: new Map(),
 		next: new Map()
 	}
-
-	constructor(private readonly supabaseUrl: string, private readonly supabaseKey: string) {}
 
 	async queueUpdate(apiToken: string): Promise<void> {
 		const requestKey = `apiToken:${apiToken}:newRequests`
@@ -68,8 +68,14 @@ class RequestsUpdateManager {
 	private async performUpdate(): Promise<void> {
 		try {
 			if (this.queue.current.size > 0) {
+				const functionUrl = constructEfUrl(this.edgeFunctionIndex)
 				const updatePayload = Array.from(this.queue.current.values())
-				await this.httpClient(this.supabaseUrl, updatePayload)
+
+				if (!functionUrl) {
+					throw new Error('Invalid function selector')
+				}
+
+				await this.httpClient(functionUrl, updatePayload)
 
 				// Clear processed requests from cache
 				for (const payload of updatePayload) {
@@ -96,7 +102,7 @@ class RequestsUpdateManager {
 		const response = await fetch(url, {
 			method: 'POST',
 			headers: {
-				Authorization: `Bearer ${this.supabaseKey}`,
+				Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
 				'Content-Type': 'application/json'
 			},
 			body: JSON.stringify(data.map((payload) => payload.data))
@@ -108,12 +114,7 @@ class RequestsUpdateManager {
 	}
 }
 
-const updateManager = new RequestsUpdateManager(
-	// biome-ignore lint/style/noNonNullAssertion: <explanation>
-	process.env.SUPABASE_POST_REQUESTS_URL!,
-	// biome-ignore lint/style/noNonNullAssertion: <explanation>
-	process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+const updateManager = new RequestsUpdateManager()
 
 /**
  * Call this function after a request is received & API Token is identified

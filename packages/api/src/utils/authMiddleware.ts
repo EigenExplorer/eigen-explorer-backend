@@ -3,6 +3,7 @@ import 'dotenv/config'
 import type { NextFunction, Request, Response } from 'express'
 import { authStore, requestsStore } from './authCache'
 import { triggerUserRequestsSync } from './requestsUpdateManager'
+import { constructEfUrl } from './edgeFunctions'
 import { EigenExplorerApiError, handleAndReturnErrorResponse } from '../schema/errors'
 import rateLimit from 'express-rate-limit'
 
@@ -62,6 +63,7 @@ const PLANS: Record<number, Plan> = {
  */
 export const authenticator = async (req: Request, res: Response, next: NextFunction) => {
 	const apiToken = req.header('X-API-Token')
+	const edgeFunctionIndex = 2
 	let accessLevel: number
 
 	// Find access level & set rate limiting key
@@ -82,7 +84,13 @@ export const authenticator = async (req: Request, res: Response, next: NextFunct
 	}
 
 	if (accessLevel === 998) {
-		const response = await fetch(`${process.env.SUPABASE_FETCH_ACCESS_LEVEL_URL}/${apiToken}`, {
+		const functionUrl = constructEfUrl(edgeFunctionIndex)
+
+		if (!functionUrl) {
+			throw new Error('Invalid function selector')
+		}
+
+		const response = await fetch(`${functionUrl}/${apiToken}`, {
 			method: 'GET',
 			headers: {
 				Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
@@ -158,28 +166,6 @@ export const rateLimiter = (req: Request, res: Response, next: NextFunction) => 
 
 	// Apply rate limiting
 	const limiter = rateLimiters[accessLevel]
-
-	// Increment `requestsStore` for successful requests
-	const originalEnd = res.end
-
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-	res.end = function (chunk?: any, encoding?: any, cb?: any) {
-		try {
-			if (res.statusCode >= 200 && res.statusCode < 300) {
-				const apiToken = req.header('X-API-Token')
-				if (apiToken) {
-					const key = `apiToken:${apiToken}:newRequests`
-					const currentCalls: number = requestsStore.get(key) || 0
-					requestsStore.set(key, currentCalls + 1)
-					triggerUserRequestsSync(apiToken)
-				}
-			}
-		} catch {}
-
-		res.end = originalEnd
-		return originalEnd.call(this, chunk, encoding, cb)
-	}
-
 	return limiter(req, res, next)
 }
 
@@ -200,18 +186,22 @@ export async function refreshAuthStore() {
 
 		let skip = 0
 		const take = 10_000
+		const edgeFunctionIndex = 1
 
 		while (true) {
-			const response = await fetch(
-				`${process.env.SUPABASE_FETCH_ALL_USERS_URL}?skip=${skip}&take=${take}`,
-				{
-					method: 'GET',
-					headers: {
-						Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
-						'Content-Type': 'application/json'
-					}
+			const functionUrl = constructEfUrl(edgeFunctionIndex)
+
+			if (!functionUrl) {
+				throw new Error('Invalid function selector')
+			}
+
+			const response = await fetch(`${functionUrl}?skip=${skip}&take=${take}`, {
+				method: 'GET',
+				headers: {
+					Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+					'Content-Type': 'application/json'
 				}
-			)
+			})
 
 			if (!response.ok) {
 				throw new Error()
