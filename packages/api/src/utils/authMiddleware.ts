@@ -74,9 +74,7 @@ export const authenticator = async (req: Request, res: Response, next: NextFunct
 		if (!updatedAt && !authStore.get('isRefreshing')) refreshAuthStore()
 		const accountRestricted = authStore.get(`apiToken:${apiToken}:accountRestricted`) || 0 // Benefit of the doubt
 
-		if (process.env.EE_AUTH_TOKEN === apiToken) {
-			accessLevel = 999
-		} else if (accountRestricted === 0) {
+		if (accountRestricted === 0) {
 			accessLevel = authStore.get(`apiToken:${apiToken}:accessLevel`) ?? 998 // Temp state, fallback to DB
 		} else {
 			accessLevel = -1

@@ -1,8 +1,8 @@
 import type { Request, Response } from 'express'
-import { handleAndReturnErrorResponse } from '../../schema/errors'
+import { EigenExplorerApiError, handleAndReturnErrorResponse } from '../../schema/errors'
 import { EthereumAddressSchema } from '../../schema/zod/schemas/base/ethereumAddress'
 import { refreshAuthStore } from '../../utils/authMiddleware'
-import { RegisterUserBodySchema, RequestHeadersSchema } from '../../schema/zod/schemas/auth'
+import { RegisterUserBodySchema } from '../../schema/zod/schemas/auth'
 import { verifyMessage } from 'viem'
 import prisma from '../../utils/prismaClient'
 import crypto from 'node:crypto'
@@ -16,22 +16,16 @@ import crypto from 'node:crypto'
  * @returns
  */
 export async function checkUserStatus(req: Request, res: Response) {
-	const headerCheck = RequestHeadersSchema.safeParse(req.headers)
-	if (!headerCheck.success) {
-		return handleAndReturnErrorResponse(req, res, headerCheck.error)
-	}
-
 	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
 	if (!paramCheck.success) {
 		return handleAndReturnErrorResponse(req, res, paramCheck.error)
 	}
 
 	try {
-		const apiToken = headerCheck.data['X-API-Token']
-		const authToken = process.env.EE_AUTH_TOKEN
+		const accessLevel = req.accessLevel || 0
 
-		if (!apiToken || apiToken !== authToken) {
-			throw new Error('Unauthorized access.')
+		if (accessLevel !== 999) {
+			throw new EigenExplorerApiError({ code: 'unauthorized', message: 'Unauthorized access.' })
 		}
 
 		const { address } = req.params
@@ -64,17 +58,11 @@ export async function checkUserStatus(req: Request, res: Response) {
  * @returns
  */
 export async function generateNonce(req: Request, res: Response) {
-	const headerCheck = RequestHeadersSchema.safeParse(req.headers)
-	if (!headerCheck.success) {
-		return handleAndReturnErrorResponse(req, res, headerCheck.error)
-	}
-
 	try {
-		const apiToken = headerCheck.data['X-API-Token']
-		const authToken = process.env.EE_AUTH_TOKEN
+		const accessLevel = req.accessLevel || 0
 
-		if (!apiToken || apiToken !== authToken) {
-			throw new Error('Unauthorized access.')
+		if (accessLevel !== 999) {
+			throw new EigenExplorerApiError({ code: 'unauthorized', message: 'Unauthorized access.' })
 		}
 
 		const nonce = `0x${crypto.randomBytes(32).toString('hex')}`
@@ -94,11 +82,6 @@ export async function generateNonce(req: Request, res: Response) {
  * @returns
  */
 export async function registerUser(req: Request, res: Response) {
-	const headerCheck = RequestHeadersSchema.safeParse(req.headers)
-	if (!headerCheck.success) {
-		return handleAndReturnErrorResponse(req, res, headerCheck.error)
-	}
-
 	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
 	if (!paramCheck.success) {
 		return handleAndReturnErrorResponse(req, res, paramCheck.error)
@@ -110,11 +93,10 @@ export async function registerUser(req: Request, res: Response) {
 	}
 
 	try {
-		const apiToken = headerCheck.data['X-API-Token']
-		const authToken = process.env.EE_AUTH_TOKEN
+		const accessLevel = req.accessLevel || 0
 
-		if (!apiToken || apiToken !== authToken) {
-			throw new Error('Unauthorized access.')
+		if (accessLevel !== 999) {
+			throw new EigenExplorerApiError({ code: 'unauthorized', message: 'Unauthorized access.' })
 		}
 
 		const { address } = req.params
@@ -160,23 +142,20 @@ export async function registerUser(req: Request, res: Response) {
  * @returns
  */
 export async function signalRefreshAuthStore(req: Request, res: Response) {
-	const headerCheck = RequestHeadersSchema.safeParse(req.headers)
-	if (!headerCheck.success) {
-		return handleAndReturnErrorResponse(req, res, headerCheck.error)
-	}
-
 	try {
-		const apiToken = headerCheck.data['X-API-Token']
-		const authToken = process.env.EE_AUTH_TOKEN
+		const accessLevel = req.accessLevel || 0
 
-		if (!apiToken || apiToken !== authToken) {
-			throw new Error('Unauthorized access.')
+		if (accessLevel !== 999) {
+			throw new EigenExplorerApiError({ code: 'unauthorized', message: 'Unauthorized access.' })
 		}
 
 		const status = await refreshAuthStore()
 
 		if (!status) {
-			throw new Error('Refresh auth store failed.')
+			throw new EigenExplorerApiError({
+				code: 'internal_server_error',
+				message: 'Refresh auth store failed.'
+			})
 		}
 
 		res.status(200).json({ message: 'Auth store refreshed.' })

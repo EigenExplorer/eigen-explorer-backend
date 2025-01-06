@@ -8,9 +8,8 @@ import { UpdatedSinceQuerySchema } from '../../schema/zod/schemas/updatedSinceQu
 import { SortByQuerySchema } from '../../schema/zod/schemas/sortByQuery'
 import { SearchByTextQuerySchema } from '../../schema/zod/schemas/searchByTextQuery'
 import { WithRewardsQuerySchema } from '../../schema/zod/schemas/withRewardsQuery'
-import { RequestHeadersSchema } from '../../schema/zod/schemas/auth'
 import { getOperatorSearchQuery } from '../operators/operatorController'
-import { handleAndReturnErrorResponse } from '../../schema/errors'
+import { EigenExplorerApiError, handleAndReturnErrorResponse } from '../../schema/errors'
 import {
 	getStrategiesWithShareUnderlying,
 	sharesToTVL,
@@ -720,17 +719,11 @@ export async function invalidateMetadata(req: Request, res: Response) {
 		return handleAndReturnErrorResponse(req, res, paramCheck.error)
 	}
 
-	const headerCheck = RequestHeadersSchema.safeParse(req.headers)
-	if (!headerCheck.success) {
-		return handleAndReturnErrorResponse(req, res, headerCheck.error)
-	}
-
 	try {
-		const apiToken = headerCheck.data['X-API-Token']
-		const authToken = process.env.EE_AUTH_TOKEN
+		const accessLevel = req.accessLevel || 0
 
-		if (!apiToken || apiToken !== authToken) {
-			throw new Error('Unauthorized access.')
+		if (accessLevel !== 999) {
+			throw new EigenExplorerApiError({ code: 'unauthorized', message: 'Unauthorized access.' })
 		}
 
 		const { address } = req.params
