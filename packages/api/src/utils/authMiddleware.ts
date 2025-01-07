@@ -1,8 +1,7 @@
 import 'dotenv/config'
 
 import type { NextFunction, Request, Response } from 'express'
-import { authStore, requestsStore } from './authCache'
-import { triggerUserRequestsSync } from './requestsUpdateManager'
+import { authStore } from './authCache'
 import { constructEfUrl } from './edgeFunctions'
 import { EigenExplorerApiError, handleAndReturnErrorResponse } from '../schema/errors'
 import rateLimit from 'express-rate-limit'
@@ -43,96 +42,13 @@ const PLANS: Record<number, Plan> = {
 	}
 }
 
-// --- Authentication ---
-
-/**
- * Authenticates the user via API Token and handles any limit imposition basis access level
- * Designed for speed over strictness, always giving user benefit of the doubt
- *
- * -1 -> Account restricted (monthly limit hit)
- * 0 -> Unauthenticated (req blocked)
- * 1 -> Hobby plan or server/db error
- * 2 -> Basic plan
- * 998 -> Fallback to db to in case auth store is updating (temp state, gets re-assigned to another value)
- * 999 -> Admin access
- *
- * @param req
- * @param res
- * @param next
- * @returns
- */
-export const authenticator = async (req: Request, res: Response, next: NextFunction) => {
-	const apiToken = req.header('X-API-Token')
-	const edgeFunctionIndex = 2
-	let accessLevel: number
-
-	// Find access level & set rate limiting key
-	if (!apiToken) {
-		accessLevel = 0
-	} else {
-		req.key = apiToken
-		const updatedAt: number | undefined = authStore.get('updatedAt')
-
-		if (!updatedAt && !authStore.get('isRefreshing')) refreshAuthStore()
-		const accountRestricted = authStore.get(`apiToken:${apiToken}:accountRestricted`) || 0 // Benefit of the doubt
-
-		if (accountRestricted === 0) {
-			accessLevel = authStore.get(`apiToken:${apiToken}:accessLevel`) ?? 998 // Temp state, fallback to DB
-		} else {
-			accessLevel = -1
-		}
-	}
-
-	if (accessLevel === 998) {
-		const functionUrl = constructEfUrl(edgeFunctionIndex)
-
-		if (!functionUrl) {
-			throw new Error('Invalid function selector')
-		}
-
-		const response = await fetch(`${functionUrl}/${apiToken}`, {
-			method: 'GET',
-			headers: {
-				Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
-				'Content-Type': 'application/json'
-			}
-		})
-		const payload = await response.json()
-		accessLevel = response.ok ? Number(payload?.data?.accessLevel) : 1 // Benefit of the doubt
-	}
-
-	// Impose limits
-	if (accessLevel === 0) {
-		const err = new EigenExplorerApiError({
-			code: 'unauthorized',
-			message: `Missing or invalid API token. Please generate a valid token on https://developer.eigenexplorer.com and attach it with header 'X-API-Token'.`
-		})
-
-		return handleAndReturnErrorResponse(req, res, err)
-	}
-
-	if (accessLevel === -1) {
-		const err = new EigenExplorerApiError({
-			code: 'unauthorized',
-			message: 'You have reached your monthly limit. Please contact us to increase limits.'
-		})
-
-		return handleAndReturnErrorResponse(req, res, err)
-	}
-
-	req.accessLevel = accessLevel
-	next()
-}
-
 // --- Rate Limiting ---
 
 /**
- * Create rate limiters for plans where req/min is applicable
+ * Define rate limiters for plans where req/min is applicable
  *
  */
-
 const rateLimiters: Record<number, ReturnType<typeof rateLimit>> = {}
-
 for (const [level, plan] of Object.entries(PLANS)) {
 	const accessLevel = Number(level)
 
@@ -167,6 +83,93 @@ export const rateLimiter = (req: Request, res: Response, next: NextFunction) => 
 	// Apply rate limiting
 	const limiter = rateLimiters[accessLevel]
 	return limiter(req, res, next)
+}
+
+// --- Authentication ---
+
+/**
+ * Authenticates the user via API Token and handles any limit imposition basis access level
+ * Designed for speed over strictness, always giving user benefit of the doubt
+ *
+ * -1 -> Account restricted (monthly limit hit)
+ * 0 -> Unauthenticated (req blocked)
+ * 1 -> Hobby plan or server/db error
+ * 2 -> Basic plan
+ * 998 -> Fallback to db to in case auth store is updating (temp state, gets re-assigned to another value)
+ * 999 -> Admin access
+ *
+ * @param req
+ * @param res
+ * @param next
+ * @returns
+ */
+export const authenticator = async (req: Request, res: Response, next: NextFunction) => {
+	const apiToken = req.header('X-API-Token')
+	const edgeFunctionIndex = 2
+	let accessLevel: number
+
+	// Find access level
+	if (!apiToken) {
+		accessLevel = 0
+	} else {
+		req.key = apiToken
+		const updatedAt: number | undefined = authStore.get('updatedAt')
+
+		if (!updatedAt && !authStore.get('isRefreshing')) refreshAuthStore()
+		const accountRestricted = authStore.get(`apiToken:${apiToken}:accountRestricted`) || 0 // Benefit of the doubt
+
+		accessLevel =
+			accountRestricted === 0
+				? authStore.get(`apiToken:${apiToken}:accessLevel`) ?? 998 // Temp state, fallback to DB
+				: -1
+	}
+
+	// In case of fallback, fetch access level from DB via edge function
+	if (accessLevel === 998) {
+		const functionUrl = constructEfUrl(edgeFunctionIndex)
+
+		if (!functionUrl) {
+			throw new Error('Invalid function selector')
+		}
+
+		const response = await fetch(`${functionUrl}/${apiToken}`, {
+			method: 'GET',
+			headers: {
+				Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+				'Content-Type': 'application/json'
+			}
+		})
+
+		if (response.ok) {
+			accessLevel = Number((await response.json()).data.accessLevel)
+			authStore.set(`apiToken:${apiToken}:accessLevel`, accessLevel)
+		} else {
+			accessLevel = 1 // Benefit of the doubt
+		}
+	}
+
+	// Impose limits if applicable
+	if (accessLevel === 0) {
+		const err = new EigenExplorerApiError({
+			code: 'unauthorized',
+			message: `Missing or invalid API token. Please generate a valid token on https://developer.eigenexplorer.com and attach it with header 'X-API-Token'.`
+		})
+
+		return handleAndReturnErrorResponse(req, res, err)
+	}
+
+	if (accessLevel === -1) {
+		const err = new EigenExplorerApiError({
+			code: 'unauthorized',
+			message: 'You have reached your monthly limit. Please contact us to increase limits.'
+		})
+
+		return handleAndReturnErrorResponse(req, res, err)
+	}
+
+	// Allow request
+	req.accessLevel = accessLevel
+	next()
 }
 
 // --- Auth store management ---

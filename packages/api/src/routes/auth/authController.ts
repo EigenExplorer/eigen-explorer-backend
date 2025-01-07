@@ -1,7 +1,6 @@
 import type { Request, Response } from 'express'
 import { EigenExplorerApiError, handleAndReturnErrorResponse } from '../../schema/errors'
 import { EthereumAddressSchema } from '../../schema/zod/schemas/base/ethereumAddress'
-import { refreshAuthStore } from '../../utils/authMiddleware'
 import { RegisterUserBodySchema } from '../../schema/zod/schemas/auth'
 import { verifyMessage } from 'viem'
 import prisma from '../../utils/prismaClient'
@@ -128,37 +127,6 @@ export async function registerUser(req: Request, res: Response) {
 		}
 
 		res.send({ isNewUser: !existingUser })
-	} catch (error) {
-		handleAndReturnErrorResponse(req, res, error)
-	}
-}
-
-/**
- * Protected route, refreshes the server's entire auth store. Called by Supabase edge fn signal-refresh
- * This function will fail if the caller does not use admin-level auth token
- *
- * @param req
- * @param res
- * @returns
- */
-export async function signalRefreshAuthStore(req: Request, res: Response) {
-	try {
-		const accessLevel = req.accessLevel || 0
-
-		if (accessLevel !== 999) {
-			throw new EigenExplorerApiError({ code: 'unauthorized', message: 'Unauthorized access.' })
-		}
-
-		const status = await refreshAuthStore()
-
-		if (!status) {
-			throw new EigenExplorerApiError({
-				code: 'internal_server_error',
-				message: 'Refresh auth store failed.'
-			})
-		}
-
-		res.status(200).json({ message: 'Auth store refreshed.' })
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
 	}

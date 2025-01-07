@@ -8,6 +8,7 @@ import helmet from 'helmet'
 import cors from 'cors'
 import apiRouter from './routes'
 import { requestsStore } from './utils/authCache'
+import { triggerUserRequestsSync } from './utils/requestsUpdateManager'
 import { EigenExplorerApiError, handleAndReturnErrorResponse } from './schema/errors'
 
 const PORT = process.env.PORT ? Number.parseInt(process.env.PORT) : 3002
@@ -23,7 +24,7 @@ app.use(express.json())
 app.use(express.urlencoded({ extended: false }))
 app.use(cookieParser())
 
-// Route cost increment
+// Route cost increment in cache for caller's API Token
 app.use((req, res, next) => {
 	res.on('finish', () => {
 		try {
@@ -34,6 +35,7 @@ app.use((req, res, next) => {
 					const currentCalls: number = requestsStore.get(key) || 0
 					const cost = req.cost || 1
 					requestsStore.set(key, currentCalls + cost)
+					triggerUserRequestsSync(apiToken)
 				}
 			}
 		} catch {}
@@ -46,7 +48,7 @@ app.use('/', apiRouter)
 
 app.get('/favicon.ico', (req, res) => res.sendStatus(204))
 
-// catch 404 and forward to error handler
+// Catch 404 and forward to error handler
 app.use((req, res) => {
 	const err = new EigenExplorerApiError({
 		code: 'not_found',
@@ -55,13 +57,13 @@ app.use((req, res) => {
 	handleAndReturnErrorResponse(req, res, err)
 })
 
-// error handler
+// Error handler
 app.use((err: Error, req: Request, res: Response) => {
-	// set locals, only providing error in development
+	// Set locals, only providing error in development
 	res.locals.message = err.message
 	res.locals.error = req.app.get('env') === 'development' ? err : {}
 
-	// render the error page
+	// Render the error page
 	res.status(500)
 	res.render('error')
 })

@@ -1,4 +1,5 @@
 import { requestsStore } from './authCache'
+import { refreshAuthStore } from './authMiddleware'
 import { constructEfUrl } from './edgeFunctions'
 
 interface UpdatePayload {
@@ -16,7 +17,7 @@ interface QueueState {
 }
 
 /**
- * Manages DB updates for API Token request count
+ * Manages DB updates for API Token request count, utilizing `requestsStore`
  *
  */
 class RequestsUpdateManager {
@@ -88,6 +89,7 @@ class RequestsUpdateManager {
 		} catch (error) {
 			console.error('[Data] Update failed:', error)
 		} finally {
+			refreshAuthStore()
 			this.updateTimeout = null
 			this.queue.current = this.queue.next
 			this.queue.next = new Map()
@@ -117,7 +119,7 @@ class RequestsUpdateManager {
 const updateManager = new RequestsUpdateManager()
 
 /**
- * Call this function after a request is received & API Token is identified
+ * Called at the end of every authenticated request, after `requestsStore` is incremented with the route cost
  *
  * @returns
  */
