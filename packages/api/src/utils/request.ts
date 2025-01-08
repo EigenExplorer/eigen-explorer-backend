@@ -5,6 +5,7 @@ declare global {
 		interface Request {
 			accessLevel: number
 			key: string
+			cost?: number
 		}
 	}
 }

@@ -1,8 +1,7 @@
 import 'dotenv/config'
 
 import type { NextFunction, Request, Response } from 'express'
-import { authStore, requestsStore } from './authCache'
-import { triggerUserRequestsSync } from './requestsUpdateManager'
+import { authStore } from './authCache'
 import { EigenExplorerApiError, handleAndReturnErrorResponse } from '../schema/errors'
 import rateLimit from 'express-rate-limit'
 
@@ -42,91 +41,13 @@ const PLANS: Record<number, Plan> = {
 	}
 }
 
-// --- Authentication ---
-
-/**
- * Authenticates the user via API Token and handles any limit imposition basis access level
- * Designed for speed over strictness, always giving user benefit of the doubt
- *
- * -1 -> Account restricted (monthly limit hit)
- * 0 -> Unauthenticated (req blocked)
- * 1 -> Hobby plan or server/db error
- * 2 -> Basic plan
- * 998 -> Fallback to db to in case auth store is updating (temp state, gets re-assigned to another value)
- * 999 -> Admin access
- *
- * @param req
- * @param res
- * @param next
- * @returns
- */
-export const authenticator = async (req: Request, res: Response, next: NextFunction) => {
-	const apiToken = req.header('X-API-Token')
-	let accessLevel: number
-
-	// Find access level & set rate limiting key
-	if (!apiToken) {
-		accessLevel = 0
-	} else {
-		req.key = apiToken
-		const updatedAt: number | undefined = authStore.get('updatedAt')
-
-		if (!updatedAt && !authStore.get('isRefreshing')) refreshAuthStore()
-		const accountRestricted = authStore.get(`apiToken:${apiToken}:accountRestricted`) || 0 // Benefit of the doubt
-
-		if (process.env.EE_AUTH_TOKEN === apiToken) {
-			accessLevel = 999
-		} else if (accountRestricted === 0) {
-			accessLevel = authStore.get(`apiToken:${apiToken}:accessLevel`) ?? 998 // Temp state, fallback to DB
-		} else {
-			accessLevel = -1
-		}
-	}
-
-	if (accessLevel === 998) {
-		const response = await fetch(`${process.env.SUPABASE_FETCH_ACCESS_LEVEL_URL}/${apiToken}`, {
-			method: 'GET',
-			headers: {
-				Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
-				'Content-Type': 'application/json'
-			}
-		})
-		const payload = await response.json()
-		accessLevel = response.ok ? Number(payload?.data?.accessLevel) : 1 // Benefit of the doubt
-	}
-
-	// Impose limits
-	if (accessLevel === 0) {
-		const err = new EigenExplorerApiError({
-			code: 'unauthorized',
-			message: `Missing or invalid API token. Please generate a valid token on https://developer.eigenexplorer.com and attach it with header 'X-API-Token'.`
-		})
-
-		return handleAndReturnErrorResponse(req, res, err)
-	}
-
-	if (accessLevel === -1) {
-		const err = new EigenExplorerApiError({
-			code: 'rate_limit_exceeded',
-			message: 'You have reached your monthly limit. Please contact us to increase limits.'
-		})
-
-		return handleAndReturnErrorResponse(req, res, err)
-	}
-
-	req.accessLevel = accessLevel
-	next()
-}
-
 // --- Rate Limiting ---
 
 /**
- * Create rate limiters for plans where req/min is applicable
+ * Define rate limiters for plans where req/min is applicable
  *
  */
-
 const rateLimiters: Record<number, ReturnType<typeof rateLimit>> = {}
-
 for (const [level, plan] of Object.entries(PLANS)) {
 	const accessLevel = Number(level)
 
@@ -160,29 +81,94 @@ export const rateLimiter = (req: Request, res: Response, next: NextFunction) => 
 
 	// Apply rate limiting
 	const limiter = rateLimiters[accessLevel]
+	return limiter(req, res, next)
+}
 
-	// Increment `requestsStore` for successful requests
-	const originalEnd = res.end
+// --- Authentication ---
 
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-	res.end = function (chunk?: any, encoding?: any, cb?: any) {
-		try {
-			if (res.statusCode >= 200 && res.statusCode < 300) {
-				const apiToken = req.header('X-API-Token')
-				if (apiToken) {
-					const key = `apiToken:${apiToken}:newRequests`
-					const currentCalls: number = requestsStore.get(key) || 0
-					requestsStore.set(key, currentCalls + 1)
-					triggerUserRequestsSync(apiToken)
-				}
-			}
-		} catch {}
+/**
+ * Authenticates the user via API Token and handles any limit imposition basis access level
+ * Designed for speed over strictness, always giving user benefit of the doubt
+ *
+ * -1 -> Account restricted (monthly limit hit)
+ * 0 -> Unauthenticated (req blocked)
+ * 1 -> Hobby plan or server/db error
+ * 2 -> Basic plan
+ * 998 -> Fallback to db to in case auth store is updating (temp state, gets re-assigned to another value)
+ * 999 -> Admin access
+ *
+ * @param req
+ * @param res
+ * @param next
+ * @returns
+ */
+export const authenticator = async (req: Request, res: Response, next: NextFunction) => {
+	const apiToken = req.header('X-API-Token')
+	const edgeFunctionIndex = 2
+	let accessLevel: number
 
-		res.end = originalEnd
-		return originalEnd.call(this, chunk, encoding, cb)
+	// Find access level
+	if (!apiToken) {
+		accessLevel = 0
+	} else {
+		req.key = apiToken
+		const updatedAt: number | undefined = authStore.get('updatedAt')
+
+		if (!updatedAt && !authStore.get('isRefreshing')) refreshAuthStore()
+		const accountRestricted = authStore.get(`apiToken:${apiToken}:accountRestricted`) || 0 // Benefit of the doubt
+
+		accessLevel =
+			accountRestricted === 0
+				? authStore.get(`apiToken:${apiToken}:accessLevel`) ?? 998 // Temp state, fallback to DB
+				: -1
 	}
 
-	return limiter(req, res, next)
+	// In case of fallback, fetch access level from DB via edge function
+	if (accessLevel === 998) {
+		const functionUrl = constructEfUrl(edgeFunctionIndex)
+
+		if (!functionUrl) {
+			throw new Error('Invalid function selector')
+		}
+
+		const response = await fetch(`${functionUrl}/${apiToken}`, {
+			method: 'GET',
+			headers: {
+				Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+				'Content-Type': 'application/json'
+			}
+		})
+
+		if (response.ok) {
+			accessLevel = Number((await response.json()).data.accessLevel)
+			authStore.set(`apiToken:${apiToken}:accessLevel`, accessLevel)
+		} else {
+			accessLevel = 1 // Benefit of the doubt
+		}
+	}
+
+	// Impose limits if applicable
+	if (accessLevel === 0) {
+		const err = new EigenExplorerApiError({
+			code: 'unauthorized',
+			message: `Missing or invalid API token. Please generate a valid token on https://developer.eigenexplorer.com and attach it with header 'X-API-Token'.`
+		})
+
+		return handleAndReturnErrorResponse(req, res, err)
+	}
+
+	if (accessLevel === -1) {
+		const err = new EigenExplorerApiError({
+			code: 'unauthorized',
+			message: 'You have reached your monthly limit. Please contact us to increase limits.'
+		})
+
+		return handleAndReturnErrorResponse(req, res, err)
+	}
+
+	// Allow request
+	req.accessLevel = accessLevel
+	next()
 }
 
 // --- Auth store management ---
@@ -202,18 +188,22 @@ export async function refreshAuthStore() {
 
 		let skip = 0
 		const take = 10_000
+		const edgeFunctionIndex = 1
 
 		while (true) {
-			const response = await fetch(
-				`${process.env.SUPABASE_FETCH_ALL_USERS_URL}?skip=${skip}&take=${take}`,
-				{
-					method: 'GET',
-					headers: {
-						Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
-						'Content-Type': 'application/json'
-					}
+			const functionUrl = constructEfUrl(edgeFunctionIndex)
+
+			if (!functionUrl) {
+				throw new Error('Invalid function selector')
+			}
+
+			const response = await fetch(`${functionUrl}?skip=${skip}&take=${take}`, {
+				method: 'GET',
+				headers: {
+					Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+					'Content-Type': 'application/json'
 				}
-			)
+			})
 
 			if (!response.ok) {
 				throw new Error()
@@ -249,4 +239,36 @@ export async function refreshAuthStore() {
 	} finally {
 		authStore.set('isRefreshing', false)
 	}
+}
+
+// --- Helper Functions ---
+
+/**
+ * Returns whether the deployment should impose auth (API Token restrictions, comms with dev-portal DB)
+ *
+ */
+export function isAuthRequired() {
+	return (
+		process.env.SUPABASE_SERVICE_ROLE_KEY &&
+		process.env.SUPABASE_PROJECT_REF &&
+		process.env.SUPABASE_EF_SELECTORS
+	)
+}
+
+/**
+ * Returns URL of an Edge Function deployed on the dev-portal DB, given its function selector index
+ * 1 -> Fetching all users
+ * 2 -> Fetching access level for a given API token
+ * 3 -> Posting updates on # of new requests for a set of API tokens
+ *
+ * @param index
+ * @returns
+ */
+export function constructEfUrl(index: number) {
+	const projectRef = process.env.SUPABASE_PROJECT_REF || null
+	const functionSelector = process.env.SUPABASE_EF_SELECTORS?.split(':')[index - 1] || null
+
+	return projectRef && functionSelector
+		? `https://${projectRef}.supabase.co/functions/v1/${functionSelector}`
+		: null
 }
