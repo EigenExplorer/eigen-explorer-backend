@@ -10,6 +10,7 @@ import apiRouter from './routes'
 import { requestsStore } from './utils/authCache'
 import { triggerUserRequestsSync } from './utils/requestsUpdateManager'
 import { EigenExplorerApiError, handleAndReturnErrorResponse } from './schema/errors'
+import { isAuthRequired, refreshAuthStore } from './utils/authMiddleware'
 
 const PORT = process.env.PORT ? Number.parseInt(process.env.PORT) : 3002
 
@@ -25,23 +26,26 @@ app.use(express.urlencoded({ extended: false }))
 app.use(cookieParser())
 
 // Route cost increment in cache for caller's API Token
-app.use((req, res, next) => {
-	res.on('finish', () => {
-		try {
-			if (res.statusCode >= 200 && res.statusCode < 300) {
-				const apiToken = req.header('X-API-Token')
-				if (apiToken) {
-					const key = `apiToken:${apiToken}:newRequests`
-					const currentCalls: number = requestsStore.get(key) || 0
-					const cost = req.cost || 1
-					requestsStore.set(key, currentCalls + cost)
-					triggerUserRequestsSync(apiToken)
+if (isAuthRequired()) {
+	refreshAuthStore()
+	app.use((req, res, next) => {
+		res.on('finish', () => {
+			try {
+				if (res.statusCode >= 200 && res.statusCode < 300) {
+					const apiToken = req.header('X-API-Token')
+					if (apiToken) {
+						const key = `apiToken:${apiToken}:newRequests`
+						const currentCalls: number = requestsStore.get(key) || 0
+						const cost = req.cost || 1
+						requestsStore.set(key, currentCalls + cost)
+						triggerUserRequestsSync(apiToken)
+					}
 				}
-			}
-		} catch {}
+			} catch {}
+		})
+		next()
 	})
-	next()
-})
+}
 
 // Routes
 app.use('/', apiRouter)

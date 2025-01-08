@@ -2,7 +2,6 @@ import 'dotenv/config'
 
 import type { NextFunction, Request, Response } from 'express'
 import { authStore } from './authCache'
-import { constructEfUrl } from './edgeFunctions'
 import { EigenExplorerApiError, handleAndReturnErrorResponse } from '../schema/errors'
 import rateLimit from 'express-rate-limit'
 
@@ -240,4 +239,36 @@ export async function refreshAuthStore() {
 	} finally {
 		authStore.set('isRefreshing', false)
 	}
+}
+
+// --- Helper Functions ---
+
+/**
+ * Returns whether the deployment should impose auth (API Token restrictions, comms with dev-portal DB)
+ *
+ */
+export function isAuthRequired() {
+	return (
+		process.env.SUPABASE_SERVICE_ROLE_KEY &&
+		process.env.SUPABASE_PROJECT_REF &&
+		process.env.SUPABASE_EF_SELECTORS
+	)
+}
+
+/**
+ * Returns URL of an Edge Function deployed on the dev-portal DB, given its function selector index
+ * 1 -> Fetching all users
+ * 2 -> Fetching access level for a given API token
+ * 3 -> Posting updates on # of new requests for a set of API tokens
+ *
+ * @param index
+ * @returns
+ */
+export function constructEfUrl(index: number) {
+	const projectRef = process.env.SUPABASE_PROJECT_REF || null
+	const functionSelector = process.env.SUPABASE_EF_SELECTORS?.split(':')[index - 1] || null
+
+	return projectRef && functionSelector
+		? `https://${projectRef}.supabase.co/functions/v1/${functionSelector}`
+		: null
 }

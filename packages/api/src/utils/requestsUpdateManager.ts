@@ -1,6 +1,5 @@
 import { requestsStore } from './authCache'
-import { refreshAuthStore } from './authMiddleware'
-import { constructEfUrl } from './edgeFunctions'
+import { refreshAuthStore, constructEfUrl } from './authMiddleware'
 
 interface UpdatePayload {
 	key: string
