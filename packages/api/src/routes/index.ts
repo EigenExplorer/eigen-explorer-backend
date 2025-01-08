@@ -1,4 +1,4 @@
-import express from 'express'
+import express, { type Router } from 'express'
 import avsRoutes from './avs/avsRoutes'
 import strategiesRoutes from './strategies/strategiesRoutes'
 import operatorRoutes from './operators/operatorRoutes'
@@ -10,9 +10,13 @@ import auxiliaryRoutes from './auxiliary/auxiliaryRoutes'
 import rewardRoutes from './rewards/rewardRoutes'
 import eventRoutes from './events/eventsRoutes'
 import authRoutes from './auth/authRoutes'
-import { authenticator, rateLimiter } from '../utils/authMiddleware'
+import { authenticator, isAuthRequired, rateLimiter } from '../utils/authMiddleware'
 
 const apiRouter = express.Router()
+
+const setMiddleware = (router: Router) => {
+	return isAuthRequired() ? [authenticator, rateLimiter, router] : [router]
+}
 
 // Health route
 apiRouter.get('/health', (_, res) => res.send({ status: 'ok' }))
@@ -23,16 +27,22 @@ apiRouter.get('/version', (_, res) =>
 )
 
 // Remaining routes
-apiRouter.use('/avs', authenticator, rateLimiter, avsRoutes)
-apiRouter.use('/strategies', authenticator, rateLimiter, strategiesRoutes)
-apiRouter.use('/operators', authenticator, rateLimiter, operatorRoutes)
-apiRouter.use('/stakers', authenticator, rateLimiter, stakerRoutes)
-apiRouter.use('/metrics', authenticator, rateLimiter, metricRoutes)
-apiRouter.use('/withdrawals', authenticator, rateLimiter, withdrawalRoutes)
-apiRouter.use('/deposits', authenticator, rateLimiter, depositRoutes)
-apiRouter.use('/aux', authenticator, rateLimiter, auxiliaryRoutes)
-apiRouter.use('/rewards', authenticator, rateLimiter, rewardRoutes)
-apiRouter.use('/events', authenticator, rateLimiter, eventRoutes)
-apiRouter.use('/auth', authenticator, rateLimiter, authRoutes)
+const routes = {
+	'/avs': avsRoutes,
+	'/strategies': strategiesRoutes,
+	'/operators': operatorRoutes,
+	'/stakers': stakerRoutes,
+	'/metrics': metricRoutes,
+	'/withdrawals': withdrawalRoutes,
+	'/deposits': depositRoutes,
+	'/aux': auxiliaryRoutes,
+	'/rewards': rewardRoutes,
+	'/events': eventRoutes,
+	'/auth': authRoutes
+}
+
+for (const [path, router] of Object.entries(routes)) {
+	apiRouter.use(path, ...setMiddleware(router))
+}
 
 export default apiRouter
