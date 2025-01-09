@@ -2931,9 +2931,9 @@
 														"description": "The total number of operators operating the AVS",
 														"example": 10
 													},
-													"apy": {
+													"maxApy": {
 														"type": "string",
-														"description": "The latest APY recorded for the AVS",
+														"description": "The max APY for the AVS across all the strategies",
 														"example": "1.0"
 													},
 													"createdAtBlock": {
@@ -3192,7 +3192,7 @@
 													"metadataX",
 													"totalStakers",
 													"totalOperators",
-													"apy",
+													"maxApy",
 													"createdAtBlock",
 													"updatedAtBlock",
 													"createdAt",
@@ -3513,9 +3513,9 @@
 											"description": "The total number of operators operating the AVS",
 											"example": 10
 										},
-										"apy": {
+										"maxApy": {
 											"type": "string",
-											"description": "The latest APY recorded for the AVS",
+											"description": "The max APY for the AVS across all the strategies",
 											"example": "1.0"
 										},
 										"createdAtBlock": {
@@ -3818,7 +3818,7 @@
 										"metadataX",
 										"totalStakers",
 										"totalOperators",
-										"apy",
+										"maxApy",
 										"createdAtBlock",
 										"updatedAtBlock",
 										"createdAt",
@@ -4286,9 +4286,9 @@
 														"description": "The total number of AVS opted by the AVS operator",
 														"example": 10
 													},
-													"apy": {
+													"maxApy": {
 														"type": "number",
-														"description": "The latest APY recorded for the Operator",
+														"description": "The max APY for the AVS Operator across all the strategies",
 														"example": 1
 													},
 													"createdAtBlock": {
@@ -4437,7 +4437,7 @@
 													"metadataX",
 													"totalStakers",
 													"totalAvs",
-													"apy",
+													"maxApy",
 													"createdAtBlock",
 													"updatedAtBlock",
 													"createdAt",
@@ -5261,9 +5261,9 @@
 														"description": "The total number of AVS opted by the AVS operator",
 														"example": 10
 													},
-													"apy": {
+													"maxApy": {
 														"type": "string",
-														"description": "The latest APY recorded for the operator",
+														"description": "The max APY for the AVS Operator across all the strategies",
 														"example": "1.0"
 													},
 													"createdAtBlock": {
@@ -5434,7 +5434,7 @@
 													"metadataX",
 													"totalStakers",
 													"totalAvs",
-													"apy",
+													"maxApy",
 													"createdAtBlock",
 													"updatedAtBlock",
 													"createdAt",
@@ -5756,9 +5756,9 @@
 											"description": "The total number of AVS opted by the AVS operator",
 											"example": 10
 										},
-										"apy": {
+										"maxApy": {
 											"type": "string",
-											"description": "The latest APY recorded for the operator",
+											"description": "The max APY for the AVS Operator across all the strategies",
 											"example": "1.0"
 										},
 										"createdAtBlock": {
@@ -6505,7 +6505,7 @@
 										"metadataX",
 										"totalStakers",
 										"totalAvs",
-										"apy",
+										"maxApy",
 										"createdAtBlock",
 										"updatedAtBlock",
 										"createdAt",

@@ -24,7 +24,10 @@ export const AvsSchema = z.object({
 		.number()
 		.describe('The total number of operators operating the AVS')
 		.openapi({ example: 10 }),
-	apy: z.string().describe('The latest APY recorded for the AVS').openapi({ example: '1.0' }),
+	maxApy: z
+		.string()
+		.describe('The max APY for the AVS across all the strategies')
+		.openapi({ example: '1.0' }),
 	createdAtBlock: z
 		.string()
 		.describe('The block number at which the AVS was created')
