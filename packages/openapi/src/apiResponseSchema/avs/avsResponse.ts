@@ -3,6 +3,7 @@ import { AvsMetaDataSchema } from '../../../../api/src/schema/zod/schemas/base/a
 import { EthereumAddressSchema } from '../../../../api/src/schema/zod/schemas/base/ethereumAddress'
 import { StrategySharesSchema } from '../../../../api/src/schema/zod/schemas/base/strategyShares'
 import { CuratedMetadataSchema } from '../base/curatedMetadataResponses'
+import { StrategyApySchema } from '../base/strategyApyResponse'
 import { TvlSchema } from '../base/tvlResponses'
 
 export const AvsSchema = z.object({
@@ -101,4 +102,14 @@ export const AvsSchema = z.object({
 				}
 			}
 		})
+})
+
+export const RewardsSchema = z.object({
+	strategyApys: z
+		.array(StrategyApySchema)
+		.describe('An array of strategies with their respective APYs and token details')
+})
+
+export const AvsWithRewardsSchema = AvsSchema.extend({
+	rewards: RewardsSchema.describe('The reward details for the AVS, including strategies and APYs')
 })

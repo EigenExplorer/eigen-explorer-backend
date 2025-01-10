@@ -3,6 +3,7 @@ import { EthereumAddressSchema } from '../../../../api/src/schema/zod/schemas/ba
 import { AvsMetaDataSchema } from '../../../../api/src/schema/zod/schemas/base/avsMetaData'
 import { CuratedMetadataSchema } from '.././base/curatedMetadataResponses'
 import { OperatorResponseSchema } from './operatorResponse'
+import { StrategyApySchema } from '../base/strategyApyResponse'
 
 export const AvsRegistrationSchema = z.object({
 	avsAddress: EthereumAddressSchema.describe('The address of the AVS contract').openapi({
@@ -257,41 +258,22 @@ export const DetailedAvsRegistrationSchema = AvsRegistrationSchema.merge(AvsMeta
 		.describe('List of operators associated with the AVS registration')
 })
 
-export const RewardsSchema = z.object({
-	avs: z.array(
-		z.object({
-			avsAddress: EthereumAddressSchema.describe('AVS service manager contract address').openapi({
-				example: '0x870679e138bcdf293b7ff14dd44b70fc97e12fc0'
-			}),
-			apy: z
-				.number()
-				.describe('Latest APY recorded for the AVS')
-				.openapi({ example: 0.15973119826488588 })
-		})
-	),
-	strategies: z.array(
-		z.object({
-			strategyAddress: EthereumAddressSchema.describe(
-				'The contract address of the restaking strategy'
-			).openapi({
-				example: '0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0'
-			}),
-			apy: z.number().describe('APY of the restaking strategy').openapi({ example: 0.1 })
-		})
-	),
-	aggregateApy: z
+export const OperatorRewardsSchema = z.object({
+	avsAddress: EthereumAddressSchema.describe('AVS service manager contract address').openapi({
+		example: '0x870679e138bcdf293b7ff14dd44b70fc97e12fc0'
+	}),
+	maxApy: z
 		.number()
-		.describe('The aggregate APY across all strategies')
-		.openapi({ example: 1.0 }),
-	operatorEarningsEth: z
-		.string()
-		.describe('Total earnings for the operator in ETH')
-		.openapi({ example: '1000000000000000000' })
+		.describe('The max APY for the AVS Operator across all the strategies')
+		.openapi({ example: 0.1 }),
+	strategyApys: z.array(StrategyApySchema)
 })
 
 export const OperatorWithRewardsResponseSchema = OperatorResponseSchema.extend({
 	avsRegistrations: z
 		.array(DetailedAvsRegistrationSchema)
 		.describe('Detailed AVS registrations information for the operator'),
-	rewards: RewardsSchema.describe('The rewards information for the operator')
+	rewards: z
+		.array(OperatorRewardsSchema)
+		.describe('The reward details for the operator, including strategies and APYs')
 })
