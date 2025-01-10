@@ -3765,7 +3765,7 @@
 										"rewards": {
 											"type": "object",
 											"properties": {
-												"strategies": {
+												"strategyApys": {
 													"type": "array",
 													"items": {
 														"type": "object",
@@ -3777,34 +3777,36 @@
 															},
 															"apy": {
 																"type": "number",
-																"description": "The latest APY recorded for the restaking strategy",
+																"description": "The cumulative APY from all tokens in this strategy",
 																"example": 0.1
+															},
+															"tokens": {
+																"type": "array",
+																"items": {
+																	"type": "object",
+																	"properties": {
+																		"tokenAddress": {
+																			"type": "string",
+																			"description": "The contract address of the token involved in the strategy",
+																			"example": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+																		},
+																		"apy": {
+																			"type": "number",
+																			"description": "The APY contributed by this individual token",
+																			"example": 0.1
+																		}
+																	},
+																	"required": ["tokenAddress", "apy"]
+																}
 															}
 														},
-														"required": ["strategyAddress", "apy"]
-													}
-												},
-												"aggregateApy": {
-													"type": "number",
-													"description": "The aggregate APY across all strategies",
-													"example": 1
+														"required": ["strategyAddress", "apy", "tokens"]
+													},
+													"description": "An array of strategies with their respective APYs and token details"
 												}
 											},
-											"required": ["strategies", "aggregateApy"],
-											"description": "The rewards and APY information of the AVS strategies",
-											"example": {
-												"strategies": [
-													{
-														"strategyAddress": "0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0",
-														"apy": 0.1
-													},
-													{
-														"strategyAddress": "0x93c4b944d05dfe6df7645a86cd2206016c51564d",
-														"apy": 0.1
-													}
-												],
-												"aggregateApy": 1
-											}
+											"required": ["strategyApys"],
+											"description": "The reward details for the AVS, including strategies and APYs"
 										}
 									},
 									"required": [
@@ -3823,7 +3825,8 @@
 										"updatedAtBlock",
 										"createdAt",
 										"updatedAt",
-										"shares"
+										"shares",
+										"rewards"
 									]
 								}
 							}
@@ -6437,61 +6440,63 @@
 											}
 										},
 										"rewards": {
-											"type": "object",
-											"properties": {
-												"avs": {
-													"type": "array",
-													"items": {
-														"type": "object",
-														"properties": {
-															"avsAddress": {
-																"type": "string",
-																"pattern": "^0x[a-fA-F0-9]{40}$",
-																"description": "AVS service manager contract address",
-																"example": "0x870679e138bcdf293b7ff14dd44b70fc97e12fc0"
+											"type": "array",
+											"items": {
+												"type": "object",
+												"properties": {
+													"avsAddress": {
+														"type": "string",
+														"pattern": "^0x[a-fA-F0-9]{40}$",
+														"description": "AVS service manager contract address",
+														"example": "0x870679e138bcdf293b7ff14dd44b70fc97e12fc0"
+													},
+													"maxApy": {
+														"type": "number",
+														"description": "The max APY for the AVS Operator across all the strategies",
+														"example": 0.1
+													},
+													"strategyApys": {
+														"type": "array",
+														"items": {
+															"type": "object",
+															"properties": {
+																"strategyAddress": {
+																	"type": "string",
+																	"description": "The contract address of the restaking strategy",
+																	"example": "0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0"
+																},
+																"apy": {
+																	"type": "number",
+																	"description": "The cumulative APY from all tokens in this strategy",
+																	"example": 0.1
+																},
+																"tokens": {
+																	"type": "array",
+																	"items": {
+																		"type": "object",
+																		"properties": {
+																			"tokenAddress": {
+																				"type": "string",
+																				"description": "The contract address of the token involved in the strategy",
+																				"example": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+																			},
+																			"apy": {
+																				"type": "number",
+																				"description": "The APY contributed by this individual token",
+																				"example": 0.1
+																			}
+																		},
+																		"required": ["tokenAddress", "apy"]
+																	}
+																}
 															},
-															"apy": {
-																"type": "number",
-																"description": "Latest APY recorded for the AVS",
-																"example": 0.15973119826488588
-															}
-														},
-														"required": ["avsAddress", "apy"]
+															"required": ["strategyAddress", "apy", "tokens"]
+														}
 													}
 												},
-												"strategies": {
-													"type": "array",
-													"items": {
-														"type": "object",
-														"properties": {
-															"strategyAddress": {
-																"type": "string",
-																"pattern": "^0x[a-fA-F0-9]{40}$",
-																"description": "The contract address of the restaking strategy",
-																"example": "0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0"
-															},
-															"apy": {
-																"type": "number",
-																"description": "APY of the restaking strategy",
-																"example": 0.1
-															}
-														},
-														"required": ["strategyAddress", "apy"]
-													}
-												},
-												"aggregateApy": {
-													"type": "number",
-													"description": "The aggregate APY across all strategies",
-													"example": 1
-												},
-												"operatorEarningsEth": {
-													"type": "string",
-													"description": "Total earnings for the operator in ETH",
-													"example": "1000000000000000000"
-												}
+												"required": ["avsAddress", "maxApy", "strategyApys"]
 											},
-											"required": ["avs", "strategies", "aggregateApy", "operatorEarningsEth"],
-											"description": "The rewards information for the operator"
+											"description": "The reward details for the operator, including strategies and APYs"
 										}
 									},
 									"required": [
@@ -7685,6 +7690,18 @@
 							"description": "Toggle whether the route should calculate the TVL from shares",
 							"example": "false"
 						}
+					},
+					{
+						"in": "query",
+						"name": "withRewards",
+						"description": "Toggle whether the route should return Avs/Operator rewards APY data",
+						"schema": {
+							"type": "string",
+							"enum": ["true", "false"],
+							"default": "false",
+							"description": "Toggle whether the route should return Avs/Operator rewards APY data",
+							"example": "false"
+						}
 					}
 				],
 				"responses": {
@@ -7820,6 +7837,132 @@
 													"cbETH": 2000000
 												}
 											}
+										},
+										"rewards": {
+											"type": "object",
+											"properties": {
+												"aggregateApy": {
+													"type": "number",
+													"description": "The aggregate APY across all eligible strategies for this staker",
+													"example": 0.1
+												},
+												"tokenAmounts": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"tokenAddress": {
+																"type": "string",
+																"description": "The contract address of the token involved",
+																"example": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+															},
+															"cumulativeAmount": {
+																"type": "string",
+																"description": "The staker’s cumulative amount earned amount of this particular token",
+																"example": "1.4e-8"
+															}
+														},
+														"required": ["tokenAddress", "cumulativeAmount"]
+													}
+												},
+												"strategyApys": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"strategyAddress": {
+																"type": "string",
+																"description": "The contract address of the restaking strategy",
+																"example": "0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0"
+															},
+															"apy": {
+																"type": "number",
+																"description": "The cumulative APY from all tokens in this strategy",
+																"example": 0.1
+															},
+															"tokens": {
+																"type": "array",
+																"items": {
+																	"type": "object",
+																	"properties": {
+																		"tokenAddress": {
+																			"type": "string",
+																			"description": "The contract address of the token involved in the strategy",
+																			"example": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+																		},
+																		"apy": {
+																			"type": "number",
+																			"description": "The APY contributed by this individual token",
+																			"example": 0.1
+																		}
+																	},
+																	"required": ["tokenAddress", "apy"]
+																}
+															}
+														},
+														"required": ["strategyAddress", "apy", "tokens"]
+													}
+												},
+												"avsApys": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"avsAddress": {
+																"type": "string",
+																"description": "The AVS service manager contract address",
+																"example": "0x1de75eaab2df55d467494a172652579e6fa4540e"
+															},
+															"apy": {
+																"type": "number",
+																"description": "The total APY calculated for this AVS",
+																"example": 0.1
+															},
+															"strategies": {
+																"type": "array",
+																"items": {
+																	"type": "object",
+																	"properties": {
+																		"strategyAddress": {
+																			"type": "string",
+																			"description": "The contract address of the restaking strategy",
+																			"example": "0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0"
+																		},
+																		"apy": {
+																			"type": "number",
+																			"description": "The cumulative APY from all tokens in this strategy",
+																			"example": 0.1
+																		},
+																		"tokens": {
+																			"type": "array",
+																			"items": {
+																				"type": "object",
+																				"properties": {
+																					"tokenAddress": {
+																						"type": "string",
+																						"description": "The contract address of the token involved in the strategy",
+																						"example": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+																					},
+																					"apy": {
+																						"type": "number",
+																						"description": "The APY contributed by this individual token",
+																						"example": 0.1
+																					}
+																				},
+																				"required": ["tokenAddress", "apy"]
+																			}
+																		}
+																	},
+																	"required": ["strategyAddress", "apy", "tokens"]
+																}
+															}
+														},
+														"required": ["avsAddress", "apy", "strategies"]
+													}
+												}
+											},
+											"required": ["aggregateApy", "tokenAmounts", "strategyApys", "avsApys"],
+											"description": "The reward details for the Staker"
 										}
 									},
 									"required": [
@@ -7829,7 +7972,8 @@
 										"updatedAtBlock",
 										"createdAt",
 										"updatedAt",
-										"shares"
+										"shares",
+										"rewards"
 									]
 								}
 							}
