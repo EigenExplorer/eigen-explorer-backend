@@ -24,6 +24,7 @@ import {
 	AvsRegistrationEventQuerySchema,
 	RewardsEventQuerySchema
 } from '../../schema/zod/schemas/eventSchemas'
+import { MinTvlQuerySchema } from '../../schema/zod/schemas/minTvlQuerySchema'
 
 /**
  * Function for route /avs
@@ -35,6 +36,7 @@ import {
 export async function getAllAVS(req: Request, res: Response) {
 	// Validate pagination query
 	const queryCheck = PaginationQuerySchema.and(WithTvlQuerySchema)
+		.and(MinTvlQuerySchema)
 		.and(SortByQuerySchema)
 		.and(WithCuratedMetadata)
 		.and(SearchByTextQuerySchema)
@@ -49,6 +51,7 @@ export async function getAllAVS(req: Request, res: Response) {
 			skip,
 			take,
 			withTvl,
+			minTvl,
 			withCuratedMetadata,
 			sortByTvl,
 			sortByTotalStakers,
@@ -76,7 +79,8 @@ export async function getAllAVS(req: Request, res: Response) {
 		const avsRecords = await prisma.avs.findMany({
 			where: {
 				...getAvsFilterQuery(true),
-				...searchFilterQuery
+				...searchFilterQuery,
+				...(minTvl ? { tvlEth: { gte: minTvl } } : {})
 			},
 			include: {
 				curatedMetadata: withCuratedMetadata,
@@ -104,7 +108,8 @@ export async function getAllAVS(req: Request, res: Response) {
 		const avsCount = await prisma.avs.count({
 			where: {
 				...getAvsFilterQuery(true),
-				...searchFilterQuery
+				...searchFilterQuery,
+				...(minTvl ? { tvlEth: { gte: minTvl } } : {})
 			}
 		})
 
@@ -395,6 +400,7 @@ export async function getAVSStakers(req: Request, res: Response) {
 export async function getAVSOperators(req: Request, res: Response) {
 	// Validate query and params
 	const queryCheck = PaginationQuerySchema.and(WithTvlQuerySchema)
+		.and(MinTvlQuerySchema)
 		.and(SortByQuerySchema)
 		.and(SearchByTextQuerySchema)
 		.safeParse(req.query)
@@ -409,7 +415,8 @@ export async function getAVSOperators(req: Request, res: Response) {
 
 	try {
 		const { address } = req.params
-		const { skip, take, withTvl, sortOperatorsByTvl, searchByText, searchMode } = queryCheck.data
+		const { skip, take, withTvl, minTvl, sortOperatorsByTvl, searchByText, searchMode } =
+			queryCheck.data
 		const searchFilterQuery = getOperatorSearchQuery(searchByText, searchMode, 'partial')
 
 		const avs = await prisma.avs.findUniqueOrThrow({
@@ -435,7 +442,8 @@ export async function getAVSOperators(req: Request, res: Response) {
 					},
 					{
 						...searchFilterQuery
-					}
+					},
+					...(minTvl ? [{ tvlEth: { gte: minTvl } }] : [])
 				] as Prisma.Prisma.OperatorWhereInput[]
 			},
 			orderBy: sortOperatorsByTvl
@@ -447,20 +455,22 @@ export async function getAVSOperators(req: Request, res: Response) {
 			take
 		})
 
-		const total = searchByText
-			? await prisma.operator.count({
-					where: {
-						AND: [
-							{
-								address: { in: avs.operators.map((o) => o.operatorAddress) }
-							},
-							{
-								...searchFilterQuery
-							}
-						] as Prisma.Prisma.OperatorWhereInput[]
-					}
-			  })
-			: avs.operators.length
+		const total =
+			searchByText || minTvl
+				? await prisma.operator.count({
+						where: {
+							AND: [
+								{
+									address: { in: avs.operators.map((o) => o.operatorAddress) }
+								},
+								{
+									...searchFilterQuery
+								},
+								...(minTvl ? [{ tvlEth: { gte: minTvl } }] : [])
+							] as Prisma.Prisma.OperatorWhereInput[]
+						}
+				  })
+				: avs.operators.length
 
 		const strategiesWithSharesUnderlying = withTvl ? await getStrategiesWithShareUnderlying() : []
 
