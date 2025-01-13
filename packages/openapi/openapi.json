@@ -5266,7 +5266,7 @@
 													},
 													"maxApy": {
 														"type": "string",
-														"description": "The max APY for the AVS Operator across all the strategies",
+														"description": "The best strategy APY, representing the maximum value when each strategy's APY is summed across all AVSs, as strategies collect APY from multiple AVSs (it stacks). This reflects the highest APY you can get for a strategy after deducting the operator fee",
 														"example": "1.0"
 													},
 													"createdAtBlock": {
@@ -5761,7 +5761,7 @@
 										},
 										"maxApy": {
 											"type": "string",
-											"description": "The max APY for the AVS Operator across all the strategies",
+											"description": "The best strategy APY, representing the maximum value when each strategy's APY is summed across all AVSs, as strategies collect APY from multiple AVSs (it stacks). This reflects the highest APY you can get for a strategy after deducting the operator fee",
 											"example": "1.0"
 										},
 										"createdAtBlock": {
@@ -6027,6 +6027,11 @@
 														"description": "AVS service manager contract address",
 														"example": "0x870679e138bcdf293b7ff14dd44b70fc97e12fc0"
 													},
+													"maxApy": {
+														"type": "string",
+														"description": "The max APY for the AVS across all the strategies",
+														"example": "1.0"
+													},
 													"rewardsSubmissions": {
 														"type": "array",
 														"items": {
@@ -6112,231 +6117,6 @@
 															]
 														},
 														"description": "List of rewards submissions associated with AVS"
-													},
-													"operators": {
-														"type": "array",
-														"items": {
-															"type": "object",
-															"properties": {
-																"avsAddress": {
-																	"type": "string",
-																	"pattern": "^0x[a-fA-F0-9]{40}$",
-																	"description": "AVS service manager contract address",
-																	"example": "0x870679e138bcdf293b7ff14dd44b70fc97e12fc0"
-																},
-																"operatorAddress": {
-																	"type": "string",
-																	"pattern": "^0x[a-fA-F0-9]{40}$",
-																	"description": "The contract address of the AVS operator",
-																	"example": "0x4cd2086e1d708e65db5d4f5712a9ca46ed4bbd0a"
-																},
-																"isActive": {
-																	"type": "boolean",
-																	"description": "True indicates operator is an active participant while False indicates it used to be one but not anymore",
-																	"example": true
-																},
-																"restakedStrategies": {
-																	"type": "array",
-																	"items": {
-																		"type": "string",
-																		"pattern": "^0x[a-fA-F0-9]{40}$"
-																	},
-																	"description": "List of strategies restaked by the operator",
-																	"example": [
-																		"0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0",
-																		"0x93c4b944d05dfe6df7645a86cd2206016c51564d"
-																	]
-																},
-																"createdAtBlock": {
-																	"type": "number",
-																	"description": "The block number at which the AVS Operator was registered",
-																	"example": 19614553
-																},
-																"updatedAtBlock": {
-																	"type": "number",
-																	"description": "The block number at which the AVS Operator registration was last updated",
-																	"example": 19614553
-																},
-																"createdAt": {
-																	"type": "string",
-																	"description": "The time stamp at which the AVS Operator was registered",
-																	"example": "2024-04-09T00:35:35.000Z"
-																},
-																"updatedAt": {
-																	"type": "string",
-																	"description": "The time stamp at which the AVS Operator registration was last updated",
-																	"example": "2024-04-09T00:35:35.000Z"
-																},
-																"operator": {
-																	"type": "object",
-																	"properties": {
-																		"address": {
-																			"type": "string",
-																			"pattern": "^0x[a-fA-F0-9]{40}$",
-																			"description": "The contract address of the AVS operator",
-																			"example": "0x09e6eb09213bdd3698bd8afb43ec3cb0ecff683a"
-																		},
-																		"metadataUrl": {
-																			"type": "string",
-																			"description": "URL for operator metadata",
-																			"example": "https://raw.githubusercontent.com/github-infstones/eigenlayer/main/metadata.json"
-																		},
-																		"metadataName": {
-																			"type": "string",
-																			"description": "The name of the AVS operator",
-																			"example": "Example AVS Operator"
-																		},
-																		"metadataDescription": {
-																			"type": "string",
-																			"nullable": true,
-																			"description": "Description of the operator",
-																			"example": "This is an example AVS operator"
-																		},
-																		"metadataDiscord": {
-																			"type": "string",
-																			"nullable": true,
-																			"description": "The URL of the AVS operator's Discord server",
-																			"example": "https://discord.com/invite/example"
-																		},
-																		"metadataLogo": {
-																			"type": "string",
-																			"nullable": true,
-																			"description": "Logo URL",
-																			"example": "<string>"
-																		},
-																		"metadataTelegram": {
-																			"type": "string",
-																			"nullable": true,
-																			"description": "The URL of the AVS operator's Telegram channel",
-																			"example": "https://t.me/example"
-																		},
-																		"metadataWebsite": {
-																			"type": "string",
-																			"nullable": true,
-																			"description": "The URL of the AVS operator's website",
-																			"example": "https://example.com"
-																		},
-																		"metadataX": {
-																			"type": "string",
-																			"nullable": true,
-																			"description": "The URL of the AVS operator's X",
-																			"example": "https://twitter.com/example"
-																		},
-																		"isMetadataSynced": {
-																			"type": "boolean",
-																			"description": "Indicates if metadata is synced",
-																			"example": true
-																		},
-																		"totalStakers": {
-																			"type": "number",
-																			"description": "The total number of stakers who have delegated to this AVS operator",
-																			"example": 20000
-																		},
-																		"totalAvs": {
-																			"type": "number",
-																			"description": "The total number of AVS opted by the AVS operator",
-																			"example": 10
-																		},
-																		"apy": {
-																			"type": "string",
-																			"description": "The latest APY recorded for the operator",
-																			"example": "1.0"
-																		},
-																		"tvlEth": {
-																			"type": "string",
-																			"description": "Total TVL in ETH",
-																			"example": "30000"
-																		},
-																		"sharesHash": {
-																			"type": "string",
-																			"description": "Shares hash for the operator",
-																			"example": "0c67d2a677454013c442732ee3bcf07b"
-																		},
-																		"createdAtBlock": {
-																			"type": "number",
-																			"description": "The block number at which the AVS Operator was registered",
-																			"example": 19613775
-																		},
-																		"updatedAtBlock": {
-																			"type": "number",
-																			"description": "The block number at which the AVS Operator registration was last updated",
-																			"example": 19613775
-																		},
-																		"createdAt": {
-																			"type": "string",
-																			"description": "The time stamp at which the AVS Operator was registered",
-																			"example": "2024-04-08T21:58:35.000Z"
-																		},
-																		"updatedAt": {
-																			"type": "string",
-																			"description": "The time stamp at which the AVS Operator registration was last updated",
-																			"example": "2024-04-08T21:58:35.000Z"
-																		},
-																		"shares": {
-																			"type": "array",
-																			"items": {
-																				"type": "object",
-																				"properties": {
-																					"operatorAddress": {
-																						"type": "string",
-																						"pattern": "^0x[a-fA-F0-9]{40}$",
-																						"description": "The contract address of the AVS operator",
-																						"example": "0x4cd2086e1d708e65db5d4f5712a9ca46ed4bbd0a"
-																					},
-																					"strategyAddress": {
-																						"type": "string",
-																						"pattern": "^0x[a-fA-F0-9]{40}$",
-																						"description": "The contract address of the restaking strategy",
-																						"example": "0x73a18a6304d05b495ecb161dbf1ab496461bbf2e"
-																					},
-																					"shares": {
-																						"type": "string",
-																						"description": "The amount of shares held in the strategy",
-																						"example": "1000000000000000000000"
-																					}
-																				},
-																				"required": ["operatorAddress", "strategyAddress", "shares"]
-																			},
-																			"description": "The strategy shares held in the AVS operator"
-																		}
-																	},
-																	"required": [
-																		"address",
-																		"metadataUrl",
-																		"metadataName",
-																		"metadataDescription",
-																		"metadataDiscord",
-																		"metadataLogo",
-																		"metadataTelegram",
-																		"metadataWebsite",
-																		"metadataX",
-																		"isMetadataSynced",
-																		"totalStakers",
-																		"totalAvs",
-																		"apy",
-																		"tvlEth",
-																		"sharesHash",
-																		"createdAtBlock",
-																		"updatedAtBlock",
-																		"createdAt",
-																		"updatedAt",
-																		"shares"
-																	]
-																}
-															},
-															"required": [
-																"avsAddress",
-																"operatorAddress",
-																"isActive",
-																"restakedStrategies",
-																"createdAtBlock",
-																"updatedAtBlock",
-																"createdAt",
-																"updatedAt",
-																"operator"
-															]
-														},
-														"description": "List of operators associated with the AVS registration"
 													}
 												},
 												"required": [
@@ -6359,8 +6139,8 @@
 													"createdAt",
 													"updatedAt",
 													"address",
-													"rewardsSubmissions",
-													"operators"
+													"maxApy",
+													"rewardsSubmissions"
 												]
 											},
 											"description": "Detailed AVS registrations information for the operator"
@@ -6452,7 +6232,7 @@
 													},
 													"maxApy": {
 														"type": "number",
-														"description": "The max APY for the AVS Operator across all the strategies",
+														"description": "The max APY for the AVS Operator across all the strategies after deducting the operator fee",
 														"example": 0.1
 													},
 													"strategyApys": {
@@ -7843,7 +7623,7 @@
 											"properties": {
 												"aggregateApy": {
 													"type": "number",
-													"description": "The aggregate APY across all eligible strategies for this staker",
+													"description": "The sum of amount staked per strategy multiplied by the strategy apy for this staker",
 													"example": 0.1
 												},
 												"tokenAmounts": {
@@ -7877,7 +7657,7 @@
 															},
 															"apy": {
 																"type": "number",
-																"description": "The cumulative APY from all tokens in this strategy",
+																"description": "The cumulative APY for this strategy summed across all AVSs",
 																"example": 0.1
 															},
 															"tokens": {

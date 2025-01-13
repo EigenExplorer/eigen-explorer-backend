@@ -1,6 +1,6 @@
 import z from '../../../api/src/schema/zod'
 import { EthereumAddressSchema } from '../../../api/src/schema/zod/schemas/base/ethereumAddress'
-import { StrategyApySchema } from './base/strategyApyResponse'
+import { StakerStrategyApySchema, StrategyApySchema } from './base/strategyApyResponse'
 import { TvlSchema } from './base/tvlResponses'
 
 export const StakerSharesSchema = z.object({
@@ -80,10 +80,12 @@ export const AvsApysSchema = z.object({
 export const StakerRewardsSchema = z.object({
 	aggregateApy: z
 		.number()
-		.describe('The aggregate APY across all eligible strategies for this staker')
+		.describe(
+			'The sum of amount staked per strategy multiplied by the strategy apy for this staker'
+		)
 		.openapi({ example: 0.1 }),
 	tokenAmounts: z.array(TokenAmountSchema),
-	strategyApys: z.array(StrategyApySchema),
+	strategyApys: z.array(StakerStrategyApySchema),
 	avsApys: z.array(AvsApysSchema)
 })
 
