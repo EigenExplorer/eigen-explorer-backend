@@ -623,6 +623,46 @@ model EventLogs_WithdrawalCompleted {
   @@index([blockNumber])
 }
 
+model EventLogs_SlashingWithdrawalQueued {
+  address String
+
+  transactionHash  String
+  transactionIndex Int
+  blockNumber      BigInt
+  blockHash        String
+  blockTime        DateTime
+
+  withdrawalRoot String
+  staker         String
+  delegatedTo    String
+  withdrawer     String
+  nonce          BigInt
+  startBlock     BigInt
+  strategies     String[]
+  scaledShares   String[]
+  sharesToWithdraw String[]
+
+  @@id([transactionHash, transactionIndex])
+  @@index([withdrawalRoot])
+  @@index([blockNumber])
+}
+
+model EventLogs_SlashingWithdrawalCompleted {
+  address String
+
+  transactionHash  String
+  transactionIndex Int
+  blockNumber      BigInt
+  blockHash        String
+  blockTime        DateTime
+
+  withdrawalRoot String
+
+  @@id([transactionHash, transactionIndex])
+  @@index([withdrawalRoot])
+  @@index([blockNumber])
+}
+
 model EventLogs_Deposit {
   address String
 
