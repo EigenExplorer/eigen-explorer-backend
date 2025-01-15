@@ -41,6 +41,8 @@ import { monitorOperatorApy } from './monitors/operatorApy'
 import { seedLogStrategyWhitelist } from './events/seedLogStrategyWhitelist'
 import { seedLogsDistributionRootSubmitted } from './events/seedLogsDistributionRootSubmitted'
 import { seedMetricsStakerRewards } from './metrics/seedMetricsStakerRewards'
+import { seedLogsSlashingWithdrawalCompleted } from './events/seedLogsSlashingWithdrawalCompleted'
+import { seedLogsSlashingWithdrawalQueued } from './events/seedLogsSlashingWithdrawalQueued'
 
 console.log('Initializing Seeder ...')
 
@@ -83,6 +85,8 @@ async function seedEigenData() {
 				seedLogsPodDeployed(targetBlock),
 				seedLogsWithdrawalQueued(targetBlock),
 				seedLogsWithdrawalCompleted(targetBlock),
+				seedLogsSlashingWithdrawalQueued(targetBlock),
+				seedLogsSlashingWithdrawalCompleted(targetBlock),
 				seedLogsDeposit(targetBlock),
 				seedLogsPodSharesUpdated(targetBlock),
 				seedLogsAVSRewardsSubmission(targetBlock),
