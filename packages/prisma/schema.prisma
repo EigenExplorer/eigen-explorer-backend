@@ -248,6 +248,8 @@ model WithdrawalQueued {
   withdrawerAddress String
   strategies        String[]
   shares            String[]
+  isSlashable       Boolean @default(false)
+  sharesToWithdraw  String[]
 
   createdAtBlock BigInt   @default(0)
   createdAt      DateTime @default(now())
