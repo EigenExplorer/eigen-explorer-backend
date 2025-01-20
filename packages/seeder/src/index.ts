@@ -43,6 +43,8 @@ import { seedLogsDistributionRootSubmitted } from './events/seedLogsDistribution
 import { seedMetricsStakerRewards } from './metrics/seedMetricsStakerRewards'
 import { seedLogsSlashingWithdrawalCompleted } from './events/seedLogsSlashingWithdrawalCompleted'
 import { seedLogsSlashingWithdrawalQueued } from './events/seedLogsSlashingWithdrawalQueued'
+import { seedCompletedSlashingWithdrawals } from './seedSlashingWithdrawalsCompleted'
+import { seedQueuedSlashingWithdrawals } from './seedSlashingWithdrawalsQueued'
 
 console.log('Initializing Seeder ...')
 
@@ -109,6 +111,8 @@ async function seedEigenData() {
 				(async () => {
 					await seedQueuedWithdrawals()
 					await seedCompletedWithdrawals()
+					await seedQueuedSlashingWithdrawals()
+					await seedCompletedSlashingWithdrawals()
 				})(),
 				// Pods and Validators
 				(async () => {
