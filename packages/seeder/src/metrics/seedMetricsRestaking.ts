@@ -10,7 +10,7 @@ import {
 import { chunkArray } from '../utils/array'
 
 const blockSyncKey = 'lastSyncedTimestamp_metrics_restaking'
-const BATCH_DAYS = 30
+const BATCH_DAYS = 10
 
 // Define the type for our log entries
 type ILastOperatorMetric = Omit<prisma.MetricOperatorUnit, 'id'>
@@ -30,10 +30,15 @@ type LogEntry = {
 	operator: string
 	strategy: string
 	shares: string
+	staker: string
 
 	avs: string
 	status: number
 }
+
+// Global
+const operatorStakersList = new Map<string, Map<string, Map<string, bigint>>>() // operatorAddress -> stakerAddress -> strategyAddress -> shares
+let avsRestakedStrategies: Map<string, string[]> = new Map()
 
 export async function seedMetricsRestaking(type: 'full' | 'incremental' = 'incremental') {
 	const prismaClient = getPrismaClient()
@@ -89,6 +94,8 @@ export async function seedMetricsRestaking(type: 'full' | 'incremental' = 'incre
 	])
 
 	const avsOperatorsState = await getAvsOperatorsState(startDate)
+
+	avsRestakedStrategies = await getAvsRestakedStrategies()
 
 	// Process logs in batches
 	const [operatorMetrics, operatorStrategyMetrics, avsMetrics, avsStrategyMetrics] =
@@ -252,7 +259,6 @@ async function loopTick(
 > {
 	const operatorAddresses = new Set<string>()
 	const strategyAddresses = new Set<string>()
-	const operatorStakers = new Map<string, number>()
 	const operatorStrategyShares = new Map<string, Map<string, bigint>>()
 	const strategyShares = new Map<string, bigint>()
 	const operatorTvlRecords: ILastOperatorMetric[] = []
@@ -287,12 +293,33 @@ async function loopTick(
 					? currentStrategyShares + shares
 					: currentStrategyShares - shares
 			)
-		} else if (ol.type === 'StakerDelegated' || ol.type === 'StakerUndelegated') {
-			const currentStakers = operatorStakers.get(operatorAddress) || 0
-			operatorStakers.set(
-				operatorAddress,
-				ol.type === 'StakerDelegated' ? currentStakers + 1 : currentStakers - 1
+
+			// Update Staker Shares
+			if (!operatorStakersList.has(operatorAddress)) {
+				operatorStakersList.set(operatorAddress, new Map())
+			}
+
+			if (!operatorStakersList.get(operatorAddress)?.has(ol.staker)) {
+				operatorStakersList.get(operatorAddress)?.set(ol.staker, new Map())
+			}
+
+			const operatorStakerMap = operatorStakersList.get(operatorAddress)?.get(ol.staker)
+			const currentOperatorStakerShares = operatorStakerMap?.get(strategyAddress) || 0n
+
+			operatorStakerMap?.set(
+				strategyAddress,
+				currentOperatorStakerShares + (ol.type === 'OperatorSharesIncreased' ? shares : -shares)
 			)
+		} else if (ol.type === 'StakerDelegated' || ol.type === 'StakerUndelegated') {
+			if (!operatorStakersList.has(operatorAddress)) {
+				operatorStakersList.set(operatorAddress, new Map())
+			}
+
+			if (ol.type === 'StakerDelegated') {
+				operatorStakersList.get(operatorAddress)?.set(ol.staker, new Map())
+			} else {
+				operatorStakersList.get(operatorAddress)?.delete(ol.staker)
+			}
 		} else if (ol.type === 'OperatorAVSRegistrationStatusUpdated') {
 			const avsAddress = ol.avs.toLowerCase()
 			const status = Number(ol.status)
@@ -321,10 +348,16 @@ async function loopTick(
 		}
 
 		// Update Staker and Avs Change
-		const changeStakers = operatorStakers.get(operatorAddress) || 0
+		const opeartorStakersMap = operatorStakersList.get(operatorAddress)
+		const totalStakers = opeartorStakersMap
+			? Array.from(opeartorStakersMap.values()).filter(
+					(strategyMap) =>
+						Array.from(strategyMap.values()).filter((shares) => shares > 0n).length > 0
+			  ).length
+			: 0
 		const totalAvs = getOperatorAvsCount(avsOperatorsState, operatorAddress)
 		const changeAvs = totalAvs - lastOperatorMetric.totalAvs
-		const totalStakers = lastOperatorMetric.totalStakers + changeStakers
+		const changeStakers = totalStakers - lastOperatorMetric.totalStakers
 
 		if (
 			lastOperatorMetric.totalStakers !== totalStakers ||
@@ -392,12 +425,28 @@ async function loopTick(
 		let totalOperators = 0
 		const totalTvl: IMap<string, number> = new Map()
 
+		const currentAvsRestakedStrategies = avsRestakedStrategies.get(avsAddress) || []
+
 		for (const operatorAddress of operatorAddresses) {
 			totalOperators++
 
-			const lastOperatorMetric = lastOperatorMetrics.get(operatorAddress)
-			if (lastOperatorMetric) {
-				totalStakers += lastOperatorMetric.totalStakers
+			const operatorStakersMap = operatorStakersList.get(operatorAddress)
+
+			if (operatorStakersMap) {
+				// Filter stakers who have positive shares in any of the restaked strategies
+				const validStakers = Array.from(operatorStakersMap.entries()).filter(
+					([_, strategyShares]) =>
+						// Check if any strategy has positive shares
+						Array.from(strategyShares.entries()).some(
+							([strategy, shares]) =>
+								// Check if shares > 0 and strategy is in restakedStrategies
+								shares > 0n &&
+								currentAvsRestakedStrategies.some(
+									(restakedStrategy) => restakedStrategy.toLowerCase() === strategy.toLowerCase()
+								)
+						)
+				)
+				totalStakers += validStakers.length
 			}
 
 			const lastOperatorStrategyMetric = lastOperatorStrategyMetrics.get(operatorAddress)
@@ -579,7 +628,9 @@ async function getLatestMetricsPerAvs(): Promise<ILastAvsMetrics> {
 			}
 		})
 
-		return metrics ? new Map(metrics.map((metric) => [metric.avsAddress, metric])) : new Map()
+		return metrics
+			? (new Map(metrics.map((metric) => [metric.avsAddress, metric])) as ILastAvsMetrics)
+			: new Map()
 	} catch {}
 
 	return new Map()
@@ -667,7 +718,9 @@ async function getLatestMetricsPerOperator(): Promise<ILastOperatorMetrics> {
 			}
 		})
 
-		return metrics ? new Map(metrics.map((metric) => [metric.operatorAddress, metric])) : new Map()
+		return metrics
+			? (new Map(metrics.map((metric) => [metric.operatorAddress, metric])) as ILastOperatorMetrics)
+			: new Map()
 	} catch {}
 
 	return new Map()
@@ -759,6 +812,24 @@ async function getAvsOperatorsState(to?: Date): Promise<IMap<string, Set<string>
 	} catch {}
 
 	return avsOperators
+}
+
+async function getAvsRestakedStrategies(): Promise<Map<string, string[]>> {
+	const prismaClient = getPrismaClient()
+	const avsStrategiesMap = new Map<string, string[]>()
+
+	const avsList = await prismaClient.avs.findMany({
+		select: {
+			address: true,
+			restakeableStrategies: true
+		}
+	})
+
+	for (const avs of avsList) {
+		avsStrategiesMap.set(avs.address.toLowerCase(), avs.restakeableStrategies)
+	}
+
+	return avsStrategiesMap
 }
 
 /**
