@@ -24,7 +24,12 @@ export const OperatorResponseSchema = z.object({
 		.number()
 		.describe('The total number of AVS opted by the AVS operator')
 		.openapi({ example: 10 }),
-	apy: z.string().describe('The latest APY recorded for the operator').openapi({ example: '1.0' }),
+	maxApy: z
+		.string()
+		.describe(
+			`The best strategy APY, representing the maximum value when each strategy's APY is summed across all AVSs, as strategies collect APY from multiple AVSs (it stacks). This reflects the highest APY you can get for a strategy after deducting the operator fee`
+		)
+		.openapi({ example: '1.0' }),
 	createdAtBlock: z
 		.string()
 		.describe('The block number at which the AVS Operator was registered')
