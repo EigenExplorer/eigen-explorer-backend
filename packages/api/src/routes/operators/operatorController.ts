@@ -595,6 +595,14 @@ async function calculateOperatorApy(operator: any) {
 
 			// Iterate through each strategy and calculate all its rewards
 			for (const strategyAddress of avs.avs.restakeableStrategies) {
+				// Omit strategy where the Operator doesn't have shares
+				if (
+					!operator.shares.find(
+						(share) => share.strategyAddress.toLowerCase() === strategyAddress.toLowerCase()
+					)
+				)
+					continue
+
 				const strategyTvl = tvlStrategiesEth[strategyAddress.toLowerCase()] || 0
 				if (strategyTvl === 0) continue
 
@@ -677,7 +685,7 @@ async function calculateOperatorApy(operator: any) {
 
 			avsApyMap.set(avs.avs.address, {
 				avsAddress: avs.avs.address,
-				maxApy: avs.avs.maxApy,
+				maxApy: Math.max(...Array.from(strategyApyMap.values()).map((data) => data.apy)),
 				strategyApys: Array.from(strategyApyMap.entries()).map(([strategyAddress, data]) => ({
 					strategyAddress,
 					apy: data.apy,
