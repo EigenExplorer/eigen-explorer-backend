@@ -21,6 +21,7 @@ import Prisma from '@prisma/client'
 import prisma from '../../utils/prismaClient'
 import { fetchTokenPrices } from '../../utils/tokenPrices'
 import { fetchDelegationEvents, fetchRegistrationEvents } from '../../utils/eventUtils'
+import { MinTvlQuerySchema } from '../../schema/zod/schemas/minTvlQuerySchema'
 
 /**
  * Function for route /operators
@@ -32,6 +33,7 @@ import { fetchDelegationEvents, fetchRegistrationEvents } from '../../utils/even
 export async function getAllOperators(req: Request, res: Response) {
 	// Validate pagination query
 	const result = PaginationQuerySchema.and(WithTvlQuerySchema)
+		.and(MinTvlQuerySchema)
 		.and(SortByQuerySchema)
 		.and(SearchByTextQuerySchema)
 		.safeParse(req.query)
@@ -42,6 +44,7 @@ export async function getAllOperators(req: Request, res: Response) {
 		skip,
 		take,
 		withTvl,
+		minTvl,
 		sortByTvl,
 		sortByTotalStakers,
 		sortByTotalAvs,
@@ -66,7 +69,8 @@ export async function getAllOperators(req: Request, res: Response) {
 		// Fetch records and apply search/sort
 		const operatorRecords = await prisma.operator.findMany({
 			where: {
-				...searchFilterQuery
+				...searchFilterQuery,
+				...(minTvl ? { tvlEth: { gte: minTvl } } : {})
 			},
 			include: {
 				avs: {
@@ -88,7 +92,8 @@ export async function getAllOperators(req: Request, res: Response) {
 		// Count records
 		const operatorCount = await prisma.operator.count({
 			where: {
-				...searchFilterQuery
+				...searchFilterQuery,
+				...(minTvl ? { tvlEth: { gte: minTvl } } : {})
 			}
 		})
 
