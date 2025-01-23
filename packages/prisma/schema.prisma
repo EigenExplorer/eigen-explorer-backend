@@ -758,6 +758,202 @@ model EventLogs_DistributionRootSubmitted {
   @@index([rewardsCalculationEndTimestamp])
 }
 
+model EventLogs_AllocationDelaySet {
+  address String
+
+  transactionHash  String
+  transactionIndex Int
+  blockNumber      BigInt
+  blockHash        String
+  blockTime        DateTime
+
+  operator String
+  delay BigInt
+  effectBlock BigInt
+
+  @@id([transactionHash, transactionIndex])
+  @@index([blockNumber])
+}
+
+model EventLogs_AllocationUpdated {
+  address String
+
+  transactionHash  String
+  transactionIndex Int
+  blockNumber      BigInt
+  blockHash        String
+  blockTime        DateTime
+
+  operator String
+  avs String
+  operatorSetId BigInt
+  strategy String
+  magnitude BigInt
+  effectBlock BigInt
+
+  @@id([transactionHash, transactionIndex])
+  @@index([blockNumber])
+}
+
+model EventLogs_EncumberedMagnitudeUpdated {
+  address String
+
+  transactionHash  String
+  transactionIndex Int
+  blockNumber      BigInt
+  blockHash        String
+  blockTime        DateTime
+
+  operator String
+  strategy String
+  encumberedMagnitude BigInt
+
+  @@id([transactionHash, transactionIndex])
+  @@index([blockNumber])
+}
+
+model EventLogs_MaxMagnitudeUpdated {
+  address String
+
+  transactionHash  String
+  transactionIndex Int
+  blockNumber      BigInt
+  blockHash        String
+  blockTime        DateTime
+
+  operator String
+  strategy String
+  maxMagnitude BigInt
+
+  @@id([transactionHash, transactionIndex])
+  @@index([blockNumber])
+}
+
+model EventLogs_OperatorSlashed {
+  address String
+
+  transactionHash  String
+  transactionIndex Int
+  blockNumber      BigInt
+  blockHash        String
+  blockTime        DateTime
+
+  operator String
+  avs String
+  operatorSetId BigInt
+  strategies String[]
+  wadSlashed String[]
+  description String
+
+  @@id([transactionHash, transactionIndex])
+  @@index([operator,avs])
+  @@index([blockNumber])
+}
+
+model EventLogs_AVSRegistrarSet {
+  address String
+
+  transactionHash  String
+  transactionIndex Int
+  blockNumber      BigInt
+  blockHash        String
+  blockTime        DateTime
+
+  avs String
+  registrar String
+
+  @@id([transactionHash, transactionIndex])
+  @@index([blockNumber])
+}
+
+model EventLogs_OperatorSetCreated {
+  address String
+
+  transactionHash  String
+  transactionIndex Int
+  blockNumber      BigInt
+  blockHash        String
+  blockTime        DateTime
+
+  avs String
+  operatorSetId BigInt
+
+  @@id([transactionHash, transactionIndex])
+  @@index([blockNumber])
+}
+
+model EventLogs_OperatorAddedToOperatorSet {
+  address String
+
+  transactionHash  String
+  transactionIndex Int
+  blockNumber      BigInt
+  blockHash        String
+  blockTime        DateTime
+
+  operator String
+  avs String
+  operatorSetId BigInt
+
+  @@id([transactionHash, transactionIndex])
+  @@index([operator,avs])
+  @@index([blockNumber])
+}
+
+model EventLogs_OperatorRemovedFromOperatorSet {
+  address String
+
+  transactionHash  String
+  transactionIndex Int
+  blockNumber      BigInt
+  blockHash        String
+  blockTime        DateTime
+
+  operator String
+  avs String
+  operatorSetId BigInt
+
+  @@id([transactionHash, transactionIndex])
+  @@index([operator,avs])
+  @@index([blockNumber])
+}
+
+model EventLogs_StrategyAddedToOperatorSet {
+  address String
+
+  transactionHash  String
+  transactionIndex Int
+  blockNumber      BigInt
+  blockHash        String
+  blockTime        DateTime
+
+  avs String
+  operatorSetId BigInt
+  strategy String
+
+  @@id([transactionHash, transactionIndex])
+  @@index([avs,strategy])
+  @@index([blockNumber])
+}
+
+model EventLogs_StrategyRemovedFromOperatorSet {
+  address String
+
+  transactionHash  String
+  transactionIndex Int
+  blockNumber      BigInt
+  blockHash        String
+  blockTime        DateTime
+
+  avs String
+  operatorSetId BigInt
+  strategy String
+
+  @@id([transactionHash, transactionIndex])
+  @@index([avs,strategy])
+  @@index([blockNumber])
+}
+
 model EthPricesDaily {
   id Int @id @default(autoincrement())
 
