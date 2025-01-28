@@ -26,6 +26,9 @@ apiRouter.get('/version', (_, res) =>
 	res.send({ version: process.env.API_VERSION || 'development' })
 )
 
+// Auxiliary routes
+apiRouter.use('/aux', auxiliaryRoutes)
+
 // Remaining routes
 const routes = {
 	'/avs': avsRoutes,
@@ -35,7 +38,6 @@ const routes = {
 	'/metrics': metricRoutes,
 	'/withdrawals': withdrawalRoutes,
 	'/deposits': depositRoutes,
-	'/aux': auxiliaryRoutes,
 	'/rewards': rewardRoutes,
 	'/events': eventRoutes,
 	'/auth': authRoutes
