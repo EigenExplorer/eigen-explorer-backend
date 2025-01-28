@@ -3,7 +3,10 @@ import { openApiErrorResponses } from '../../apiResponseSchema/base/errorRespons
 import z from '../../../../api/src/schema/zod'
 import { EthereumAddressSchema } from '../../../../api/src/schema/zod/schemas/base/ethereumAddress'
 import { WithTvlQuerySchema } from '../../../../api/src/schema/zod/schemas/withTvlQuery'
-import { StakerResponseSchema } from '../../apiResponseSchema/stakerResponse'
+import { StakerRewardsResponseSchema } from '../../apiResponseSchema/stakerResponse'
+import { WithRewardsQuerySchema } from '../../../../api/src/schema/zod/schemas/withRewardsQuery'
+
+const CombinedQuerySchema = z.object({}).merge(WithTvlQuerySchema).merge(WithRewardsQuerySchema)
 
 const StakerAddressParam = z.object({
 	address: EthereumAddressSchema.describe('The address of the staker').openapi({
@@ -17,7 +20,7 @@ export const getStakerByAddress: ZodOpenApiOperationObject = {
 	description: 'Returns a staker record by address.',
 	tags: ['Stakers'],
 	requestParams: {
-		query: WithTvlQuerySchema,
+		query: CombinedQuerySchema,
 		path: StakerAddressParam
 	},
 	responses: {
@@ -25,7 +28,7 @@ export const getStakerByAddress: ZodOpenApiOperationObject = {
 			description: 'The record of the requested operator.',
 			content: {
 				'application/json': {
-					schema: StakerResponseSchema
+					schema: StakerRewardsResponseSchema
 				}
 			}
 		},

@@ -14,6 +14,9 @@ export async function monitorAvsMetadata() {
 
 		const avsEntries = await prismaClient.avs.findMany({
 			where: {
+				metadataUrl: {
+					not: ''
+				},
 				isMetadataSynced: false
 			},
 			take: take,
@@ -22,6 +25,8 @@ export async function monitorAvsMetadata() {
 				createdAtBlock: 'asc'
 			}
 		})
+
+		console.log('[Monitor] Updating AVS metadatas: ', avsEntries.length)
 
 		if (avsEntries.length === 0) {
 			break

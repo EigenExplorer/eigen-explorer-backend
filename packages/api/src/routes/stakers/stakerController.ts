@@ -174,9 +174,10 @@ export async function getStaker(req: Request, res: Response) {
 		const strategiesWithSharesUnderlying =
 			withTvl || withRewards ? await getStrategiesWithShareUnderlying() : []
 		const tvl = withTvl ? sharesToTVL(staker.shares, strategiesWithSharesUnderlying) : undefined
-		const tvlStrategiesEth = withTvl
-			? sharesToTVLStrategies(staker.shares, strategiesWithSharesUnderlying)
-			: null
+		const tvlStrategiesEth =
+			withTvl || withRewards
+				? sharesToTVLStrategies(staker.shares, strategiesWithSharesUnderlying)
+				: null
 
 		res.send({
 			...staker,
