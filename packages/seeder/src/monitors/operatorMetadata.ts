@@ -14,6 +14,9 @@ export async function monitorOperatorMetadata() {
 
 		const operatorEntries = await prismaClient.operator.findMany({
 			where: {
+				metadataUrl: {
+					not: ''
+				},
 				isMetadataSynced: false
 			},
 			take: take,
@@ -22,6 +25,8 @@ export async function monitorOperatorMetadata() {
 				createdAtBlock: 'asc'
 			}
 		})
+
+		console.log('[Monitor] Updating Operator metadatas: ', operatorEntries.length)
 
 		if (operatorEntries.length === 0) {
 			break

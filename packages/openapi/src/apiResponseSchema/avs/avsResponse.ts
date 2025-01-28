@@ -3,6 +3,7 @@ import { AvsMetaDataSchema } from '../../../../api/src/schema/zod/schemas/base/a
 import { EthereumAddressSchema } from '../../../../api/src/schema/zod/schemas/base/ethereumAddress'
 import { StrategySharesSchema } from '../../../../api/src/schema/zod/schemas/base/strategyShares'
 import { CuratedMetadataSchema } from '../base/curatedMetadataResponses'
+import { StrategyApySchema } from '../base/strategyApyResponse'
 import { TvlSchema } from '../base/tvlResponses'
 
 export const AvsSchema = z.object({
@@ -24,7 +25,10 @@ export const AvsSchema = z.object({
 		.number()
 		.describe('The total number of operators operating the AVS')
 		.openapi({ example: 10 }),
-	apy: z.string().describe('The latest APY recorded for the AVS').openapi({ example: '1.0' }),
+	maxApy: z
+		.string()
+		.describe('The max APY for the AVS across all the strategies')
+		.openapi({ example: '1.0' }),
 	createdAtBlock: z
 		.string()
 		.describe('The block number at which the AVS was created')
@@ -98,4 +102,14 @@ export const AvsSchema = z.object({
 				}
 			}
 		})
+})
+
+export const RewardsSchema = z.object({
+	strategyApys: z
+		.array(StrategyApySchema)
+		.describe('An array of strategies with their respective APYs and token details')
+})
+
+export const AvsWithRewardsSchema = AvsSchema.extend({
+	rewards: RewardsSchema.describe('The reward details for the AVS, including strategies and APYs')
 })

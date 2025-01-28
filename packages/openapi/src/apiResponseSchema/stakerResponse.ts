@@ -1,5 +1,6 @@
 import z from '../../../api/src/schema/zod'
 import { EthereumAddressSchema } from '../../../api/src/schema/zod/schemas/base/ethereumAddress'
+import { StakerStrategyApySchema, StrategyApySchema } from './base/strategyApyResponse'
 import { TvlSchema } from './base/tvlResponses'
 
 export const StakerSharesSchema = z.object({
@@ -54,4 +55,40 @@ export const StakerResponseSchema = z.object({
 				}
 			}
 		})
+})
+
+export const TokenAmountSchema = z.object({
+	tokenAddress: z
+		.string()
+		.describe('The contract address of the token involved')
+		.openapi({ example: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2' }),
+	cumulativeAmount: z
+		.string()
+		.describe('The staker’s cumulative amount earned amount of this particular token')
+		.openapi({ example: '1.4e-8' })
+})
+
+export const AvsApysSchema = z.object({
+	avsAddress: z
+		.string()
+		.describe('The AVS service manager contract address')
+		.openapi({ example: '0x1de75eaab2df55d467494a172652579e6fa4540e' }),
+	apy: z.number().describe('The total APY calculated for this AVS').openapi({ example: 0.1 }),
+	strategies: z.array(StrategyApySchema)
+})
+
+export const StakerRewardsSchema = z.object({
+	aggregateApy: z
+		.number()
+		.describe(
+			'The sum of amount staked per strategy multiplied by the strategy apy for this staker'
+		)
+		.openapi({ example: 0.1 }),
+	tokenAmounts: z.array(TokenAmountSchema),
+	strategyApys: z.array(StakerStrategyApySchema),
+	avsApys: z.array(AvsApysSchema)
+})
+
+export const StakerRewardsResponseSchema = StakerResponseSchema.extend({
+	rewards: StakerRewardsSchema.describe('The reward details for the Staker')
 })

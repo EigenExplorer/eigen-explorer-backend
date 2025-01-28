@@ -56,6 +56,8 @@ import { seedLogsOperatorSetCreated } from './events/seedLogsOperatorSetCreated'
 import { seedLogsOperatorSlashed } from './events/seedLogsOperatorSlashed'
 import { seedLogsStrategyAddedToOperatorSet } from './events/seedLogsStrategyAddedToOperatorSet'
 import { seedLogsStrategyRemovedFromOperatorSet } from './events/seedLogsStrategyRemovedFromOperatorSet'
+import { monitorAvsMetadata } from './monitors/avsMetadata'
+import { monitorOperatorMetadata } from './monitors/operatorMetadata'
 
 console.log('Initializing Seeder ...')
 
@@ -241,6 +243,27 @@ async function seedApyData(retryCount = 0) {
 	}
 }
 
+/**
+ * Seed metadata
+ *
+ * @returns
+ */
+async function seedMetadata() {
+	try {
+		console.log('\nSeeding AVS metadata ...')
+		await monitorAvsMetadata()
+	} catch (error) {
+		console.error('Failed to seed AVS metadata', error)
+	}
+
+	try {
+		console.log('\nSeeding Operator metadata ...')
+		await monitorOperatorMetadata()
+	} catch (error) {
+		console.error('Failed to seed Operator metadata', error)
+	}
+}
+
 // Start seeding data instantly
 seedEigenData()
 
@@ -249,3 +272,6 @@ cron.schedule('5 0 * * *', () => seedEigenDailyData())
 
 // Schedule seedApyData to run at 5 minutes past 2am every day
 cron.schedule('5 2 * * *', () => seedApyData())
+
+// Schedule seedMetadata to run every 30 minutes
+cron.schedule('*/30 * * * *', () => seedMetadata())
