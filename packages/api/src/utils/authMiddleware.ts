@@ -36,6 +36,11 @@ const PLANS: Record<number, Plan> = {
 		requestsPerMin: 1_000,
 		requestsPerMonth: 100_000
 	},
+	3: {
+		name: 'Enterprise 1',
+		requestsPerMin: 1_000,
+		requestsPerMonth: 500_000
+	},
 	999: {
 		name: 'Admin'
 	}
