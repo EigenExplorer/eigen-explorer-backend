@@ -10,7 +10,7 @@ import {
 } from '../utils/seeder'
 import { getPrismaClient } from '../utils/prismaClient'
 
-const blockSyncKeyLogs = 'lastSyncedBlock_logs_avs'
+const blockSyncKeyLogs = 'lastSyncedBlock_logs_allocation_delay_set'
 
 /**
  * Utility function to seed event logs
@@ -18,14 +18,12 @@ const blockSyncKeyLogs = 'lastSyncedBlock_logs_avs'
  * @param fromBlock
  * @param toBlock
  */
-export async function seedLogsAVSMetadata(toBlock?: bigint, fromBlock?: bigint) {
+export async function seedLogsAllocationDelaySet(toBlock?: bigint, fromBlock?: bigint) {
 	const viemClient = getViemClient()
 	const prismaClient = getPrismaClient()
 
 	const firstBlock = fromBlock ? fromBlock : await fetchLastSyncBlock(blockSyncKeyLogs)
 	const lastBlock = toBlock ? toBlock : await viemClient.getBlockNumber()
-
-	const contracts = [getEigenContracts().AVSDirectory, getEigenContracts().AllocationManager]
 
 	// Loop through evm logs
 	await loopThroughBlocks(firstBlock, lastBlock, async (fromBlock, toBlock) => {
@@ -34,38 +32,37 @@ export async function seedLogsAVSMetadata(toBlock?: bigint, fromBlock?: bigint) 
 		try {
 			// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 			const dbTransactions: any[] = []
-			const logsAVSMetadataURIUpdated: prisma.EventLogs_AVSMetadataURIUpdated[] = []
+			const logsAllocationDelaySet: prisma.EventLogs_AllocationDelaySet[] = []
 
-			for (const contract of contracts) {
-				const logs = await viemClient.getLogs({
-					address: contract,
-					event: parseAbiItem(
-						'event AVSMetadataURIUpdated(address indexed avs, string metadataURI)'
-					),
-					fromBlock,
-					toBlock
+			const logs = await viemClient.getLogs({
+				address: getEigenContracts().AllocationManager,
+				event: parseAbiItem(
+					'event AllocationDelaySet(address operator, uint32 delay, uint32 effectBlock)'
+				),
+				fromBlock,
+				toBlock
+			})
+
+			// Setup a list containing event data
+			for (const l in logs) {
+				const log = logs[l]
+
+				logsAllocationDelaySet.push({
+					address: log.address,
+					transactionHash: log.transactionHash,
+					transactionIndex: log.logIndex,
+					blockNumber: BigInt(log.blockNumber),
+					blockHash: log.blockHash,
+					blockTime: blockData.get(log.blockNumber) || new Date(0),
+					operator: String(log.args.operator),
+					delay: BigInt(log.args.delay || 0),
+					effectBlock: BigInt(log.args.effectBlock || 0)
 				})
-
-				// Setup a list containing event data
-				for (const l in logs) {
-					const log = logs[l]
-
-					logsAVSMetadataURIUpdated.push({
-						address: log.address,
-						transactionHash: log.transactionHash,
-						transactionIndex: log.logIndex,
-						blockNumber: BigInt(log.blockNumber),
-						blockHash: log.blockHash,
-						blockTime: blockData.get(log.blockNumber) || new Date(0),
-						avs: String(log.args.avs),
-						metadataURI: String(log.args.metadataURI)
-					})
-				}
 			}
 
 			dbTransactions.push(
-				prismaClient.eventLogs_AVSMetadataURIUpdated.createMany({
-					data: logsAVSMetadataURIUpdated,
+				prismaClient.eventLogs_AllocationDelaySet.createMany({
+					data: logsAllocationDelaySet,
 					skipDuplicates: true
 				})
 			)
@@ -80,11 +77,11 @@ export async function seedLogsAVSMetadata(toBlock?: bigint, fromBlock?: bigint) 
 			)
 
 			// Update database
-			const seedLength = logsAVSMetadataURIUpdated.length
+			const seedLength = logsAllocationDelaySet.length
 
 			await bulkUpdateDbTransactions(
 				dbTransactions,
-				`[Logs] AVS Metadata from: ${fromBlock} to: ${toBlock} size: ${seedLength}`
+				`[Logs] Allocation Delay Set from: ${fromBlock} to: ${toBlock} size: ${seedLength}`
 			)
 		} catch (error) {}
 	})

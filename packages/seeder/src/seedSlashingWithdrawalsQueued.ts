@@ -7,15 +7,15 @@ import {
 	saveLastSyncBlock
 } from './utils/seeder'
 
-const blockSyncKey = 'lastSyncedBlock_queuedWithdrawals'
-const blockSyncKeyLogs = 'lastSyncedBlock_logs_queuedWithdrawals'
+const blockSyncKey = 'lastSyncedBlock_queuedSlashingWithdrawals'
+const blockSyncKeyLogs = 'lastSyncedBlock_logs_queuedSlashingWithdrawals'
 
 /**
  *
  * @param fromBlock
  * @param toBlock
  */
-export async function seedQueuedWithdrawals(toBlock?: bigint, fromBlock?: bigint) {
+export async function seedQueuedSlashingWithdrawals(toBlock?: bigint, fromBlock?: bigint) {
 	const prismaClient = getPrismaClient()
 	const queuedWithdrawalList: prisma.WithdrawalQueued[] = []
 
@@ -32,7 +32,7 @@ export async function seedQueuedWithdrawals(toBlock?: bigint, fromBlock?: bigint
 		firstBlock,
 		lastBlock,
 		async (fromBlock, toBlock) => {
-			const logs = await prismaClient.eventLogs_WithdrawalQueued.findMany({
+			const logs = await prismaClient.eventLogs_SlashingWithdrawalQueued.findMany({
 				where: {
 					blockNumber: {
 						gt: fromBlock,
@@ -41,11 +41,8 @@ export async function seedQueuedWithdrawals(toBlock?: bigint, fromBlock?: bigint
 				}
 			})
 
-			for (const l in logs) {
-				const log = logs[l]
-
+			for (const log of logs) {
 				const withdrawalRoot = log.withdrawalRoot
-
 				const blockNumber = BigInt(log.blockNumber)
 				const timestamp = log.blockTime
 
@@ -53,6 +50,8 @@ export async function seedQueuedWithdrawals(toBlock?: bigint, fromBlock?: bigint
 					const stakerAddress = log.staker.toLowerCase()
 					const delegatedTo = log.delegatedTo.toLowerCase()
 					const withdrawerAddress = log.withdrawer.toLowerCase()
+					const scaledShares = log.scaledShares || []
+					const rawSharesToWithdraw = log.sharesToWithdraw || []
 
 					queuedWithdrawalList.push({
 						withdrawalRoot,
@@ -61,9 +60,9 @@ export async function seedQueuedWithdrawals(toBlock?: bigint, fromBlock?: bigint
 						delegatedTo,
 						withdrawerAddress,
 						strategies: log.strategies.map((s) => s.toLowerCase()) as string[],
-						shares: log.shares.map((s) => s.toString()),
-						isSlashable: false,
-						sharesToWithdraw: [],
+						shares: scaledShares.map((s) => s.toString()),
+						isSlashable: true,
+						sharesToWithdraw: rawSharesToWithdraw.map((s) => s.toString()),
 						createdAtBlock: blockNumber,
 						createdAt: timestamp
 					})

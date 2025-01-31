@@ -41,6 +41,21 @@ import { monitorOperatorApy } from './monitors/operatorApy'
 import { seedLogStrategyWhitelist } from './events/seedLogStrategyWhitelist'
 import { seedLogsDistributionRootSubmitted } from './events/seedLogsDistributionRootSubmitted'
 import { seedMetricsStakerRewards } from './metrics/seedMetricsStakerRewards'
+import { seedLogsSlashingWithdrawalCompleted } from './events/seedLogsSlashingWithdrawalCompleted'
+import { seedLogsSlashingWithdrawalQueued } from './events/seedLogsSlashingWithdrawalQueued'
+import { seedCompletedSlashingWithdrawals } from './seedSlashingWithdrawalsCompleted'
+import { seedQueuedSlashingWithdrawals } from './seedSlashingWithdrawalsQueued'
+import { seedLogsAVSRegistrarSet } from './events/seedLogsAVSRegistrarSet'
+import { seedLogsAllocationDelaySet } from './events/seedLogsAllocationDelaySet'
+import { seedLogsAllocationUpdated } from './events/seedLogsAllocationUpdated'
+import { seedLogsEncumberedMagnitudeUpdated } from './events/seedLogsEncumberedMagnitudeUpdated'
+import { seedLogsMaxMagnitudeUpdated } from './events/seedLogsMaxMagnitudeUpdated'
+import { seedLogsOperatorAddedToOperatorSet } from './events/seedLogsOperatorAddedToOperatorSet'
+import { seedLogsOperatorRemovedFromOperatorSet } from './events/seedLogsOperatorRemovedFromOperatorSet'
+import { seedLogsOperatorSetCreated } from './events/seedLogsOperatorSetCreated'
+import { seedLogsOperatorSlashed } from './events/seedLogsOperatorSlashed'
+import { seedLogsStrategyAddedToOperatorSet } from './events/seedLogsStrategyAddedToOperatorSet'
+import { seedLogsStrategyRemovedFromOperatorSet } from './events/seedLogsStrategyRemovedFromOperatorSet'
 import { monitorAvsMetadata } from './monitors/avsMetadata'
 import { monitorOperatorMetadata } from './monitors/operatorMetadata'
 
@@ -85,11 +100,24 @@ async function seedEigenData() {
 				seedLogsPodDeployed(targetBlock),
 				seedLogsWithdrawalQueued(targetBlock),
 				seedLogsWithdrawalCompleted(targetBlock),
+				seedLogsSlashingWithdrawalQueued(targetBlock),
+				seedLogsSlashingWithdrawalCompleted(targetBlock),
 				seedLogsDeposit(targetBlock),
 				seedLogsPodSharesUpdated(targetBlock),
 				seedLogsAVSRewardsSubmission(targetBlock),
 				seedLogStrategyWhitelist(targetBlock),
-				seedLogsDistributionRootSubmitted(targetBlock)
+				seedLogsDistributionRootSubmitted(targetBlock),
+				seedLogsAllocationDelaySet(targetBlock),
+				seedLogsAllocationUpdated(targetBlock),
+				seedLogsAVSRegistrarSet(targetBlock),
+				seedLogsEncumberedMagnitudeUpdated(targetBlock),
+				seedLogsMaxMagnitudeUpdated(targetBlock),
+				seedLogsOperatorAddedToOperatorSet(targetBlock),
+				seedLogsOperatorRemovedFromOperatorSet(targetBlock),
+				seedLogsOperatorSetCreated(targetBlock),
+				seedLogsOperatorSlashed(targetBlock),
+				seedLogsStrategyAddedToOperatorSet(targetBlock),
+				seedLogsStrategyRemovedFromOperatorSet(targetBlock)
 			])
 
 			await Promise.all([
@@ -107,6 +135,8 @@ async function seedEigenData() {
 				(async () => {
 					await seedQueuedWithdrawals()
 					await seedCompletedWithdrawals()
+					await seedQueuedSlashingWithdrawals()
+					await seedCompletedSlashingWithdrawals()
 				})(),
 				// Pods and Validators
 				(async () => {
