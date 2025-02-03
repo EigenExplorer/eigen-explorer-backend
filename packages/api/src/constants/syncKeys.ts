@@ -12,8 +12,8 @@ const TESTNET_BLOCK_TIME = 2
 const THIRTY_MINS_BLOCKS =
 	(30 * 60) / (getNetwork().testnet ? TESTNET_BLOCK_TIME : MAINNET_BLOCK_TIME)
 const ONE_DAY_BLOCKS =
-	(24 * 60 * 60) / (getNetwork().testnet ? TESTNET_BLOCK_TIME : MAINNET_BLOCK_TIME)
-const ONE_DAY_MS = 24 * 60 * 60 * 1000
+	(25 * 60 * 60) / (getNetwork().testnet ? TESTNET_BLOCK_TIME : MAINNET_BLOCK_TIME)
+const ONE_DAY_MS = 25 * 60 * 60 * 1000
 
 export const syncConfigs: SyncConfig[] = [
 	// Block-based syncs
