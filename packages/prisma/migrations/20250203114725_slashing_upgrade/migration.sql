@@ -1,3 +1,12 @@
+/*
+  Warnings:
+
+  - Added the required column `beaconChainSlashingFactor` to the `Pod` table without a default value. This is not possible if the table is not empty.
+
+*/
+-- AlterTable
+ALTER TABLE "Pod" ADD COLUMN     "beaconChainSlashingFactor" BIGINT NOT NULL;
+
 -- AlterTable
 ALTER TABLE "WithdrawalQueued" ADD COLUMN     "isSlashable" BOOLEAN NOT NULL DEFAULT false,
 ADD COLUMN     "sharesToWithdraw" TEXT[];
@@ -205,6 +214,21 @@ CREATE TABLE "EventLogs_StrategyRemovedFromOperatorSet" (
     CONSTRAINT "EventLogs_StrategyRemovedFromOperatorSet_pkey" PRIMARY KEY ("transactionHash","transactionIndex")
 );
 
+-- CreateTable
+CREATE TABLE "EventLogs_BeaconChainSlashingFactorDecreased" (
+    "address" TEXT NOT NULL,
+    "transactionHash" TEXT NOT NULL,
+    "transactionIndex" INTEGER NOT NULL,
+    "blockNumber" BIGINT NOT NULL,
+    "blockHash" TEXT NOT NULL,
+    "blockTime" TIMESTAMP(3) NOT NULL,
+    "staker" TEXT NOT NULL,
+    "prevBeaconChainSlashingFactor" BIGINT NOT NULL,
+    "newBeaconChainSlashingFactor" BIGINT NOT NULL,
+
+    CONSTRAINT "EventLogs_BeaconChainSlashingFactorDecreased_pkey" PRIMARY KEY ("transactionHash","transactionIndex")
+);
+
 -- CreateIndex
 CREATE INDEX "EventLogs_SlashingWithdrawalQueued_withdrawalRoot_idx" ON "EventLogs_SlashingWithdrawalQueued"("withdrawalRoot");
 
@@ -264,3 +288,9 @@ CREATE INDEX "EventLogs_StrategyRemovedFromOperatorSet_avs_strategy_idx" ON "Eve
 
 -- CreateIndex
 CREATE INDEX "EventLogs_StrategyRemovedFromOperatorSet_blockNumber_idx" ON "EventLogs_StrategyRemovedFromOperatorSet"("blockNumber");
+
+-- CreateIndex
+CREATE INDEX "EventLogs_BeaconChainSlashingFactorDecreased_staker_idx" ON "EventLogs_BeaconChainSlashingFactorDecreased"("staker");
+
+-- CreateIndex
+CREATE INDEX "EventLogs_BeaconChainSlashingFactorDecreased_blockNumber_idx" ON "EventLogs_BeaconChainSlashingFactorDecreased"("blockNumber");

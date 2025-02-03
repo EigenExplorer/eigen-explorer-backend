@@ -210,6 +210,7 @@ model Pod {
   address     String @id @unique
   owner       String
   blockNumber BigInt // @Deprecated, will remove in future release
+  beaconChainSlashingFactor BigInt
 
   createdAtBlock BigInt   @default(0)
   updatedAtBlock BigInt   @default(0)
@@ -951,6 +952,24 @@ model EventLogs_StrategyRemovedFromOperatorSet {
 
   @@id([transactionHash, transactionIndex])
   @@index([avs,strategy])
+  @@index([blockNumber])
+}
+
+model EventLogs_BeaconChainSlashingFactorDecreased {
+  address String
+
+  transactionHash  String
+  transactionIndex Int
+  blockNumber      BigInt
+  blockHash        String
+  blockTime        DateTime
+
+  staker String
+  prevBeaconChainSlashingFactor BigInt
+  newBeaconChainSlashingFactor  BigInt
+
+  @@id([transactionHash, transactionIndex])
+  @@index([staker])
   @@index([blockNumber])
 }
 
