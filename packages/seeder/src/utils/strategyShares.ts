@@ -12,6 +12,9 @@ export interface StrategyWithShareUnderlying {
 	ethPrice: number
 }
 
+const WAD = BigInt(1e18)
+const beaconAddress = '0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0'
+
 /**
  * Get the strategies with their shares underlying and their token prices
  *
@@ -156,4 +159,52 @@ export async function getRestakeableStrategies(avsAddress: string): Promise<stri
 	} catch (error) {}
 
 	return []
+}
+
+/**
+ * Get `sharesToWithdraw` for slashable withdrawals.
+ *
+ * @param withdrawal
+ * @param sharesAmount
+ * @param strategyAddress
+ * @param slashableUntil
+ * @returns
+ */
+export async function calculateSharesToWithdraw(
+	withdrawal: any,
+	sharesAmount: string,
+	strategyAddress: string,
+	slashableUntil: bigint
+) {
+	const maxMagnitudeRecord = await getPrismaClient().eventLogs_MaxMagnitudeUpdated.findFirst({
+		where: {
+			operator: withdrawal.delegatedTo,
+			strategy: strategyAddress,
+			blockNumber: { lte: slashableUntil }
+		},
+		orderBy: { blockNumber: 'desc' }
+	})
+
+	const maxMagnitude = BigInt(maxMagnitudeRecord?.maxMagnitude || WAD)
+	let beaconChainSlashingFactor = WAD
+
+	// If strategy is beacon chain, fetch beaconChainSlashingFactor
+	if (strategyAddress === beaconAddress) {
+		const pod = await getPrismaClient().pod.findFirst({
+			where: { owner: withdrawal.stakerAddress },
+			select: { beaconChainSlashingFactor: true }
+		})
+		beaconChainSlashingFactor = BigInt(pod?.beaconChainSlashingFactor || WAD)
+	}
+
+	const sharesToWithdraw =
+		strategyAddress === beaconAddress
+			? (BigInt(sharesAmount) * maxMagnitude * beaconChainSlashingFactor) / (WAD * WAD)
+			: (BigInt(sharesAmount) * maxMagnitude) / WAD
+
+	return {
+		strategyAddress,
+		shares: sharesAmount,
+		sharesToWithdraw: sharesToWithdraw.toString()
+	}
 }

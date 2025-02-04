@@ -12,6 +12,9 @@ export interface StrategyWithShareUnderlying {
 	ethPrice: number
 }
 
+const WAD = BigInt(1e18)
+const beaconAddress = '0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0'
+
 /**
  * Get the strategies with their shares underlying and their token prices
  *
@@ -156,4 +159,108 @@ export async function getRestakeableStrategies(avsAddress: string): Promise<stri
 	} catch (error) {}
 
 	return []
+}
+
+/**
+ * Get `sharesToWithdraw` for slashable withdrawals.
+ *
+ * @param withdrawal
+ * @param sharesAmount
+ * @param strategyAddress
+ * @param slashableUntil
+ * @returns
+ */
+async function calculateSharesToWithdraw(
+	withdrawal: any,
+	sharesAmount: string,
+	strategyAddress: string,
+	slashableUntil: bigint
+) {
+	const maxMagnitudeRecord = await getPrismaClient().eventLogs_MaxMagnitudeUpdated.findFirst({
+		where: {
+			operator: withdrawal.delegatedTo,
+			strategy: strategyAddress,
+			blockNumber: { lte: slashableUntil }
+		},
+		orderBy: { blockNumber: 'desc' }
+	})
+
+	const maxMagnitude = BigInt(maxMagnitudeRecord?.maxMagnitude || WAD)
+	let beaconChainSlashingFactor = WAD
+
+	// If strategy is beacon chain, fetch beaconChainSlashingFactor
+	if (strategyAddress === beaconAddress) {
+		const pod = await getPrismaClient().pod.findFirst({
+			where: { owner: withdrawal.stakerAddress },
+			select: { beaconChainSlashingFactor: true }
+		})
+		beaconChainSlashingFactor = BigInt(pod?.beaconChainSlashingFactor || WAD)
+	}
+
+	const sharesToWithdraw =
+		strategyAddress === beaconAddress
+			? (BigInt(sharesAmount) * maxMagnitude * beaconChainSlashingFactor) / (WAD * WAD)
+			: (BigInt(sharesAmount) * maxMagnitude) / WAD
+
+	return {
+		strategyAddress,
+		shares: sharesAmount,
+		sharesToWithdraw: sharesToWithdraw.toString()
+	}
+}
+
+/**
+ * Process withdrawal records and compute `sharesToWithdraw` for slashable withdrawals.
+ *
+ * @param withdrawalRecords
+ * @returns
+ */
+export async function processWithdrawals(withdrawalRecords: any[]) {
+	const processedWithdrawals = await Promise.all(
+		withdrawalRecords.map(async (withdrawal) => {
+			if (!withdrawal.isSlashable) {
+				return {
+					...withdrawal,
+					shares: withdrawal.shares.map((s, i) => ({
+						strategyAddress: withdrawal.strategies[i],
+						shares: s
+					})),
+					strategies: undefined,
+					isSlashable: undefined,
+					completedWithdrawal: undefined,
+					sharesToWithdraw: undefined,
+					isCompleted: !!withdrawal.completedWithdrawal,
+					updatedAt: withdrawal.completedWithdrawal?.createdAt || withdrawal.createdAt,
+					updatedAtBlock:
+						withdrawal.completedWithdrawal?.createdAtBlock || withdrawal.createdAtBlock
+				}
+			}
+
+			const minDelayBlocks = await getPrismaClient().settings.findUnique({
+				where: { key: 'withdrawMinDelayBlocks' }
+			})
+			const slashableUntil =
+				withdrawal.createdAtBlock + BigInt((minDelayBlocks?.value as string) || '0')
+
+			const shares = await Promise.all(
+				withdrawal.shares.map((s, i) =>
+					calculateSharesToWithdraw(withdrawal, s, withdrawal.strategies[i], slashableUntil)
+				)
+			)
+
+			return {
+				...withdrawal,
+				shares,
+				strategies: undefined,
+				isSlashable: undefined,
+				completedWithdrawal: undefined,
+				sharesToWithdraw: undefined,
+				isCompleted: !!withdrawal.completedWithdrawal,
+				updatedAt: withdrawal.completedWithdrawal?.createdAt || withdrawal.createdAt,
+				updatedAtBlock: withdrawal.completedWithdrawal?.createdAtBlock || withdrawal.createdAtBlock
+			}
+		})
+	)
+
+	return processedWithdrawals
 }
