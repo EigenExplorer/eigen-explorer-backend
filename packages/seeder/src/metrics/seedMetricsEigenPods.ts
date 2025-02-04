@@ -147,22 +147,20 @@ async function loopTick(
 	// Calculate
 	changePods = podAddresses.size
 
-	if (changePods > 0) {
-		const withdrawalCredentials = Array.from(podAddresses).map((address) =>
-			address.replace('0x', '0x010000000000000000000000')
-		)
+	const [newValidators, exitedValidators] = await Promise.all([
+		prismaClient.validator.count({
+			where: {
+				activationEpoch: { gt: startEpoch, lte: endEpoch }
+			}
+		}),
+		prismaClient.validator.count({
+			where: { exitEpoch: { gt: startEpoch, lte: endEpoch } }
+		})
+	])
 
-		const [newValidators, exitedValidators] = await Promise.all([
-			prismaClient.validator.count({
-				where: { withdrawalCredentials: { in: withdrawalCredentials } }
-			}),
-			prismaClient.validator.count({
-				where: { exitEpoch: { gt: startEpoch, lte: endEpoch } }
-			})
-		])
+	const changeTvl = (newValidators - exitedValidators) * 32
 
-		const changeTvl = (newValidators - exitedValidators) * 32
-
+	if (changePods > 0 || changeTvl > 0) {
 		const tvlRecord = {
 			tvlEth: (tvl + changeTvl) as unknown as prisma.Prisma.Decimal,
 			changeTvlEth: changeTvl as unknown as prisma.Prisma.Decimal,
