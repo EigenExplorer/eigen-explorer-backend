@@ -50,6 +50,8 @@ console.log('Initializing Seeder ...')
 const MAX_RETRIES = 3
 const RETRY_DELAY = 15 * 60
 const UPDATE_FREQUENCY = getNetwork().testnet ? 720 : 240
+const METADATA_SYNC_FREQUENCY = 7
+let seedCount = 0
 
 // Locks
 let isSeedingBlockData = false
@@ -124,6 +126,15 @@ async function seedEigenData() {
 				monitorAvsMetrics(),
 				monitorOperatorMetrics()
 			])
+
+			// Seed metadata every METADATA_SYNC_FREQUENCY iterations
+			if (++seedCount % METADATA_SYNC_FREQUENCY === 0) {
+				console.log(`Seeding metadata ...`)
+				console.time('Seeded metadata in')
+				await seedMetadata()
+				console.timeEnd('Seeded metadata in')
+			}
+
 			console.timeEnd('Seeded data in')
 		} catch (error) {
 			console.log('Failed to seed data at:', Date.now())
@@ -242,6 +253,3 @@ cron.schedule('5 0 * * *', () => seedEigenDailyData())
 
 // Schedule seedApyData to run at 5 minutes past 2am every day
 cron.schedule('5 2 * * *', () => seedApyData())
-
-// Schedule seedMetadata to run every 30 minutes
-cron.schedule('*/30 * * * *', () => seedMetadata())
