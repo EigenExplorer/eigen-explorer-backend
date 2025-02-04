@@ -58,6 +58,8 @@ import { seedLogsStrategyAddedToOperatorSet } from './events/seedLogsStrategyAdd
 import { seedLogsStrategyRemovedFromOperatorSet } from './events/seedLogsStrategyRemovedFromOperatorSet'
 import { monitorAvsMetadata } from './monitors/avsMetadata'
 import { monitorOperatorMetadata } from './monitors/operatorMetadata'
+import { seedLogsBeaconChainSlashingFactor } from './events/seedLogsBeaconChainSlashingFactorDecreased'
+import { seedBeaconChainSlashingFactor } from './seedBeaconChainSlashingFactor'
 
 console.log('Initializing Seeder ...')
 
@@ -117,7 +119,8 @@ async function seedEigenData() {
 				seedLogsOperatorSetCreated(targetBlock),
 				seedLogsOperatorSlashed(targetBlock),
 				seedLogsStrategyAddedToOperatorSet(targetBlock),
-				seedLogsStrategyRemovedFromOperatorSet(targetBlock)
+				seedLogsStrategyRemovedFromOperatorSet(targetBlock),
+				seedLogsBeaconChainSlashingFactor(targetBlock)
 			])
 
 			await Promise.all([
@@ -142,6 +145,7 @@ async function seedEigenData() {
 				(async () => {
 					await seedPods()
 					await seedValidators()
+					await seedBeaconChainSlashingFactor()
 				})()
 			])
 
