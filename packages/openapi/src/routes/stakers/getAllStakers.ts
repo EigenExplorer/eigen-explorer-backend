@@ -6,6 +6,7 @@ import { PaginationMetaResponsesSchema } from '../../apiResponseSchema/base/pagi
 import { UpdatedSinceQuerySchema } from '../../../../api/src/schema/zod/schemas/updatedSinceQuery'
 import { WithTvlQuerySchema } from '../../../../api/src/schema/zod/schemas/withTvlQuery'
 import { StakerResponseSchema } from '../../apiResponseSchema/stakerResponse'
+import { AuthHeaderSchema } from '../../authHeaderSchema'
 
 const AllStakersResponseSchema = z.object({
 	data: z.array(StakerResponseSchema),
@@ -24,7 +25,8 @@ export const getAllStakers: ZodOpenApiOperationObject = {
 	description: 'Returns all staker records. This endpoint supports pagination.',
 	tags: ['Stakers'],
 	requestParams: {
-		query: CombinedQuerySchema
+		query: CombinedQuerySchema,
+		header: AuthHeaderSchema
 	},
 	responses: {
 		'200': {

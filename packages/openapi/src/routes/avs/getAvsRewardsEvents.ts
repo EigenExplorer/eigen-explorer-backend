@@ -9,6 +9,7 @@ import {
 } from '../../../../api/src/schema/zod/schemas/eventSchemas'
 import { PaginationQuerySchema } from '../../../../api/src/schema/zod/schemas/paginationQuery'
 import { applyAllRefinements } from '../../apiResponseSchema/events/util'
+import { AuthHeaderSchema } from '../../authHeaderSchema'
 
 const AvsAddressParam = z.object({
 	address: EthereumAddressSchema.describe('AVS service manager contract address').openapi({
@@ -29,7 +30,8 @@ export const getAvsRewardsEvents: ZodOpenApiOperationObject = {
 	tags: ['AVS'],
 	requestParams: {
 		path: AvsAddressParam,
-		query: CombinedQuerySchema
+		query: CombinedQuerySchema,
+		header: AuthHeaderSchema
 	},
 	responses: {
 		'200': {

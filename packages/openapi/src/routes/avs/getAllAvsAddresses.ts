@@ -8,6 +8,7 @@ import {
 	SearchByText,
 	SearchMode
 } from '../../../../api/src/schema/zod/schemas/separateSearchQueries'
+import { AuthHeaderSchema } from '../../authHeaderSchema'
 
 const AvsAddressResponseSchema = z.object({
 	data: z.array(AvsAddressSchema),
@@ -26,7 +27,8 @@ export const getAllAvsAddresses: ZodOpenApiOperationObject = {
 	description: 'Returns a list of all AVS addresses. This page supports pagination.',
 	tags: ['AVS'],
 	requestParams: {
-		query: CombinedQuerySchema
+		query: CombinedQuerySchema,
+		header: AuthHeaderSchema
 	},
 	responses: {
 		'200': {

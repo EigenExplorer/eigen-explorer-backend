@@ -6,6 +6,7 @@ import { WithTvlQuerySchema } from '../../../../api/src/schema/zod/schemas/withT
 import { WithAdditionalDataQuerySchema } from '../../../../api/src/schema/zod/schemas/withAdditionalDataQuery'
 import { WithRewardsQuerySchema } from '../../../../api/src/schema/zod/schemas/withRewardsQuery'
 import { OperatorWithRewardsResponseSchema } from '../../apiResponseSchema/operator/operatorWithRewardsResponse'
+import { AuthHeaderSchema } from '../../authHeaderSchema'
 
 const OperatorAddressParam = z.object({
 	address: EthereumAddressSchema.describe('The address of the operator').openapi({
@@ -26,7 +27,8 @@ export const getOperatorByAddress: ZodOpenApiOperationObject = {
 	tags: ['Operators'],
 	requestParams: {
 		query: CombinedQuerySchema,
-		path: OperatorAddressParam
+		path: OperatorAddressParam,
+		header: AuthHeaderSchema
 	},
 	responses: {
 		'200': {

@@ -4,6 +4,7 @@ import { IndividualStrategyTvlResponseSchema } from '../../apiResponseSchema/met
 import z from '../../../../api/src/schema/zod'
 import { WithChangeQuerySchema } from '../../../../api/src/schema/zod/schemas/withChangeQuery'
 import { EthereumAddressSchema } from '../../../../api/src/schema/zod/schemas/base/ethereumAddress'
+import { AuthHeaderSchema } from '../../authHeaderSchema'
 
 const RestakingStrategyAddressParam = z.object({
 	strategy: EthereumAddressSchema.describe('The address of the restaking strategy').openapi({
@@ -20,7 +21,8 @@ export const getTvlRestakingMetricByStrategy: ZodOpenApiOperationObject = {
 	tags: ['Metrics'],
 	requestParams: {
 		query: QuerySchema,
-		path: RestakingStrategyAddressParam
+		path: RestakingStrategyAddressParam,
+		header: AuthHeaderSchema
 	},
 	responses: {
 		'200': {

@@ -5,6 +5,7 @@ import { EthereumAddressSchema } from '../../../../api/src/schema/zod/schemas/ba
 import { WithTvlQuerySchema } from '../../../../api/src/schema/zod/schemas/withTvlQuery'
 import { StakerRewardsResponseSchema } from '../../apiResponseSchema/stakerResponse'
 import { WithRewardsQuerySchema } from '../../../../api/src/schema/zod/schemas/withRewardsQuery'
+import { AuthHeaderSchema } from '../../authHeaderSchema'
 
 const CombinedQuerySchema = z.object({}).merge(WithTvlQuerySchema).merge(WithRewardsQuerySchema)
 
@@ -21,7 +22,8 @@ export const getStakerByAddress: ZodOpenApiOperationObject = {
 	tags: ['Stakers'],
 	requestParams: {
 		query: CombinedQuerySchema,
-		path: StakerAddressParam
+		path: StakerAddressParam,
+		header: AuthHeaderSchema
 	},
 	responses: {
 		'200': {

@@ -3,6 +3,7 @@ import { ZodOpenApiOperationObject } from 'zod-openapi'
 import { openApiErrorResponses } from '../../apiResponseSchema/base/errorResponses'
 import { TotalAvsSchema } from '../../apiResponseSchema/metrics/timeChangeResponse'
 import { CountOfAvsWithChangeQuerySchema } from '../../../../api/src/schema/zod/schemas/withChangeQuery'
+import { AuthHeaderSchema } from '../../authHeaderSchema'
 
 const QuerySchema = z.object({}).merge(CountOfAvsWithChangeQuerySchema)
 
@@ -11,7 +12,7 @@ export const getTotalAvsMetric: ZodOpenApiOperationObject = {
 	summary: 'Retrieve total number of AVS',
 	description: 'Returns the total number of AVS registered.',
 	tags: ['Metrics'],
-	requestParams: { query: QuerySchema },
+	requestParams: { query: QuerySchema, header: AuthHeaderSchema },
 	responses: {
 		'200': {
 			description: 'The total number of AVS registered.',

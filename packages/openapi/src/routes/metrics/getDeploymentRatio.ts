@@ -3,6 +3,7 @@ import { ZodOpenApiOperationObject } from 'zod-openapi'
 import { openApiErrorResponses } from '../../apiResponseSchema/base/errorResponses'
 import { DeploymentRatioSchema } from '../../apiResponseSchema/metrics/ratioResponse'
 import { RatioWithChangeQuerySchema } from '../../../../api/src/schema/zod/schemas/withChangeQuery'
+import { AuthHeaderSchema } from '../../authHeaderSchema'
 
 const QuerySchema = z.object({}).merge(RatioWithChangeQuerySchema)
 
@@ -12,7 +13,7 @@ export const getDeploymentRatio: ZodOpenApiOperationObject = {
 	description:
 		'Returns deployment ratio, which is calculated as the value of funds delegated to operators in ETH divided by the total EigenLayer TVL.',
 	tags: ['Metrics'],
-	requestParams: { query: QuerySchema },
+	requestParams: { query: QuerySchema, header: AuthHeaderSchema },
 	responses: {
 		'200': {
 			description: 'The value of deployment ratio',

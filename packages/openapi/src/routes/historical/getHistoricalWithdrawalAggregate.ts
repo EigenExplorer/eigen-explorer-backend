@@ -3,6 +3,7 @@ import { openApiErrorResponses } from '../../apiResponseSchema/base/errorRespons
 import z from '../../../../api/src/schema/zod'
 import { HistoricalCountSchema } from '../../../../api/src/schema/zod/schemas/historicalCountQuery'
 import { HistoricalValueAggregateSchema } from '../../apiResponseSchema/metrics/historicalAggregateResponse'
+import { AuthHeaderSchema } from '../../authHeaderSchema'
 
 const HistoricalWithdrawalsAggregateResponseSchema = z.object({
 	data: z.array(HistoricalValueAggregateSchema)
@@ -15,7 +16,8 @@ export const getHistoricalWithdrawalAggregate: ZodOpenApiOperationObject = {
 		'Returns historical aggregate data for withdrawals, including the total value of withdrawals in ETH at specified timestamp values.',
 	tags: ['Metrics'],
 	requestParams: {
-		query: HistoricalCountSchema
+		query: HistoricalCountSchema,
+		header: AuthHeaderSchema
 	},
 	responses: {
 		'200': {

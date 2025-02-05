@@ -12,6 +12,7 @@ import {
 } from '../../../../api/src/schema/zod/schemas/separateSortingQueries'
 import { SearchByText } from '../../../../api/src/schema/zod/schemas/separateSearchQueries'
 import { OperatorResponseSchema } from '../../apiResponseSchema/operator/operatorResponse'
+import { AuthHeaderSchema } from '../../authHeaderSchema'
 
 const AllOperatorsResponseSchema = z.object({
 	data: z.array(OperatorResponseSchema),
@@ -48,7 +49,8 @@ export const getAllOperators: ZodOpenApiOperationObject = {
 				message: 'Only one sortBy option can be used',
 				path: ['sortByTvl', 'sortByTotalAvs', 'sortByTotalStakers']
 			}
-		)
+		),
+		header: AuthHeaderSchema
 	},
 	responses: {
 		'200': {

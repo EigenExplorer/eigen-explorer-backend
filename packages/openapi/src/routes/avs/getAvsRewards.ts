@@ -3,6 +3,7 @@ import z from '../../../../api/src/schema/zod'
 import { EthereumAddressSchema } from '../../../../api/src/schema/zod/schemas/base/ethereumAddress'
 import { ZodOpenApiOperationObject } from 'zod-openapi'
 import { AvsRewardsSchema } from '../../apiResponseSchema/avs/avsRewardsResponse'
+import { AuthHeaderSchema } from '../../authHeaderSchema'
 
 const AvsAddressParam = z.object({
 	address: EthereumAddressSchema.describe('AVS service manager contract address').openapi({
@@ -16,7 +17,8 @@ export const getAvsRewards: ZodOpenApiOperationObject = {
 	description: 'Returns a list of all rewards for a given AVS address.',
 	tags: ['AVS'],
 	requestParams: {
-		path: AvsAddressParam
+		path: AvsAddressParam,
+		header: AuthHeaderSchema
 	},
 	responses: {
 		'200': {
