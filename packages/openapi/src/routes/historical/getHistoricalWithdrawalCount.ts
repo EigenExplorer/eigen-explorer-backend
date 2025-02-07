@@ -3,6 +3,7 @@ import { openApiErrorResponses } from '../../apiResponseSchema/base/errorRespons
 import z from '../../../../api/src/schema/zod'
 import { HistoricalCountSchema } from '../../../../api/src/schema/zod/schemas/historicalCountQuery'
 import { WithdrawalHistoricalCountSchema } from '../../apiResponseSchema/metrics/historicalCountResponse'
+import { AuthHeaderSchema } from '../../authHeaderSchema'
 
 const HistoricalWithdrawalCountResponseSchema = z.object({
 	data: z.array(WithdrawalHistoricalCountSchema)
@@ -14,7 +15,8 @@ export const getHistoricalWithdrawalCount: ZodOpenApiOperationObject = {
 	description: 'Returns the total number of withdrawals made at timestamp values.',
 	tags: ['Metrics'],
 	requestParams: {
-		query: HistoricalCountSchema
+		query: HistoricalCountSchema,
+		header: AuthHeaderSchema
 	},
 	responses: {
 		'200': {

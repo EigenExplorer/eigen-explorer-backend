@@ -4,6 +4,7 @@ import z from '../../../../api/src/schema/zod'
 import { HistoricalCountSchema } from '../../../../api/src/schema/zod/schemas/historicalCountQuery'
 import { HistoricalIndividualStrategyTvlResponseSchema } from '../../apiResponseSchema/metrics/tvlResponse'
 import { EthereumAddressSchema } from '../../../../api/src/schema/zod/schemas/base/ethereumAddress'
+import { AuthHeaderSchema } from '../../authHeaderSchema'
 
 const HistoricalIndividualStrategyTvlCombinedResponseSchema = z.object({
 	data: z.array(HistoricalIndividualStrategyTvlResponseSchema)
@@ -25,7 +26,8 @@ export const getHistoricalTvlRestaking: ZodOpenApiOperationObject = {
 	tags: ['Metrics'],
 	requestParams: {
 		query: HistoricalCountSchema,
-		path: RestakingStrategyAddressParam
+		path: RestakingStrategyAddressParam,
+		header: AuthHeaderSchema
 	},
 	responses: {
 		'200': {

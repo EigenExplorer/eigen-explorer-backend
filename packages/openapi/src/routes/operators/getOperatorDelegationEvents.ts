@@ -11,6 +11,7 @@ import {
 } from '../../../../api/src/schema/zod/schemas/eventSchemas'
 import { PaginationQuerySchema } from '../../../../api/src/schema/zod/schemas/paginationQuery'
 import { applyAllRefinements } from '../../apiResponseSchema/events/util'
+import { AuthHeaderSchema } from '../../authHeaderSchema'
 
 const OperatorAddressParam = z.object({
 	address: EthereumAddressSchema.describe('The address of the operator').openapi({
@@ -35,7 +36,8 @@ export const getOperatorDelegationEvents: ZodOpenApiOperationObject = {
 	tags: ['Operators'],
 	requestParams: {
 		path: OperatorAddressParam,
-		query: CombinedQuerySchema
+		query: CombinedQuerySchema,
+		header: AuthHeaderSchema
 	},
 	responses: {
 		'200': {

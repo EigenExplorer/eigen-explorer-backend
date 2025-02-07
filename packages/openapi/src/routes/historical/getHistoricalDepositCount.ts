@@ -3,6 +3,7 @@ import { openApiErrorResponses } from '../../apiResponseSchema/base/errorRespons
 import z from '../../../../api/src/schema/zod'
 import { HistoricalCountSchema } from '../../../../api/src/schema/zod/schemas/historicalCountQuery'
 import { DepositHistoricalCountSchema } from '../../apiResponseSchema/metrics/historicalCountResponse'
+import { AuthHeaderSchema } from '../../authHeaderSchema'
 
 const HistoricalDepositCountResponseSchema = z.object({
 	data: z.array(DepositHistoricalCountSchema)
@@ -14,7 +15,8 @@ export const getHistoricalDepositCount: ZodOpenApiOperationObject = {
 	description: 'Returns the total number of deposits made at timestamp values.',
 	tags: ['Metrics'],
 	requestParams: {
-		query: HistoricalCountSchema
+		query: HistoricalCountSchema,
+		header: AuthHeaderSchema
 	},
 	responses: {
 		'200': {
