@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client'
 import { getPrismaClient } from '../utils/prismaClient'
 import { getSharesToUnderlying, getEthPrices, getStrategyToSymbolMap } from '../utils/strategies'
 import { bulkUpdateDbTransactions, fetchLastSyncTime } from '../utils/seeder'
+import { calculateSharesToWithdraw } from '../utils/strategyShares'
 
 const timeSyncKey = 'lastSyncedTime_metrics_withdrawal'
 
@@ -147,14 +148,32 @@ async function processWithdrawals(
 			}
 		}
 
-		withdrawal.strategies.forEach((strategyAddress, index) => {
+		withdrawal.strategies.forEach(async (strategyAddress, index) => {
 			const symbol = strategyToSymbolMap.get(strategyAddress)?.toLowerCase()
 			const sharesMultiplier = Number(sharesToUnderlying.get(strategyAddress.toLowerCase()))
 			const ethPrice =
 				Number(ethPriceData.find((price) => price.symbol.toLowerCase() === symbol)?.ethPrice) || 0
 
+			let shares = BigInt(withdrawal.shares[index])
+
+			if (withdrawal.isSlashable) {
+				const slashableUntil =
+					withdrawal.createdAtBlock +
+					BigInt(
+						((await prismaClient.settings.findUnique({ where: { key: 'withdrawMinDelayBlocks' } }))
+							?.value as string) || '0'
+					)
+
+				const sharesResult = await calculateSharesToWithdraw(
+					withdrawal,
+					withdrawal.shares[index],
+					strategyAddress,
+					slashableUntil
+				)
+				shares = BigInt(sharesResult.sharesToWithdraw)
+			}
+
 			if (sharesMultiplier && ethPrice) {
-				const shares = withdrawal.shares[index]
 				const withdrawalValueEth = (Number(shares) / 1e18) * sharesMultiplier * ethPrice
 				acc[dayTimestamp].changeTvlEth = Number(acc[dayTimestamp].changeTvlEth) + withdrawalValueEth
 			}
