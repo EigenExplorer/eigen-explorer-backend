@@ -56,7 +56,7 @@ export async function seedLogsEncumberedMagnitudeUpdated(toBlock?: bigint, fromB
 					blockTime: blockData.get(log.blockNumber) || new Date(0),
 					operator: String(log.args.operator),
 					strategy: String(log.args.strategy),
-					encumberedMagnitude: BigInt(log.args.encumberedMagnitude || 0)
+					encumberedMagnitude: String(log.args.encumberedMagnitude)
 				})
 			}
 

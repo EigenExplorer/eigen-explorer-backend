@@ -54,8 +54,8 @@ export async function seedLogsBeaconChainSlashingFactor(toBlock?: bigint, fromBl
 					blockHash: log.blockHash,
 					blockTime: blockData.get(log.blockNumber) || new Date(0),
 					staker: String(log.args.staker),
-					prevBeaconChainSlashingFactor: BigInt(log.args.prevBeaconChainSlashingFactor || 0),
-					newBeaconChainSlashingFactor: BigInt(log.args.newBeaconChainSlashingFactor || 0)
+					prevBeaconChainSlashingFactor: String(log.args.prevBeaconChainSlashingFactor),
+					newBeaconChainSlashingFactor: String(log.args.newBeaconChainSlashingFactor)
 				})
 			}
 

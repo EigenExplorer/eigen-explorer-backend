@@ -55,7 +55,7 @@ export async function seedPods(toBlock?: bigint, fromBlock?: bigint) {
 					address: podAddress,
 					owner: podOwner,
 					blockNumber,
-					beaconChainSlashingFactor: 1000000000000000000n,
+					beaconChainSlashingFactor: '1000000000000000000',
 					createdAtBlock: blockNumber,
 					updatedAtBlock: blockNumber,
 					createdAt: timestamp,

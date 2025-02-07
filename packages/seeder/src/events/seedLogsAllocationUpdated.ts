@@ -59,7 +59,7 @@ export async function seedLogsAllocationUpdated(toBlock?: bigint, fromBlock?: bi
 					avs: String(log.args.operatorSet?.avs),
 					operatorSetId: BigInt(log.args.operatorSet?.id || 0),
 					strategy: String(log.args.strategy),
-					magnitude: BigInt(log.args.magnitude || 0),
+					magnitude: String(log.args.magnitude),
 					effectBlock: BigInt(log.args.effectBlock || 0)
 				})
 			}

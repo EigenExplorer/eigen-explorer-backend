@@ -1,11 +1,5 @@
-/*
-  Warnings:
-
-  - Added the required column `beaconChainSlashingFactor` to the `Pod` table without a default value. This is not possible if the table is not empty.
-
-*/
 -- AlterTable
-ALTER TABLE "Pod" ADD COLUMN     "beaconChainSlashingFactor" BIGINT NOT NULL;
+ALTER TABLE "Pod" ADD COLUMN     "beaconChainSlashingFactor" TEXT NOT NULL DEFAULT '1000000000000000000';
 
 -- AlterTable
 ALTER TABLE "WithdrawalQueued" ADD COLUMN     "isSlashable" BOOLEAN NOT NULL DEFAULT false,
@@ -72,7 +66,7 @@ CREATE TABLE "EventLogs_AllocationUpdated" (
     "avs" TEXT NOT NULL,
     "operatorSetId" BIGINT NOT NULL,
     "strategy" TEXT NOT NULL,
-    "magnitude" BIGINT NOT NULL,
+    "magnitude" TEXT NOT NULL,
     "effectBlock" BIGINT NOT NULL,
 
     CONSTRAINT "EventLogs_AllocationUpdated_pkey" PRIMARY KEY ("transactionHash","transactionIndex")
@@ -88,7 +82,7 @@ CREATE TABLE "EventLogs_EncumberedMagnitudeUpdated" (
     "blockTime" TIMESTAMP(3) NOT NULL,
     "operator" TEXT NOT NULL,
     "strategy" TEXT NOT NULL,
-    "encumberedMagnitude" BIGINT NOT NULL,
+    "encumberedMagnitude" TEXT NOT NULL,
 
     CONSTRAINT "EventLogs_EncumberedMagnitudeUpdated_pkey" PRIMARY KEY ("transactionHash","transactionIndex")
 );
@@ -103,7 +97,7 @@ CREATE TABLE "EventLogs_MaxMagnitudeUpdated" (
     "blockTime" TIMESTAMP(3) NOT NULL,
     "operator" TEXT NOT NULL,
     "strategy" TEXT NOT NULL,
-    "maxMagnitude" BIGINT NOT NULL,
+    "maxMagnitude" TEXT NOT NULL,
 
     CONSTRAINT "EventLogs_MaxMagnitudeUpdated_pkey" PRIMARY KEY ("transactionHash","transactionIndex")
 );
@@ -223,8 +217,8 @@ CREATE TABLE "EventLogs_BeaconChainSlashingFactorDecreased" (
     "blockHash" TEXT NOT NULL,
     "blockTime" TIMESTAMP(3) NOT NULL,
     "staker" TEXT NOT NULL,
-    "prevBeaconChainSlashingFactor" BIGINT NOT NULL,
-    "newBeaconChainSlashingFactor" BIGINT NOT NULL,
+    "prevBeaconChainSlashingFactor" TEXT NOT NULL,
+    "newBeaconChainSlashingFactor" TEXT NOT NULL,
 
     CONSTRAINT "EventLogs_BeaconChainSlashingFactorDecreased_pkey" PRIMARY KEY ("transactionHash","transactionIndex")
 );
