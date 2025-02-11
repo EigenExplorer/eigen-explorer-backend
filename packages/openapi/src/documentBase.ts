@@ -26,6 +26,10 @@ export const document = createDocument({
 		{
 			url: 'https://api.eigenexplorer.com',
 			description: 'EigenExplorer Production API'
+		},
+		{
+			url: 'https://api-holesky.eigenexplorer.com',
+			description: 'EigenExplorer Holesky Testnet API'
 		}
 	],
 	paths: {
