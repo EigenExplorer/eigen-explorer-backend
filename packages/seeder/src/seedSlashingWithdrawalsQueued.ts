@@ -87,7 +87,7 @@ export async function seedQueuedSlashingWithdrawals(toBlock?: bigint, fromBlock?
 
 	await bulkUpdateDbTransactions(
 		dbTransactions,
-		`[Data] Queued Withdrawal from: ${firstBlock} to: ${lastBlock} size: ${queuedWithdrawalList.length}`
+		`[Data] Queued Withdrawal (Slashing) from: ${firstBlock} to: ${lastBlock} size: ${queuedWithdrawalList.length}`
 	)
 
 	// // Storing last sycned block

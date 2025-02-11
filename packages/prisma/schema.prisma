@@ -210,6 +210,7 @@ model Pod {
   address     String @id @unique
   owner       String
   blockNumber BigInt // @Deprecated, will remove in future release
+  beaconChainSlashingFactor String @default("1000000000000000000")
 
   createdAtBlock BigInt   @default(0)
   updatedAtBlock BigInt   @default(0)
@@ -788,7 +789,7 @@ model EventLogs_AllocationUpdated {
   avs String
   operatorSetId BigInt
   strategy String
-  magnitude BigInt
+  magnitude String
   effectBlock BigInt
 
   @@id([transactionHash, transactionIndex])
@@ -806,7 +807,7 @@ model EventLogs_EncumberedMagnitudeUpdated {
 
   operator String
   strategy String
-  encumberedMagnitude BigInt
+  encumberedMagnitude String
 
   @@id([transactionHash, transactionIndex])
   @@index([blockNumber])
@@ -823,7 +824,7 @@ model EventLogs_MaxMagnitudeUpdated {
 
   operator String
   strategy String
-  maxMagnitude BigInt
+  maxMagnitude String
 
   @@id([transactionHash, transactionIndex])
   @@index([blockNumber])
@@ -951,6 +952,24 @@ model EventLogs_StrategyRemovedFromOperatorSet {
 
   @@id([transactionHash, transactionIndex])
   @@index([avs,strategy])
+  @@index([blockNumber])
+}
+
+model EventLogs_BeaconChainSlashingFactorDecreased {
+  address String
+
+  transactionHash  String
+  transactionIndex Int
+  blockNumber      BigInt
+  blockHash        String
+  blockTime        DateTime
+
+  staker String
+  prevBeaconChainSlashingFactor String
+  newBeaconChainSlashingFactor  String
+
+  @@id([transactionHash, transactionIndex])
+  @@index([staker])
   @@index([blockNumber])
 }
 

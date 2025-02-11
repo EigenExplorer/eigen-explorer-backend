@@ -10,63 +10,58 @@ import {
 } from '../utils/seeder'
 import { getPrismaClient } from '../utils/prismaClient'
 
-const blockSyncKeyLogs = 'lastSyncedBlock_logs_allocation_updated'
+const blockSyncKeyLogs = 'lastSyncedBlock_logs_beaconChainSlashingFactor'
 
 /**
- * Utility function to seed event logs
+ * Seeder for `BeaconChainSlashingFactorDecreased` event logs
  *
- * @param fromBlock
  * @param toBlock
+ * @param fromBlock
  */
-export async function seedLogsAllocationUpdated(toBlock?: bigint, fromBlock?: bigint) {
+export async function seedLogsBeaconChainSlashingFactor(toBlock?: bigint, fromBlock?: bigint) {
 	const viemClient = getViemClient()
 	const prismaClient = getPrismaClient()
 
 	const firstBlock = fromBlock ? fromBlock : await fetchLastSyncBlock(blockSyncKeyLogs)
 	const lastBlock = toBlock ? toBlock : await viemClient.getBlockNumber()
 
-	// Loop through evm logs
+	// Loop through EVM logs
 	await loopThroughBlocks(firstBlock, lastBlock, async (fromBlock, toBlock) => {
 		const blockData = await getBlockDataFromDb(fromBlock, toBlock)
 
 		try {
-			// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 			const dbTransactions: any[] = []
-			const logsAllocationUpdated: prisma.EventLogs_AllocationUpdated[] = []
+
+			const logsBeaconChainSlashingFactor: prisma.EventLogs_BeaconChainSlashingFactorDecreased[] =
+				[]
 
 			const logs = await viemClient.getLogs({
-				address: getEigenContracts().AllocationManager,
+				address: getEigenContracts().EigenPodManager,
 				event: parseAbiItem([
-					'event AllocationUpdated(address operator, OperatorSet operatorSet, address strategy, uint64 magnitude, uint32 effectBlock)',
-					'struct OperatorSet {address avs;uint32 id;}'
+					'event BeaconChainSlashingFactorDecreased(address staker, uint64 prevBeaconChainSlashingFactor, uint64 newBeaconChainSlashingFactor)'
 				]),
 				fromBlock,
 				toBlock
 			})
 
-			// Setup a list containing event data
-			for (const l in logs) {
-				const log = logs[l]
-
-				logsAllocationUpdated.push({
+			// Store event data in array
+			for (const log of logs) {
+				logsBeaconChainSlashingFactor.push({
 					address: log.address,
 					transactionHash: log.transactionHash,
 					transactionIndex: log.logIndex,
 					blockNumber: BigInt(log.blockNumber),
 					blockHash: log.blockHash,
 					blockTime: blockData.get(log.blockNumber) || new Date(0),
-					operator: String(log.args.operator),
-					avs: String(log.args.operatorSet?.avs),
-					operatorSetId: BigInt(log.args.operatorSet?.id || 0),
-					strategy: String(log.args.strategy),
-					magnitude: String(log.args.magnitude),
-					effectBlock: BigInt(log.args.effectBlock || 0)
+					staker: String(log.args.staker),
+					prevBeaconChainSlashingFactor: String(log.args.prevBeaconChainSlashingFactor),
+					newBeaconChainSlashingFactor: String(log.args.newBeaconChainSlashingFactor)
 				})
 			}
 
 			dbTransactions.push(
-				prismaClient.eventLogs_AllocationUpdated.createMany({
-					data: logsAllocationUpdated,
+				prismaClient.eventLogs_BeaconChainSlashingFactorDecreased.createMany({
+					data: logsBeaconChainSlashingFactor,
 					skipDuplicates: true
 				})
 			)
@@ -81,12 +76,14 @@ export async function seedLogsAllocationUpdated(toBlock?: bigint, fromBlock?: bi
 			)
 
 			// Update database
-			const seedLength = logsAllocationUpdated.length
+			const seedLength = logsBeaconChainSlashingFactor.length
 
 			await bulkUpdateDbTransactions(
 				dbTransactions,
-				`[Logs] Allocation Updated from: ${fromBlock} to: ${toBlock} size: ${seedLength}`
+				`[Logs] Beacon Chain Slashing Factor Decreased from: ${fromBlock} to: ${toBlock} size: ${seedLength}`
 			)
-		} catch (error) {}
+		} catch (error) {
+			console.error('Error seeding BeaconChainSlashingFactorDecreased logs:', error)
+		}
 	})
 }

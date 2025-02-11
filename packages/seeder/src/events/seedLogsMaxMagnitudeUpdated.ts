@@ -56,7 +56,7 @@ export async function seedLogsMaxMagnitudeUpdated(toBlock?: bigint, fromBlock?: 
 					blockTime: blockData.get(log.blockNumber) || new Date(0),
 					operator: String(log.args.operator),
 					strategy: String(log.args.strategy),
-					maxMagnitude: BigInt(log.args.maxMagnitude || 0)
+					maxMagnitude: String(log.args.maxMagnitude)
 				})
 			}
 

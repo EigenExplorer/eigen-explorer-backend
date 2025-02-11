@@ -7,6 +7,7 @@ import { WithTvlQuerySchema } from '../../schema/zod/schemas/withTvlQuery'
 import { getViemClient } from '../../viem/viemClient'
 import {
 	getStrategiesWithShareUnderlying,
+	processWithdrawals,
 	sharesToTVL,
 	sharesToTVLStrategies
 } from '../../utils/strategyShares'
@@ -224,22 +225,7 @@ export async function getStakerWithdrawals(req: Request, res: Response) {
 			orderBy: { createdAtBlock: 'desc' }
 		})
 
-		const data = withdrawalRecords.map((withdrawal) => {
-			const shares = withdrawal.shares.map((s, i) => ({
-				strategyAddress: withdrawal.strategies[i],
-				shares: s
-			}))
-
-			return {
-				...withdrawal,
-				shares,
-				strategies: undefined,
-				completedWithdrawal: undefined,
-				isCompleted: !!withdrawal.completedWithdrawal,
-				updatedAt: withdrawal.completedWithdrawal?.createdAt || withdrawal.createdAt,
-				updatedAtBlock: withdrawal.completedWithdrawal?.createdAtBlock || withdrawal.createdAtBlock
-			}
-		})
+		const data = await processWithdrawals(withdrawalRecords)
 
 		res.send({
 			data,
@@ -282,18 +268,7 @@ export async function getStakerWithdrawalsQueued(req: Request, res: Response) {
 			orderBy: { createdAtBlock: 'desc' }
 		})
 
-		const data = withdrawalRecords.map((withdrawal) => {
-			const shares = withdrawal.shares.map((s, i) => ({
-				strategyAddress: withdrawal.strategies[i],
-				shares: s
-			}))
-
-			return {
-				...withdrawal,
-				shares,
-				strategies: undefined
-			}
-		})
+		const data = await processWithdrawals(withdrawalRecords)
 
 		res.send({
 			data,
@@ -348,18 +323,7 @@ export async function getStakerWithdrawalsWithdrawable(req: Request, res: Respon
 			orderBy: { createdAtBlock: 'desc' }
 		})
 
-		const data = withdrawalRecords.map((withdrawal) => {
-			const shares = withdrawal.shares.map((s, i) => ({
-				strategyAddress: withdrawal.strategies[i],
-				shares: s
-			}))
-
-			return {
-				...withdrawal,
-				shares,
-				strategies: undefined
-			}
-		})
+		const data = await processWithdrawals(withdrawalRecords)
 
 		res.send({
 			data,
@@ -410,21 +374,7 @@ export async function getStakerWithdrawalsCompleted(req: Request, res: Response)
 			orderBy: { createdAtBlock: 'desc' }
 		})
 
-		const data = withdrawalRecords.map((withdrawal) => {
-			const shares = withdrawal.shares.map((s, i) => ({
-				strategyAddress: withdrawal.strategies[i],
-				shares: s
-			}))
-
-			return {
-				...withdrawal,
-				shares,
-				strategies: undefined,
-				completedWithdrawal: undefined,
-				updatedAt: withdrawal.completedWithdrawal?.createdAt || withdrawal.createdAt,
-				updatedAtBlock: withdrawal.completedWithdrawal?.createdAtBlock || withdrawal.createdAtBlock
-			}
-		})
+		const data = await processWithdrawals(withdrawalRecords)
 
 		res.send({
 			data,

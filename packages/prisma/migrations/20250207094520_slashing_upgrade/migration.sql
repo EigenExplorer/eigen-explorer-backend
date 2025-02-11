@@ -1,4 +1,7 @@
 -- AlterTable
+ALTER TABLE "Pod" ADD COLUMN     "beaconChainSlashingFactor" TEXT NOT NULL DEFAULT '1000000000000000000';
+
+-- AlterTable
 ALTER TABLE "WithdrawalQueued" ADD COLUMN     "isSlashable" BOOLEAN NOT NULL DEFAULT false,
 ADD COLUMN     "sharesToWithdraw" TEXT[];
 
@@ -63,7 +66,7 @@ CREATE TABLE "EventLogs_AllocationUpdated" (
     "avs" TEXT NOT NULL,
     "operatorSetId" BIGINT NOT NULL,
     "strategy" TEXT NOT NULL,
-    "magnitude" BIGINT NOT NULL,
+    "magnitude" TEXT NOT NULL,
     "effectBlock" BIGINT NOT NULL,
 
     CONSTRAINT "EventLogs_AllocationUpdated_pkey" PRIMARY KEY ("transactionHash","transactionIndex")
@@ -79,7 +82,7 @@ CREATE TABLE "EventLogs_EncumberedMagnitudeUpdated" (
     "blockTime" TIMESTAMP(3) NOT NULL,
     "operator" TEXT NOT NULL,
     "strategy" TEXT NOT NULL,
-    "encumberedMagnitude" BIGINT NOT NULL,
+    "encumberedMagnitude" TEXT NOT NULL,
 
     CONSTRAINT "EventLogs_EncumberedMagnitudeUpdated_pkey" PRIMARY KEY ("transactionHash","transactionIndex")
 );
@@ -94,7 +97,7 @@ CREATE TABLE "EventLogs_MaxMagnitudeUpdated" (
     "blockTime" TIMESTAMP(3) NOT NULL,
     "operator" TEXT NOT NULL,
     "strategy" TEXT NOT NULL,
-    "maxMagnitude" BIGINT NOT NULL,
+    "maxMagnitude" TEXT NOT NULL,
 
     CONSTRAINT "EventLogs_MaxMagnitudeUpdated_pkey" PRIMARY KEY ("transactionHash","transactionIndex")
 );
@@ -205,6 +208,21 @@ CREATE TABLE "EventLogs_StrategyRemovedFromOperatorSet" (
     CONSTRAINT "EventLogs_StrategyRemovedFromOperatorSet_pkey" PRIMARY KEY ("transactionHash","transactionIndex")
 );
 
+-- CreateTable
+CREATE TABLE "EventLogs_BeaconChainSlashingFactorDecreased" (
+    "address" TEXT NOT NULL,
+    "transactionHash" TEXT NOT NULL,
+    "transactionIndex" INTEGER NOT NULL,
+    "blockNumber" BIGINT NOT NULL,
+    "blockHash" TEXT NOT NULL,
+    "blockTime" TIMESTAMP(3) NOT NULL,
+    "staker" TEXT NOT NULL,
+    "prevBeaconChainSlashingFactor" TEXT NOT NULL,
+    "newBeaconChainSlashingFactor" TEXT NOT NULL,
+
+    CONSTRAINT "EventLogs_BeaconChainSlashingFactorDecreased_pkey" PRIMARY KEY ("transactionHash","transactionIndex")
+);
+
 -- CreateIndex
 CREATE INDEX "EventLogs_SlashingWithdrawalQueued_withdrawalRoot_idx" ON "EventLogs_SlashingWithdrawalQueued"("withdrawalRoot");
 
@@ -264,3 +282,9 @@ CREATE INDEX "EventLogs_StrategyRemovedFromOperatorSet_avs_strategy_idx" ON "Eve
 
 -- CreateIndex
 CREATE INDEX "EventLogs_StrategyRemovedFromOperatorSet_blockNumber_idx" ON "EventLogs_StrategyRemovedFromOperatorSet"("blockNumber");
+
+-- CreateIndex
+CREATE INDEX "EventLogs_BeaconChainSlashingFactorDecreased_staker_idx" ON "EventLogs_BeaconChainSlashingFactorDecreased"("staker");
+
+-- CreateIndex
+CREATE INDEX "EventLogs_BeaconChainSlashingFactorDecreased_blockNumber_idx" ON "EventLogs_BeaconChainSlashingFactorDecreased"("blockNumber");
