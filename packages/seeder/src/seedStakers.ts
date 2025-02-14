@@ -25,7 +25,7 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 	const prismaClient = getPrismaClient()
 	const stakers: IMap<string, StakerEntryRecord> = new Map()
 
-	const firstBlock = fromBlock ? fromBlock : await fetchLastSyncBlock(blockSyncKey)
+	const firstBlock = fromBlock ? fromBlock : 19612000n // await fetchLastSyncBlock(blockSyncKey)
 	const lastBlock = toBlock ? toBlock : await fetchLastSyncBlock(blockSyncKeyLogs)
 
 	// Bail early if there is no block diff to sync
@@ -184,97 +184,97 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 				}
 			}
 
-			console.log(`[Batch] Stakers from: ${fromBlock} to: ${toBlock}`)
+			console.log(`[Batch] Stakers from: ${fromBlock} to: ${toBlock}`, stakers.size)
 		},
-		10_000n
+		5_000n
 	)
 
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	const dbTransactions: any[] = []
 
-	if (firstBlock === baseBlock) {
-		// Clear existing table
-		dbTransactions.push(prismaClient.stakerStrategyShares.deleteMany())
-		dbTransactions.push(prismaClient.staker.deleteMany())
+	// if (firstBlock === baseBlock) {
+	// Clear existing table
+	dbTransactions.push(prismaClient.stakerStrategyShares.deleteMany())
+	dbTransactions.push(prismaClient.staker.deleteMany())
 
-		const newStakers: prisma.Staker[] = []
-		const newStakerShares: prisma.StakerStrategyShares[] = []
+	const newStakers: prisma.Staker[] = []
+	const newStakerShares: prisma.StakerStrategyShares[] = []
 
-		for (const [stakerAddress, stakerDetails] of stakers) {
-			newStakers.push({
-				address: stakerAddress,
-				operatorAddress: stakerDetails.operatorAddress,
-				createdAtBlock: stakerDetails.createdAtBlock,
-				updatedAtBlock: stakerDetails.updatedAtBlock,
-				createdAt: stakerDetails.createdAt,
-				updatedAt: stakerDetails.updatedAt
+	for (const [stakerAddress, stakerDetails] of stakers) {
+		newStakers.push({
+			address: stakerAddress,
+			operatorAddress: stakerDetails.operatorAddress,
+			createdAtBlock: stakerDetails.createdAtBlock,
+			updatedAtBlock: stakerDetails.updatedAtBlock,
+			createdAt: stakerDetails.createdAt,
+			updatedAt: stakerDetails.updatedAt
+		})
+
+		stakerDetails.shares.map((share) => {
+			newStakerShares.push({
+				stakerAddress,
+				strategyAddress: share.strategyAddress,
+				shares: share.shares.toString()
 			})
-
-			stakerDetails.shares.map((share) => {
-				newStakerShares.push({
-					stakerAddress,
-					strategyAddress: share.strategyAddress,
-					shares: share.shares.toString()
-				})
-			})
-		}
-
-		dbTransactions.push(
-			prismaClient.staker.createMany({
-				data: newStakers,
-				skipDuplicates: true
-			})
-		)
-
-		dbTransactions.push(
-			prismaClient.stakerStrategyShares.createMany({
-				data: newStakerShares,
-				skipDuplicates: true
-			})
-		)
-	} else {
-		for (const [stakerAddress, stakerDetails] of stakers) {
-			dbTransactions.push(
-				prismaClient.staker.upsert({
-					where: { address: stakerAddress },
-					create: {
-						address: stakerAddress,
-						operatorAddress: stakerDetails.operatorAddress,
-						createdAtBlock: stakerDetails.createdAtBlock,
-						updatedAtBlock: stakerDetails.updatedAtBlock,
-						createdAt: stakerDetails.createdAt,
-						updatedAt: stakerDetails.updatedAt
-					},
-					update: {
-						operatorAddress: stakerDetails.operatorAddress,
-						updatedAtBlock: stakerDetails.updatedAtBlock,
-						updatedAt: stakerDetails.updatedAt
-					}
-				})
-			)
-
-			stakerDetails.shares.map((share) => {
-				dbTransactions.push(
-					prismaClient.stakerStrategyShares.upsert({
-						where: {
-							stakerAddress_strategyAddress: {
-								stakerAddress,
-								strategyAddress: share.strategyAddress
-							}
-						},
-						create: {
-							stakerAddress,
-							strategyAddress: share.strategyAddress,
-							shares: share.shares.toString()
-						},
-						update: {
-							shares: share.shares.toString()
-						}
-					})
-				)
-			})
-		}
+		})
 	}
+
+	dbTransactions.push(
+		prismaClient.staker.createMany({
+			data: newStakers,
+			skipDuplicates: true
+		})
+	)
+
+	dbTransactions.push(
+		prismaClient.stakerStrategyShares.createMany({
+			data: newStakerShares,
+			skipDuplicates: true
+		})
+	)
+	// } else {
+	// 	for (const [stakerAddress, stakerDetails] of stakers) {
+	// 		dbTransactions.push(
+	// 			prismaClient.staker.upsert({
+	// 				where: { address: stakerAddress },
+	// 				create: {
+	// 					address: stakerAddress,
+	// 					operatorAddress: stakerDetails.operatorAddress,
+	// 					createdAtBlock: stakerDetails.createdAtBlock,
+	// 					updatedAtBlock: stakerDetails.updatedAtBlock,
+	// 					createdAt: stakerDetails.createdAt,
+	// 					updatedAt: stakerDetails.updatedAt
+	// 				},
+	// 				update: {
+	// 					operatorAddress: stakerDetails.operatorAddress,
+	// 					updatedAtBlock: stakerDetails.updatedAtBlock,
+	// 					updatedAt: stakerDetails.updatedAt
+	// 				}
+	// 			})
+	// 		)
+
+	// 		stakerDetails.shares.map((share) => {
+	// 			dbTransactions.push(
+	// 				prismaClient.stakerStrategyShares.upsert({
+	// 					where: {
+	// 						stakerAddress_strategyAddress: {
+	// 							stakerAddress,
+	// 							strategyAddress: share.strategyAddress
+	// 						}
+	// 					},
+	// 					create: {
+	// 						stakerAddress,
+	// 						strategyAddress: share.strategyAddress,
+	// 						shares: share.shares.toString()
+	// 					},
+	// 					update: {
+	// 						shares: share.shares.toString()
+	// 					}
+	// 				})
+	// 			)
+	// 		})
+	// 	}
+	// }
 
 	await bulkUpdateDbTransactions(
 		dbTransactions,
