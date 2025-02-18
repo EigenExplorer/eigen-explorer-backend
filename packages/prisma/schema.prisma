@@ -22,10 +22,13 @@ model Avs {
   metadataX           String?
   isMetadataSynced    Boolean @default(false)
 
+  avsRegistrarAddress        String?
+
   operators             AvsOperator[]
   curatedMetadata       AvsCuratedMetadata?
   restakeableStrategies String[]
   rewardSubmissions     AvsStrategyRewardSubmission[]
+  operatorSets          OperatorSet[]
 
   totalStakers   Int     @default(0)
   totalOperators Int     @default(0)
@@ -124,6 +127,9 @@ model Operator {
   avs     AvsOperator[]
   shares  OperatorStrategyShares[]
   stakers Staker[]
+
+  avsOperatorSets      AvsOperatorSet[]
+  allocationDelays  AllocationDelay[]
 
   totalStakers Int     @default(0)
   totalAvs     Int     @default(0)
@@ -971,6 +977,99 @@ model EventLogs_BeaconChainSlashingFactorDecreased {
   @@id([transactionHash, transactionIndex])
   @@index([staker])
   @@index([blockNumber])
+}
+
+model OperatorSet {
+  avs      Avs      @relation(fields: [avsAddress], references: [address])
+  avsAddress        String
+  operatorSetId     Int
+  avsOperatorSets   AvsOperatorSet[]
+
+  strategies        String[]
+  allocations       AvsAllocation[]
+
+  createdAtBlock BigInt   @default(0)
+  updatedAtBlock BigInt   @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now())
+
+  @@id([avsAddress, operatorSetId])
+  @@index([avsAddress, operatorSetId])
+}
+
+model AvsOperatorSet {
+  operatorSet       OperatorSet @relation(fields: [avsAddress,operatorSetId], references: [avsAddress,operatorSetId])
+  avsAddress        String
+  operatorSetId     Int
+
+  operator Operator @relation(fields: [operatorAddress], references: [address])
+  operatorAddress   String
+
+  registered         Boolean
+  slashableUntil     BigInt
+
+  slashedRecords    AvsOperatorSlashed[]
+
+  createdAtBlock BigInt   @default(0)
+  updatedAtBlock BigInt   @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now())
+
+  @@id([avsAddress, operatorSetId, operatorAddress])
+  @@index([avsAddress, operatorSetId, operatorAddress])
+}
+
+model AvsAllocation {
+    operatorSet         OperatorSet @relation(fields: [avsAddress, operatorSetId ], references: [avsAddress, operatorSetId ])
+    avsAddress          String
+    operatorAddress     String
+    operatorSetId       Int
+    strategyAddress     String
+
+    magnitude           String
+    effectBlock         BigInt
+
+    createdAtBlock BigInt   @default(0)
+    updatedAtBlock BigInt   @default(0)
+    createdAt      DateTime @default(now())
+    updatedAt      DateTime @default(now()) 
+
+    @@id([avsAddress, operatorSetId, operatorAddress, strategyAddress])
+    @@index([avsAddress, operatorSetId, operatorAddress, strategyAddress])
+}
+
+model AvsOperatorSlashed {
+  id  Int @id @default(autoincrement())
+  avsOperatorSet    AvsOperatorSet @relation(fields: [avsAddress, operatorSetId, operatorAddress ], references: [avsAddress, operatorSetId, operatorAddress])
+
+  avsAddress         String
+  operatorAddress    String
+  operatorSetId      Int
+
+  strategies         String[]
+  wadSlashed         String[]
+  description        String
+
+  createdAtBlock     BigInt      @default(0)
+  updatedAtBlock     BigInt      @default(0)
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @default(now())
+
+  @@index([avsAddress, operatorSetId])
+}
+
+model AllocationDelay {
+  operator Operator @relation(fields: [operatorAddress], references: [address])
+  operatorAddress  String @id
+  delay            BigInt 
+  effectBlock      BigInt
+
+  createdAtBlock   BigInt   @default(0)
+  updatedAtBlock   BigInt   @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @default(now())
+
+  @@index([operatorAddress])
 }
 
 model EthPricesDaily {
