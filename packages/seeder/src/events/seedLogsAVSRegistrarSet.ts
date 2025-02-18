@@ -10,7 +10,7 @@ import {
 } from '../utils/seeder'
 import { getPrismaClient } from '../utils/prismaClient'
 
-const blockSyncKeyLogs = 'lastSyncedBlock_logs_avs_registrar_set'
+const blockSyncKeyLogs = 'lastSyncedBlock_logs_avsRegistrar'
 
 /**
  * Utility function to seed event logs
