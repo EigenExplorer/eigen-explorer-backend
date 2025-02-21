@@ -129,7 +129,8 @@ model Operator {
   stakers Staker[]
 
   avsOperatorSets      AvsOperatorSet[]
-  allocationDelays  AllocationDelay[]
+  avsAllocations       AvsAllocation[]
+  allocationDelays     AllocationDelay[]
 
   totalStakers Int     @default(0)
   totalAvs     Int     @default(0)
@@ -1022,7 +1023,10 @@ model AvsOperatorSet {
 model AvsAllocation {
     operatorSet         OperatorSet @relation(fields: [avsAddress, operatorSetId ], references: [avsAddress, operatorSetId ])
     avsAddress          String
+
+    operator Operator @relation(fields: [operatorAddress], references: [address])
     operatorAddress     String
+
     operatorSetId       Int
     strategyAddress     String
 
