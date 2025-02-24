@@ -76,19 +76,28 @@ CREATE TABLE "AllocationDelay" (
 );
 
 -- CreateIndex
-CREATE INDEX "OperatorSet_avsAddress_operatorSetId_idx" ON "OperatorSet"("avsAddress", "operatorSetId");
+CREATE INDEX "OperatorSet_avsAddress_idx" ON "OperatorSet"("avsAddress");
 
 -- CreateIndex
-CREATE INDEX "AvsOperatorSet_avsAddress_operatorSetId_operatorAddress_idx" ON "AvsOperatorSet"("avsAddress", "operatorSetId", "operatorAddress");
+CREATE INDEX "AvsOperatorSet_operatorAddress_idx" ON "AvsOperatorSet"("operatorAddress");
 
 -- CreateIndex
-CREATE INDEX "AvsAllocation_avsAddress_operatorSetId_operatorAddress_stra_idx" ON "AvsAllocation"("avsAddress", "operatorSetId", "operatorAddress", "strategyAddress");
+CREATE INDEX "AvsAllocation_avsAddress_idx" ON "AvsAllocation"("avsAddress");
+
+-- CreateIndex
+CREATE INDEX "AvsAllocation_operatorAddress_idx" ON "AvsAllocation"("operatorAddress");
+
+-- CreateIndex
+CREATE INDEX "AvsAllocation_avsAddress_operatorSetId_idx" ON "AvsAllocation"("avsAddress", "operatorSetId");
+
+-- CreateIndex
+CREATE INDEX "AvsOperatorSlashed_avsAddress_idx" ON "AvsOperatorSlashed"("avsAddress");
+
+-- CreateIndex
+CREATE INDEX "AvsOperatorSlashed_operatorAddress_idx" ON "AvsOperatorSlashed"("operatorAddress");
 
 -- CreateIndex
 CREATE INDEX "AvsOperatorSlashed_avsAddress_operatorSetId_idx" ON "AvsOperatorSlashed"("avsAddress", "operatorSetId");
-
--- CreateIndex
-CREATE INDEX "AllocationDelay_operatorAddress_idx" ON "AllocationDelay"("operatorAddress");
 
 -- AddForeignKey
 ALTER TABLE "OperatorSet" ADD CONSTRAINT "OperatorSet_avsAddress_fkey" FOREIGN KEY ("avsAddress") REFERENCES "Avs"("address") ON DELETE RESTRICT ON UPDATE CASCADE;

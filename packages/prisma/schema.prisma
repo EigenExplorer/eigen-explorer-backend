@@ -995,7 +995,7 @@ model OperatorSet {
   updatedAt      DateTime @default(now())
 
   @@id([avsAddress, operatorSetId])
-  @@index([avsAddress, operatorSetId])
+  @@index([avsAddress])
 }
 
 model AvsOperatorSet {
@@ -1017,7 +1017,7 @@ model AvsOperatorSet {
   updatedAt      DateTime @default(now())
 
   @@id([avsAddress, operatorSetId, operatorAddress])
-  @@index([avsAddress, operatorSetId, operatorAddress])
+  @@index([operatorAddress])
 }
 
 model AvsAllocation {
@@ -1039,7 +1039,9 @@ model AvsAllocation {
     updatedAt      DateTime @default(now()) 
 
     @@id([avsAddress, operatorSetId, operatorAddress, strategyAddress])
-    @@index([avsAddress, operatorSetId, operatorAddress, strategyAddress])
+    @@index([avsAddress])
+    @@index([operatorAddress])
+    @@index([avsAddress, operatorSetId])
 }
 
 model AvsOperatorSlashed {
@@ -1059,6 +1061,8 @@ model AvsOperatorSlashed {
   createdAt          DateTime    @default(now())
   updatedAt          DateTime    @default(now())
 
+  @@index([avsAddress])
+  @@index([operatorAddress])
   @@index([avsAddress, operatorSetId])
 }
 
@@ -1072,8 +1076,6 @@ model AllocationDelay {
   updatedAtBlock   BigInt   @default(0)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @default(now())
-
-  @@index([operatorAddress])
 }
 
 model EthPricesDaily {
