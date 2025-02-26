@@ -782,6 +782,7 @@ model EventLogs_AllocationDelaySet {
 
   @@id([transactionHash, transactionIndex])
   @@index([blockNumber])
+  @@index([operator])
 }
 
 model EventLogs_AllocationUpdated {
@@ -801,6 +802,8 @@ model EventLogs_AllocationUpdated {
   effectBlock BigInt
 
   @@id([transactionHash, transactionIndex])
+  @@index([avs,operatorSetId])
+  @@index([operator])
   @@index([blockNumber])
 }
 
@@ -818,6 +821,7 @@ model EventLogs_EncumberedMagnitudeUpdated {
   encumberedMagnitude String
 
   @@id([transactionHash, transactionIndex])
+  @@index([operator])
   @@index([blockNumber])
 }
 
@@ -835,6 +839,7 @@ model EventLogs_MaxMagnitudeUpdated {
   maxMagnitude String
 
   @@id([transactionHash, transactionIndex])
+  @@index([operator])
   @@index([blockNumber])
 }
 
@@ -855,8 +860,9 @@ model EventLogs_OperatorSlashed {
   description String
 
   @@id([transactionHash, transactionIndex])
-  @@index([operator,avs])
   @@index([blockNumber])
+  @@index([avs,operatorSetId])
+  @@index([operator])
 }
 
 model EventLogs_AVSRegistrarSet {
@@ -873,6 +879,7 @@ model EventLogs_AVSRegistrarSet {
 
   @@id([transactionHash, transactionIndex])
   @@index([blockNumber])
+  @@index([avs])
 }
 
 model EventLogs_OperatorSetCreated {
@@ -889,6 +896,7 @@ model EventLogs_OperatorSetCreated {
 
   @@id([transactionHash, transactionIndex])
   @@index([blockNumber])
+  @@index([avs,operatorSetId])
 }
 
 model EventLogs_OperatorAddedToOperatorSet {
@@ -905,8 +913,9 @@ model EventLogs_OperatorAddedToOperatorSet {
   operatorSetId BigInt
 
   @@id([transactionHash, transactionIndex])
-  @@index([operator,avs])
   @@index([blockNumber])
+  @@index([avs,operatorSetId])
+  @@index([operator])
 }
 
 model EventLogs_OperatorRemovedFromOperatorSet {
@@ -923,8 +932,9 @@ model EventLogs_OperatorRemovedFromOperatorSet {
   operatorSetId BigInt
 
   @@id([transactionHash, transactionIndex])
-  @@index([operator,avs])
   @@index([blockNumber])
+  @@index([avs,operatorSetId])
+  @@index([operator])
 }
 
 model EventLogs_StrategyAddedToOperatorSet {
@@ -941,8 +951,8 @@ model EventLogs_StrategyAddedToOperatorSet {
   strategy String
 
   @@id([transactionHash, transactionIndex])
-  @@index([avs,strategy])
   @@index([blockNumber])
+  @@index([avs,operatorSetId])
 }
 
 model EventLogs_StrategyRemovedFromOperatorSet {
@@ -959,8 +969,8 @@ model EventLogs_StrategyRemovedFromOperatorSet {
   strategy String
 
   @@id([transactionHash, transactionIndex])
-  @@index([avs,strategy])
   @@index([blockNumber])
+  @@index([avs,operatorSetId])
 }
 
 model EventLogs_BeaconChainSlashingFactorDecreased {
