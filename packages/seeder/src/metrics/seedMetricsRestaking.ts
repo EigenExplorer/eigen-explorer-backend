@@ -8,9 +8,13 @@ import {
 	setToStartOfDay
 } from '../utils/seeder'
 import { chunkArray } from '../utils/array'
+import {
+	getStrategiesWithShareUnderlying,
+	StrategyWithShareUnderlying
+} from '../utils/strategyShares'
 
 const blockSyncKey = 'lastSyncedTimestamp_metrics_restaking'
-const BATCH_DAYS = 30
+const BATCH_DAYS = 10
 
 // Define the type for our log entries
 type ILastOperatorMetric = Omit<prisma.MetricOperatorUnit, 'id'>
@@ -30,12 +34,36 @@ type LogEntry = {
 	operator: string
 	strategy: string
 	shares: string
+	staker: string
 
 	avs: string
 	status: number
 }
+type MetricRecords = [
+	ILastOperatorMetric[],
+	ILastOperatorStrategyMetric[],
+	ILastAvsMetric[],
+	ILastAvsStrategyMetric[]
+]
+// Global State
+let operatorStakersCount: IMap<string, number> = new Map()
+let operatorStakersSharesList: IMap<string, IMap<string, IMap<string, bigint>>> = new Map()
+let avsOperatorsState: IMap<string, Set<string>> = new Map()
+
+// Helper Maps
+let avsOperatorsRestakedStrategiesMap: IMap<string, Map<string, string[]>> = new Map()
+let avsRestakedStrategies: Map<string, string[]> = new Map()
+let strategiesWithSharesUnderlying: StrategyWithShareUnderlying[] = []
+
+// Last Metrics
+let lastOperatorMetrics: ILastOperatorMetrics = new Map()
+let lastOperatorStrategyMetrics: ILastOperatorStrategyMetrics = new Map()
+let lastAvsMetrics: ILastAvsMetrics = new Map()
+let lastAvsStrategyMetrics: ILastAvsStrategyMetrics = new Map()
 
 export async function seedMetricsRestaking(type: 'full' | 'incremental' = 'incremental') {
+	console.log('[Seed] Metric Restaking ...')
+
 	const prismaClient = getPrismaClient()
 
 	// Define start date
@@ -59,89 +87,85 @@ export async function seedMetricsRestaking(type: 'full' | 'incremental' = 'incre
 		return
 	}
 
-	console.log('[Prep] Metric Restaking ...')
+	console.time('[Prep] Metric Restaking ...')
 
 	// Clear previous data
-	if (clearPrev) {
-		await Promise.all([
-			prismaClient.metricOperatorUnit.deleteMany(),
-			prismaClient.metricOperatorStrategyUnit.deleteMany(),
-			prismaClient.metricAvsUnit.deleteMany(),
-			prismaClient.metricAvsStrategyUnit.deleteMany()
-		])
+	operatorStakersSharesList = new Map()
+	avsOperatorsRestakedStrategiesMap = new Map()
+	avsRestakedStrategies = new Map()
+	avsOperatorsState = new Map()
+	strategiesWithSharesUnderlying = []
+	lastOperatorMetrics = new Map()
+	lastOperatorStrategyMetrics = new Map()
+	lastAvsMetrics = new Map()
+	lastAvsStrategyMetrics = new Map()
+
+	// Fetch constant data
+	strategiesWithSharesUnderlying = await getStrategiesWithShareUnderlying()
+	avsOperatorsState = await getAvsOperatorsState(startDate)
+	avsOperatorsRestakedStrategiesMap = await getAvsOperatorsRestakedStrategies()
+	avsRestakedStrategies = await getAvsRestakedStrategies()
+
+	// Fetch last metrics
+	if (!clearPrev) {
+		lastOperatorMetrics = await getLatestMetricsPerOperator()
+		lastOperatorStrategyMetrics = await getLatestMetricsPerOperatorStrategy()
+		lastAvsMetrics = await getLatestMetricsPerAvs()
+		lastAvsStrategyMetrics = await getLatestMetricsPerAvsStrategy()
 	}
 
-	// Fetch constant data and last metrics
-	const [
-		sharesToUnderlyingList,
-		lastOperatorMetrics,
-		lastOperatorStrategyMetrics,
-		lastAvsMetrics,
-		lastAvsStrategyMetrics
-	] = await Promise.all([
-		await prismaClient.strategies.findMany({
-			select: { sharesToUnderlying: true, address: true }
-		}),
-		getLatestMetricsPerOperator(),
-		getLatestMetricsPerOperatorStrategy(),
-		getLatestMetricsPerAvs(),
-		getLatestMetricsPerAvsStrategy()
-	])
-
-	const avsOperatorsState = await getAvsOperatorsState(startDate)
+	console.timeEnd('[Prep] Metric Restaking ...')
 
 	// Process logs in batches
 	const [operatorMetrics, operatorStrategyMetrics, avsMetrics, avsStrategyMetrics] =
-		await processLogsInBatches(
-			startDate,
-			endDate,
-			lastOperatorMetrics,
-			lastOperatorStrategyMetrics,
-			lastAvsMetrics,
-			lastAvsStrategyMetrics,
-			sharesToUnderlyingList,
-			avsOperatorsState
-		)
+		await processLogsInBatches(startDate, endDate)
 
 	// Update data
-	const dbTransactions = [
-		...chunkArray(operatorMetrics, 10000).map((data) =>
-			prismaClient.metricOperatorUnit.createMany({
-				data,
-				skipDuplicates: true
-			})
-		),
-
-		...chunkArray(operatorStrategyMetrics, 10000).map((data) =>
-			prismaClient.metricOperatorStrategyUnit.createMany({
-				data,
-				skipDuplicates: true
-			})
-		),
-
-		...chunkArray(avsMetrics, 10000).map((data) =>
-			prismaClient.metricAvsUnit.createMany({
-				data,
-				skipDuplicates: true
-			})
-		),
-
-		...chunkArray(avsStrategyMetrics, 10000).map((data) =>
-			prismaClient.metricAvsStrategyUnit.createMany({
-				data,
-				skipDuplicates: true
-			})
-		),
-
-		prismaClient.settings.upsert({
-			where: { key: blockSyncKey },
-			update: { value: Number(endDate.getTime()) },
-			create: { key: blockSyncKey, value: Number(endDate.getTime()) }
-		})
-	]
-
 	await bulkUpdateDbTransactions(
-		dbTransactions,
+		[
+			...(clearPrev
+				? [
+						prismaClient.metricOperatorUnit.deleteMany(),
+						prismaClient.metricOperatorStrategyUnit.deleteMany(),
+						prismaClient.metricAvsUnit.deleteMany(),
+						prismaClient.metricAvsStrategyUnit.deleteMany()
+				  ]
+				: []),
+
+			...chunkArray(operatorMetrics, 10000).map((data) =>
+				prismaClient.metricOperatorUnit.createMany({
+					data,
+					skipDuplicates: true
+				})
+			),
+
+			...chunkArray(operatorStrategyMetrics, 10000).map((data) =>
+				prismaClient.metricOperatorStrategyUnit.createMany({
+					data,
+					skipDuplicates: true
+				})
+			),
+
+			...chunkArray(avsMetrics, 10000).map((data) =>
+				prismaClient.metricAvsUnit.createMany({
+					data,
+					skipDuplicates: true
+				})
+			),
+
+			...chunkArray(avsStrategyMetrics, 10000).map((data) =>
+				prismaClient.metricAvsStrategyUnit.createMany({
+					data,
+					skipDuplicates: true
+				})
+			),
+
+			prismaClient.settings.upsert({
+				where: { key: blockSyncKey },
+				update: { value: Number(endDate.getTime()) },
+				create: { key: blockSyncKey, value: Number(endDate.getTime()) }
+			})
+		],
 		`[Metrics] Metric Restaking from: ${startDate.toISOString()} to: ${endDate.toISOString()} size: ${
 			operatorMetrics.length
 		}`
@@ -153,31 +177,13 @@ export async function seedMetricsRestaking(type: 'full' | 'incremental' = 'incre
  *
  * @param startDate
  * @param endDate
- * @param lastOperatorMetrics
- * @param lastOperatorStrategyMetrics
- * @param lastStrategyMetrics
- * @param sharesToUnderlyingList
  * @returns
  */
-async function processLogsInBatches(
-	startDate: Date,
-	endDate: Date,
-	lastOperatorMetrics: ILastOperatorMetrics,
-	lastOperatorStrategyMetrics: ILastOperatorStrategyMetrics,
-	lastAvsMetrics: ILastAvsMetrics,
-	lastAvsStrategyMetrics: ILastAvsStrategyMetrics,
-	sharesToUnderlyingList: { sharesToUnderlying: string; address: string }[],
-	avsOperatorsState: IMap<string, Set<string>>
-): Promise<
-	[ILastOperatorMetric[], ILastOperatorStrategyMetric[], ILastAvsMetric[], ILastAvsStrategyMetric[]]
-> {
+async function processLogsInBatches(startDate: Date, endDate: Date): Promise<MetricRecords> {
 	const operatorMetrics: ILastOperatorMetric[] = []
 	const operatorStrategyMetrics: ILastOperatorStrategyMetric[] = []
 	const avsMetrics: ILastAvsMetric[] = []
 	const avsStrategyMetrics: ILastAvsStrategyMetric[] = []
-	const sharesToUnderlyingMap = new Map(
-		sharesToUnderlyingList.map((s) => [s.address, BigInt(s.sharesToUnderlying)])
-	)
 
 	for (
 		let currentDate = setToStartOfDay(startDate);
@@ -188,24 +194,16 @@ async function processLogsInBatches(
 			Math.min(currentDate.getTime() + 24 * 60 * 60 * 1000 * BATCH_DAYS, endDate.getTime())
 		)
 
+		// Fetch logs
 		const batchLogs = await fetchOrderedLogs(currentDate, batchEndDate)
 
+		console.time(`[Batch Process] ${currentDate.toISOString()} to ${batchEndDate.toISOString()}`)
 		await loopThroughDates(
 			currentDate,
 			batchEndDate,
 			async (fromHour, toHour) => {
 				const [operatorTvlRecords, operatorStrategyRecords, avsTvlRecords, avsStrategyRecords] =
-					await loopTick(
-						fromHour,
-						toHour,
-						batchLogs,
-						lastOperatorMetrics,
-						lastOperatorStrategyMetrics,
-						lastAvsMetrics,
-						lastAvsStrategyMetrics,
-						sharesToUnderlyingMap,
-						avsOperatorsState
-					)
+					await loopTick(fromHour, toHour, batchLogs)
 
 				operatorMetrics.push(...operatorTvlRecords)
 				operatorStrategyMetrics.push(...operatorStrategyRecords)
@@ -214,6 +212,7 @@ async function processLogsInBatches(
 			},
 			'daily'
 		)
+		console.timeEnd(`[Batch Process] ${currentDate.toISOString()} to ${batchEndDate.toISOString()}`)
 
 		console.log(
 			`[Batch] Metric Restaking from: ${currentDate.toISOString()} to: ${batchEndDate.toISOString()} count: ${
@@ -231,38 +230,23 @@ async function processLogsInBatches(
  * @param fromHour
  * @param toHour
  * @param orderedLogs
- * @param lastOperatorMetrics
- * @param lastOperatorStrategyMetrics
- * @param lastStrategyMetrics
- * @param sharesToUnderlyingMap
  * @returns
  */
 async function loopTick(
 	fromDate: Date,
 	toDate: Date,
-	orderedLogs: LogEntry[],
-	lastOperatorMetrics: ILastOperatorMetrics,
-	lastOperatorStrategyMetrics: ILastOperatorStrategyMetrics,
-	lastAvsMetrics: ILastAvsMetrics,
-	lastAvsStrategyMetrics: ILastAvsStrategyMetrics,
-	sharesToUnderlyingMap: Map<string, bigint>,
-	avsOperatorsState: IMap<string, Set<string>>
-): Promise<
-	[ILastOperatorMetric[], ILastOperatorStrategyMetric[], ILastAvsMetric[], ILastAvsStrategyMetric[]]
-> {
+	orderedLogs: LogEntry[]
+): Promise<MetricRecords> {
 	const operatorAddresses = new Set<string>()
-	const strategyAddresses = new Set<string>()
-	const operatorStakers = new Map<string, number>()
-	const operatorStrategyShares = new Map<string, Map<string, bigint>>()
-	const strategyShares = new Map<string, bigint>()
 	const operatorTvlRecords: ILastOperatorMetric[] = []
 	const avsTvlRecords: ILastAvsMetric[] = []
 	const operatorStrategyTvlRecords: ILastOperatorStrategyMetric[] = []
 	const avsStrategyTvlRecords: ILastAvsStrategyMetric[] = []
 
-	// Filter logs
+	// Filter logs by date range
 	const logs = orderedLogs.filter((ol) => ol.blockTime > fromDate && ol.blockTime <= toDate)
 
+	// Process logs
 	for (const ol of logs) {
 		const operatorAddress = ol.operator.toLowerCase()
 		operatorAddresses.add(operatorAddress)
@@ -270,29 +254,35 @@ async function loopTick(
 		if (ol.type === 'OperatorSharesIncreased' || ol.type === 'OperatorSharesDecreased') {
 			const shares = BigInt(ol.shares)
 			const strategyAddress = ol.strategy.toLowerCase()
-			strategyAddresses.add(strategyAddress)
+			const stakerAddress = ol.staker.toLowerCase()
 
-			const operatorShares = operatorStrategyShares.get(operatorAddress) || new Map()
-			operatorStrategyShares.set(operatorAddress, operatorShares)
+			// Update Staker Shares
+			if (!operatorStakersSharesList.has(operatorAddress)) {
+				operatorStakersSharesList.set(operatorAddress, new Map())
+			}
+			if (!operatorStakersSharesList.get(operatorAddress).has(stakerAddress)) {
+				operatorStakersSharesList.get(operatorAddress).set(stakerAddress, new Map())
+			}
 
-			const currentShares = operatorShares.get(strategyAddress) || 0n
-			const newShares =
-				ol.type === 'OperatorSharesIncreased' ? currentShares + shares : currentShares - shares
-			operatorShares.set(strategyAddress, newShares)
+			const operatorStakerSharesMap = operatorStakersSharesList
+				.get(operatorAddress)
+				.get(stakerAddress)
+			const currentOperatorStakerShares = operatorStakerSharesMap?.get(strategyAddress) || 0n
 
-			const currentStrategyShares = strategyShares.get(strategyAddress) || 0n
-			strategyShares.set(
+			operatorStakerSharesMap.set(
 				strategyAddress,
-				ol.type === 'OperatorSharesIncreased'
-					? currentStrategyShares + shares
-					: currentStrategyShares - shares
+				currentOperatorStakerShares + (ol.type === 'OperatorSharesIncreased' ? shares : -shares)
 			)
 		} else if (ol.type === 'StakerDelegated' || ol.type === 'StakerUndelegated') {
-			const currentStakers = operatorStakers.get(operatorAddress) || 0
-			operatorStakers.set(
-				operatorAddress,
-				ol.type === 'StakerDelegated' ? currentStakers + 1 : currentStakers - 1
-			)
+			if (!operatorStakersCount.has(operatorAddress)) {
+				operatorStakersCount.set(operatorAddress, 0)
+			}
+
+			if (ol.type === 'StakerDelegated') {
+				operatorStakersCount.set(operatorAddress, operatorStakersCount.get(operatorAddress) + 1)
+			} else {
+				operatorStakersCount.set(operatorAddress, operatorStakersCount.get(operatorAddress) - 1)
+			}
 		} else if (ol.type === 'OperatorAVSRegistrationStatusUpdated') {
 			const avsAddress = ol.avs.toLowerCase()
 			const status = Number(ol.status)
@@ -309,159 +299,28 @@ async function loopTick(
 		}
 	}
 
+	// Process Operator Metrics
 	for (const operatorAddress of operatorAddresses) {
-		// Fetch last known metric
-		const lastOperatorMetric = lastOperatorMetrics.get(operatorAddress) || {
-			operatorAddress,
-			totalStakers: 0,
-			changeStakers: 0,
-			totalAvs: 0,
-			changeAvs: 0,
-			timestamp: toDate
-		}
+		const newOperatorMetric = getOperatorMetric(operatorAddress, toDate)
 
-		// Update Staker and Avs Change
-		const changeStakers = operatorStakers.get(operatorAddress) || 0
-		const totalAvs = getOperatorAvsCount(avsOperatorsState, operatorAddress)
-		const changeAvs = totalAvs - lastOperatorMetric.totalAvs
-		const totalStakers = lastOperatorMetric.totalStakers + changeStakers
-
-		if (
-			lastOperatorMetric.totalStakers !== totalStakers ||
-			lastOperatorMetric.totalAvs !== totalAvs
-		) {
-			// Update Operator Metrics
-			const newOperatorMetric = {
-				...lastOperatorMetric,
-				totalStakers: lastOperatorMetric.totalStakers + changeStakers,
-				changeStakers,
-				totalAvs,
-				changeAvs,
-				timestamp: toDate
-			}
-
-			lastOperatorMetrics.set(operatorAddress, newOperatorMetric)
+		if (newOperatorMetric) {
 			operatorTvlRecords.push(newOperatorMetric)
 		}
 
-		// Update TVL Change
-		const strategyMap = operatorStrategyShares.get(operatorAddress)
-		if (!strategyMap) continue
-
-		for (const [strategyAddress, shares] of strategyMap) {
-			let changeTvl = 0
-
-			const sharesToUnderlying = sharesToUnderlyingMap.get(strategyAddress)
-			if (sharesToUnderlying) {
-				changeTvl += Number(shares * sharesToUnderlying) / 1e36
-			}
-
-			if (!lastOperatorStrategyMetrics.has(operatorAddress)) {
-				lastOperatorStrategyMetrics.set(operatorAddress, new Map())
-			}
-
-			const lastOperatorStrategyMetric = lastOperatorStrategyMetrics
-				.get(operatorAddress)
-				.get(strategyAddress) || {
-				operatorAddress,
-				strategyAddress,
-				tvl: new prisma.Prisma.Decimal(0),
-				changeTvl: new prisma.Prisma.Decimal(0),
-				timestamp: toDate
-			}
-
-			const newOperatorStrategyMetric = {
-				...lastOperatorStrategyMetric,
-				tvl: new prisma.Prisma.Decimal(Number(lastOperatorStrategyMetric.tvl) + changeTvl),
-				changeTvl: new prisma.Prisma.Decimal(changeTvl),
-				timestamp: toDate
-			}
-
-			lastOperatorStrategyMetrics
-				.get(operatorAddress)
-				.set(strategyAddress, newOperatorStrategyMetric)
-
-			operatorStrategyTvlRecords.push(newOperatorStrategyMetric)
-		}
+		const operatorStrategyTvlMetrics = getOperatorStrategyTvlMetrics(operatorAddress, toDate)
+		operatorStrategyTvlRecords.push(...operatorStrategyTvlMetrics)
 	}
 
+	// Process Avs Metrics
 	for (const [avsAddress, operatorAddresses] of avsOperatorsState) {
-		// Add AVS TVL Records Here
+		const newAvsMetric = getAvsMetric(avsAddress, operatorAddresses, toDate)
 
-		let totalStakers = 0
-		let totalOperators = 0
-		const totalTvl: IMap<string, number> = new Map()
-
-		for (const operatorAddress of operatorAddresses) {
-			totalOperators++
-
-			const lastOperatorMetric = lastOperatorMetrics.get(operatorAddress)
-			if (lastOperatorMetric) {
-				totalStakers += lastOperatorMetric.totalStakers
-			}
-
-			const lastOperatorStrategyMetric = lastOperatorStrategyMetrics.get(operatorAddress)
-
-			if (lastOperatorStrategyMetric) {
-				for (const [strategyAddress, strategyMetric] of lastOperatorStrategyMetric) {
-					if (!totalTvl.has(strategyAddress)) {
-						totalTvl.set(strategyAddress, 0)
-					}
-
-					totalTvl.set(strategyAddress, totalTvl.get(strategyAddress) + Number(strategyMetric.tvl))
-				}
-			}
-		}
-
-		const lastMetric = lastAvsMetrics.get(avsAddress) || {
-			avsAddress,
-			totalStakers: 0,
-			changeStakers: 0,
-			totalOperators: 0,
-			changeOperators: 0,
-			timestamp: toDate
-		}
-
-		if (lastMetric.totalStakers !== totalStakers || lastMetric.totalOperators !== totalOperators) {
-			const newAvsMetric = {
-				...lastMetric,
-				totalStakers,
-				changeStakers: totalStakers - lastMetric.totalStakers,
-				totalOperators,
-				changeOperators: totalOperators - lastMetric.totalOperators,
-				timestamp: toDate
-			}
-
-			lastAvsMetrics.set(avsAddress, newAvsMetric)
+		if (newAvsMetric) {
 			avsTvlRecords.push(newAvsMetric)
 		}
 
-		for (const [strategyAddress, tvl] of totalTvl) {
-			if (!lastAvsStrategyMetrics.has(avsAddress)) {
-				lastAvsStrategyMetrics.set(avsAddress, new Map())
-			}
-
-			const lastAvsStrategyMetric = lastAvsStrategyMetrics.get(avsAddress).get(strategyAddress) || {
-				avsAddress,
-				strategyAddress,
-				tvl: new prisma.Prisma.Decimal(0),
-				changeTvl: new prisma.Prisma.Decimal(0),
-				timestamp: toDate
-			}
-
-			if (Number(lastAvsStrategyMetric.tvl) !== tvl) {
-				const newAvsStrategyMetric = {
-					...lastAvsStrategyMetric,
-					tvl: new prisma.Prisma.Decimal(tvl),
-					changeTvl: new prisma.Prisma.Decimal(tvl).minus(lastAvsStrategyMetric.tvl),
-					timestamp: toDate
-				}
-
-				lastAvsStrategyMetrics.get(avsAddress).set(strategyAddress, newAvsStrategyMetric)
-
-				avsStrategyTvlRecords.push(newAvsStrategyMetric)
-			}
-		}
+		const avsStrategyTvlMetrics = getAvsStrategyTvlMetrics(avsAddress, operatorAddresses, toDate)
+		avsStrategyTvlRecords.push(...avsStrategyTvlMetrics)
 	}
 
 	return [operatorTvlRecords, operatorStrategyTvlRecords, avsTvlRecords, avsStrategyTvlRecords]
@@ -476,18 +335,17 @@ async function loopTick(
  */
 async function fetchOrderedLogs(from: Date, to: Date): Promise<LogEntry[]> {
 	const prismaClient = getPrismaClient()
-	const query = { blockTime: { gt: from, lte: to } }
+	const query = { where: { blockTime: { gt: from, lte: to } } }
 
-	const [logs_osInc, logs_osDec, logs_stakersInc, logs_stakersDec, logs_operatorRegStatus] =
-		await Promise.all([
-			prismaClient.eventLogs_OperatorSharesIncreased.findMany({ where: query }),
-			prismaClient.eventLogs_OperatorSharesDecreased.findMany({ where: query }),
-			prismaClient.eventLogs_StakerDelegated.findMany({ where: query }),
-			prismaClient.eventLogs_StakerUndelegated.findMany({ where: query }),
-			prismaClient.eventLogs_OperatorAVSRegistrationStatusUpdated.findMany({
-				where: query
-			})
-		])
+	console.time(`[Batch Logs] ${from.toISOString()} to ${to.toISOString()}`)
+	const logs_osInc = await prismaClient.eventLogs_OperatorSharesIncreased.findMany(query)
+	const logs_osDec = await prismaClient.eventLogs_OperatorSharesDecreased.findMany(query)
+
+	const logs_stakersInc = await prismaClient.eventLogs_StakerDelegated.findMany(query)
+	const logs_stakersDec = await prismaClient.eventLogs_StakerUndelegated.findMany(query)
+	const logs_operatorRegStatus =
+		await prismaClient.eventLogs_OperatorAVSRegistrationStatusUpdated.findMany(query)
+	console.timeEnd(`[Batch Logs] ${from.toISOString()} to ${to.toISOString()}`)
 
 	const orderedLogs = [
 		...logs_osInc.map((l) => ({ ...l, type: 'OperatorSharesIncreased' })),
@@ -579,7 +437,9 @@ async function getLatestMetricsPerAvs(): Promise<ILastAvsMetrics> {
 			}
 		})
 
-		return metrics ? new Map(metrics.map((metric) => [metric.avsAddress, metric])) : new Map()
+		return metrics
+			? (new Map(metrics.map((metric) => [metric.avsAddress, metric])) as ILastAvsMetrics)
+			: new Map()
 	} catch {}
 
 	return new Map()
@@ -667,7 +527,9 @@ async function getLatestMetricsPerOperator(): Promise<ILastOperatorMetrics> {
 			}
 		})
 
-		return metrics ? new Map(metrics.map((metric) => [metric.operatorAddress, metric])) : new Map()
+		return metrics
+			? (new Map(metrics.map((metric) => [metric.operatorAddress, metric])) as ILastOperatorMetrics)
+			: new Map()
 	} catch {}
 
 	return new Map()
@@ -762,22 +624,360 @@ async function getAvsOperatorsState(to?: Date): Promise<IMap<string, Set<string>
 }
 
 /**
+ * Get avs operators restaked strategies
+ *
+ * @returns
+ */
+async function getAvsOperatorsRestakedStrategies(): Promise<IMap<string, Map<string, string[]>>> {
+	const prismaClient = getPrismaClient()
+	const map: IMap<string, Map<string, string[]>> = new Map()
+
+	const avsOperatorsList = await prismaClient.avsOperator.findMany({
+		select: {
+			avsAddress: true,
+			operatorAddress: true,
+			restakedStrategies: true
+		}
+	})
+
+	for (const avsOperator of avsOperatorsList) {
+		const { avsAddress, operatorAddress, restakedStrategies } = avsOperator
+
+		if (!map.has(avsAddress)) {
+			map.set(avsAddress, new Map())
+		}
+
+		map.get(avsAddress)?.set(operatorAddress, restakedStrategies)
+	}
+
+	return map
+}
+
+/**
+ * Get avs restaked strategies
+ *
+ * @returns
+ */
+async function getAvsRestakedStrategies(): Promise<Map<string, string[]>> {
+	const prismaClient = getPrismaClient()
+	const avsStrategiesMap = new Map<string, string[]>()
+
+	const avsList = await prismaClient.avs.findMany({
+		select: {
+			address: true,
+			restakeableStrategies: true
+		}
+	})
+
+	for (const avs of avsList) {
+		avsStrategiesMap.set(avs.address.toLowerCase(), avs.restakeableStrategies)
+	}
+
+	return avsStrategiesMap
+}
+
+/**
+ * Get operator avs count
  *
  * @param avsOperatorsMap
  * @param operatorAddress
  * @returns
  */
-function getOperatorAvsCount(
-	avsOperatorsMap: Map<string, Set<string>>,
-	operatorAddress: string
-): number {
+function getOperatorAvsCount(operatorAddress: string): number {
 	let count = 0
 
-	for (const avsSet of avsOperatorsMap.values()) {
+	for (const avsSet of avsOperatorsState.values()) {
 		if (avsSet.has(operatorAddress.toLowerCase())) {
 			count++
 		}
 	}
 
 	return count
+}
+
+/**
+ * Get operator stakers count
+ *
+ * @param operatorAddress
+ * @returns
+ */
+function getOperatorStakersCount(operatorAddress: string, filterStrategies?: string[]): number {
+	if (!filterStrategies || filterStrategies.length === 0) {
+		return operatorStakersCount.get(operatorAddress) || 0
+	}
+
+	const operatorStakersMap = operatorStakersSharesList.get(operatorAddress)
+	if (!operatorStakersMap) {
+		return 0
+	}
+
+	const validStakers = Array.from(operatorStakersMap.entries()).filter(([_, strategyShares]) =>
+		// Check if any strategy has positive shares
+		Array.from(strategyShares.entries()).some(
+			([strategy, shares]) =>
+				// Check if shares > 0 and strategy is in restakedStrategies
+				shares > 0n &&
+				filterStrategies.some(
+					(restakedStrategy) => restakedStrategy.toLowerCase() === strategy.toLowerCase()
+				)
+		)
+	)
+
+	return validStakers.length
+}
+
+function getOperatorStrategyTvl(
+	operatorAddress: string,
+	filterStrategies?: string[]
+): IMap<string, number> {
+	const operatorStakersMap = operatorStakersSharesList.get(operatorAddress)
+
+	if (!operatorStakersMap) {
+		return new Map()
+	}
+
+	const strategyTotals = new Map<string, bigint>()
+	const strategyTvls: IMap<string, number> = new Map()
+
+	// Calculate total shares per strategy for this operator
+	for (const [_, stakerStrategiesMap] of operatorStakersMap.entries()) {
+		for (const [strategyAddress, shares] of stakerStrategiesMap.entries()) {
+			// Skip if we have filter strategies and this strategy is not in the list
+			if (filterStrategies && !filterStrategies.includes(strategyAddress)) {
+				continue
+			}
+
+			if (shares > 0n) {
+				const currentTotal = strategyTotals.get(strategyAddress) || 0n
+				strategyTotals.set(strategyAddress, currentTotal + shares)
+			}
+		}
+	}
+
+	for (const [strategyAddress, shares] of strategyTotals.entries()) {
+		let strategyTvl = 0
+
+		const sharesUnderlying = strategiesWithSharesUnderlying.find(
+			(su) => su.strategyAddress.toLowerCase() === strategyAddress.toLowerCase()
+		)
+
+		if (sharesUnderlying) {
+			const strategyShares =
+				Number((BigInt(shares) * BigInt(sharesUnderlying.sharesToUnderlying)) / BigInt(1e18)) / 1e18
+
+			strategyTvl = strategyShares
+		}
+
+		strategyTvls.set(strategyAddress, strategyTvl)
+	}
+
+	return strategyTvls
+}
+
+/**
+ * Get operator metric
+ *
+ * @param operatorAddress
+ * @param timestamp
+ * @returns
+ */
+function getOperatorMetric(operatorAddress: string, timestamp: Date): ILastOperatorMetric | null {
+	// Fetch last known metric
+	const lastOperatorMetric = lastOperatorMetrics.get(operatorAddress) || {
+		operatorAddress,
+		totalStakers: 0,
+		changeStakers: 0,
+		totalAvs: 0,
+		changeAvs: 0,
+		timestamp
+	}
+
+	const totalStakers = getOperatorStakersCount(operatorAddress)
+	const totalAvs = getOperatorAvsCount(operatorAddress)
+
+	if (
+		lastOperatorMetric.totalStakers !== totalStakers ||
+		lastOperatorMetric.totalAvs !== totalAvs
+	) {
+		// Update Operator Metrics
+		const newOperatorMetric = {
+			...lastOperatorMetric,
+			totalStakers,
+			changeStakers: totalStakers - lastOperatorMetric.totalStakers,
+			totalAvs,
+			changeAvs: totalAvs - lastOperatorMetric.totalAvs,
+			timestamp
+		}
+
+		lastOperatorMetrics.set(operatorAddress, newOperatorMetric)
+
+		return newOperatorMetric
+	}
+
+	return null
+}
+
+/**
+ * Calculate TVL metrics for an operator's strategies
+ *
+ * @param operatorAddress The operator address
+ * @param timestamp The timestamp for the metrics
+ * @returns Array of operator strategy TVL metrics
+ */
+function getOperatorStrategyTvlMetrics(
+	operatorAddress: string,
+	timestamp: Date
+): ILastOperatorStrategyMetric[] {
+	const operatorStakersMap = operatorStakersSharesList.get(operatorAddress)
+	if (!operatorStakersMap) return []
+
+	const metrics: ILastOperatorStrategyMetric[] = []
+	const strategyTvls = getOperatorStrategyTvl(operatorAddress)
+
+	// Process each strategy with non-zero shares
+	for (const [strategyAddress, tvl] of strategyTvls.entries()) {
+		if (!lastOperatorStrategyMetrics.has(operatorAddress)) {
+			lastOperatorStrategyMetrics.set(operatorAddress, new Map())
+		}
+
+		const lastOperatorStrategyMetric = lastOperatorStrategyMetrics
+			.get(operatorAddress)
+			.get(strategyAddress) || {
+			operatorAddress,
+			strategyAddress,
+			tvl: new prisma.Prisma.Decimal(0),
+			changeTvl: new prisma.Prisma.Decimal(0),
+			timestamp
+		}
+
+		if (Number(lastOperatorStrategyMetric.tvl) !== tvl) {
+			const newOperatorStrategyMetric = {
+				...lastOperatorStrategyMetric,
+				tvl: new prisma.Prisma.Decimal(tvl),
+				changeTvl: new prisma.Prisma.Decimal(tvl - Number(lastOperatorStrategyMetric.tvl)),
+				timestamp
+			}
+
+			lastOperatorStrategyMetrics
+				.get(operatorAddress)
+				.set(strategyAddress, newOperatorStrategyMetric)
+
+			metrics.push(newOperatorStrategyMetric)
+		}
+	}
+
+	return metrics
+}
+
+/**
+ * Get avs metric
+ *
+ * @param avsAddress
+ * @param operatorAddresses
+ * @param timestamp
+ * @returns
+ */
+function getAvsMetric(
+	avsAddress: string,
+	operatorAddresses: Set<string>,
+	timestamp: Date
+): ILastAvsMetric | null {
+	let totalStakers = 0
+	let totalOperators = 0
+
+	for (const operatorAddress of operatorAddresses) {
+		const filterStrategies = avsRestakedStrategies.get(avsAddress) || []
+
+		// Increment totals
+		totalOperators++
+		totalStakers += getOperatorStakersCount(operatorAddress, filterStrategies)
+	}
+
+	// Handle AVS metrics
+	const lastMetric = lastAvsMetrics.get(avsAddress) || {
+		avsAddress,
+		totalStakers: 0,
+		changeStakers: 0,
+		totalOperators: 0,
+		changeOperators: 0,
+		timestamp
+	}
+
+	if (lastMetric.totalStakers !== totalStakers || lastMetric.totalOperators !== totalOperators) {
+		const newAvsMetric = {
+			...lastMetric,
+			totalStakers,
+			changeStakers: totalStakers - lastMetric.totalStakers,
+			totalOperators,
+			changeOperators: totalOperators - lastMetric.totalOperators,
+			timestamp
+		}
+
+		lastAvsMetrics.set(avsAddress, newAvsMetric)
+		return newAvsMetric
+	}
+
+	return null
+}
+
+/**
+ * Get avs strategy tvl metrics
+ *
+ * @param avsAddress
+ * @param timestamp
+ * @returns
+ */
+function getAvsStrategyTvlMetrics(
+	avsAddress: string,
+	operatorAddresses: Set<string>,
+	timestamp: Date
+): ILastAvsStrategyMetric[] {
+	const metrics: ILastAvsStrategyMetric[] = []
+	const strategyTvls: IMap<string, number> = new Map()
+
+	for (const operatorAddress of operatorAddresses) {
+		const operatorAvsRestakedStrategies =
+			avsOperatorsRestakedStrategiesMap.get(avsAddress)?.get(operatorAddress) || undefined
+
+		const operatorStrategyTvls = getOperatorStrategyTvl(
+			operatorAddress,
+			operatorAvsRestakedStrategies
+		)
+		for (const [strategyAddress, tvl] of operatorStrategyTvls.entries()) {
+			if (!strategyTvls.has(strategyAddress)) {
+				strategyTvls.set(strategyAddress, 0)
+			}
+
+			strategyTvls.set(strategyAddress, strategyTvls.get(strategyAddress)! + tvl)
+		}
+	}
+
+	for (const [strategyAddress, tvl] of strategyTvls.entries()) {
+		if (!lastAvsStrategyMetrics.has(avsAddress)) {
+			lastAvsStrategyMetrics.set(avsAddress, new Map())
+		}
+
+		const lastAvsStrategyMetric = lastAvsStrategyMetrics.get(avsAddress).get(strategyAddress) || {
+			avsAddress,
+			strategyAddress,
+			tvl: new prisma.Prisma.Decimal(0),
+			changeTvl: new prisma.Prisma.Decimal(0),
+			timestamp
+		}
+
+		if (Number(lastAvsStrategyMetric.tvl) !== tvl) {
+			const newAvsStrategyMetric = {
+				...lastAvsStrategyMetric,
+				tvl: new prisma.Prisma.Decimal(tvl),
+				changeTvl: new prisma.Prisma.Decimal(tvl - Number(lastAvsStrategyMetric.tvl)),
+				timestamp
+			}
+
+			lastAvsStrategyMetrics.get(avsAddress).set(strategyAddress, newAvsStrategyMetric)
+
+			metrics.push(newAvsStrategyMetric)
+		}
+	}
+
+	return metrics
 }
