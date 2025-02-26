@@ -184,9 +184,9 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 				}
 			}
 
-			console.log(`[Batch] Stakers from: ${fromBlock} to: ${toBlock}`)
+			console.log(`[Batch] Stakers from: ${fromBlock} to: ${toBlock}`, stakers.size)
 		},
-		10_000n
+		1_000n
 	)
 
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
