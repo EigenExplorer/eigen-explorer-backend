@@ -48,10 +48,9 @@ import { seedQueuedSlashingWithdrawals } from './seedSlashingWithdrawalsQueued'
 import { seedLogsAVSRegistrarSet } from './events/seedLogsAVSRegistrarSet'
 import { seedLogsAllocationDelaySet } from './events/seedLogsAllocationDelaySet'
 import { seedLogsAllocationUpdated } from './events/seedLogsAllocationUpdated'
-import { seedLogsEncumberedMagnitudeUpdated } from './events/seedLogsEncumberedMagnitudeUpdated'
-import { seedLogsMaxMagnitudeUpdated } from './events/seedLogsMaxMagnitudeUpdated'
 import { seedLogsOperatorSetCreated } from './events/seedLogsOperatorSetCreated'
 import { seedLogsOperatorSlashed } from './events/seedLogsOperatorSlashed'
+import { seedLogsOperatorMagnitudeUpdated } from './events/seedLogsOperatorMagnitudeUpdated'
 import { monitorAvsMetadata } from './monitors/avsMetadata'
 import { monitorOperatorMetadata } from './monitors/operatorMetadata'
 import { seedLogsBeaconChainSlashingFactor } from './events/seedLogsBeaconChainSlashingFactorDecreased'
@@ -65,6 +64,7 @@ import { seedAvsRegistrar } from './seedAvsRegistrar'
 import { seedOperatorSet } from './seedOperatorSet'
 import { seedOperatorSetStrategies } from './seedOperatorSetStrategies'
 import { seedOperatorSlashed } from './seedOperatorSlashed'
+import { seedOperatorMagnitude } from './seedOperatorMagnitude'
 
 console.log('Initializing Seeder ...')
 
@@ -117,8 +117,7 @@ async function seedEigenData() {
 				seedLogsAllocationDelaySet(targetBlock),
 				seedLogsAllocationUpdated(targetBlock),
 				seedLogsAVSRegistrarSet(targetBlock),
-				seedLogsEncumberedMagnitudeUpdated(targetBlock),
-				seedLogsMaxMagnitudeUpdated(targetBlock),
+				seedLogsOperatorMagnitudeUpdated(targetBlock),
 				seedLogsAVSOperatorSetOperators(targetBlock),
 				seedLogsOperatorSetCreated(targetBlock),
 				seedLogsOperatorSlashed(targetBlock),
@@ -142,6 +141,7 @@ async function seedEigenData() {
 
 					await seedAvsOperatorSets()
 					await seedAvsAllocation()
+					await seedOperatorMagnitude()
 					await seedOperatorSlashed()
 				})(),
 				// Deposits
