@@ -131,6 +131,7 @@ model Operator {
   avsOperatorSets      AvsOperatorSet[]
   avsAllocations       AvsAllocation[]
   allocationDelays     AllocationDelay[]
+  magnitudes           OperatorStrategyMagnitude[]
 
   totalStakers Int     @default(0)
   totalAvs     Int     @default(0)
@@ -1076,6 +1077,17 @@ model AllocationDelay {
   updatedAtBlock   BigInt   @default(0)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @default(now())
+}
+
+model OperatorStrategyMagnitude {
+    operator         Operator @relation(fields: [operatorAddress], references: [address])
+    operatorAddress  String
+    strategyAddress  String
+    maxMagnitude     String
+    encumberedMagnitude String
+
+    @@id([operatorAddress, strategyAddress])
+    @@index([operatorAddress])
 }
 
 model EthPricesDaily {

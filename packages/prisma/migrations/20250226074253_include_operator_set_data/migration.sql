@@ -75,6 +75,16 @@ CREATE TABLE "AllocationDelay" (
     CONSTRAINT "AllocationDelay_pkey" PRIMARY KEY ("operatorAddress")
 );
 
+-- CreateTable
+CREATE TABLE "OperatorStrategyMagnitude" (
+    "operatorAddress" TEXT NOT NULL,
+    "strategyAddress" TEXT NOT NULL,
+    "maxMagnitude" TEXT NOT NULL,
+    "encumberedMagnitude" TEXT NOT NULL,
+
+    CONSTRAINT "OperatorStrategyMagnitude_pkey" PRIMARY KEY ("operatorAddress","strategyAddress")
+);
+
 -- CreateIndex
 CREATE INDEX "OperatorSet_avsAddress_idx" ON "OperatorSet"("avsAddress");
 
@@ -99,6 +109,9 @@ CREATE INDEX "AvsOperatorSlashed_operatorAddress_idx" ON "AvsOperatorSlashed"("o
 -- CreateIndex
 CREATE INDEX "AvsOperatorSlashed_avsAddress_operatorSetId_idx" ON "AvsOperatorSlashed"("avsAddress", "operatorSetId");
 
+-- CreateIndex
+CREATE INDEX "OperatorStrategyMagnitude_operatorAddress_idx" ON "OperatorStrategyMagnitude"("operatorAddress");
+
 -- AddForeignKey
 ALTER TABLE "OperatorSet" ADD CONSTRAINT "OperatorSet_avsAddress_fkey" FOREIGN KEY ("avsAddress") REFERENCES "Avs"("address") ON DELETE RESTRICT ON UPDATE CASCADE;
 
@@ -119,3 +132,6 @@ ALTER TABLE "AvsOperatorSlashed" ADD CONSTRAINT "AvsOperatorSlashed_avsAddress_o
 
 -- AddForeignKey
 ALTER TABLE "AllocationDelay" ADD CONSTRAINT "AllocationDelay_operatorAddress_fkey" FOREIGN KEY ("operatorAddress") REFERENCES "Operator"("address") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "OperatorStrategyMagnitude" ADD CONSTRAINT "OperatorStrategyMagnitude_operatorAddress_fkey" FOREIGN KEY ("operatorAddress") REFERENCES "Operator"("address") ON DELETE RESTRICT ON UPDATE CASCADE;
