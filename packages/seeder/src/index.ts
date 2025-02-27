@@ -62,6 +62,9 @@ seedEigenDataFull().then(() => {
 	// Start seeding data instantly
 	cron.schedule('*/1 * * * *', () => seedEigenLogs())
 
+	// Start seeding metadata every 30 minutes (at minute 0 and 30)
+	cron.schedule('0,30 * * * *', () => seedMetadata())
+
 	// Schedule seedEigenDailyData to run at 5 minutes past midnight every day
 	cron.schedule('5 0 * * *', () => seedEigenDailyData())
 
@@ -182,62 +185,52 @@ async function seedEigenLogs() {
  * @returns
  */
 async function seedEigenDataFull() {
-	while (true) {
-		try {
-			const viemClient = getViemClient()
-			const targetBlock = await viemClient.getBlockNumber()
-			console.log(`\nSeeding data, every ${UPDATE_FREQUENCY} seconds, till block ${targetBlock}:`)
-			console.time('Seeded data in')
+	try {
+		const viemClient = getViemClient()
+		const targetBlock = await viemClient.getBlockNumber()
+		console.log(`\nSeeding data, every ${UPDATE_FREQUENCY} seconds, till block ${targetBlock}:`)
+		console.time('Seeded data in')
 
-			await doSeedBlockData(targetBlock)
-			await doSeedLogs(targetBlock)
+		await doSeedBlockData(targetBlock)
+		await doSeedLogs(targetBlock)
 
-			await Promise.all([
-				// Avs, Operators and Avs Operators
-				(async () => {
-					await seedAvs()
-					await seedOperators()
-					await seedAvsOperators()
-					await seedStakers()
-					await seedOperatorShares()
-				})(),
-				// Deposits
-				seedDeposits(),
-				// Withdrawals
-				(async () => {
-					await seedQueuedWithdrawals()
-					await seedCompletedWithdrawals()
-				})(),
-				// Pods and Validators
-				(async () => {
-					await seedPods()
-					await seedValidators()
-				})()
-			])
+		await Promise.all([
+			// Avs, Operators and Avs Operators
+			(async () => {
+				await seedAvs()
+				await seedOperators()
+				await seedAvsOperators()
+				await seedStakers()
+				await seedOperatorShares()
+			})(),
+			// Deposits
+			seedDeposits(),
+			// Withdrawals
+			(async () => {
+				await seedQueuedWithdrawals()
+				await seedCompletedWithdrawals()
+			})(),
+			// Pods and Validators
+			(async () => {
+				await seedPods()
+				await seedValidators()
+			})()
+		])
 
-			await Promise.all([
-				// Rewards
-				seedAvsStrategyRewards(),
-				seedStakerRewardSnapshots(),
+		await Promise.all([
+			// Rewards
+			seedAvsStrategyRewards(),
+			seedStakerRewardSnapshots(),
 
-				// Metrics
-				monitorAvsMetrics({}),
-				monitorOperatorMetrics({})
-			])
+			// Metrics
+			monitorAvsMetrics({}),
+			monitorOperatorMetrics({})
+		])
 
-			// Seed metadata every METADATA_SYNC_FREQUENCY iterations
-			if (++seedCount % METADATA_SYNC_FREQUENCY === 0) {
-				console.log(`Seeding metadata ...`)
-				console.time('Seeded metadata in')
-				await seedMetadata()
-				console.timeEnd('Seeded metadata in')
-			}
-
-			console.timeEnd('Seeded data in')
-		} catch (error) {
-			console.log('Failed to seed data at:', Date.now())
-			console.log(error)
-		}
+		console.timeEnd('Seeded data in')
+	} catch (error) {
+		console.log('Failed to seed data at:', Date.now())
+		console.log(error)
 	}
 }
 
