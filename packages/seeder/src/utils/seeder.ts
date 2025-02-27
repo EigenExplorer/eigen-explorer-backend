@@ -4,6 +4,8 @@ import { chunkArray } from './array'
 export interface LogsUpdateMetadata {
 	isUpdated: boolean
 	updatedCount: number
+	entityType?: 'operator' | 'avs'
+	entities?: string[]
 }
 
 // Fix for broken types

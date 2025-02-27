@@ -31,6 +31,7 @@ export async function seedLogsOperatorShares(
 
 	let isUpdated = false
 	let updatedCount = 0
+	let entities: string[] = []
 
 	// Loop through evm logs
 	await loopThroughBlocks(firstBlock, lastBlock, async (fromBlock, toBlock) => {
@@ -59,6 +60,9 @@ export async function seedLogsOperatorShares(
 			// Setup a list containing event data
 			for (const l in logs) {
 				const log = logs[l]
+
+				const operatorAddress = String(log.args.operator).toLowerCase()
+				entities.push(operatorAddress)
 
 				if (log.eventName === 'OperatorSharesIncreased') {
 					logsOperatorSharesIncreased.push({
@@ -127,6 +131,8 @@ export async function seedLogsOperatorShares(
 
 	return {
 		isUpdated,
-		updatedCount
+		updatedCount,
+		entityType: 'operator',
+		entities
 	}
 }

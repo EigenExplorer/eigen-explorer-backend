@@ -57,10 +57,21 @@ let seedCount = 0
 let isSeedingBlockData = false
 let isSeedingLogs = false
 
-function delay(seconds: number) {
-	return new Promise((resolve) => setTimeout(resolve, seconds * 1000))
-}
+// Complete a full data seed and schedule future seeding events
+seedEigenDataFull().then(() => {
+	// Start seeding data instantly
+	cron.schedule('*/1 * * * *', () => seedEigenLogs())
 
+	// Schedule seedEigenDailyData to run at 5 minutes past midnight every day
+	cron.schedule('5 0 * * *', () => seedEigenDailyData())
+
+	// Schedule seedApyData to run at 5 minutes past 2am every day
+	cron.schedule('5 2 * * *', () => seedApyData())
+})
+
+/**
+ * Seed logs
+ */
 async function seedEigenLogs() {
 	try {
 		if (isSeedingLogs) {
@@ -75,32 +86,8 @@ async function seedEigenLogs() {
 		console.log(`\nSeeding logs, every ${UPDATE_FREQUENCY} seconds, till block ${targetBlock}:`)
 		console.time('Seeded logs in')
 
-		// Seed block data with a global lock to prevent block-less updates
-		isSeedingBlockData = true
-		await seedBlockData(targetBlock)
-		isSeedingBlockData = false
-
-		const results = await Promise.all([
-			seedLogsAVSMetadata(targetBlock),
-			seedLogsOperatorMetadata(targetBlock),
-			seedLogsOperatorAVSRegistrationStatus(targetBlock),
-			seedLogsOperatorShares(targetBlock),
-			seedLogsStakerDelegation(targetBlock),
-			seedLogsPodDeployed(targetBlock),
-			seedLogsWithdrawalQueued(targetBlock),
-			seedLogsWithdrawalCompleted(targetBlock),
-			seedLogsDeposit(targetBlock),
-			seedLogsPodSharesUpdated(targetBlock),
-			seedLogsAVSRewardsSubmission(targetBlock),
-			seedLogStrategyWhitelist(targetBlock),
-			seedLogsDistributionRootSubmitted(targetBlock)
-		])
-
-		console.log(
-			'results',
-			results.map((r, i) => ({ i, ...r })).filter((r) => r.updatedCount > 0)
-		)
-
+		await doSeedBlockData(targetBlock)
+		const results = await doSeedLogs(targetBlock)
 		const updateEvents: Promise<void>[] = []
 
 		// Schedule additional seeding based on log changes
@@ -166,22 +153,91 @@ async function seedEigenLogs() {
 				updateEvents.push(seedStrategies())
 			}
 
-			// TODO: Based on the results, get which avs or operator metrics have changed,
-			// and only seed those metrics by passing the avs or operator addresses to the metrics seed functions
-			// updateEvents.push(monitorAvsMetrics())
-			// updateEvents.push(monitorOperatorMetrics())
-		}
+			await Promise.all(updateEvents)
 
-		await Promise.all(updateEvents)
+			if (
+				results[3].updatedCount > 0 &&
+				results[3].entityType === 'operator' &&
+				results[3].entities
+			) {
+				console.log('Seeding operator metrics ...')
+				console.log(results[3])
+				await monitorAvsMetrics({ filterOperators: results[3].entities })
+				await monitorOperatorMetrics({ filterOperators: results[3].entities })
+			}
+		}
 
 		console.timeEnd('Seeded logs in')
 		isSeedingLogs = false
 	} catch (error) {
 		console.log('Failed to seed logs at:', Date.now())
 		console.log(error)
-
-		isSeedingBlockData = false
 		isSeedingLogs = false
+	}
+}
+
+/**
+ * Seed data
+ *
+ * @returns
+ */
+async function seedEigenDataFull() {
+	while (true) {
+		try {
+			const viemClient = getViemClient()
+			const targetBlock = await viemClient.getBlockNumber()
+			console.log(`\nSeeding data, every ${UPDATE_FREQUENCY} seconds, till block ${targetBlock}:`)
+			console.time('Seeded data in')
+
+			await doSeedBlockData(targetBlock)
+			await doSeedLogs(targetBlock)
+
+			await Promise.all([
+				// Avs, Operators and Avs Operators
+				(async () => {
+					await seedAvs()
+					await seedOperators()
+					await seedAvsOperators()
+					await seedStakers()
+					await seedOperatorShares()
+				})(),
+				// Deposits
+				seedDeposits(),
+				// Withdrawals
+				(async () => {
+					await seedQueuedWithdrawals()
+					await seedCompletedWithdrawals()
+				})(),
+				// Pods and Validators
+				(async () => {
+					await seedPods()
+					await seedValidators()
+				})()
+			])
+
+			await Promise.all([
+				// Rewards
+				seedAvsStrategyRewards(),
+				seedStakerRewardSnapshots(),
+
+				// Metrics
+				monitorAvsMetrics({}),
+				monitorOperatorMetrics({})
+			])
+
+			// Seed metadata every METADATA_SYNC_FREQUENCY iterations
+			if (++seedCount % METADATA_SYNC_FREQUENCY === 0) {
+				console.log(`Seeding metadata ...`)
+				console.time('Seeded metadata in')
+				await seedMetadata()
+				console.timeEnd('Seeded metadata in')
+			}
+
+			console.timeEnd('Seeded data in')
+		} catch (error) {
+			console.log('Failed to seed data at:', Date.now())
+			console.log(error)
+		}
 	}
 }
 
@@ -282,11 +338,39 @@ async function seedMetadata() {
 	}
 }
 
-// Start seeding data instantly
-cron.schedule('*/1 * * * *', () => seedEigenLogs())
+/**
+ * Seed block data
+ *
+ * @param targetBlock
+ */
+async function doSeedBlockData(targetBlock: bigint) {
+	try {
+		// Seed block data with a global lock to prevent block-less updates
+		isSeedingBlockData = true
+		await seedBlockData(targetBlock)
+		isSeedingBlockData = false
+	} catch (error) {
+		console.log('Failed to seed block data at:', Date.now())
+		console.log(error)
 
-// Schedule seedEigenDailyData to run at 5 minutes past midnight every day
-cron.schedule('5 0 * * *', () => seedEigenDailyData())
+		isSeedingBlockData = false
+	}
+}
 
-// Schedule seedApyData to run at 5 minutes past 2am every day
-cron.schedule('5 2 * * *', () => seedApyData())
+async function doSeedLogs(targetBlock: bigint) {
+	return await Promise.all([
+		seedLogsAVSMetadata(targetBlock),
+		seedLogsOperatorMetadata(targetBlock),
+		seedLogsOperatorAVSRegistrationStatus(targetBlock),
+		seedLogsOperatorShares(targetBlock),
+		seedLogsStakerDelegation(targetBlock),
+		seedLogsPodDeployed(targetBlock),
+		seedLogsWithdrawalQueued(targetBlock),
+		seedLogsWithdrawalCompleted(targetBlock),
+		seedLogsDeposit(targetBlock),
+		seedLogsPodSharesUpdated(targetBlock),
+		seedLogsAVSRewardsSubmission(targetBlock),
+		seedLogStrategyWhitelist(targetBlock),
+		seedLogsDistributionRootSubmitted(targetBlock)
+	])
+}
