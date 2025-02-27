@@ -5,7 +5,11 @@ import { bulkUpdateDbTransactions } from '../utils/seeder'
 import { getStrategiesWithShareUnderlying, sharesToTVL } from '../utils/strategyShares'
 import { withOperatorShares } from '../utils/operatorShares'
 
-export async function monitorAvsMetrics() {
+interface MonitorAvsMetricsParams {
+	filterOperators?: string[]
+}
+
+export async function monitorAvsMetrics(params: MonitorAvsMetricsParams) {
 	const prismaClient = getPrismaClient()
 
 	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
@@ -27,6 +31,9 @@ export async function monitorAvsMetrics() {
 		try {
 			// Fetch totalStakers & totalOperators for all avs in this iteration
 			const avsMetrics = await prismaClient.avs.findMany({
+				where: params.filterOperators?.length
+					? { operators: { some: { operatorAddress: { in: params.filterOperators } } } }
+					: undefined,
 				include: {
 					operators: {
 						where: { isActive: true },
