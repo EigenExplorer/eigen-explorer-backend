@@ -20,8 +20,8 @@ type AvsOperatorSetRecord = {
 }
 
 const DEFAULT_DEALLOCATION_DELAY = {
-	mainnet: '126000',
-	holesky: '75'
+	mainnet: '100800',
+	holesky: '50'
 }
 
 export async function seedAvsOperatorSets(toBlock?: bigint, fromBlock?: bigint) {
