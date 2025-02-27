@@ -22,10 +22,13 @@ model Avs {
   metadataX           String?
   isMetadataSynced    Boolean @default(false)
 
+  avsRegistrarAddress        String?
+
   operators             AvsOperator[]
   curatedMetadata       AvsCuratedMetadata?
   restakeableStrategies String[]
   rewardSubmissions     AvsStrategyRewardSubmission[]
+  operatorSets          OperatorSet[]
 
   totalStakers   Int     @default(0)
   totalOperators Int     @default(0)
@@ -124,6 +127,11 @@ model Operator {
   avs     AvsOperator[]
   shares  OperatorStrategyShares[]
   stakers Staker[]
+
+  avsOperatorSets      AvsOperatorSet[]
+  avsAllocations       AvsAllocation[]
+  allocationDelays     AllocationDelay[]
+  magnitudes           OperatorStrategyMagnitude[]
 
   totalStakers Int     @default(0)
   totalAvs     Int     @default(0)
@@ -774,6 +782,7 @@ model EventLogs_AllocationDelaySet {
 
   @@id([transactionHash, transactionIndex])
   @@index([blockNumber])
+  @@index([operator])
 }
 
 model EventLogs_AllocationUpdated {
@@ -793,6 +802,8 @@ model EventLogs_AllocationUpdated {
   effectBlock BigInt
 
   @@id([transactionHash, transactionIndex])
+  @@index([avs,operatorSetId])
+  @@index([operator])
   @@index([blockNumber])
 }
 
@@ -810,6 +821,7 @@ model EventLogs_EncumberedMagnitudeUpdated {
   encumberedMagnitude String
 
   @@id([transactionHash, transactionIndex])
+  @@index([operator])
   @@index([blockNumber])
 }
 
@@ -827,6 +839,7 @@ model EventLogs_MaxMagnitudeUpdated {
   maxMagnitude String
 
   @@id([transactionHash, transactionIndex])
+  @@index([operator])
   @@index([blockNumber])
 }
 
@@ -847,8 +860,9 @@ model EventLogs_OperatorSlashed {
   description String
 
   @@id([transactionHash, transactionIndex])
-  @@index([operator,avs])
   @@index([blockNumber])
+  @@index([avs,operatorSetId])
+  @@index([operator])
 }
 
 model EventLogs_AVSRegistrarSet {
@@ -865,6 +879,7 @@ model EventLogs_AVSRegistrarSet {
 
   @@id([transactionHash, transactionIndex])
   @@index([blockNumber])
+  @@index([avs])
 }
 
 model EventLogs_OperatorSetCreated {
@@ -881,6 +896,7 @@ model EventLogs_OperatorSetCreated {
 
   @@id([transactionHash, transactionIndex])
   @@index([blockNumber])
+  @@index([avs,operatorSetId])
 }
 
 model EventLogs_OperatorAddedToOperatorSet {
@@ -897,8 +913,9 @@ model EventLogs_OperatorAddedToOperatorSet {
   operatorSetId BigInt
 
   @@id([transactionHash, transactionIndex])
-  @@index([operator,avs])
   @@index([blockNumber])
+  @@index([avs,operatorSetId])
+  @@index([operator])
 }
 
 model EventLogs_OperatorRemovedFromOperatorSet {
@@ -915,8 +932,9 @@ model EventLogs_OperatorRemovedFromOperatorSet {
   operatorSetId BigInt
 
   @@id([transactionHash, transactionIndex])
-  @@index([operator,avs])
   @@index([blockNumber])
+  @@index([avs,operatorSetId])
+  @@index([operator])
 }
 
 model EventLogs_StrategyAddedToOperatorSet {
@@ -933,8 +951,8 @@ model EventLogs_StrategyAddedToOperatorSet {
   strategy String
 
   @@id([transactionHash, transactionIndex])
-  @@index([avs,strategy])
   @@index([blockNumber])
+  @@index([avs,operatorSetId])
 }
 
 model EventLogs_StrategyRemovedFromOperatorSet {
@@ -951,8 +969,8 @@ model EventLogs_StrategyRemovedFromOperatorSet {
   strategy String
 
   @@id([transactionHash, transactionIndex])
-  @@index([avs,strategy])
   @@index([blockNumber])
+  @@index([avs,operatorSetId])
 }
 
 model EventLogs_BeaconChainSlashingFactorDecreased {
@@ -971,6 +989,115 @@ model EventLogs_BeaconChainSlashingFactorDecreased {
   @@id([transactionHash, transactionIndex])
   @@index([staker])
   @@index([blockNumber])
+}
+
+model OperatorSet {
+  avs      Avs      @relation(fields: [avsAddress], references: [address])
+  avsAddress        String
+  operatorSetId     Int
+  avsOperatorSets   AvsOperatorSet[]
+
+  strategies        String[]
+  allocations       AvsAllocation[]
+
+  createdAtBlock BigInt   @default(0)
+  updatedAtBlock BigInt   @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now())
+
+  @@id([avsAddress, operatorSetId])
+  @@index([avsAddress])
+}
+
+model AvsOperatorSet {
+  operatorSet       OperatorSet @relation(fields: [avsAddress,operatorSetId], references: [avsAddress,operatorSetId])
+  avsAddress        String
+  operatorSetId     Int
+
+  operator Operator @relation(fields: [operatorAddress], references: [address])
+  operatorAddress   String
+
+  registered         Boolean
+  slashableUntil     BigInt
+
+  slashedRecords    AvsOperatorSlashed[]
+
+  createdAtBlock BigInt   @default(0)
+  updatedAtBlock BigInt   @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now())
+
+  @@id([avsAddress, operatorSetId, operatorAddress])
+  @@index([operatorAddress])
+}
+
+model AvsAllocation {
+    operatorSet         OperatorSet @relation(fields: [avsAddress, operatorSetId ], references: [avsAddress, operatorSetId ])
+    avsAddress          String
+
+    operator Operator @relation(fields: [operatorAddress], references: [address])
+    operatorAddress     String
+
+    operatorSetId       Int
+    strategyAddress     String
+
+    magnitude           String
+    effectBlock         BigInt
+
+    createdAtBlock BigInt   @default(0)
+    updatedAtBlock BigInt   @default(0)
+    createdAt      DateTime @default(now())
+    updatedAt      DateTime @default(now()) 
+
+    @@id([avsAddress, operatorSetId, operatorAddress, strategyAddress])
+    @@index([avsAddress])
+    @@index([operatorAddress])
+    @@index([avsAddress, operatorSetId])
+}
+
+model AvsOperatorSlashed {
+  id  Int @id @default(autoincrement())
+  avsOperatorSet    AvsOperatorSet @relation(fields: [avsAddress, operatorSetId, operatorAddress ], references: [avsAddress, operatorSetId, operatorAddress])
+
+  avsAddress         String
+  operatorAddress    String
+  operatorSetId      Int
+
+  strategies         String[]
+  wadSlashed         String[]
+  description        String
+
+  createdAtBlock     BigInt      @default(0)
+  updatedAtBlock     BigInt      @default(0)
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @default(now())
+
+  @@index([avsAddress])
+  @@index([operatorAddress])
+  @@index([avsAddress, operatorSetId])
+}
+
+model AllocationDelay {
+  operator Operator @relation(fields: [operatorAddress], references: [address])
+  operatorAddress  String @id
+  delay            BigInt 
+  effectBlock      BigInt
+
+  createdAtBlock   BigInt   @default(0)
+  updatedAtBlock   BigInt   @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @default(now())
+}
+
+model OperatorStrategyMagnitude {
+    operator         Operator @relation(fields: [operatorAddress], references: [address])
+    operatorAddress  String
+    strategyAddress  String
+    maxMagnitude     String
+    encumberedMagnitude String
+
+    @@id([operatorAddress, strategyAddress])
+    @@index([operatorAddress])
 }
 
 model EthPricesDaily {

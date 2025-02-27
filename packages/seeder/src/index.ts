@@ -48,18 +48,23 @@ import { seedQueuedSlashingWithdrawals } from './seedSlashingWithdrawalsQueued'
 import { seedLogsAVSRegistrarSet } from './events/seedLogsAVSRegistrarSet'
 import { seedLogsAllocationDelaySet } from './events/seedLogsAllocationDelaySet'
 import { seedLogsAllocationUpdated } from './events/seedLogsAllocationUpdated'
-import { seedLogsEncumberedMagnitudeUpdated } from './events/seedLogsEncumberedMagnitudeUpdated'
-import { seedLogsMaxMagnitudeUpdated } from './events/seedLogsMaxMagnitudeUpdated'
-import { seedLogsOperatorAddedToOperatorSet } from './events/seedLogsOperatorAddedToOperatorSet'
-import { seedLogsOperatorRemovedFromOperatorSet } from './events/seedLogsOperatorRemovedFromOperatorSet'
 import { seedLogsOperatorSetCreated } from './events/seedLogsOperatorSetCreated'
 import { seedLogsOperatorSlashed } from './events/seedLogsOperatorSlashed'
-import { seedLogsStrategyAddedToOperatorSet } from './events/seedLogsStrategyAddedToOperatorSet'
-import { seedLogsStrategyRemovedFromOperatorSet } from './events/seedLogsStrategyRemovedFromOperatorSet'
+import { seedLogsOperatorMagnitudeUpdated } from './events/seedLogsOperatorMagnitudeUpdated'
 import { monitorAvsMetadata } from './monitors/avsMetadata'
 import { monitorOperatorMetadata } from './monitors/operatorMetadata'
 import { seedLogsBeaconChainSlashingFactor } from './events/seedLogsBeaconChainSlashingFactorDecreased'
 import { seedBeaconChainSlashingFactor } from './seedBeaconChainSlashingFactor'
+import { seedLogsAVSOperatorSetOperators } from './events/seedLogsAVSOperatorSetOperators'
+import { seedLogsOperatorSetStrategies } from './events/seedLogsOperatorSetStrategies'
+import { seedAllocationDelay } from './seedAllocationDelay'
+import { seedAvsAllocation } from './seedAvsAllocation'
+import { seedAvsOperatorSets } from './seedAvsOperatorSets'
+import { seedAvsRegistrar } from './seedAvsRegistrar'
+import { seedOperatorSet } from './seedOperatorSet'
+import { seedOperatorSetStrategies } from './seedOperatorSetStrategies'
+import { seedOperatorSlashed } from './seedOperatorSlashed'
+import { seedOperatorMagnitude } from './seedOperatorMagnitude'
 
 console.log('Initializing Seeder ...')
 
@@ -112,25 +117,32 @@ async function seedEigenData() {
 				seedLogsAllocationDelaySet(targetBlock),
 				seedLogsAllocationUpdated(targetBlock),
 				seedLogsAVSRegistrarSet(targetBlock),
-				seedLogsEncumberedMagnitudeUpdated(targetBlock),
-				seedLogsMaxMagnitudeUpdated(targetBlock),
-				seedLogsOperatorAddedToOperatorSet(targetBlock),
-				seedLogsOperatorRemovedFromOperatorSet(targetBlock),
+				seedLogsOperatorMagnitudeUpdated(targetBlock),
+				seedLogsAVSOperatorSetOperators(targetBlock),
 				seedLogsOperatorSetCreated(targetBlock),
 				seedLogsOperatorSlashed(targetBlock),
-				seedLogsStrategyAddedToOperatorSet(targetBlock),
-				seedLogsStrategyRemovedFromOperatorSet(targetBlock),
+				seedLogsOperatorSetStrategies(targetBlock),
 				seedLogsBeaconChainSlashingFactor(targetBlock)
 			])
 
 			await Promise.all([
-				// Avs, Operators and Avs Operators
+				// Avs, Operators, Avs Operators, OperatorSets, AvsOperatorSets and Slashing
 				(async () => {
 					await seedAvs()
 					await seedOperators()
 					await seedAvsOperators()
 					await seedStakers()
 					await seedOperatorShares()
+
+					await seedOperatorSet()
+					await seedOperatorSetStrategies()
+					await seedAllocationDelay()
+					await seedAvsRegistrar()
+
+					await seedAvsOperatorSets()
+					await seedAvsAllocation()
+					await seedOperatorMagnitude()
+					await seedOperatorSlashed()
 				})(),
 				// Deposits
 				seedDeposits(),
