@@ -48,6 +48,13 @@ export async function seedAvsAllocation(toBlock?: bigint, fromBlock?: bigint) {
 				where: { blockNumber: { gt: fromBlock, lte: toBlock } }
 			})
 
+			logs.sort((a, b) => {
+				if (a.blockNumber === b.blockNumber && a.transactionIndex === b.transactionIndex) {
+					return Number(a.effectBlock) - Number(b.effectBlock)
+				}
+				return Number(a.blockNumber - b.blockNumber)
+			})
+
 			// Process each log
 			for (const l in logs) {
 				const log = logs[l]
