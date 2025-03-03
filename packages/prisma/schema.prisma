@@ -1090,14 +1090,19 @@ model AllocationDelay {
 }
 
 model OperatorStrategyMagnitude {
-    operator         Operator @relation(fields: [operatorAddress], references: [address])
-    operatorAddress  String
-    strategyAddress  String
-    maxMagnitude     String
-    encumberedMagnitude String
+  operator         Operator @relation(fields: [operatorAddress], references: [address])
+  operatorAddress  String
+  strategyAddress  String
+  maxMagnitude     String
+  encumberedMagnitude String
 
-    @@id([operatorAddress, strategyAddress])
-    @@index([operatorAddress])
+  createdAtBlock   BigInt   @default(0)
+  updatedAtBlock   BigInt   @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @default(now())
+
+  @@id([operatorAddress, strategyAddress])
+  @@index([operatorAddress])
 }
 
 model EthPricesDaily {

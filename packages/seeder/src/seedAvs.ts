@@ -50,7 +50,6 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 
 			for (const l in logs) {
 				const log = logs[l]
-
 				const avsAddress = String(log.avs).toLowerCase()
 				const existingRecord = avsList.get(avsAddress)
 
