@@ -14,6 +14,10 @@ interface IMagnitude {
 	maxMagnitude: string
 	encumberedMagnitude: string
 	strategyAddress: string
+	createdAtBlock: bigint
+	updatedAtBlock: bigint
+	createdAt: Date
+	updatedAt: Date
 }
 
 export async function seedOperatorMagnitude(toBlock?: bigint, fromBlock?: bigint) {
@@ -95,7 +99,11 @@ export async function seedOperatorMagnitude(toBlock?: bigint, fromBlock?: bigint
 							existingMagnitudes.map((o) => ({
 								strategyAddress: o.strategyAddress,
 								maxMagnitude: o.maxMagnitude,
-								encumberedMagnitude: o.encumberedMagnitude
+								encumberedMagnitude: o.encumberedMagnitude,
+								createdAtBlock: o.createdAtBlock,
+								updatedAtBlock: o.updatedAtBlock,
+								createdAt: o.createdAt,
+								updatedAt: o.updatedAt
 							}))
 						)
 					}
@@ -110,15 +118,23 @@ export async function seedOperatorMagnitude(toBlock?: bigint, fromBlock?: bigint
 					foundMagnitude = {
 						strategyAddress,
 						maxMagnitude: '1000000000000000000', // Default to 1e18
-						encumberedMagnitude: '0'
+						encumberedMagnitude: '0',
+						createdAtBlock: BigInt(log.blockNumber),
+						updatedAtBlock: BigInt(log.blockNumber),
+						createdAt: log.blockTime,
+						updatedAt: log.blockTime
 					}
 					operatorMagnitudes.get(operatorAddress)!.push(foundMagnitude)
 				}
 
 				if (log.eventName === 'MaxMagnitudeUpdated') {
 					foundMagnitude.maxMagnitude = log.maxMagnitude
+					foundMagnitude.updatedAtBlock = BigInt(log.blockNumber)
+					foundMagnitude.updatedAt = log.blockTime
 				} else if (log.eventName === 'EncumberedMagnitudeUpdated') {
 					foundMagnitude.encumberedMagnitude = log.encumberedMagnitude
+					foundMagnitude.updatedAtBlock = BigInt(log.blockNumber)
+					foundMagnitude.updatedAt = log.blockTime
 				}
 			}
 
@@ -166,7 +182,9 @@ export async function seedOperatorMagnitude(toBlock?: bigint, fromBlock?: bigint
 						},
 						update: {
 							maxMagnitude: magnitude.maxMagnitude,
-							encumberedMagnitude: magnitude.encumberedMagnitude
+							encumberedMagnitude: magnitude.encumberedMagnitude,
+							updatedAtBlock: magnitude.updatedAtBlock,
+							updatedAt: magnitude.updatedAt
 						}
 					})
 				)
