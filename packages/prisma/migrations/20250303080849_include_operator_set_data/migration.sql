@@ -96,6 +96,10 @@ CREATE TABLE "OperatorStrategyMagnitude" (
     "strategyAddress" TEXT NOT NULL,
     "maxMagnitude" TEXT NOT NULL,
     "encumberedMagnitude" TEXT NOT NULL,
+    "createdAtBlock" BIGINT NOT NULL DEFAULT 0,
+    "updatedAtBlock" BIGINT NOT NULL DEFAULT 0,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "OperatorStrategyMagnitude_pkey" PRIMARY KEY ("operatorAddress","strategyAddress")
 );
