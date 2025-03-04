@@ -22,6 +22,12 @@ import prisma from '../../utils/prismaClient'
 import { fetchTokenPrices } from '../../utils/tokenPrices'
 import { fetchDelegationEvents, fetchRegistrationEvents } from '../../utils/eventUtils'
 import { MinTvlQuerySchema } from '../../schema/zod/schemas/minTvlQuerySchema'
+import {
+	OperatorSetQuerySchema,
+	OperatorAllocationQuerySchema,
+	StrategyAddressQuerySchema,
+	OperatorSetQuerySchemaWithRegistered
+} from '../../schema/zod/schemas/operatorSetSchemas'
 
 /**
  * Function for route /operators
@@ -470,6 +476,253 @@ export async function getOperatorRegistrationEvents(req: Request, res: Response)
 		res.send({
 			data: response.eventRecords,
 			meta: { total: response.total, skip, take }
+		})
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+/**
+ * Function for route /operators/:address/operator-sets
+ * Fetches and returns list of Operator Sets an Operator belongs to
+ *
+ * @param req
+ * @param res
+ */
+export async function getOperatorOperatorSets(req: Request, res: Response) {
+	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	}
+
+	const queryCheck = PaginationQuerySchema.and(OperatorSetQuerySchemaWithRegistered).safeParse(
+		req.query
+	)
+	if (!queryCheck.success) {
+		return handleAndReturnErrorResponse(req, res, queryCheck.error)
+	}
+
+	try {
+		const { address } = req.params
+		const { skip, take, avsAddress, operatorSetId, registered } = queryCheck.data
+
+		const operatorSets = await prisma.avsOperatorSet.findMany({
+			where: {
+				operatorAddress: address.toLowerCase(),
+				...(avsAddress && { avsAddress: avsAddress.toLowerCase() }),
+				...(operatorSetId && { operatorSetId }),
+				...(registered !== undefined && { registered })
+			},
+			skip,
+			take
+		})
+
+		const data = operatorSets.map((set) => ({
+			...set,
+			slashableUntil: set.registered ? undefined : set.slashableUntil
+		}))
+
+		const total = await prisma.avsOperatorSet.count({
+			where: {
+				operatorAddress: address.toLowerCase(),
+				...(avsAddress && { avsAddress: avsAddress.toLowerCase() }),
+				...(operatorSetId && { operatorSetId }),
+				...(registered !== undefined && { registered })
+			}
+		})
+
+		res.send({
+			data,
+			meta: {
+				total,
+				skip,
+				take
+			}
+		})
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+/**
+ * Function for route /operators/:address/allocations
+ * Fetches and returns allocations for an Operator
+ * @param req
+ * @param res
+ */
+export async function getOperatorAllocations(req: Request, res: Response) {
+	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	}
+
+	const queryCheck = PaginationQuerySchema.and(OperatorAllocationQuerySchema).safeParse(req.query)
+	if (!queryCheck.success) {
+		return handleAndReturnErrorResponse(req, res, queryCheck.error)
+	}
+
+	try {
+		const { address } = req.params
+		const { skip, take, avsAddress, operatorSetId, strategyAddress } = queryCheck.data
+
+		const allocations = await prisma.avsAllocation.findMany({
+			where: {
+				operatorAddress: address.toLowerCase(),
+				...(avsAddress && { avsAddress: avsAddress.toLowerCase() }),
+				...(operatorSetId && { operatorSetId }),
+				...(strategyAddress && { strategyAddress: strategyAddress.toLowerCase() })
+			},
+			skip,
+			take
+		})
+
+		const total = await prisma.avsAllocation.count({
+			where: {
+				operatorAddress: address.toLowerCase(),
+				...(avsAddress && { avsAddress: avsAddress.toLowerCase() }),
+				...(operatorSetId && { operatorSetId }),
+				...(strategyAddress && { strategyAddress: strategyAddress.toLowerCase() })
+			}
+		})
+
+		res.send({
+			data: allocations,
+			meta: {
+				total,
+				skip,
+				take
+			}
+		})
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+/**
+ * Function for route /operators/:address/slashed
+ * Fetches and returns slashing events for an Operator
+ * @param req
+ * @param res
+ */
+export async function getOperatorSlashed(req: Request, res: Response) {
+	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	}
+
+	const queryCheck = PaginationQuerySchema.and(OperatorSetQuerySchema).safeParse(req.query)
+	if (!queryCheck.success) {
+		return handleAndReturnErrorResponse(req, res, queryCheck.error)
+	}
+
+	try {
+		const { address } = req.params
+		const { skip, take, avsAddress, operatorSetId } = queryCheck.data
+
+		const slashingEvents = await prisma.avsOperatorSlashed.findMany({
+			where: {
+				operatorAddress: address.toLowerCase(),
+				...(avsAddress && { avsAddress: avsAddress.toLowerCase() }),
+				...(operatorSetId && { operatorSetId })
+			},
+			skip,
+			take
+		})
+
+		const data = slashingEvents.map(({ id, ...event }) => ({
+			...event,
+			id: undefined
+		}))
+
+		const total = await prisma.avsOperatorSlashed.count({
+			where: {
+				operatorAddress: address.toLowerCase(),
+				...(avsAddress && { avsAddress: avsAddress.toLowerCase() }),
+				...(operatorSetId && { operatorSetId })
+			}
+		})
+
+		res.send({
+			data,
+			meta: {
+				total,
+				skip,
+				take
+			}
+		})
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+/**
+ * Function for route /operators/:address/allocation-delay
+ * Fetches and returns allocation delay for an Operator
+ * @param req
+ * @param res
+ */
+export async function getOperatorAllocationDelay(req: Request, res: Response) {
+	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	}
+
+	try {
+		const { address } = req.params
+
+		const allocationDelay = await prisma.allocationDelay.findUnique({
+			where: { operatorAddress: address.toLowerCase() }
+		})
+
+		res.send(allocationDelay || {})
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+/**
+ * Function for route /operators/:address/magnitudes
+ * Fetches and returns magnitudes for an Operator
+ *
+ * @param req
+ * @param res
+ */
+export async function getOperatorMagnitudes(req: Request, res: Response) {
+	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	}
+
+	const queryCheck = PaginationQuerySchema.and(StrategyAddressQuerySchema).safeParse(req.query)
+	if (!queryCheck.success) {
+		return handleAndReturnErrorResponse(req, res, queryCheck.error)
+	}
+
+	try {
+		const { address } = req.params
+		const { skip, take, strategyAddress } = queryCheck.data
+
+		const magnitudes = await prisma.operatorStrategyMagnitude.findMany({
+			where: {
+				operatorAddress: address.toLowerCase(),
+				...(strategyAddress && { strategyAddress: strategyAddress.toLowerCase() })
+			}
+		})
+
+		const total = await prisma.operatorStrategyMagnitude.count({
+			where: {
+				operatorAddress: address.toLowerCase(),
+				...(strategyAddress && { strategyAddress: strategyAddress.toLowerCase() })
+			}
+		})
+
+		res.send({
+			data: magnitudes,
+			meta: {
+				total,
+				skip,
+				take
+			}
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
