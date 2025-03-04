@@ -88,10 +88,12 @@ export async function seedOperatorSet(toBlock?: bigint, fromBlock?: bigint) {
 	// Insert AVS records first to prevent foreign key constraint issues
 	const dbTransactions: any[] = []
 	if (avsList.length > 0) {
-		await prismaClient.avs.createMany({
-			data: avsList,
-			skipDuplicates: true
-		})
+		dbTransactions.push(
+			prismaClient.avs.createMany({
+				data: avsList,
+				skipDuplicates: true
+			})
+		)
 	}
 
 	if (operatorSetList.length > 0) {
@@ -105,7 +107,7 @@ export async function seedOperatorSet(toBlock?: bigint, fromBlock?: bigint) {
 
 	await bulkUpdateDbTransactions(
 		dbTransactions,
-		`[Data] OperatorSet from: ${firstBlock} to: ${lastBlock}, size: ${operatorSetList.length}`
+		`[Data] AVS: ${avsList.length}, OperatorSet: ${operatorSetList.length}, Blocks: ${firstBlock} → ${lastBlock}`
 	)
 	await saveLastSyncBlock(blockSyncKey, lastBlock)
 }
