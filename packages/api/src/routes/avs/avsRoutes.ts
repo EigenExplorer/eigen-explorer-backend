@@ -7,8 +7,12 @@ import {
 	getAVSStakers,
 	getAVSRewards,
 	getAVSRewardsEvents,
-	invalidateMetadata,
-	getAvsRegistrationEvents
+	getAvsRegistrationEvents,
+	getAvsOperatorSets,
+	getAvsOperatorSetDetails,
+	getAvsAllocations,
+	getAvsSlashed,
+	invalidateMetadata
 } from './avsController'
 
 import routeCache from 'route-cache'
@@ -35,6 +39,18 @@ router.get(
 	routeCache.cacheSeconds(120),
 	getAvsRegistrationEvents
 )
+
+router.get('/:address/operator-sets', routeCache.cacheSeconds(120), getAvsOperatorSets)
+
+router.get(
+	'/:address/operator-set/:operatorSetId',
+	routeCache.cacheSeconds(120),
+	getAvsOperatorSetDetails
+)
+
+router.get('/:address/allocations', routeCache.cacheSeconds(120), getAvsAllocations)
+
+router.get('/:address/slashed', routeCache.cacheSeconds(120), getAvsSlashed)
 
 // Protected routes
 router.get('/:address/invalidate-metadata', routeCache.cacheSeconds(120), invalidateMetadata)

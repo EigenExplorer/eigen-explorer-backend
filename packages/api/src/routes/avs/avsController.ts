@@ -25,6 +25,12 @@ import {
 	RewardsEventQuerySchema
 } from '../../schema/zod/schemas/eventSchemas'
 import { MinTvlQuerySchema } from '../../schema/zod/schemas/minTvlQuerySchema'
+import {
+	AvsAllocationQuerySchema,
+	AvsOperatorSetParamsSchema,
+	AvsOperatorSetQuerySchema,
+	OperatorSetQuerySchema
+} from '../../schema/zod/schemas/operatorSetSchemas'
 
 /**
  * Function for route /avs
@@ -710,6 +716,213 @@ export async function getAvsRegistrationEvents(req: Request, res: Response) {
 		res.send({
 			data: response.eventRecords,
 			meta: { total: response.total, skip, take }
+		})
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+/**
+ * Function for route /avs/:avsAddress/operator-sets
+ * Fetches and returns a list of Operator Sets under an AVS
+ * @param req
+ * @param res
+ * @returns
+ */
+export async function getAvsOperatorSets(req: Request, res: Response) {
+	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
+	if (!paramCheck.success) return handleAndReturnErrorResponse(req, res, paramCheck.error)
+
+	const queryCheck = PaginationQuerySchema.safeParse(req.query)
+
+	if (!queryCheck.success) {
+		return handleAndReturnErrorResponse(req, res, queryCheck.error)
+	}
+
+	try {
+		const { address } = req.params
+		const { skip, take } = queryCheck.data
+
+		const operatorSets = await prisma.operatorSet.findMany({
+			where: { avsAddress: address.toLowerCase() },
+			skip,
+			take
+		})
+
+		const operatorSetCount = await prisma.operatorSet.count({
+			where: {
+				avsAddress: address.toLowerCase()
+			}
+		})
+
+		res.send({
+			data: operatorSets,
+			meta: {
+				total: operatorSetCount,
+				skip,
+				take
+			}
+		})
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+/**
+ * Function for route /avs/:avsAddress/operator-set/:operatorSetId
+ * Fetches and returns details for a specific Operator Set
+ * @param req
+ * @param res
+ * @returns
+ */
+export async function getAvsOperatorSetDetails(req: Request, res: Response) {
+	const paramCheck = AvsOperatorSetParamsSchema.safeParse(req.params)
+	if (!paramCheck.success) return handleAndReturnErrorResponse(req, res, paramCheck.error)
+
+	try {
+		const { address, operatorSetId } = req.params
+
+		const operatorSet = await prisma.operatorSet.findUnique({
+			where: {
+				avsAddress_operatorSetId: { avsAddress: address, operatorSetId: Number(operatorSetId) }
+			},
+			include: { allocations: true }
+		})
+
+		res.send({
+			...operatorSet,
+			allocations: operatorSet?.allocations.map(
+				({
+					avsAddress,
+					operatorSetId,
+					createdAtBlock,
+					updatedAtBlock,
+					createdAt,
+					updatedAt,
+					...allocation
+				}) => ({
+					...allocation,
+					avsAddress: undefined,
+					operatorSetId: undefined,
+					createdAtBlock: undefined,
+					updatedAtBlock: undefined,
+					createdAt: undefined,
+					updatedAt: undefined
+				})
+			)
+		})
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+/**
+ * Function for route /avs/:avsAddress/allocations
+ * Fetches and returns Allocations under an AVS.
+ * @param req
+ * @param res
+ * @returns
+ */
+export async function getAvsAllocations(req: Request, res: Response) {
+	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
+	if (!paramCheck.success) return handleAndReturnErrorResponse(req, res, paramCheck.error)
+
+	const queryCheck = PaginationQuerySchema.and(AvsAllocationQuerySchema).safeParse(req.query)
+
+	if (!queryCheck.success) {
+		return handleAndReturnErrorResponse(req, res, queryCheck.error)
+	}
+
+	try {
+		const { address } = req.params
+		const { skip, take } = queryCheck.data
+
+		const { operatorAddress, operatorSetId, strategyAddress } = queryCheck.data
+		const allocations = await prisma.avsAllocation.findMany({
+			where: {
+				avsAddress: address.toLowerCase(),
+				...(operatorAddress && { operatorAddress: operatorAddress.toLowerCase() }),
+				...(operatorSetId && { operatorSetId }),
+				...(strategyAddress && { strategyAddress: strategyAddress.toLowerCase() })
+			},
+			skip,
+			take
+		})
+
+		const allocationCount = await prisma.avsAllocation.count({
+			where: {
+				avsAddress: address.toLowerCase(),
+				...(operatorAddress && { operatorAddress: operatorAddress.toLowerCase() }),
+				...(operatorSetId && { operatorSetId }),
+				...(strategyAddress && { strategyAddress: strategyAddress.toLowerCase() })
+			}
+		})
+
+		res.send({
+			data: allocations,
+			meta: {
+				total: allocationCount,
+				skip,
+				take
+			}
+		})
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+/**
+ * Function for route /avs/:address/slashed
+ * Fetches and returns slashing events for an AVS
+ * @param req
+ * @param res
+ * @returns
+ */
+export async function getAvsSlashed(req: Request, res: Response) {
+	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	}
+
+	const queryCheck = PaginationQuerySchema.and(AvsOperatorSetQuerySchema).safeParse(req.query)
+	if (!queryCheck.success) {
+		return handleAndReturnErrorResponse(req, res, queryCheck.error)
+	}
+
+	try {
+		const { address } = req.params
+		const { skip, take, operatorAddress, operatorSetId } = queryCheck.data
+
+		const slashingRecords = await prisma.avsOperatorSlashed.findMany({
+			where: {
+				avsAddress: address.toLowerCase(),
+				...(operatorAddress && { operatorAddress: operatorAddress.toLowerCase() }),
+				...(operatorSetId && { operatorSetId })
+			},
+			skip,
+			take
+		})
+
+		const data = slashingRecords.map(({ id, ...event }) => ({
+			...event,
+			id: undefined
+		}))
+
+		const total = await prisma.avsOperatorSlashed.count({
+			where: {
+				avsAddress: address.toLowerCase(),
+				...(operatorAddress && { operatorAddress: operatorAddress.toLowerCase() }),
+				...(operatorSetId && { operatorSetId })
+			}
+		})
+
+		res.send({
+			data,
+			meta: {
+				total,
+				skip,
+				take
+			}
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
