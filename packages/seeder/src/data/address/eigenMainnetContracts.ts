@@ -7,6 +7,7 @@ export const eigenContracts: EigenContractAddress = {
 	StrategyManager: '0x858646372CC42E1A627fcE94aa7A7033e7CF075A',
 	EigenPodManager: '0x91E677b07F7AF907ec9a428aafA9fc14a0d3A338',
 	RewardsCoordinator: '0x7750d328b314EfFa365A0402CcfD489B80B0adda',
+	AllocationManager: '0x',
 	Strategies: {
 		Eigen: {
 			strategyContract: '0xaCB55C530Acdb2849e6d4f36992Cd8c9D50ED8F7',
