@@ -21,50 +21,51 @@ export async function seedBeaconChainSlashingFactor(toBlock?: bigint, fromBlock?
 		return
 	}
 
-	await loopThroughBlocks(
-		firstBlock,
-		lastBlock,
-		async (fromBlock, toBlock) => {
-			const slashingFactorUpdates =
-				await prismaClient.eventLogs_BeaconChainSlashingFactorDecreased.findMany({
-					where: {
-						blockNumber: {
-							gt: fromBlock,
-							lte: toBlock
-						}
-					},
-					orderBy: { blockNumber: 'asc' }
-				})
+	const slashingFactorUpdates = new Map<string, string>()
 
-			// Prepare db transaction object
-			// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-			const dbTransactions: any[] = []
-
-			for (const update of slashingFactorUpdates) {
-				// Find the Pod associated with this staker (since staker is Pod owner)
-				const pod = await prismaClient.pod.findFirst({
-					where: { owner: update.staker.toLowerCase() },
-					select: { address: true }
-				})
-
-				// If a pod is found, update its beaconChainSlashingFactor
-				if (pod) {
-					dbTransactions.push(
-						prismaClient.pod.update({
-							where: { address: pod.address },
-							data: { beaconChainSlashingFactor: update.newBeaconChainSlashingFactor }
-						})
-					)
-				}
+	await loopThroughBlocks(firstBlock, lastBlock, async (fromBlock, toBlock) => {
+		const logs = await prismaClient.eventLogs_BeaconChainSlashingFactorDecreased.findMany({
+			where: {
+				blockNumber: { gt: fromBlock, lte: toBlock }
 			}
+		})
 
-			await bulkUpdateDbTransactions(
-				dbTransactions,
-				`[Data] BeaconChainSlashingFactor from: ${fromBlock} to: ${toBlock} size: ${slashingFactorUpdates.length}`
-			)
-		},
-		10_000n
-	)
+		// Extract unique staker addresses
+		const stakerAddresses = [...new Set(logs.map((log) => log.staker.toLowerCase()))]
+
+		const pods = await prismaClient.pod.findMany({
+			where: { owner: { in: stakerAddresses } },
+			select: { address: true, owner: true }
+		})
+
+		// Map of owner addresses to pod addresses
+		const podAddressMap = new Map(pods.map((pod) => [pod.owner, pod.address]))
+
+		for (const log of logs) {
+			const podAddress = podAddressMap.get(log.staker.toLowerCase())
+			if (podAddress) {
+				slashingFactorUpdates.set(podAddress, log.newBeaconChainSlashingFactor)
+			}
+		}
+	})
+
+	// Prepare DB transactions
+	const dbTransactions: any[] = []
+	for (const [podAddress, slashingFactor] of slashingFactorUpdates) {
+		dbTransactions.push(
+			prismaClient.pod.update({
+				where: { address: podAddress },
+				data: { beaconChainSlashingFactor: slashingFactor }
+			})
+		)
+	}
+
+	if (dbTransactions.length > 0) {
+		await bulkUpdateDbTransactions(
+			dbTransactions,
+			`[Data] BeaconChainSlashingFactor from: ${firstBlock} to: ${lastBlock} size: ${slashingFactorUpdates.size}`
+		)
+	}
 
 	// Storing last synced block
 	await saveLastSyncBlock(blockSyncKey, lastBlock)

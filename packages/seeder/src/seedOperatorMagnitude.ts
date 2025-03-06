@@ -137,8 +137,6 @@ export async function seedOperatorMagnitude(toBlock?: bigint, fromBlock?: bigint
 					foundMagnitude.updatedAt = log.blockTime
 				}
 			}
-
-			console.log(`[Batch] Operator Magnitudes from: ${fromBlock} to: ${toBlock}`)
 		},
 		10_000n
 	)

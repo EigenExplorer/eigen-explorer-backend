@@ -45,6 +45,13 @@ export async function seedAvsOperatorSets(toBlock?: bigint, fromBlock?: bigint) 
 
 	avsOperatorSet.map((a) => avsOperatorSetList.set(`${a.avsAddress}-${a.operatorSetId}`, new Map()))
 
+	const dellocationDelayBlocks = (await getPrismaClient().settings.findUnique({
+		where: { key: 'dellocationDelayBlocks' }
+	})) ?? {
+		value:
+			DEFAULT_DEALLOCATION_DELAY[process.env.NETWORK as keyof typeof DEFAULT_DEALLOCATION_DELAY]
+	}
+
 	await loopThroughBlocks(
 		firstBlock,
 		lastBlock,
@@ -90,15 +97,6 @@ export async function seedAvsOperatorSets(toBlock?: bigint, fromBlock?: bigint) 
 				const operatorSetKey = `${avsAddress}-${operatorSetId}`
 
 				const registered = log.eventName === 'OperatorAddedToOperatorSet'
-
-				const dellocationDelayBlocks = (await getPrismaClient().settings.findUnique({
-					where: { key: 'dellocationDelayBlocks' }
-				})) ?? {
-					value:
-						DEFAULT_DEALLOCATION_DELAY[
-							process.env.NETWORK as keyof typeof DEFAULT_DEALLOCATION_DELAY
-						]
-				}
 
 				const slashableUntil = registered
 					? 0n

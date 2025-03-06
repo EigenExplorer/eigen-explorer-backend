@@ -1,6 +1,5 @@
 import { getPrismaClient } from './utils/prismaClient'
 import {
-	baseBlock,
 	bulkUpdateDbTransactions,
 	fetchLastSyncBlock,
 	loopThroughBlocks,
