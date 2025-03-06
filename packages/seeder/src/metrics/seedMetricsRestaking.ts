@@ -579,7 +579,9 @@ async function getLatestMetricsPerAvs(): Promise<ILastAvsMetrics> {
 			}
 		})
 
-		return metrics ? new Map(metrics.map((metric) => [metric.avsAddress, metric])) : new Map()
+		return metrics
+			? (new Map(metrics.map((metric) => [metric.avsAddress, metric])) as ILastAvsMetrics)
+			: new Map()
 	} catch {}
 
 	return new Map()
@@ -667,7 +669,9 @@ async function getLatestMetricsPerOperator(): Promise<ILastOperatorMetrics> {
 			}
 		})
 
-		return metrics ? new Map(metrics.map((metric) => [metric.operatorAddress, metric])) : new Map()
+		return metrics
+			? (new Map(metrics.map((metric) => [metric.operatorAddress, metric])) as ILastOperatorMetrics)
+			: new Map()
 	} catch {}
 
 	return new Map()
