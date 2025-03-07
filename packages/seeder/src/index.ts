@@ -49,9 +49,6 @@ console.log('Initializing Seeder ...')
 // Constants
 const MAX_RETRIES = 3
 const RETRY_DELAY = 15 * 60
-const UPDATE_FREQUENCY = getNetwork().testnet ? 720 : 240
-const METADATA_SYNC_FREQUENCY = 7
-let seedCount = 0
 
 // Locks
 let isSeedingBlockData = false
@@ -86,7 +83,7 @@ async function seedEigenLogs() {
 
 		const viemClient = getViemClient()
 		const targetBlock = await viemClient.getBlockNumber()
-		console.log(`\nSeeding logs, every ${UPDATE_FREQUENCY} seconds, till block ${targetBlock}:`)
+		console.log(`\nSeeding logs, every 60 seconds, till block ${targetBlock}:`)
 		console.time('Seeded logs in')
 
 		await doSeedBlockData(targetBlock)
@@ -163,8 +160,6 @@ async function seedEigenLogs() {
 				results[3].entityType === 'operator' &&
 				results[3].entities
 			) {
-				console.log('Seeding operator metrics ...')
-				console.log(results[3])
 				await monitorAvsMetrics({ filterOperators: results[3].entities })
 				await monitorOperatorMetrics({ filterOperators: results[3].entities })
 			}
@@ -188,7 +183,7 @@ async function seedEigenDataFull() {
 	try {
 		const viemClient = getViemClient()
 		const targetBlock = await viemClient.getBlockNumber()
-		console.log(`\nSeeding data, every ${UPDATE_FREQUENCY} seconds, till block ${targetBlock}:`)
+		console.log(`\nSeeding data till block ${targetBlock}:`)
 		console.time('Seeded data in')
 
 		await doSeedBlockData(targetBlock)
