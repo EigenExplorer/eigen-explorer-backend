@@ -33,6 +33,14 @@ export async function seedAllocationDelay(toBlock?: bigint, fromBlock?: bigint) 
 
 	const allocationDelaysList: Map<string, AllocationDelayRecord> = new Map()
 
+	// Fetch existing operators
+	const operators = await prismaClient.operator.findMany({
+		select: { address: true }
+	})
+
+	// Set of existing operators
+	const existingOperators = new Set(operators.map((o) => o.address.toLowerCase()))
+
 	await loopThroughBlocks(
 		firstBlock,
 		lastBlock,
@@ -45,9 +53,6 @@ export async function seedAllocationDelay(toBlock?: bigint, fromBlock?: bigint) 
 					}
 				}
 			})
-
-			const operatorAddresses = logs.map((l) => String(l.operator).toLowerCase())
-			const existingOperators = new Set(operatorAddresses)
 
 			// Process each log.
 			for (const log of logs) {
