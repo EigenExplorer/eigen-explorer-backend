@@ -57,35 +57,49 @@ export async function seedAvsOperators(toBlock?: bigint, fromBlock?: bigint) {
 				const avsAddress = String(log.avs).toLowerCase()
 				const operatorAddress = String(log.operator).toLowerCase()
 
-				if (avsOperatorsList.has(avsAddress)) {
-					const operatorMap = avsOperatorsList.get(avsAddress)
-
-					if (operatorMap?.has(operatorAddress)) {
-						const existingRecord = operatorMap.get(operatorAddress)
-
-						if (existingRecord) {
-							// AvsOperator has been registered before in this fetch
-							const updatedRecord: AvsOperatorRecord = {
-								status: log.status || 0,
-								createdAtBlock: existingRecord.createdAtBlock,
-								updatedAtBlock: log.blockNumber,
-								createdAt: existingRecord.createdAt,
-								updatedAt: log.blockTime
-							}
-							operatorMap.set(operatorAddress, updatedRecord)
+				// Add avs to db if it doesn't exist
+				if (!avsOperatorsList.has(avsAddress)) {
+					await prismaClient.avs.create({
+						data: {
+							address: avsAddress,
+							metadataUrl: '',
+							metadataName: '',
+							metadataDescription: ''
 						}
-					} else {
-						// AvsOperator being registered for the first time in this fetch
-						// createdAt & createdAtBlock will be omitted in upsert if avs<>operator already exists in db
-						const newRecord: AvsOperatorRecord = {
+					})
+
+					avsOperatorsList.set(avsAddress, new Map())
+
+					console.log(`[Data] Added AVS: ${avsAddress} to db`)
+				}
+
+				const operatorMap = avsOperatorsList.get(avsAddress)
+
+				if (operatorMap?.has(operatorAddress)) {
+					const existingRecord = operatorMap.get(operatorAddress)
+
+					if (existingRecord) {
+						// AvsOperator has been registered before in this fetch
+						const updatedRecord: AvsOperatorRecord = {
 							status: log.status || 0,
-							createdAtBlock: log.blockNumber,
+							createdAtBlock: existingRecord.createdAtBlock,
 							updatedAtBlock: log.blockNumber,
-							createdAt: log.blockTime,
+							createdAt: existingRecord.createdAt,
 							updatedAt: log.blockTime
 						}
-						operatorMap?.set(operatorAddress, newRecord)
+						operatorMap.set(operatorAddress, updatedRecord)
 					}
+				} else {
+					// AvsOperator being registered for the first time in this fetch
+					// createdAt & createdAtBlock will be omitted in upsert if avs<>operator already exists in db
+					const newRecord: AvsOperatorRecord = {
+						status: log.status || 0,
+						createdAtBlock: log.blockNumber,
+						updatedAtBlock: log.blockNumber,
+						createdAt: log.blockTime,
+						updatedAt: log.blockTime
+					}
+					operatorMap?.set(operatorAddress, newRecord)
 				}
 			}
 		},
