@@ -8,7 +8,7 @@ import {
 } from './utils/seeder'
 
 const blockSyncKey = 'lastSyncedBlock_completedWithdrawals'
-const blockSyncKeyLogs = 'lastSyncedBlock_logs_completedWithdrawals'
+const blockSyncKeyLogs = 'lastSyncedBlock_queuedWithdrawals' // Latest sync is with WithdrawalQueued table due to foreign key constraint on withdrawalRoot
 
 /**
  *
