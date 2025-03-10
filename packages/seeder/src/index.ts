@@ -6,7 +6,7 @@ import { seedAvsOperators } from './seedAvsOperators'
 import { seedOperators } from './seedOperators'
 import { seedPods } from './seedPods'
 import { seedStakers } from './seedStakers'
-import { getNetwork, getViemClient } from './utils/viemClient'
+import { getViemClient } from './utils/viemClient'
 import { seedBlockData } from './blocks/seedBlockData'
 import { seedLogsAVSMetadata } from './events/seedLogsAVSMetadata'
 import { seedLogsOperatorMetadata } from './events/seedLogsOperatorMetadata'
@@ -96,20 +96,15 @@ async function seedEigenLogs() {
 			if (
 				results[0].updatedCount > 0 ||
 				results[1].updatedCount > 0 ||
-				results[2].updatedCount > 0
+				results[2].updatedCount > 0 ||
+				results[3].updatedCount > 0 ||
+				results[4].updatedCount > 0
 			) {
 				updateEvents.push(
 					(async () => {
 						await seedAvs()
 						await seedOperators()
 						await seedAvsOperators()
-					})()
-				)
-			}
-
-			if (results[3].updatedCount > 0 || results[4].updatedCount > 0) {
-				updateEvents.push(
-					(async () => {
 						await seedOperatorShares()
 						await seedStakers()
 					})()
@@ -158,7 +153,8 @@ async function seedEigenLogs() {
 			if (
 				results[3].updatedCount > 0 &&
 				results[3].entityType === 'operator' &&
-				results[3].entities
+				results[3].entities &&
+				results[3].entities.length > 0
 			) {
 				await monitorAvsMetrics({ filterOperators: results[3].entities })
 				await monitorOperatorMetrics({ filterOperators: results[3].entities })
