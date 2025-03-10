@@ -153,6 +153,7 @@ model OperatorStrategyShares {
   operatorAddress String
   strategyAddress String
   shares          String
+  slashedShares   String @default("0")
 
   @@id([operatorAddress, strategyAddress])
   @@index([operatorAddress])
@@ -179,6 +180,7 @@ model StakerStrategyShares {
   stakerAddress   String
   strategyAddress String
   shares          String
+  depositScalingFactor          String @default("1000000000000000000")
 
   @@id([stakerAddress, strategyAddress])
   @@index([stakerAddress])
@@ -985,6 +987,42 @@ model EventLogs_BeaconChainSlashingFactorDecreased {
   staker String
   prevBeaconChainSlashingFactor String
   newBeaconChainSlashingFactor  String
+
+  @@id([transactionHash, transactionIndex])
+  @@index([staker])
+  @@index([blockNumber])
+}
+
+model EventLogs_OperatorSharesSlashed {
+  address String
+
+  transactionHash  String
+  transactionIndex Int
+  blockNumber      BigInt
+  blockHash        String
+  blockTime        DateTime
+
+  operator String
+  strategy String
+  totalSlashedShares String
+
+  @@id([transactionHash, transactionIndex])
+  @@index([operator])
+  @@index([blockNumber])
+}
+
+model EventLogs_DepositScalingFactorUpdated {
+  address String
+
+  transactionHash  String
+  transactionIndex Int
+  blockNumber      BigInt
+  blockHash        String
+  blockTime        DateTime
+
+  staker String
+  strategy String
+  newDepositScalingFactor String
 
   @@id([transactionHash, transactionIndex])
   @@index([staker])
