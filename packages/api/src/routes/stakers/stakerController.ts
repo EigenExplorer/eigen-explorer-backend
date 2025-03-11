@@ -104,7 +104,7 @@ export async function getAllStakers(req: Request, res: Response) {
 						)
 						return {
 							strategyAddress: share.strategyAddress,
-							depositShares: share.shares,
+							shares: share.shares,
 							withdrawableShares
 						}
 					})
@@ -213,7 +213,7 @@ export async function getStaker(req: Request, res: Response) {
 				)
 				return {
 					strategyAddress: share.strategyAddress,
-					depositShares: share.shares,
+					shares: share.shares,
 					withdrawableShares
 				}
 			})
