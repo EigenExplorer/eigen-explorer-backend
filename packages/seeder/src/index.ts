@@ -62,6 +62,9 @@ seedEigenDataFull().then(() => {
 	// Start seeding metadata every 30 minutes (at minute 0 and 30)
 	cron.schedule('0,30 * * * *', () => seedMetadata())
 
+	// Run metrics seeding at 15 minutes past every hour
+	cron.schedule('15 * * * *', () => seedMetrics())
+
 	// Schedule seedEigenDailyData to run at 5 minutes past midnight every day
 	cron.schedule('5 0 * * *', () => seedEigenDailyData())
 
@@ -319,6 +322,19 @@ async function seedMetadata() {
 		await monitorOperatorMetadata()
 	} catch (error) {
 		console.error('Failed to seed Operator metadata', error)
+	}
+}
+
+/**
+ * Seed full metrics hourly
+ */
+async function seedMetrics() {
+	try {
+		console.log('\nSeeding metrics ...')
+		await monitorAvsMetrics({})
+		await monitorOperatorMetrics({})
+	} catch (error) {
+		console.error('Failed to seed metrics', error)
 	}
 }
 
