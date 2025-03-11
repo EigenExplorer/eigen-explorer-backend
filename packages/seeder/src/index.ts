@@ -251,7 +251,7 @@ async function seedEigenDailyData(retryCount = 0) {
 
 		await seedMetricsDeposit()
 		await seedMetricsWithdrawal()
-		await seedMetricsRestaking()
+		await seedMetricsRestaking('full')
 		await seedMetricsEigenPods()
 		await seedMetricsTvl()
 		await seedMetricsStakerRewards()
