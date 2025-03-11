@@ -17,6 +17,20 @@ export async function seedAvsRegistrar(toBlock?: bigint, fromBlock?: bigint) {
 	})
 	const existingAvs = new Set(avs.map((a) => a.address.toLowerCase()))
 
+	const avsList: {
+		address: string
+		metadataName: string
+		metadataDescription: string
+		restakeableStrategies: string[]
+		isMetadataSynced: boolean
+		totalStakers: number
+		totalOperators: number
+		createdAtBlock: bigint
+		updatedAtBlock: bigint
+		createdAt: Date
+		updatedAt: Date
+	}[] = []
+
 	const firstBlock = fromBlock ?? (await fetchLastSyncBlock(blockSyncKey))
 	const lastBlock = toBlock ?? (await fetchLastSyncBlock(blockSyncKeyLogs))
 
@@ -39,12 +53,29 @@ export async function seedAvsRegistrar(toBlock?: bigint, fromBlock?: bigint) {
 			for (const log of logs) {
 				const avsAddress = String(log.avs).toLowerCase()
 				const registrar = String(log.registrar).toLowerCase()
+				const blockNumber = BigInt(log.blockNumber)
+				const createdAt = log.blockTime
 
-				if (existingAvs.has(avsAddress)) {
-					avsRegistrarUpdates.set(avsAddress, {
-						registrar
+				if (!existingAvs.has(avsAddress)) {
+					avsList.push({
+						address: avsAddress,
+						metadataName: '',
+						metadataDescription: '',
+						restakeableStrategies: [],
+						isMetadataSynced: false,
+						totalStakers: 0,
+						totalOperators: 0,
+						createdAtBlock: blockNumber,
+						updatedAtBlock: blockNumber,
+						createdAt,
+						updatedAt: createdAt
 					})
+					existingAvs.add(avsAddress)
 				}
+
+				avsRegistrarUpdates.set(avsAddress, {
+					registrar
+				})
 			}
 		},
 		10_000n
@@ -52,6 +83,16 @@ export async function seedAvsRegistrar(toBlock?: bigint, fromBlock?: bigint) {
 
 	// Prepare DB transactions to update the AVS records.
 	const dbTransactions: any[] = []
+
+	if (avsList.length > 0) {
+		dbTransactions.push(
+			prismaClient.avs.createMany({
+				data: avsList,
+				skipDuplicates: true
+			})
+		)
+	}
+
 	for (const [avsAddress, update] of avsRegistrarUpdates) {
 		dbTransactions.push(
 			prismaClient.avs.update({
