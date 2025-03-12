@@ -3,6 +3,7 @@ import { ZodOpenApiOperationObject } from 'zod-openapi'
 import { openApiErrorResponses } from '../../apiResponseSchema/base/errorResponses'
 import { TotalDepositsSchema } from '../../apiResponseSchema/metrics/timeChangeResponse'
 import { CountOfDepositsWithChangeQuerySchema } from '../../../../api/src/schema/zod/schemas/withChangeQuery'
+import { AuthHeaderSchema } from '../../authHeaderSchema'
 
 const QuerySchema = z.object({}).merge(CountOfDepositsWithChangeQuerySchema)
 
@@ -11,7 +12,7 @@ export const getTotalDeposits: ZodOpenApiOperationObject = {
 	summary: 'Retrieve total number of deposits',
 	description: 'Returns the total number of deposits.',
 	tags: ['Metrics'],
-	requestParams: { query: QuerySchema },
+	requestParams: { query: QuerySchema, header: AuthHeaderSchema },
 	responses: {
 		'200': {
 			description: 'The total number of deposits.',

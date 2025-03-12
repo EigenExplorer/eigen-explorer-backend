@@ -4,6 +4,7 @@ import z from '../../../../api/src/schema/zod'
 import { HistoricalCountSchema } from '../../../../api/src/schema/zod/schemas/historicalCountQuery'
 import { EthereumAddressSchema } from '../../../../api/src/schema/zod/schemas/base/ethereumAddress'
 import { AvsHistoricalAggregateSchema } from '../../apiResponseSchema/metrics/historicalAggregateResponse'
+import { AuthHeaderSchema } from '../../authHeaderSchema'
 
 const HistoricalAvsAggregateResponseSchema = z.object({
 	data: z.array(AvsHistoricalAggregateSchema)
@@ -23,7 +24,8 @@ export const getHistoricalAvsAggregate: ZodOpenApiOperationObject = {
 	tags: ['Metrics'],
 	requestParams: {
 		query: HistoricalCountSchema,
-		path: AvsAddressParam
+		path: AvsAddressParam,
+		header: AuthHeaderSchema
 	},
 	responses: {
 		'200': {

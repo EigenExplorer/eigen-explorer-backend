@@ -3,6 +3,7 @@ import { openApiErrorResponses } from '../../apiResponseSchema/base/errorRespons
 import z from '../../../../api/src/schema/zod'
 import { HistoricalCountSchema } from '../../../../api/src/schema/zod/schemas/historicalCountQuery'
 import { OperatorHistoricalCountSchema } from '../../apiResponseSchema/metrics/historicalCountResponse'
+import { AuthHeaderSchema } from '../../authHeaderSchema'
 
 const HistoricalOperatorCountResponseSchema = z.object({
 	data: z.array(OperatorHistoricalCountSchema)
@@ -14,7 +15,8 @@ export const getHistoricalOperatorCount: ZodOpenApiOperationObject = {
 	description: 'Returns the total number of AVS operators registered at timestamp values.',
 	tags: ['Metrics'],
 	requestParams: {
-		query: HistoricalCountSchema
+		query: HistoricalCountSchema,
+		header: AuthHeaderSchema
 	},
 	responses: {
 		'200': {

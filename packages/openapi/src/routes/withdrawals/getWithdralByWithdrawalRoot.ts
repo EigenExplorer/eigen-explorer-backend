@@ -2,6 +2,7 @@ import z from '../../../../api/src/schema/zod'
 import { ZodOpenApiOperationObject } from 'zod-openapi'
 import { openApiErrorResponses } from '../../apiResponseSchema/base/errorResponses'
 import { WithdrawalsResponseWithIsCompletedAndUpdateFields } from '../../apiResponseSchema/withdrawals/withdrawalsResponseSchema'
+import { AuthHeaderSchema } from '../../authHeaderSchema'
 
 const WithdrawalRootParam = z.object({
 	withdrawalRoot: z.string().describe('The root hash of the withdrawal').openapi({
@@ -15,7 +16,8 @@ export const getWithdrawalByWithdrawalRoot: ZodOpenApiOperationObject = {
 	description: 'Returns the withdrawal data by withdrawal root.',
 	tags: ['Withdrawals'],
 	requestParams: {
-		path: WithdrawalRootParam
+		path: WithdrawalRootParam,
+		header: AuthHeaderSchema
 	},
 	responses: {
 		'200': {

@@ -6,6 +6,7 @@ import { WithTvlQuerySchema } from '../../../../api/src/schema/zod/schemas/withT
 import { WithCuratedMetadata } from '../../../../api/src/schema/zod/schemas/withCuratedMetadataQuery'
 import { WithRewardsQuerySchema } from '../../../../api/src/schema/zod/schemas/withRewardsQuery'
 import { AvsWithRewardsSchema } from '../../apiResponseSchema/avs/avsResponse'
+import { AuthHeaderSchema } from '../../authHeaderSchema'
 
 const CombinedQuerySchema = z
 	.object({})
@@ -26,7 +27,8 @@ export const getAvsByAddress: ZodOpenApiOperationObject = {
 	tags: ['AVS'],
 	requestParams: {
 		query: CombinedQuerySchema,
-		path: AvsAddressParam
+		path: AvsAddressParam,
+		header: AuthHeaderSchema
 	},
 	responses: {
 		'200': {
