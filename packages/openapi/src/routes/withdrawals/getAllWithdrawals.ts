@@ -5,6 +5,7 @@ import { PaginationQuerySchema } from '../../../../api/src/schema/zod/schemas/pa
 import { WithdrawalListQuerySchema } from '../../../../api/src/schema/zod/schemas/withdrawal'
 import { PaginationMetaResponsesSchema } from '../../apiResponseSchema/base/paginationMetaResponses'
 import { WithdrawalsResponseWithIsCompletedAndUpdateFields } from '../../apiResponseSchema/withdrawals/withdrawalsResponseSchema'
+import { AuthHeaderSchema } from '../../authHeaderSchema'
 
 const WithdrawalsResponseSchemaWithMeta = z.object({
 	data: z.array(WithdrawalsResponseWithIsCompletedAndUpdateFields),
@@ -23,7 +24,8 @@ export const getAllWithdrawals: ZodOpenApiOperationObject = {
 		'Returns all withdrawal data, including the withdrawal root, nonce, withdrawal status, and other relevant information.',
 	tags: ['Withdrawals'],
 	requestParams: {
-		query: CombinedQuerySchema
+		query: CombinedQuerySchema,
+		header: AuthHeaderSchema
 	},
 	responses: {
 		'200': {

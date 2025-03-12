@@ -6,6 +6,7 @@ import {
 	bulkUpdateDbTransactions,
 	fetchLastSyncBlock,
 	getBlockDataFromDb,
+	LogsUpdateMetadata,
 	loopThroughBlocks
 } from '../utils/seeder'
 import { getPrismaClient } from '../utils/prismaClient'
@@ -18,7 +19,10 @@ const blockSyncKeyLogs = 'lastSyncedBlock_logs_avs'
  * @param fromBlock
  * @param toBlock
  */
-export async function seedLogsAVSMetadata(toBlock?: bigint, fromBlock?: bigint) {
+export async function seedLogsAVSMetadata(
+	toBlock?: bigint,
+	fromBlock?: bigint
+): Promise<LogsUpdateMetadata> {
 	const viemClient = getViemClient()
 	const prismaClient = getPrismaClient()
 
@@ -26,6 +30,8 @@ export async function seedLogsAVSMetadata(toBlock?: bigint, fromBlock?: bigint) 
 	const lastBlock = toBlock ? toBlock : await viemClient.getBlockNumber()
 
 	const contracts = [getEigenContracts().AVSDirectory, getEigenContracts().AllocationManager]
+	let isUpdated = false
+	let updatedCount = 0
 
 	// Loop through evm logs
 	await loopThroughBlocks(firstBlock, lastBlock, async (fromBlock, toBlock) => {
@@ -86,6 +92,14 @@ export async function seedLogsAVSMetadata(toBlock?: bigint, fromBlock?: bigint) 
 				dbTransactions,
 				`[Logs] AVS Metadata from: ${fromBlock} to: ${toBlock} size: ${seedLength}`
 			)
+
+			isUpdated = true
+			updatedCount += seedLength
 		} catch (error) {}
 	})
+
+	return {
+		isUpdated,
+		updatedCount
+	}
 }

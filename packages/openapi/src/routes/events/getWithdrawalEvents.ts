@@ -10,6 +10,7 @@ import {
 } from '../../../../api/src/schema/zod/schemas/eventSchemas'
 import { PaginationQuerySchema } from '../../../../api/src/schema/zod/schemas/paginationQuery'
 import { applyAllRefinements } from '../../apiResponseSchema/events/util'
+import { AuthHeaderSchema } from '../../authHeaderSchema'
 
 const CombinedQuerySchemaBase = z
 	.object({})
@@ -27,7 +28,8 @@ export const getWithdrawalEvents: ZodOpenApiOperationObject = {
 	description: 'Returns a list of all withdrawal events.',
 	tags: ['Events'],
 	requestParams: {
-		query: CombinedQuerySchema
+		query: CombinedQuerySchema,
+		header: AuthHeaderSchema
 	},
 	responses: {
 		'200': {

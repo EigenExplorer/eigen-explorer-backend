@@ -5,6 +5,7 @@ import { openApiErrorResponses } from '../../apiResponseSchema/base/errorRespons
 import { DepositsResponseSchema } from '../../apiResponseSchema/deposits/depositsResponseSchema'
 import { PaginationMetaResponsesSchema } from '../../apiResponseSchema/base/paginationMetaResponses'
 import { DepositListQuerySchema } from '../../../../api/src/schema/zod/schemas/deposit'
+import { AuthHeaderSchema } from '../../authHeaderSchema'
 
 const CombinedDepositsResponseSchema = z.object({
 	data: z.array(DepositsResponseSchema),
@@ -20,7 +21,8 @@ export const getAllDeposits: ZodOpenApiOperationObject = {
 		'Returns all deposit data, including the transaction hash, token address, and other relevant information.',
 	tags: ['Deposits'],
 	requestParams: {
-		query: CombinedQuerySchema
+		query: CombinedQuerySchema,
+		header: AuthHeaderSchema
 	},
 	responses: {
 		'200': {
