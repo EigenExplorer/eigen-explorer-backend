@@ -7,6 +7,7 @@ import { PaginationMetaResponsesSchema } from '../../apiResponseSchema/base/pagi
 import { UpdatedSinceQuerySchema } from '../../../../api/src/schema/zod/schemas/updatedSinceQuery'
 import { WithTvlQuerySchema } from '../../../../api/src/schema/zod/schemas/withTvlQuery'
 import { AvsStakerSchema } from '../../apiResponseSchema/avs/avsStakerResponse'
+import { AuthHeaderSchema } from '../../authHeaderSchema'
 
 const AvsAddressParam = z.object({
 	address: EthereumAddressSchema.describe('AVS service manager contract address').openapi({
@@ -32,7 +33,8 @@ export const getAvsStakersByAddress: ZodOpenApiOperationObject = {
 	tags: ['AVS'],
 	requestParams: {
 		path: AvsAddressParam,
-		query: CombinedQuerySchema
+		query: CombinedQuerySchema,
+		header: AuthHeaderSchema
 	},
 	responses: {
 		'200': {

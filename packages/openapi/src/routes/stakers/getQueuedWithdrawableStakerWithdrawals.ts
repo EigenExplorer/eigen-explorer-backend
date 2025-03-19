@@ -5,6 +5,7 @@ import { PaginationQuerySchema } from '../../../../api/src/schema/zod/schemas/pa
 import { PaginationMetaResponsesSchema } from '../../apiResponseSchema/base/paginationMetaResponses'
 import { WithdrawalsResponseSchema } from '../../apiResponseSchema/withdrawals/withdrawalsResponseSchema'
 import { EthereumAddressSchema } from '../../../../api/src/schema/zod/schemas/base/ethereumAddress'
+import { AuthHeaderSchema } from '../../authHeaderSchema'
 
 const WithdrawalsResponseSchemaWithMeta = z.object({
 	data: z.array(WithdrawalsResponseSchema),
@@ -24,7 +25,8 @@ export const getQueuedWithdrawableStakerWithdrawals: ZodOpenApiOperationObject =
 	tags: ['Stakers'],
 	requestParams: {
 		path: StakerAddressParam,
-		query: PaginationQuerySchema
+		query: PaginationQuerySchema,
+		header: AuthHeaderSchema
 	},
 	responses: {
 		'200': {

@@ -14,6 +14,7 @@ import {
 	WithTokenDataQuerySchema,
 	WithEthValueQuerySchema
 } from '../../../../api/src/schema/zod/schemas/withTokenDataQuery'
+import { AuthHeaderSchema } from '../../authHeaderSchema'
 
 const CombinedQuerySchemaBase = z
 	.object({})
@@ -33,7 +34,8 @@ export const getDelegationEvents: ZodOpenApiOperationObject = {
 	description: 'Returns a list of all delegation events.',
 	tags: ['Events'],
 	requestParams: {
-		query: CombinedQuerySchema
+		query: CombinedQuerySchema,
+		header: AuthHeaderSchema
 	},
 	responses: {
 		'200': {
