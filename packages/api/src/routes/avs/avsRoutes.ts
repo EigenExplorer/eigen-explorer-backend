@@ -12,6 +12,7 @@ import {
 	getAvsOperatorSetDetails,
 	getAvsAllocations,
 	getAvsSlashed,
+	getAvsOperatorSetOperators,
 	invalidateMetadata
 } from './avsController'
 
@@ -46,6 +47,12 @@ router.get(
 	'/:address/operator-set/:operatorSetId',
 	routeCache.cacheSeconds(120),
 	getAvsOperatorSetDetails
+)
+
+router.get(
+	'/:address/operator-set/:operatorSetId/operators',
+	routeCache.cacheSeconds(120),
+	getAvsOperatorSetOperators
 )
 
 router.get('/:address/allocations', routeCache.cacheSeconds(120), getAvsAllocations)
