@@ -782,6 +782,36 @@ export async function getAvsOperatorSetDetails(req: Request, res: Response) {
 	try {
 		const { address, operatorSetId } = req.params
 
+		if (operatorSetId === '4294967295') {
+			const avs = await prisma.avs.findUnique({
+				where: { address: address.toLowerCase() },
+				select: { totalStakers: true, totalOperators: true, restakeableStrategies: true }
+			})
+
+			if (!avs) {
+				throw new EigenExplorerApiError({
+					code: 'unprocessable_entity',
+					message: 'invalid_string: Invalid AVS Address'
+				})
+			}
+
+			return res.send({
+				avsAddress: address.toLowerCase(),
+				operatorSetId,
+				strategies: avs.restakeableStrategies ?? [],
+				totalOperators: avs.totalOperators,
+				totalStakers: avs.totalStakers,
+				createdAtBlock: null,
+				updatedAtBlock: null,
+				createdAt: null,
+				updatedAt: null,
+				allocations: null
+			})
+		}
+
+		let totalOperators = 0
+		let totalStakers = 0
+
 		const operatorSet = await prisma.operatorSet.findUnique({
 			where: {
 				avsAddress_operatorSetId: { avsAddress: address, operatorSetId: Number(operatorSetId) }
@@ -789,9 +819,33 @@ export async function getAvsOperatorSetDetails(req: Request, res: Response) {
 			include: { allocations: true }
 		})
 
+		if (!operatorSet) {
+			throw new EigenExplorerApiError({
+				code: 'unprocessable_entity',
+				message: 'invalid_string: Invalid Operator Set ID'
+			})
+		}
+
+		totalOperators = await prisma.avsOperatorSet.count({
+			where: { avsAddress: address, operatorSetId: Number(operatorSetId), registered: true }
+		})
+
+		const operators = await prisma.operator.findMany({
+			where: {
+				avsOperatorSets: {
+					some: { avsAddress: address, operatorSetId: Number(operatorSetId), registered: true }
+				}
+			},
+			select: { totalStakers: true }
+		})
+
+		totalStakers = operators.reduce((sum, operator) => sum + operator.totalStakers, 0)
+
 		res.send({
 			...operatorSet,
-			allocations: operatorSet?.allocations.map(
+			totalOperators,
+			totalStakers,
+			allocations: operatorSet.allocations.map(
 				({
 					avsAddress,
 					operatorSetId,
@@ -801,15 +855,99 @@ export async function getAvsOperatorSetDetails(req: Request, res: Response) {
 					updatedAt,
 					...allocation
 				}) => ({
-					...allocation,
-					avsAddress: undefined,
-					operatorSetId: undefined,
-					createdAtBlock: undefined,
-					updatedAtBlock: undefined,
-					createdAt: undefined,
-					updatedAt: undefined
+					...allocation
 				})
 			)
+		})
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+/**
+ * Function for route /avs/:avsAddress/operator-set/:operatorSetId/operators
+ * Fetches and returns details of operators for a specific Operator Set
+ * @param req
+ * @param res
+ * @returns
+ */
+export async function getAvsOperatorSetOperators(req: Request, res: Response) {
+	const paramCheck = AvsOperatorSetParamsSchema.safeParse(req.params)
+	if (!paramCheck.success) return handleAndReturnErrorResponse(req, res, paramCheck.error)
+
+	const queryCheck = PaginationQuerySchema.safeParse(req.query)
+	if (!queryCheck.success) {
+		return handleAndReturnErrorResponse(req, res, queryCheck.error)
+	}
+
+	try {
+		const { address, operatorSetId } = req.params
+		const { skip, take } = queryCheck.data
+
+		const avs = await prisma.avs.findUnique({
+			where: { address: address.toLowerCase() },
+			include: { operators: { where: { isActive: true } } }
+		})
+
+		if (!avs) {
+			throw new EigenExplorerApiError({
+				code: 'unprocessable_entity',
+				message: 'invalid_string: Invalid AVS Address'
+			})
+		}
+
+		let operatorAddresses: string[] = []
+
+		if (operatorSetId === '4294967295') {
+			operatorAddresses = avs.operators.map((o) => o.operatorAddress)
+		} else {
+			const operatorSet = await prisma.operatorSet.findUnique({
+				where: {
+					avsAddress_operatorSetId: { avsAddress: address, operatorSetId: Number(operatorSetId) }
+				},
+				include: { avsOperatorSets: true }
+			})
+
+			if (!operatorSet) {
+				throw new EigenExplorerApiError({
+					code: 'unprocessable_entity',
+					message: 'invalid_string: Invalid Operator Set ID'
+				})
+			}
+
+			operatorAddresses = operatorSet.avsOperatorSets
+				.filter((o) => o.registered)
+				.map((o) => o.operatorAddress)
+		}
+
+		const total = await prisma.operator.count({
+			where: { address: { in: operatorAddresses } }
+		})
+
+		const operatorsRecords = await prisma.operator.findMany({
+			where: { address: { in: operatorAddresses } },
+			skip,
+			take
+		})
+
+		const data = operatorsRecords.map((operator) => ({
+			...operator,
+			shares: [],
+			tvl: {},
+			stakers: undefined,
+			metadataUrl: undefined,
+			isMetadataSynced: undefined,
+			tvlEth: undefined,
+			sharesHash: undefined
+		}))
+
+		res.send({
+			data,
+			meta: {
+				total,
+				skip,
+				take
+			}
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
