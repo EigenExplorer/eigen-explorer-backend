@@ -44,13 +44,13 @@ router.get(
 router.get('/:address/operator-sets', routeCache.cacheSeconds(120), getAvsOperatorSets)
 
 router.get(
-	'/:address/operator-set/:operatorSetId',
+	'/:address/operator-sets/:operatorSetId',
 	routeCache.cacheSeconds(120),
 	getAvsOperatorSetDetails
 )
 
 router.get(
-	'/:address/operator-set/:operatorSetId/operators',
+	'/:address/operator-sets/:operatorSetId/operators',
 	routeCache.cacheSeconds(120),
 	getAvsOperatorSetOperators
 )
