@@ -14,7 +14,7 @@ export const StrategyAddressQuerySchema = z.object({
 		.describe('The address of the restaking strategy')
 })
 
-const BaseOperatorSetObjectSchema = z.object({
+export const BaseOperatorSetObjectSchema = z.object({
 	avsAddress: z
 		.string()
 		.regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address')
@@ -24,7 +24,7 @@ const BaseOperatorSetObjectSchema = z.object({
 })
 
 // Refinement function
-const requireAvsAddressForOperatorSetId = (schema: z.ZodTypeAny) =>
+export const requireAvsAddressForOperatorSetId = (schema: z.ZodTypeAny) =>
 	schema.refine(
 		(data) => {
 			if (data.operatorSetId !== undefined) {
@@ -40,18 +40,23 @@ const requireAvsAddressForOperatorSetId = (schema: z.ZodTypeAny) =>
 
 export const OperatorSetQuerySchema = requireAvsAddressForOperatorSetId(BaseOperatorSetObjectSchema)
 
+export const BaseOperatorSetQuerySchemaWithRegistered = BaseOperatorSetObjectSchema.extend({
+	registered: z
+		.enum(['true', 'false'])
+		.transform((val) => val === 'true')
+		.optional()
+		.describe('If the Operator is registered in the Operator Set')
+})
+
 export const OperatorSetQuerySchemaWithRegistered = requireAvsAddressForOperatorSetId(
-	BaseOperatorSetObjectSchema.extend({
-		registered: z
-			.enum(['true', 'false'])
-			.transform((val) => val === 'true')
-			.optional()
-			.describe('If the Operator is registered in the Operator Set')
-	})
+	BaseOperatorSetQuerySchemaWithRegistered
 )
 
+export const BaseOperatorAllocationQuerySchema = BaseOperatorSetObjectSchema.extend({
+	...StrategyAddressQuerySchema.shape
+})
 export const OperatorAllocationQuerySchema = requireAvsAddressForOperatorSetId(
-	BaseOperatorSetObjectSchema.extend({ ...StrategyAddressQuerySchema.shape })
+	BaseOperatorAllocationQuerySchema
 )
 
 export const AvsOperatorSetQuerySchema = z.object({
