@@ -249,12 +249,14 @@ async function seedEigenDailyData(retryCount = 0) {
 		await seedRestakedStrategies()
 		await seedEthPricesDaily()
 
-		await seedMetricsDeposit()
-		await seedMetricsWithdrawal()
-		await seedMetricsRestaking('full')
-		await seedMetricsEigenPods()
-		await seedMetricsTvl()
-		await seedMetricsStakerRewards()
+		if (!process.env.FLAG_SEEDER_DISABLE_HISTORICAL_DATA) {
+			await seedMetricsDeposit()
+			await seedMetricsWithdrawal()
+			await seedMetricsRestaking('full')
+			await seedMetricsEigenPods()
+			await seedMetricsTvl()
+			await seedMetricsStakerRewards()
+		}
 
 		console.timeEnd('Seeded daily data in')
 	} catch (error) {
