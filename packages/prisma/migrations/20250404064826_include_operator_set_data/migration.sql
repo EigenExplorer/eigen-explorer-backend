@@ -19,7 +19,7 @@ ALTER TABLE "Avs" ADD COLUMN     "avsRegistrarAddress" TEXT;
 -- CreateTable
 CREATE TABLE "OperatorSet" (
     "avsAddress" TEXT NOT NULL,
-    "operatorSetId" INTEGER NOT NULL,
+    "operatorSetId" BIGINT NOT NULL,
     "strategies" TEXT[],
     "createdAtBlock" BIGINT NOT NULL DEFAULT 0,
     "updatedAtBlock" BIGINT NOT NULL DEFAULT 0,
@@ -32,7 +32,7 @@ CREATE TABLE "OperatorSet" (
 -- CreateTable
 CREATE TABLE "AvsOperatorSet" (
     "avsAddress" TEXT NOT NULL,
-    "operatorSetId" INTEGER NOT NULL,
+    "operatorSetId" BIGINT NOT NULL,
     "operatorAddress" TEXT NOT NULL,
     "registered" BOOLEAN NOT NULL,
     "slashableUntil" BIGINT NOT NULL,
@@ -48,7 +48,7 @@ CREATE TABLE "AvsOperatorSet" (
 CREATE TABLE "AvsAllocation" (
     "avsAddress" TEXT NOT NULL,
     "operatorAddress" TEXT NOT NULL,
-    "operatorSetId" INTEGER NOT NULL,
+    "operatorSetId" BIGINT NOT NULL,
     "strategyAddress" TEXT NOT NULL,
     "magnitude" TEXT NOT NULL,
     "effectBlock" BIGINT NOT NULL,
@@ -65,7 +65,7 @@ CREATE TABLE "AvsOperatorSlashed" (
     "id" SERIAL NOT NULL,
     "avsAddress" TEXT NOT NULL,
     "operatorAddress" TEXT NOT NULL,
-    "operatorSetId" INTEGER NOT NULL,
+    "operatorSetId" BIGINT NOT NULL,
     "strategies" TEXT[],
     "wadSlashed" TEXT[],
     "description" TEXT NOT NULL,
