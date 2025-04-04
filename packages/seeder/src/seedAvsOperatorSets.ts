@@ -91,7 +91,7 @@ export async function seedAvsOperatorSets(toBlock?: bigint, fromBlock?: bigint) 
 
 			for (const log of allLogs) {
 				const avsAddress = String(log.avs).toLowerCase()
-				const operatorSetId = Number(log.operatorSetId)
+				const operatorSetId = BigInt(log.operatorSetId)
 				const operatorAddress = String(log.operator).toLowerCase()
 
 				const operatorSetKey = `${avsAddress}-${operatorSetId}`
@@ -140,7 +140,7 @@ export async function seedAvsOperatorSets(toBlock?: bigint, fromBlock?: bigint) 
 
 		const newAvsOperators: {
 			avsAddress: string
-			operatorSetId: number
+			operatorSetId: bigint
 			operatorAddress: string
 			registered: boolean
 			slashableUntil: bigint
@@ -152,7 +152,7 @@ export async function seedAvsOperatorSets(toBlock?: bigint, fromBlock?: bigint) 
 
 		for (const [operatorSetKey, operatorMap] of avsOperatorSetList) {
 			const [avsAddress, operatorSetIdStr] = operatorSetKey.split('-')
-			const operatorSetId = Number(operatorSetIdStr)
+			const operatorSetId = BigInt(operatorSetIdStr)
 			for (const [operatorAddress, record] of operatorMap) {
 				newAvsOperators.push({
 					avsAddress,
@@ -177,7 +177,7 @@ export async function seedAvsOperatorSets(toBlock?: bigint, fromBlock?: bigint) 
 	} else {
 		for (const [operatorSetKey, operatorMap] of avsOperatorSetList) {
 			const [avsAddress, operatorSetIdStr] = operatorSetKey.split('-')
-			const operatorSetId = Number(operatorSetIdStr)
+			const operatorSetId = BigInt(operatorSetIdStr)
 
 			for (const [operatorAddress, record] of operatorMap) {
 				dbTransactions.push(

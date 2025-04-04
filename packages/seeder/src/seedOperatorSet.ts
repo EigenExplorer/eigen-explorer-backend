@@ -73,7 +73,7 @@ export async function seedOperatorSet(toBlock?: bigint, fromBlock?: bigint) {
 
 				operatorSetList.push({
 					avsAddress,
-					operatorSetId: Number(log.operatorSetId),
+					operatorSetId: BigInt(log.operatorSetId),
 					strategies: [],
 					createdAtBlock: blockNumber,
 					updatedAtBlock: blockNumber,

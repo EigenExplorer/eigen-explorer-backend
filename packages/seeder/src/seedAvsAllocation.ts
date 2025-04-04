@@ -12,7 +12,7 @@ const blockSyncKeyLogs = 'lastSyncedBlock_logs_avsAllocation'
 
 type AvsAllocationRecord = {
 	magnitude: string
-	effectBlock: number
+	effectBlock: bigint
 	createdAtBlock: bigint
 	updatedAtBlock: bigint
 	createdAt: Date
@@ -61,7 +61,7 @@ export async function seedAvsAllocation(toBlock?: bigint, fromBlock?: bigint) {
 
 				const avsAddress = String(log.avs).toLowerCase()
 				const operatorAddress = String(log.operator).toLowerCase()
-				const operatorSetId = Number(log.operatorSetId)
+				const operatorSetId = BigInt(log.operatorSetId)
 				const strategyAddress = String(log.strategy).toLowerCase()
 
 				const operatorSetKey = `${avsAddress}-${operatorSetId}`
@@ -113,11 +113,11 @@ export async function seedAvsAllocation(toBlock?: bigint, fromBlock?: bigint) {
 
 		const newAllocations: {
 			avsAddress: string
-			operatorSetId: number
+			operatorSetId: bigint
 			operatorAddress: string
 			strategyAddress: string
 			magnitude: string
-			effectBlock: number
+			effectBlock: bigint
 			createdAtBlock: bigint
 			updatedAtBlock: bigint
 			createdAt: Date
@@ -126,7 +126,7 @@ export async function seedAvsAllocation(toBlock?: bigint, fromBlock?: bigint) {
 
 		for (const [operatorSetKey, operatorMap] of avsAllocationList) {
 			const [avsAddress, operatorSetIdStr] = operatorSetKey.split('-')
-			const operatorSetId = Number(operatorSetIdStr)
+			const operatorSetId = BigInt(operatorSetIdStr)
 			for (const [operatorAddress, strategyMap] of operatorMap) {
 				for (const [strategyAddress, record] of strategyMap) {
 					newAllocations.push({
@@ -154,7 +154,7 @@ export async function seedAvsAllocation(toBlock?: bigint, fromBlock?: bigint) {
 	} else {
 		for (const [operatorSetKey, operatorMap] of avsAllocationList) {
 			const [avsAddress, operatorSetIdStr] = operatorSetKey.split('-')
-			const operatorSetId = Number(operatorSetIdStr)
+			const operatorSetId = BigInt(operatorSetIdStr)
 			for (const [operatorAddress, strategyMap] of operatorMap) {
 				for (const [strategyAddress, record] of strategyMap) {
 					dbTransactions.push(
