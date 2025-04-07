@@ -679,6 +679,77 @@ model EventLogs_AVSRewardsSubmission {
   @@index([blockTime])
 }
 
+model EventLogs_OperatorDirectedAVSRewardsSubmission {
+  address                                 String
+
+  transactionHash                         String
+  transactionIndex                        Int
+  blockNumber                             BigInt
+  blockHash                               String
+  blockTime                               DateTime
+
+  caller                                  String
+  avs                                     String
+  operatorDirectedRewardsSubmissionHash   String
+  submissionNonce                         BigInt
+
+  operatorDirectedRewardsSubmission_token              String
+  operatorDirectedRewardsSubmission_startTimestamp     BigInt
+  operatorDirectedRewardsSubmission_duration           Int
+  operatorDirectedRewardsSubmission_description        String
+
+  strategiesAndMultipliers_strategies     String[]
+  strategiesAndMultipliers_multipliers    String[]
+  operatorRewards_operators               String[]
+  operatorRewards_amounts                 String[]
+
+  @@id([transactionHash, transactionIndex])
+  @@index([address])
+  @@index([blockNumber])
+  @@index([blockTime])
+}
+
+model EventLogs_OperatorAVSSplitBipsSet {
+  address                                 String
+
+  transactionHash           String
+  transactionIndex          Int
+  blockNumber               BigInt
+  blockHash                 String
+  blockTime                 DateTime
+
+  caller                    String
+  operator                  String
+  avs                       String
+  activatedAt               BigInt
+  oldOperatorAVSSplitBips   Int
+  newOperatorAVSSplitBips   Int
+
+  @@id([transactionHash, transactionIndex])
+  @@index([blockNumber])
+  @@index([blockTime])
+}
+
+model EventLogs_OperatorPISplitBipsSet {
+  address                  String
+
+  transactionHash          String
+  transactionIndex         Int
+  blockNumber              BigInt
+  blockHash                String
+  blockTime                DateTime
+
+  caller                   String
+  operator                 String
+  activatedAt              BigInt
+  oldOperatorPISplitBips   Int
+  newOperatorPISplitBips   Int
+
+  @@id([transactionHash, transactionIndex])
+  @@index([blockNumber])
+  @@index([blockTime])
+}
+
 model EventLogs_StrategyAddedToDepositWhitelist {
   address String
 
