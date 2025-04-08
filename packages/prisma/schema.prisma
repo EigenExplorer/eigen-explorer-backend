@@ -26,6 +26,8 @@ model Avs {
   curatedMetadata       AvsCuratedMetadata?
   restakeableStrategies String[]
   rewardSubmissions     AvsStrategyRewardSubmission[]
+  operatorDirectedRewardSubmissions OperatorDirectedAvsStrategyRewardsSubmission[]
+  operatorSplits        OperatorAvsSplit[]
 
   totalStakers   Int     @default(0)
   totalOperators Int     @default(0)
@@ -124,6 +126,11 @@ model Operator {
   avs     AvsOperator[]
   shares  OperatorStrategyShares[]
   stakers Staker[]
+
+  avsSplits         OperatorAvsSplit[]
+  operatorDirectedRewardSubmissions OperatorDirectedAvsStrategyRewardsSubmission[]
+
+  piSplitBips  Int     @default(1000)
 
   totalStakers Int     @default(0)
   totalAvs     Int     @default(0)
@@ -282,6 +289,44 @@ model AvsStrategyRewardSubmission {
 
   createdAtBlock BigInt   @default(0)
   createdAt      DateTime @default(now())
+}
+
+model OperatorDirectedAvsStrategyRewardsSubmission {
+  id       Int @id @default(autoincrement())
+  avs      Avs @relation(fields: [avsAddress], references: [address])
+  operator Operator @relation(fields: [operatorAddress], references: [address])
+
+  submissionNonce                       BigInt
+  operatorDirectedRewardsSubmissionHash String
+
+  avsAddress        String
+  operatorAddress   String
+  strategyAddress   String
+  multiplier        Decimal @default(0) @db.Decimal(78, 0)
+  token             String
+  amount            Decimal @default(0) @db.Decimal(78, 0)
+  startTimestamp    BigInt
+  duration          Int
+  description       String
+
+  createdAtBlock BigInt   @default(0)
+  createdAt      DateTime @default(now())
+}
+
+model OperatorAvsSplit {
+  operator        Operator @relation(fields: [operatorAddress], references: [address])
+  operatorAddress String
+  
+  avs            Avs      @relation(fields: [avsAddress], references: [address])
+  avsAddress     String
+
+  splitBips    Int
+  activatedAt  BigInt
+
+  createdAtBlock BigInt   @default(0)
+  createdAt      DateTime @default(now())
+
+  @@id([operatorAddress, avsAddress, activatedAt])  
 }
 
 // Collection to store system settings
