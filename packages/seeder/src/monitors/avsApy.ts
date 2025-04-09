@@ -90,11 +90,6 @@ export async function monitorAvsApy() {
 									.div(new Prisma.Prisma.Decimal(10).pow(tokenPrice?.decimals ?? 18)) // No decimals
 							}
 
-							// Multiply reward amount in ETH by the strategy weight
-							rewardIncrementEth = rewardIncrementEth
-								.mul(submission.multiplier)
-								.div(new Prisma.Prisma.Decimal(10).pow(18))
-
 							totalRewardsEth = totalRewardsEth.add(rewardIncrementEth) // No decimals
 							totalDuration += submission.duration
 						}
