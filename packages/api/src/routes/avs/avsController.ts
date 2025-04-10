@@ -25,6 +25,7 @@ import {
 	RewardsEventQuerySchema
 } from '../../schema/zod/schemas/eventSchemas'
 import { MinTvlQuerySchema } from '../../schema/zod/schemas/minTvlQuerySchema'
+import { UpdateMetadataSchema } from '../../schema/zod/schemas/updateMetadata'
 
 /**
  * Function for route /avs
@@ -744,10 +745,81 @@ export async function invalidateMetadata(req: Request, res: Response) {
 		})
 
 		if (updateResult.count === 0) {
-			throw new Error('Address not found.')
+			throw new EigenExplorerApiError({ code: 'not_found', message: 'AVS address not found.' })
 		}
 
 		res.send({ message: 'Metadata invalidated successfully.' })
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+/**
+ * Function for route /avs/:address/update-metadata
+ * Protected route to update the curated metadata of a given AVS
+ *
+ * @param req
+ * @param res
+ */
+export async function updateMetadata(req: Request, res: Response) {
+	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	}
+
+	const bodyCheck = UpdateMetadataSchema.safeParse(req.body)
+	if (!bodyCheck.success) {
+		return handleAndReturnErrorResponse(req, res, bodyCheck.error)
+	}
+
+	try {
+		const accessLevel = req.accessLevel || 0
+
+		if (accessLevel !== 999) {
+			throw new EigenExplorerApiError({ code: 'unauthorized', message: 'Unauthorized access.' })
+		}
+
+		const { address } = req.params
+		const {
+			metadataName,
+			metadataDescription,
+			metadataDiscord,
+			metadataLogo,
+			metadataTelegram,
+			metadataWebsite,
+			metadataX,
+			metadataGithub,
+			metadataTokenAddress,
+			additionalConfig,
+			tags,
+			isVisible,
+			isVerified
+		} = bodyCheck.data
+
+		const updateResult = await prisma.avsCuratedMetadata.updateMany({
+			where: { avsAddress: address.toLowerCase() },
+			data: {
+				metadataName,
+				metadataDescription,
+				metadataDiscord,
+				metadataLogo,
+				metadataTelegram,
+				metadataWebsite,
+				metadataX,
+				metadataGithub,
+				metadataTokenAddress,
+				additionalConfig,
+				tags,
+				isVisible,
+				isVerified
+			}
+		})
+
+		if (updateResult.count === 0) {
+			throw new EigenExplorerApiError({ code: 'not_found', message: 'AVS address not found.' })
+		}
+
+		res.send({ message: 'Metadata updated successfully.' })
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
 	}
