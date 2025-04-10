@@ -26,6 +26,7 @@ import {
 } from '../../schema/zod/schemas/eventSchemas'
 import { MinTvlQuerySchema } from '../../schema/zod/schemas/minTvlQuerySchema'
 import { UpdateMetadataSchema } from '../../schema/zod/schemas/updateMetadata'
+import { isAuthRequired } from '../../utils/authMiddleware'
 
 /**
  * Function for route /avs
@@ -731,7 +732,7 @@ export async function invalidateMetadata(req: Request, res: Response) {
 	}
 
 	try {
-		const accessLevel = req.accessLevel || 0
+		const accessLevel = isAuthRequired() ? req.accessLevel || 0 : 999
 
 		if (accessLevel !== 999) {
 			throw new EigenExplorerApiError({ code: 'unauthorized', message: 'Unauthorized access.' })
@@ -773,7 +774,7 @@ export async function updateMetadata(req: Request, res: Response) {
 	}
 
 	try {
-		const accessLevel = req.accessLevel || 0
+		const accessLevel = isAuthRequired() ? req.accessLevel || 0 : 999
 
 		if (accessLevel !== 999) {
 			throw new EigenExplorerApiError({ code: 'unauthorized', message: 'Unauthorized access.' })
