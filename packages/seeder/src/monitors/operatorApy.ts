@@ -17,6 +17,7 @@ export async function monitorOperatorApy() {
 
 	let skip = 0
 	const take = 32
+	const MAX_APY = 9999.9999
 
 	const tokenPrices = await fetchTokenPrices()
 	const strategiesWithSharesUnderlying = await getStrategiesWithShareUnderlying()
@@ -147,7 +148,9 @@ export async function monitorOperatorApy() {
 
 					// Calculate max achievable APY
 					if (strategyRewardsMap.size > 0) {
-						const maxApy = new Prisma.Prisma.Decimal(Math.max(...strategyRewardsMap.values()))
+						const maxApy = new Prisma.Prisma.Decimal(
+							Math.min(Math.max(...strategyRewardsMap.values()), MAX_APY)
+						)
 
 						if (operator.maxApy !== maxApy) {
 							data.push({
