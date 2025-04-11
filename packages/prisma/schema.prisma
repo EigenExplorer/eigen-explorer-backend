@@ -55,6 +55,7 @@ model AvsCuratedMetadata {
   metadataX            String?
   metadataGithub       String?
   metadataTokenAddress String?
+  additionalConfig     Json?
 
   tags       String[]
   isVisible  Boolean  @default(false)
