@@ -10,7 +10,7 @@ import {
 } from '../utils/seeder'
 import { getPrismaClient } from '../utils/prismaClient'
 
-const blockSyncKeyLogs = 'lastSyncedBlock_logs_operatorPISplit'
+const blockSyncKeyLogs = 'lastSyncedBlock_logs_operatorPiSplit'
 
 export async function seedLogsOperatorPISplitBipsSet(toBlock?: bigint, fromBlock?: bigint) {
 	const viemClient = getViemClient()

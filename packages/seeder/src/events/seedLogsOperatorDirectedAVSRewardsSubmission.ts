@@ -11,7 +11,7 @@ import {
 } from '../utils/seeder'
 import { getPrismaClient } from '../utils/prismaClient'
 
-const blockSyncKeyLogs = 'lastSyncedBlock_logs_operatorDirectedAVSRewardsSubmission'
+const blockSyncKeyLogs = 'lastSyncedBlock_logs_operatorDirectedAvsRewardsSubmission'
 
 export async function seedLogsOperatorDirectedAVSRewardsSubmission(
 	toBlock?: bigint,

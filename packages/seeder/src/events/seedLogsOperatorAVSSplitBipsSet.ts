@@ -11,7 +11,7 @@ import {
 } from '../utils/seeder'
 import { getPrismaClient } from '../utils/prismaClient'
 
-const blockSyncKeyLogs = 'lastSyncedBlock_logs_operatorAVSSplit'
+const blockSyncKeyLogs = 'lastSyncedBlock_logs_operatorAvsSplit'
 
 /**
  * Utility function to OperatorAVSSplitBipsSet event logs
