@@ -756,6 +756,84 @@ export async function invalidateMetadata(req: Request, res: Response) {
 }
 
 /**
+ * Function for route /avs/:address/create-metadata
+ * Protected route to create a new curated metadata for a given AVS address
+ *
+ * @param req
+ * @param res
+ */
+export async function createMetadata(req: Request, res: Response) {
+	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	}
+
+	const bodyCheck = UpdateMetadataSchema.safeParse(req.body)
+	if (!bodyCheck.success) {
+		return handleAndReturnErrorResponse(req, res, bodyCheck.error)
+	}
+
+	try {
+		const accessLevel = isAuthRequired() ? req.accessLevel || 0 : 999
+
+		if (accessLevel !== 999) {
+			throw new EigenExplorerApiError({ code: 'unauthorized', message: 'Unauthorized access.' })
+		}
+
+		const { address } = req.params
+		const metadataData = bodyCheck.data
+
+		const existingRecord = await prisma.avsCuratedMetadata.findUnique({
+			where: { avsAddress: address.toLowerCase() }
+		})
+
+		if (existingRecord) {
+			throw new EigenExplorerApiError({
+				code: 'bad_request',
+				message: 'Metadata for this AVS already exists.'
+			})
+		}
+
+		const avsExists = await prisma.avs.findUnique({
+			where: { address: address.toLowerCase() }
+		})
+
+		if (!avsExists) {
+			throw new EigenExplorerApiError({
+				code: 'not_found',
+				message: 'AVS not found.'
+			})
+		}
+
+		const createData = {
+			avsAddress: address.toLowerCase(),
+			metadataName: metadataData.metadataName || null,
+			metadataDescription: metadataData.metadataDescription || null,
+			metadataDiscord: metadataData.metadataDiscord || null,
+			metadataLogo: metadataData.metadataLogo || null,
+			metadataTelegram: metadataData.metadataTelegram || null,
+			metadataWebsite: metadataData.metadataWebsite || null,
+			metadataX: metadataData.metadataX || null,
+			metadataGithub: metadataData.metadataGithub || null,
+			metadataTokenAddress: metadataData.metadataTokenAddress || null,
+			additionalConfig: metadataData.additionalConfig || Prisma.Prisma.JsonNull,
+			tags: metadataData.tags || [],
+			isVisible: metadataData.isVisible !== undefined ? metadataData.isVisible : false,
+			isVerified: metadataData.isVerified !== undefined ? metadataData.isVerified : false,
+			metadatasUpdatedAt: Array(13).fill(new Date().getTime()) // 13 updateable fields
+		}
+
+		await prisma.avsCuratedMetadata.create({
+			data: createData
+		})
+
+		res.send({ success: true })
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+/**
  * Function for route /avs/:address/update-metadata
  * Protected route to update the curated metadata of a given AVS
  *
@@ -813,8 +891,10 @@ export async function updateMetadata(req: Request, res: Response) {
 		const updatedAtTimestamps = [...(currentRecord.metadatasUpdatedAt || [])]
 
 		// Ensure exact array length
+		// 0n in the final array means the field has never been updated
+		// and the record was created before introduction of `createMetadata` in the API spec
 		while (updatedAtTimestamps.length < metadataFields.length) {
-			updatedAtTimestamps.push(0n) // 0n in the final array would imply that the field has never been edited
+			updatedAtTimestamps.push(0n)
 		}
 
 		let hasChanges = false
@@ -877,6 +957,49 @@ export async function updateMetadata(req: Request, res: Response) {
 		})
 
 		res.send({ updated: updateCount })
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+/**
+ * Function for route /avs/:address/delete-metadata
+ * Protected route to delete the curated metadata of a given AVS
+ *
+ * @param req
+ * @param res
+ */
+export async function deleteMetadata(req: Request, res: Response) {
+	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	}
+
+	try {
+		const accessLevel = isAuthRequired() ? req.accessLevel || 0 : 999
+
+		if (accessLevel !== 999) {
+			throw new EigenExplorerApiError({ code: 'unauthorized', message: 'Unauthorized access.' })
+		}
+
+		const { address } = req.params
+
+		const existingRecord = await prisma.avsCuratedMetadata.findUnique({
+			where: { avsAddress: address.toLowerCase() }
+		})
+
+		if (!existingRecord) {
+			throw new EigenExplorerApiError({
+				code: 'not_found',
+				message: 'Metadata for this AVS not found.'
+			})
+		}
+
+		await prisma.avsCuratedMetadata.delete({
+			where: { avsAddress: address.toLowerCase() }
+		})
+
+		res.send({ success: true })
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
 	}
