@@ -65,6 +65,8 @@ import { seedOperatorSet } from './seedOperatorSet'
 import { seedOperatorSetStrategies } from './seedOperatorSetStrategies'
 import { seedOperatorSlashed } from './seedOperatorSlashed'
 import { seedOperatorMagnitude } from './seedOperatorMagnitude'
+import { seedLogsDepositScalingFactor } from './events/seedLogsDepositScalingFactor'
+import { seedLogsOperatorSharesSlashed } from './events/seedLogsOperatorSharesSlashed'
 
 console.log('Initializing Seeder ...')
 
@@ -122,7 +124,9 @@ async function seedEigenData() {
 				seedLogsOperatorSetCreated(targetBlock),
 				seedLogsOperatorSlashed(targetBlock),
 				seedLogsOperatorSetStrategies(targetBlock),
-				seedLogsBeaconChainSlashingFactor(targetBlock)
+				seedLogsBeaconChainSlashingFactor(targetBlock),
+				seedLogsDepositScalingFactor(targetBlock),
+				seedLogsOperatorSharesSlashed(targetBlock)
 			])
 
 			await Promise.all([
