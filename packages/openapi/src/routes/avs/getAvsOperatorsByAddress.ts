@@ -11,6 +11,7 @@ import {
 	SearchByText,
 	SearchMode
 } from '../../../../api/src/schema/zod/schemas/separateSearchQueries'
+import { AuthHeaderSchema } from '../../authHeaderSchema'
 
 const AvsAddressParam = z.object({
 	address: EthereumAddressSchema.describe('AVS service manager contract address').openapi({
@@ -38,7 +39,8 @@ export const getAvsOperatorsByAddress: ZodOpenApiOperationObject = {
 	tags: ['AVS'],
 	requestParams: {
 		path: AvsAddressParam,
-		query: CombinedQuerySchema
+		query: CombinedQuerySchema,
+		header: AuthHeaderSchema
 	},
 	responses: {
 		'200': {

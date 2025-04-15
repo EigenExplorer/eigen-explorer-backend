@@ -3,6 +3,7 @@ import { openApiErrorResponses } from '../../apiResponseSchema/base/errorRespons
 import z from '../../../../api/src/schema/zod'
 import { HistoricalCountSchema } from '../../../../api/src/schema/zod/schemas/historicalCountQuery'
 import { HistoricalTotalTvlResponseSchema } from '../../apiResponseSchema/metrics/tvlResponse'
+import { AuthHeaderSchema } from '../../authHeaderSchema'
 
 const HistoricalTotalTvlCombinedResponseSchema = z.object({
 	data: z.array(HistoricalTotalTvlResponseSchema)
@@ -15,7 +16,8 @@ export const getHistoricalTvl: ZodOpenApiOperationObject = {
 		'Returns the historical total value locked (TVL) data over specified timestamp values in all restaking strategies and Beacon Chain restaking.',
 	tags: ['Metrics'],
 	requestParams: {
-		query: HistoricalCountSchema
+		query: HistoricalCountSchema,
+		header: AuthHeaderSchema
 	},
 	responses: {
 		'200': {

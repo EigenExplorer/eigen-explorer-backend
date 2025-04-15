@@ -11,6 +11,7 @@ import {
 	StakerDelegationEventQuerySchemaBase
 } from '../../../../api/src/schema/zod/schemas/eventSchemas'
 import { applyAllRefinements } from '../../apiResponseSchema/events/util'
+import { AuthHeaderSchema } from '../../authHeaderSchema'
 
 const StakerAddressParam = z.object({
 	address: EthereumAddressSchema.describe('The address of the staker').openapi({
@@ -35,7 +36,8 @@ export const getStakerDelegationEvents: ZodOpenApiOperationObject = {
 	tags: ['Stakers'],
 	requestParams: {
 		path: StakerAddressParam,
-		query: CombinedQuerySchema
+		query: CombinedQuerySchema,
+		header: AuthHeaderSchema
 	},
 	responses: {
 		'200': {

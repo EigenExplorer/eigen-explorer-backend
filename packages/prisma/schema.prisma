@@ -55,10 +55,13 @@ model AvsCuratedMetadata {
   metadataX            String?
   metadataGithub       String?
   metadataTokenAddress String?
+  additionalConfig     Json?
 
   tags       String[]
   isVisible  Boolean  @default(false)
   isVerified Boolean  @default(false)
+
+  metadatasUpdatedAt BigInt[]
 
   @@index([tags], map: "tags_1")
 }
@@ -442,6 +445,7 @@ model EventLogs_AVSMetadataURIUpdated {
   @@id([transactionHash, transactionIndex])
   @@index([avs])
   @@index([blockNumber])
+  @@index([blockTime])
 }
 
 model EventLogs_OperatorMetadataURIUpdated {
@@ -459,6 +463,7 @@ model EventLogs_OperatorMetadataURIUpdated {
   @@id([transactionHash, transactionIndex])
   @@index([operator])
   @@index([blockNumber])
+  @@index([blockTime])
 }
 
 model EventLogs_OperatorAVSRegistrationStatusUpdated {
@@ -477,6 +482,7 @@ model EventLogs_OperatorAVSRegistrationStatusUpdated {
   @@id([transactionHash, transactionIndex])
   @@index([operator, avs])
   @@index([blockNumber])
+  @@index([blockTime])
 }
 
 model EventLogs_PodDeployed {
@@ -494,6 +500,7 @@ model EventLogs_PodDeployed {
   @@id([transactionHash, transactionIndex])
   @@index([eigenPod, podOwner])
   @@index([blockNumber])
+  @@index([blockTime])
 }
 
 model EventLogs_PodSharesUpdated {
@@ -527,6 +534,7 @@ model EventLogs_StakerDelegated {
   @@id([transactionHash, transactionIndex])
   @@index([staker, operator])
   @@index([blockNumber])
+  @@index([blockTime])
 }
 
 model EventLogs_StakerUndelegated {
@@ -544,6 +552,7 @@ model EventLogs_StakerUndelegated {
   @@id([transactionHash, transactionIndex])
   @@index([staker, operator])
   @@index([blockNumber])
+  @@index([blockTime])
 }
 
 model EventLogs_OperatorSharesIncreased {
@@ -563,6 +572,7 @@ model EventLogs_OperatorSharesIncreased {
   @@id([transactionHash, transactionIndex])
   @@index([staker, operator])
   @@index([blockNumber])
+  @@index([blockTime])
 }
 
 model EventLogs_OperatorSharesDecreased {
@@ -582,6 +592,7 @@ model EventLogs_OperatorSharesDecreased {
   @@id([transactionHash, transactionIndex])
   @@index([staker, operator])
   @@index([blockNumber])
+  @@index([blockTime])
 }
 
 model EventLogs_WithdrawalQueued {
@@ -605,6 +616,7 @@ model EventLogs_WithdrawalQueued {
   @@id([transactionHash, transactionIndex])
   @@index([withdrawalRoot])
   @@index([blockNumber])
+  @@index([blockTime])
 }
 
 model EventLogs_WithdrawalCompleted {
@@ -621,6 +633,7 @@ model EventLogs_WithdrawalCompleted {
   @@id([transactionHash, transactionIndex])
   @@index([withdrawalRoot])
   @@index([blockNumber])
+  @@index([blockTime])
 }
 
 model EventLogs_Deposit {
@@ -640,6 +653,7 @@ model EventLogs_Deposit {
   @@id([transactionHash, transactionIndex])
   @@index([staker])
   @@index([blockNumber])
+  @@index([blockTime])
 }
 
 model EventLogs_AVSRewardsSubmission {
@@ -665,6 +679,7 @@ model EventLogs_AVSRewardsSubmission {
   @@id([transactionHash, transactionIndex])
   @@index([address])
   @@index([blockNumber])
+  @@index([blockTime])
 }
 
 model EventLogs_StrategyAddedToDepositWhitelist {
@@ -681,6 +696,7 @@ model EventLogs_StrategyAddedToDepositWhitelist {
   @@id([transactionHash, transactionIndex])
   @@index([strategy])
   @@index([blockNumber])
+  @@index([blockTime])
 }
 
 model EventLogs_StrategyRemovedFromDepositWhitelist {
@@ -697,6 +713,7 @@ model EventLogs_StrategyRemovedFromDepositWhitelist {
   @@id([transactionHash, transactionIndex])
   @@index([strategy])
   @@index([blockNumber])
+  @@index([blockTime])
 }
 
 model EventLogs_DistributionRootSubmitted {
@@ -714,6 +731,8 @@ model EventLogs_DistributionRootSubmitted {
 
   @@id([transactionHash, transactionIndex])
   @@index([rewardsCalculationEndTimestamp])
+  @@index([blockNumber])
+  @@index([blockTime])
 }
 
 model EthPricesDaily {

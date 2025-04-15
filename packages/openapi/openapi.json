@@ -13,6 +13,10 @@
 		{
 			"url": "https://api.eigenexplorer.com",
 			"description": "EigenExplorer Production API"
+		},
+		{
+			"url": "https://api-holesky.eigenexplorer.com",
+			"description": "EigenExplorer Holesky Testnet API"
 		}
 	],
 	"paths": {
@@ -78,6 +82,18 @@
 				"summary": "Retrieve summary metrics",
 				"description": "Returns summary metrics, including TVLs for both restaking strategies and the Beacon Chain ETH strategy, as well as the total number of AVS, operators, and stakers.",
 				"tags": ["Metrics"],
+				"parameters": [
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
+					}
+				],
 				"responses": {
 					"200": {
 						"description": "The list of summary metrics.",
@@ -199,6 +215,16 @@
 							"description": "Toggle whether the route should return 24h/7d change for TVL",
 							"example": "false"
 						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
 					}
 				],
 				"responses": {
@@ -294,6 +320,16 @@
 							"description": "Toggle whether the route should return 24h/7d change for TVL",
 							"example": "false"
 						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
 					}
 				],
 				"responses": {
@@ -389,6 +425,16 @@
 							"description": "Toggle whether the route should return 24h/7d change for TVL",
 							"example": "false"
 						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
 					}
 				],
 				"responses": {
@@ -522,6 +568,16 @@
 							"description": "Toggle whether the route should return 24h/7d change for TVL",
 							"example": "false"
 						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
 					}
 				],
 				"responses": {
@@ -622,6 +678,16 @@
 							"description": "Toggle whether the route should return 24h/7d change for count of AVS",
 							"example": "false"
 						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
 					}
 				],
 				"responses": {
@@ -717,6 +783,16 @@
 							"description": "Toggle whether the route should return 24h/7d change for count of AVS operators",
 							"example": "false"
 						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
 					}
 				],
 				"responses": {
@@ -812,6 +888,16 @@
 							"description": "Toggle whether the route should return 24h/7d change for count of AVS stakers",
 							"example": "false"
 						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
 					}
 				],
 				"responses": {
@@ -907,6 +993,16 @@
 							"description": "Toggle whether the route should return 24h/7d change for count of withdrawals",
 							"example": "false"
 						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
 					}
 				],
 				"responses": {
@@ -1094,6 +1190,16 @@
 							"description": "Toggle whether the route should return 24h/7d change for count of deposits",
 							"example": "false"
 						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
 					}
 				],
 				"responses": {
@@ -1189,6 +1295,16 @@
 							"description": "Toggle whether the route should return 24h/7d change for ratio value",
 							"example": "false"
 						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
 					}
 				],
 				"responses": {
@@ -1284,6 +1400,16 @@
 							"description": "Toggle whether the route should return 24h/7d change for ratio value",
 							"example": "false"
 						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
 					}
 				],
 				"responses": {
@@ -1424,6 +1550,16 @@
 							"description": "End date in ISO string format",
 							"example": "2024-04-12T08:31:11.000"
 						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
 					}
 				],
 				"responses": {
@@ -1556,6 +1692,16 @@
 							"description": "End date in ISO string format",
 							"example": "2024-04-12T08:31:11.000"
 						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
 					}
 				],
 				"responses": {
@@ -1676,6 +1822,16 @@
 							"description": "End date in ISO string format",
 							"example": "2024-04-12T08:31:11.000"
 						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
 					}
 				],
 				"responses": {
@@ -1786,6 +1942,16 @@
 							"description": "End date in ISO string format",
 							"example": "2024-04-12T08:31:11.000"
 						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
 					}
 				],
 				"responses": {
@@ -1908,6 +2074,16 @@
 							"description": "End date in ISO string format",
 							"example": "2024-04-12T08:31:11.000"
 						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
 					}
 				],
 				"responses": {
@@ -2018,6 +2194,16 @@
 							"description": "End date in ISO string format",
 							"example": "2024-04-12T08:31:11.000"
 						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
 					}
 				],
 				"responses": {
@@ -2128,6 +2314,16 @@
 							"description": "End date in ISO string format",
 							"example": "2024-04-12T08:31:11.000"
 						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
 					}
 				],
 				"responses": {
@@ -2238,6 +2434,16 @@
 							"description": "End date in ISO string format",
 							"example": "2024-04-12T08:31:11.000"
 						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
 					}
 				],
 				"responses": {
@@ -2348,6 +2554,16 @@
 							"description": "End date in ISO string format",
 							"example": "2024-04-12T08:31:11.000"
 						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
 					}
 				],
 				"responses": {
@@ -2458,6 +2674,16 @@
 							"description": "End date in ISO string format",
 							"example": "2024-04-12T08:31:11.000"
 						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
 					}
 				],
 				"responses": {
@@ -2568,6 +2794,16 @@
 							"description": "End date in ISO string format",
 							"example": "2024-04-12T08:31:11.000"
 						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
 					}
 				],
 				"responses": {
@@ -2678,6 +2914,16 @@
 							"description": "End date in ISO string format",
 							"example": "2024-04-12T08:31:11.000"
 						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
 					}
 				],
 				"responses": {
@@ -2855,6 +3101,16 @@
 							"description": "The number of records to return for pagination",
 							"example": 12
 						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
 					}
 				],
 				"responses": {
@@ -3302,6 +3558,16 @@
 							"description": "The number of records to return for pagination",
 							"example": 12
 						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
 					}
 				],
 				"responses": {
@@ -3442,6 +3708,16 @@
 							"description": "Toggle whether the route should return Avs/Operator rewards APY data",
 							"example": "false"
 						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
 					}
 				],
 				"responses": {
@@ -3918,6 +4194,16 @@
 							"description": "The number of records to return for pagination",
 							"example": 12
 						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
 					}
 				],
 				"responses": {
@@ -4213,6 +4499,16 @@
 							"description": "The number of records to return for pagination",
 							"example": 12
 						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
 					}
 				],
 				"responses": {
@@ -4519,6 +4815,16 @@
 							"example": "0x870679e138bcdf293b7ff14dd44b70fc97e12fc0"
 						},
 						"required": true
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
 					}
 				],
 				"responses": {
@@ -4786,6 +5092,16 @@
 							"description": "The number of records to return for pagination",
 							"example": 12
 						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
 					}
 				],
 				"responses": {
@@ -5016,6 +5332,16 @@
 							"description": "The number of records to return for pagination",
 							"example": 12
 						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
 					}
 				],
 				"responses": {
@@ -5188,6 +5514,16 @@
 							"description": "The number of records to return for pagination",
 							"example": 12
 						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
 					}
 				],
 				"responses": {
@@ -5548,6 +5884,16 @@
 							"description": "The number of records to return for pagination",
 							"example": 12
 						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
 					}
 				],
 				"responses": {
@@ -5688,6 +6034,16 @@
 							"description": "Toggle whether the route should return Avs/Operator rewards APY data",
 							"example": "false"
 						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
 					}
 				],
 				"responses": {
@@ -6345,6 +6701,16 @@
 							"example": "0x00107cfdeaddc0a3160ed2f6fedd627f313e7b1a"
 						},
 						"required": true
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
 					}
 				],
 				"responses": {
@@ -6539,6 +6905,16 @@
 							"description": "The number of records to return for pagination",
 							"example": 12
 						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
 					}
 				],
 				"responses": {
@@ -6731,6 +7107,16 @@
 							"description": "The number of records to return for pagination",
 							"example": 12
 						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
 					}
 				],
 				"responses": {
@@ -6881,6 +7267,16 @@
 							"description": "The number of records to return for pagination",
 							"example": 12
 						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
 					}
 				],
 				"responses": {
@@ -7055,6 +7451,16 @@
 							"type": "string",
 							"description": "The root hash of the withdrawal",
 							"example": "0x9e6728ef0a8ad6009107a886047aae35bc5ed7deaa68580b0d1f8f67e3e5ed31"
+						},
+						"required": true
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
 						},
 						"required": true
 					}
@@ -7236,6 +7642,16 @@
 							"description": "The number of records to return for pagination",
 							"example": 12
 						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
 					}
 				],
 				"responses": {
@@ -7482,6 +7898,16 @@
 							"description": "Toggle whether the route should return Avs/Operator rewards APY data",
 							"example": "false"
 						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
 					}
 				],
 				"responses": {
@@ -7823,6 +8249,16 @@
 							"description": "The number of records to return for pagination",
 							"example": 12
 						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
 					}
 				],
 				"responses": {
@@ -8022,6 +8458,16 @@
 							"description": "The number of records to return for pagination",
 							"example": 12
 						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
 					}
 				],
 				"responses": {
@@ -8203,6 +8649,16 @@
 							"description": "The number of records to return for pagination",
 							"example": 12
 						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
 					}
 				],
 				"responses": {
@@ -8384,6 +8840,16 @@
 							"description": "The number of records to return for pagination",
 							"example": 12
 						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
 					}
 				],
 				"responses": {
@@ -8577,6 +9043,16 @@
 							"description": "The number of records to return for pagination",
 							"example": 12
 						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
 					}
 				],
 				"responses": {
@@ -8814,6 +9290,16 @@
 							"description": "The number of records to return for pagination",
 							"example": 12
 						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
 					}
 				],
 				"responses": {
@@ -9030,6 +9516,16 @@
 							"description": "The number of records to return for pagination",
 							"example": 12
 						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
 					}
 				],
 				"responses": {
@@ -9261,6 +9757,16 @@
 							"description": "The number of records to return for pagination",
 							"example": 12
 						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
 					}
 				],
 				"responses": {
@@ -9448,6 +9954,16 @@
 							"description": "The contract address of the restaking strategy",
 							"example": "0x0fe4f44bee93503346a3ac9ee5a26b130a5796d6"
 						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
 					}
 				],
 				"responses": {
@@ -9567,6 +10083,18 @@
 				"summary": "Retrieve all strategies with their reward tokens",
 				"description": "Returns a list of strategies with their corresponding reward tokens, including strategy addresses and associated token addresses.",
 				"tags": ["Rewards"],
+				"parameters": [
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
+					}
+				],
 				"responses": {
 					"200": {
 						"description": "List of strategies along with associated reward tokens.",
@@ -9737,6 +10265,16 @@
 							"description": "The number of records to return for pagination",
 							"example": 12
 						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
 					}
 				],
 				"responses": {
@@ -9946,6 +10484,16 @@
 							"description": "The number of records to return for pagination",
 							"example": 12
 						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
 					}
 				],
 				"responses": {
@@ -10194,6 +10742,16 @@
 							"description": "The number of records to return for pagination",
 							"example": 12
 						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
 					}
 				],
 				"responses": {
@@ -10418,6 +10976,16 @@
 							"description": "The number of records to return for pagination",
 							"example": 12
 						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
 					}
 				],
 				"responses": {
@@ -10617,6 +11185,16 @@
 							"description": "The number of records to return for pagination",
 							"example": 12
 						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
 					}
 				],
 				"responses": {

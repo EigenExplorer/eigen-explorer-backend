@@ -8,6 +8,7 @@ import {
 	SearchMode
 } from '../../../../api/src/schema/zod/schemas/separateSearchQueries'
 import { OperatorAddressSchema } from '../../apiResponseSchema/operator/operatorAddressResponse'
+import { AuthHeaderSchema } from '../../authHeaderSchema'
 
 const OperatorAddressResponseSchema = z.object({
 	data: z.array(OperatorAddressSchema),
@@ -26,7 +27,8 @@ export const getAllOperatorAddresses: ZodOpenApiOperationObject = {
 	description: 'Returns a list of all operator addresses. This page supports pagination.',
 	tags: ['Operators'],
 	requestParams: {
-		query: CombinedQuerySchema
+		query: CombinedQuerySchema,
+		header: AuthHeaderSchema
 	},
 	responses: {
 		'200': {

@@ -7,6 +7,7 @@ import {
 	StrategyEthTvlSchema
 } from '../../apiResponseSchema/base/strategyTvlResponse'
 import { WithChangeQuerySchema } from '../../../../api/src/schema/zod/schemas/withChangeQuery'
+import { AuthHeaderSchema } from '../../authHeaderSchema'
 
 const RestakingTvlResponseSchema = TvlResponseSchema.extend({
 	tvl: z
@@ -25,7 +26,7 @@ export const getRestakingTvlMetrics: ZodOpenApiOperationObject = {
 	description:
 		'Returns the combined total value locked (TVL) across all restaking strategies, along with a breakdown of the TVL for each individual strategy.',
 	tags: ['Metrics'],
-	requestParams: { query: QuerySchema },
+	requestParams: { query: QuerySchema, header: AuthHeaderSchema },
 	responses: {
 		'200': {
 			description:

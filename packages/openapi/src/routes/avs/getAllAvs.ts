@@ -16,6 +16,7 @@ import {
 	SearchByText,
 	SearchMode
 } from '../../../../api/src/schema/zod/schemas/separateSearchQueries'
+import { AuthHeaderSchema } from '../../authHeaderSchema'
 
 const AvsResponseSchema = z.object({
 	data: z.array(AvsSchema),
@@ -54,7 +55,8 @@ export const getAllAvs: ZodOpenApiOperationObject = {
 				message: 'Only one sortBy option can be used',
 				path: ['sortByTvl', 'sortByApy', 'sortByTotalStakers', 'sortByTotalOperators']
 			}
-		)
+		),
+		header: AuthHeaderSchema
 	},
 	responses: {
 		'200': {

@@ -8,7 +8,10 @@ import {
 	getAVSRewards,
 	getAVSRewardsEvents,
 	invalidateMetadata,
-	getAvsRegistrationEvents
+	getAvsRegistrationEvents,
+	createMetadata,
+	updateMetadata,
+	deleteMetadata
 } from './avsController'
 
 import routeCache from 'route-cache'
@@ -38,5 +41,11 @@ router.get(
 
 // Protected routes
 router.get('/:address/invalidate-metadata', routeCache.cacheSeconds(120), invalidateMetadata)
+
+router.post('/:address/create-metadata', createMetadata)
+
+router.post('/:address/update-metadata', updateMetadata)
+
+router.post('/:address/delete-metadata', deleteMetadata)
 
 export default router
