@@ -77,8 +77,8 @@ export async function seedAvsAllocation(toBlock?: bigint, fromBlock?: bigint) {
 
 			for (const log of logs) {
 				const avsAddress = String(log.avs).toLowerCase()
-				const operatorSetId = Number(log.operatorSetId)
 				const operatorAddress = String(log.operator).toLowerCase()
+				const operatorSetId = BigInt(log.operatorSetId)
 				const strategyAddress = String(log.strategy).toLowerCase()
 
 				const outerKey = `${avsAddress}-${operatorSetId}`
@@ -154,6 +154,7 @@ export async function seedAvsAllocation(toBlock?: bigint, fromBlock?: bigint) {
 		const newAllocations: any[] = []
 		for (const [outerKey, operatorMap] of avsAllocationList) {
 			const [avsAddress, operatorSetId] = outerKey.split('-')
+
 			for (const [operatorAddress, strategyMap] of operatorMap) {
 				for (const [strategyAddress, record] of strategyMap) {
 					newAllocations.push({
@@ -176,8 +177,9 @@ export async function seedAvsAllocation(toBlock?: bigint, fromBlock?: bigint) {
 			prismaClient.avsAllocation.createMany({ data: newAllocations, skipDuplicates: true })
 		)
 	} else {
-		for (const [outerKey, operatorMap] of avsAllocationList) {
-			const [avsAddress, operatorSetId] = outerKey.split('-')
+		for (const [operatorSetKey, operatorMap] of avsAllocationList) {
+			const [avsAddress, operatorSetIdStr] = operatorSetKey.split('-')
+			const operatorSetId = BigInt(operatorSetIdStr)
 			for (const [operatorAddress, strategyMap] of operatorMap) {
 				for (const [strategyAddress, record] of strategyMap) {
 					dbTransactions.push(
@@ -185,14 +187,14 @@ export async function seedAvsAllocation(toBlock?: bigint, fromBlock?: bigint) {
 							where: {
 								avsAddress_operatorSetId_operatorAddress_strategyAddress: {
 									avsAddress,
-									operatorSetId: Number(operatorSetId),
+									operatorSetId: operatorSetId,
 									operatorAddress,
 									strategyAddress
 								}
 							},
 							create: {
 								avsAddress,
-								operatorSetId: Number(operatorSetId),
+								operatorSetId: operatorSetId,
 								operatorAddress,
 								strategyAddress,
 								currentMagnitude: record.currentMagnitude.toString(),

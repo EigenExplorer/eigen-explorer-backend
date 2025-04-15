@@ -46,7 +46,7 @@ export async function seedOperatorSetStrategies(toBlock?: bigint, fromBlock?: bi
 				combinedLogs.push({
 					eventName: 'StrategyAddedToOperatorSet',
 					avs: log.avs.toLowerCase(),
-					operatorSetId: Number(log.operatorSetId),
+					operatorSetId: BigInt(log.operatorSetId),
 					strategy: log.strategy.toLowerCase(),
 					blockNumber: BigInt(log.blockNumber),
 					transactionIndex: log.transactionIndex,
@@ -61,7 +61,7 @@ export async function seedOperatorSetStrategies(toBlock?: bigint, fromBlock?: bi
 				combinedLogs.push({
 					eventName: 'StrategyRemovedFromOperatorSet',
 					avs: log.avs.toLowerCase(),
-					operatorSetId: Number(log.operatorSetId),
+					operatorSetId: BigInt(log.operatorSetId),
 					strategy: log.strategy.toLowerCase(),
 					blockNumber: BigInt(log.blockNumber),
 					transactionIndex: log.transactionIndex,
@@ -95,7 +95,7 @@ export async function seedOperatorSetStrategies(toBlock?: bigint, fromBlock?: bi
 	const dbTransactions: any[] = []
 	for (const [key, strategiesSet] of operatorSetMap.entries()) {
 		const [avsAddress, operatorSetIdStr] = key.split('-')
-		const operatorSetId = Number(operatorSetIdStr)
+		const operatorSetId = BigInt(operatorSetIdStr)
 		const strategiesArray = Array.from(strategiesSet)
 		dbTransactions.push(
 			prismaClient.operatorSet.updateMany({
