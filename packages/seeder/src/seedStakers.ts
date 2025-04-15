@@ -14,7 +14,11 @@ const blockSyncKeyLogs = 'lastSyncedBlock_logs_stakers'
 
 interface StakerEntryRecord {
 	operatorAddress: string | null
-	shares: { shares: bigint; strategyAddress: string }[]
+	shares: {
+		shares: bigint
+		depositScalingFactor: bigint
+		strategyAddress: string
+	}[]
 	createdAtBlock: bigint
 	updatedAtBlock: bigint
 	createdAt: Date
@@ -81,6 +85,18 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 					]
 				})
 
+			await prismaClient.eventLogs_DepositScalingFactorUpdated
+				.findMany({ where: { blockNumber: { gt: fromBlock, lte: toBlock } } })
+				.then((logs) => {
+					allLogs = [
+						...allLogs,
+						...logs.map((log) => ({
+							...log,
+							eventName: 'DepositScalingFactorUpdated'
+						}))
+					]
+				})
+
 			// Sort all logs by their block number and log index
 			allLogs = allLogs.sort((a, b) => {
 				if (a.blockNumber === b.blockNumber) {
@@ -122,7 +138,8 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 							operatorAddress: foundStakerInit.operatorAddress,
 							shares: foundStakerInit.shares.map((s) => ({
 								...s,
-								shares: BigInt(s.shares)
+								shares: BigInt(s.shares),
+								depositScalingFactor: BigInt(s.depositScalingFactor)
 							})),
 							createdAtBlock: foundStakerInit.createdAtBlock,
 							updatedAtBlock: blockNumber,
@@ -152,11 +169,18 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 					stakers.get(stakerAddress).operatorAddress = null
 				} else if (
 					log.eventName === 'OperatorSharesIncreased' ||
-					log.eventName === 'OperatorSharesDecreased'
+					log.eventName === 'OperatorSharesDecreased' ||
+					log.eventName === 'DepositScalingFactorUpdated'
 				) {
 					const strategyAddress = String(log.strategy).toLowerCase()
-					const shares = BigInt(log.shares)
-					if (!shares) continue
+
+					if (
+						String(log.stakerAddress).toLowerCase() ===
+							'0x0000000000000000000000000000000000000000' ||
+						(log.eventName !== 'DepositScalingFactorUpdated' && !log.shares)
+					) {
+						continue
+					}
 
 					let foundSharesIndex = stakers
 						.get(stakerAddress)
@@ -165,7 +189,9 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 						)
 
 					if (foundSharesIndex !== undefined && foundSharesIndex === -1) {
-						stakers.get(stakerAddress).shares.push({ shares: 0n, strategyAddress })
+						stakers
+							.get(stakerAddress)
+							.shares.push({ shares: 0n, depositScalingFactor: BigInt(1e18), strategyAddress })
 
 						foundSharesIndex = stakers
 							.get(stakerAddress)
@@ -176,10 +202,14 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 
 					if (log.eventName === 'OperatorSharesIncreased') {
 						stakers.get(stakerAddress).shares[foundSharesIndex].shares =
-							stakers.get(stakerAddress).shares[foundSharesIndex].shares + shares
+							stakers.get(stakerAddress).shares[foundSharesIndex].shares + BigInt(log.shares)
 					} else if (log.eventName === 'OperatorSharesDecreased') {
 						stakers.get(stakerAddress).shares[foundSharesIndex].shares =
-							stakers.get(stakerAddress).shares[foundSharesIndex].shares - shares
+							stakers.get(stakerAddress).shares[foundSharesIndex].shares - BigInt(log.shares)
+					} else if (log.eventname === 'DepositScalingFactorUpdated') {
+						stakers.get(stakerAddress).shares[foundSharesIndex].depositScalingFactor = BigInt(
+							log.newDepositScalingFactor
+						)
 					}
 				}
 			}
@@ -214,7 +244,8 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 				newStakerShares.push({
 					stakerAddress,
 					strategyAddress: share.strategyAddress,
-					shares: share.shares.toString()
+					shares: share.shares.toString(),
+					depositScalingFactor: share.depositScalingFactor.toString()
 				})
 			})
 		}
@@ -265,10 +296,12 @@ export async function seedStakers(toBlock?: bigint, fromBlock?: bigint) {
 						create: {
 							stakerAddress,
 							strategyAddress: share.strategyAddress,
-							shares: share.shares.toString()
+							shares: share.shares.toString(),
+							depositScalingFactor: share.depositScalingFactor.toString()
 						},
 						update: {
-							shares: share.shares.toString()
+							shares: share.shares.toString(),
+							depositScalingFactor: share.depositScalingFactor.toString()
 						}
 					})
 				)
