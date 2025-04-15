@@ -1079,7 +1079,8 @@ model AvsAllocation {
     operatorSetId       BigInt
     strategyAddress     String
 
-    magnitude           String
+    currentMagnitude    String
+    pendingDiff         Decimal @db.Decimal(39, 0)
     effectBlock         BigInt
 
     createdAtBlock BigInt   @default(0)
