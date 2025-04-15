@@ -994,7 +994,7 @@ model EventLogs_BeaconChainSlashingFactorDecreased {
 model OperatorSet {
   avs      Avs      @relation(fields: [avsAddress], references: [address])
   avsAddress        String
-  operatorSetId     Int
+  operatorSetId     BigInt
   avsOperatorSets   AvsOperatorSet[]
 
   strategies        String[]
@@ -1012,7 +1012,7 @@ model OperatorSet {
 model AvsOperatorSet {
   operatorSet       OperatorSet @relation(fields: [avsAddress,operatorSetId], references: [avsAddress,operatorSetId])
   avsAddress        String
-  operatorSetId     Int
+  operatorSetId     BigInt
 
   operator Operator @relation(fields: [operatorAddress], references: [address])
   operatorAddress   String
@@ -1038,7 +1038,7 @@ model AvsAllocation {
     operator Operator @relation(fields: [operatorAddress], references: [address])
     operatorAddress     String
 
-    operatorSetId       Int
+    operatorSetId       BigInt
     strategyAddress     String
 
     magnitude           String
@@ -1061,7 +1061,7 @@ model AvsOperatorSlashed {
 
   avsAddress         String
   operatorAddress    String
-  operatorSetId      Int
+  operatorSetId      BigInt
 
   strategies         String[]
   wadSlashed         String[]

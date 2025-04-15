@@ -45,7 +45,7 @@ export async function seedOperatorSlashed(toBlock?: bigint, fromBlock?: bigint) 
 					slashedList.push({
 						operatorAddress: log.operator.toLowerCase(),
 						avsAddress: log.avs.toLowerCase(),
-						operatorSetId: Number(log.operatorSetId),
+						operatorSetId: BigInt(log.operatorSetId),
 
 						strategies: log.strategies.map((s: string) => s.toLowerCase()),
 						wadSlashed: log.wadSlashed.map((ws) => ws.toString()),
