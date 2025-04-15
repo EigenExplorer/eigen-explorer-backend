@@ -781,46 +781,102 @@ export async function updateMetadata(req: Request, res: Response) {
 		}
 
 		const { address } = req.params
-		const {
-			metadataName,
-			metadataDescription,
-			metadataDiscord,
-			metadataLogo,
-			metadataTelegram,
-			metadataWebsite,
-			metadataX,
-			metadataGithub,
-			metadataTokenAddress,
-			additionalConfig,
-			tags,
-			isVisible,
-			isVerified
-		} = bodyCheck.data
+		const updateData = bodyCheck.data
 
-		const updateResult = await prisma.avsCuratedMetadata.updateMany({
-			where: { avsAddress: address.toLowerCase() },
-			data: {
-				metadataName,
-				metadataDescription,
-				metadataDiscord,
-				metadataLogo,
-				metadataTelegram,
-				metadataWebsite,
-				metadataX,
-				metadataGithub,
-				metadataTokenAddress,
-				additionalConfig,
-				tags,
-				isVisible,
-				isVerified
-			}
+		const currentRecord = await prisma.avsCuratedMetadata.findUnique({
+			where: { avsAddress: address.toLowerCase() }
 		})
 
-		if (updateResult.count === 0) {
+		if (!currentRecord) {
 			throw new EigenExplorerApiError({ code: 'not_found', message: 'AVS address not found.' })
 		}
 
-		res.send({ message: 'Metadata updated successfully.' })
+		// Note: This is the order for the `metadatasUpdatedAt` array
+		const metadataFields = [
+			'metadataName',
+			'metadataDescription',
+			'metadataDiscord',
+			'metadataLogo',
+			'metadataTelegram',
+			'metadataWebsite',
+			'metadataX',
+			'metadataGithub',
+			'metadataTokenAddress',
+			'additionalConfig',
+			'tags',
+			'isVisible',
+			'isVerified'
+		]
+
+		// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+		const updateObj: any = {}
+		const updatedAtTimestamps = [...(currentRecord.metadatasUpdatedAt || [])]
+
+		// Ensure exact array length
+		while (updatedAtTimestamps.length < metadataFields.length) {
+			updatedAtTimestamps.push(0n) // 0n in the final array would imply that the field has never been edited
+		}
+
+		let hasChanges = false
+		let updateCount = 0
+
+		metadataFields.forEach((field, index) => {
+			if (field in updateData) {
+				let isChanged = false
+
+				if (field === 'additionalConfig') {
+					// JSON comparison
+					if (updateData[field] === null && currentRecord[field] !== null) {
+						isChanged = true
+						updateObj[field] = Prisma.Prisma.JsonNull
+					} else if (updateData[field] !== null && currentRecord[field] === null) {
+						isChanged = true
+						updateObj[field] = updateData[field]
+					} else if (updateData[field] !== null && currentRecord[field] !== null) {
+						isChanged = JSON.stringify(updateData[field]) !== JSON.stringify(currentRecord[field])
+						if (isChanged) {
+							updateObj[field] = updateData[field]
+						}
+					}
+				} else if (field === 'tags') {
+					// Array comparison
+					if (updateData[field] === null && currentRecord[field] !== null) {
+						isChanged = true
+						updateObj[field] = []
+					} else if (updateData[field] !== null) {
+						isChanged = JSON.stringify(updateData[field]) !== JSON.stringify(currentRecord[field])
+						if (isChanged) {
+							updateObj[field] = updateData[field]
+						}
+					}
+				} else {
+					// Regular field comparison
+					isChanged = updateData[field] !== currentRecord[field]
+					if (isChanged) {
+						updateObj[field] = updateData[field]
+					}
+				}
+
+				if (isChanged) {
+					updatedAtTimestamps[index] = BigInt(new Date().getTime())
+					hasChanges = true
+					updateCount++
+				}
+			}
+		})
+
+		if (!hasChanges) {
+			return res.send({ updated: 0 })
+		}
+
+		updateObj.metadatasUpdatedAt = updatedAtTimestamps
+
+		await prisma.avsCuratedMetadata.update({
+			where: { avsAddress: address.toLowerCase() },
+			data: updateObj
+		})
+
+		res.send({ updated: updateCount })
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
 	}

@@ -61,6 +61,8 @@ model AvsCuratedMetadata {
   isVisible  Boolean  @default(false)
   isVerified Boolean  @default(false)
 
+  metadatasUpdatedAt BigInt[]
+
   @@index([tags], map: "tags_1")
 }
 
