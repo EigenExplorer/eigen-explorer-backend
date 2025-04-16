@@ -118,6 +118,7 @@ export async function seedOperators(toBlock?: bigint, fromBlock?: bigint) {
 				metadataWebsite: metadata.website,
 				metadataX: metadata.x,
 				isMetadataSynced,
+				piSplitBips: 1000,
 				totalStakers: 0,
 				totalAvs: 0,
 				maxApy: new prisma.Prisma.Decimal(0),
