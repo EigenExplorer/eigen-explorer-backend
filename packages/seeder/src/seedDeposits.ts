@@ -40,6 +40,7 @@ export async function seedDeposits(toBlock?: bigint, fromBlock?: bigint) {
 			const timestamp = log.blockTime
 
 			depositList.push({
+				transactionHash: log.transactionHash.toLowerCase(),
 				stakerAddress: log.staker.toLowerCase(),
 				tokenAddress: log.token.toLowerCase(),
 				strategyAddress: log.strategy.toLowerCase(),
