@@ -268,7 +268,9 @@ async function getLatestMetricsPerStrategy(): Promise<ILastStrategyMetrics> {
 			}
 		})
 
-		return metrics ? new Map(metrics.map((metric) => [metric.strategyAddress, metric])) : new Map()
+		return metrics
+			? (new Map(metrics.map((metric) => [metric.strategyAddress, metric])) as ILastStrategyMetrics)
+			: new Map()
 	} catch {}
 
 	return new Map()
