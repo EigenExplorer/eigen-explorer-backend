@@ -1,8 +1,10 @@
 import z from '..'
 
-export const AvsAdditionalInfoItem = z.object({
+export const AvsAdditionalInfoItemSchema = z.object({
 	metadataKey: z.string(),
 	metadataContent: z.string().nullable()
 })
 
-export const AvsAdditionalInfo = z.array(AvsAdditionalInfoItem)
+export const AvsAdditionalInfoSchema = z.array(AvsAdditionalInfoItemSchema)
+
+export const AvsAdditionalInfoKeys = z.array(z.string())

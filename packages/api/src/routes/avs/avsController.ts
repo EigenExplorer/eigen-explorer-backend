@@ -25,7 +25,10 @@ import {
 	RewardsEventQuerySchema
 } from '../../schema/zod/schemas/eventSchemas'
 import { MinTvlQuerySchema } from '../../schema/zod/schemas/minTvlQuerySchema'
-import { AvsAdditionalInfo } from '../../schema/zod/schemas/updateAvsMetadata'
+import {
+	AvsAdditionalInfoSchema,
+	AvsAdditionalInfoKeys
+} from '../../schema/zod/schemas/updateAvsMetadata'
 import { isAuthRequired } from '../../utils/authMiddleware'
 
 /**
@@ -771,7 +774,7 @@ export async function updateMetadata(req: Request, res: Response) {
 		return handleAndReturnErrorResponse(req, res, paramCheck.error)
 	}
 
-	const bodyCheck = AvsAdditionalInfo.safeParse(req.body)
+	const bodyCheck = AvsAdditionalInfoSchema.safeParse(req.body)
 	if (!bodyCheck.success) {
 		return handleAndReturnErrorResponse(req, res, bodyCheck.error)
 	}
@@ -832,12 +835,59 @@ export async function updateMetadata(req: Request, res: Response) {
 
 /**
  * Function for route /avs/:address/delete-metadata
- * Protected route to delete all additional info items for a given AVS
+ * Protected route to delete an array of additional info items for a given AVS
  *
  * @param req
  * @param res
  */
 export async function deleteMetadata(req: Request, res: Response) {
+	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	}
+
+	const bodyCheck = AvsAdditionalInfoKeys.safeParse(req.body)
+	if (!bodyCheck.success) {
+		return handleAndReturnErrorResponse(req, res, bodyCheck.error)
+	}
+
+	try {
+		const accessLevel = isAuthRequired() ? req.accessLevel || 0 : 999
+		const deleteData = bodyCheck.data
+
+		if (accessLevel !== 999) {
+			throw new EigenExplorerApiError({ code: 'unauthorized', message: 'Unauthorized access.' })
+		}
+
+		const { address } = req.params
+
+		const result = await prisma.avsAdditionalInfo.deleteMany({
+			where: {
+				AND: [
+					{ avsAddress: address.toLowerCase() },
+					{
+						metadataKey: {
+							in: deleteData
+						}
+					}
+				]
+			}
+		})
+
+		res.send({ deleted: result.count })
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+/**
+ * Function for route /avs/:address/delete-all-metadata
+ * Protected route to delete all additional info items for a given AVS
+ *
+ * @param req
+ * @param res
+ */
+export async function deleteAllMetadata(req: Request, res: Response) {
 	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
 	if (!paramCheck.success) {
 		return handleAndReturnErrorResponse(req, res, paramCheck.error)
@@ -1093,13 +1143,22 @@ async function getAdditionalInfo(
 	if (curatedMetadata) {
 		const curatedFields = [
 			'metadataName',
+			'name',
 			'metadataDescription',
+			'description',
 			'metadataDiscord',
+			'discord',
 			'metadataLogo',
+			'logo',
 			'metadataTelegram',
+			'telegram',
 			'metadataWebsite',
+			'website',
 			'metadataX',
+			'X',
+			'x',
 			'metadataGithub',
+			'github',
 			'metadataTokenAddress'
 		]
 
