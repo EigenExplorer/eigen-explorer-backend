@@ -89,6 +89,7 @@ export async function getAllAVS(req: Request, res: Response) {
 			},
 			include: {
 				curatedMetadata: withCuratedMetadata,
+				additionalInfo: withCuratedMetadata,
 				operators: {
 					where: { isActive: true },
 					include: {
@@ -130,7 +131,7 @@ export async function getAllAVS(req: Request, res: Response) {
 					...avs,
 					curatedMetadata: withCuratedMetadata ? avs.curatedMetadata : undefined, // Legacy
 					additionalInfo: withCuratedMetadata
-						? getAdditionalInfo(avs.address, avs.curatedMetadata)
+						? getAdditionalInfo(avs.additionalInfo, avs.curatedMetadata)
 						: undefined,
 					totalOperators: avs.totalOperators,
 					totalStakers: avs.totalStakers,
@@ -260,6 +261,7 @@ export async function getAVS(req: Request, res: Response) {
 			where: { address: address.toLowerCase(), ...getAvsFilterQuery() },
 			include: {
 				curatedMetadata: withCuratedMetadata,
+				additionalInfo: withCuratedMetadata,
 				rewardSubmissions: withRewards,
 				operators: {
 					where: { isActive: true },
@@ -283,6 +285,9 @@ export async function getAVS(req: Request, res: Response) {
 		res.send({
 			...avs,
 			curatedMetadata: withCuratedMetadata ? avs.curatedMetadata : undefined,
+			additionalInfo: withCuratedMetadata
+				? getAdditionalInfo(avs.additionalInfo, avs.curatedMetadata)
+				: undefined,
 			shares,
 			totalOperators: avs.totalOperators,
 			totalStakers: avs.totalStakers,
@@ -1112,14 +1117,10 @@ async function calculateAvsApy(avs: any) {
 	} catch {}
 }
 
-async function getAdditionalInfo(
-	avsAddress: string,
+function getAdditionalInfo(
+	allAdditionalInfo: Prisma.AvsAdditionalInfo[],
 	curatedMetadata: Prisma.AvsCuratedMetadata | null
 ) {
-	const allAdditionalInfo = await prisma.avsAdditionalInfo.findMany({
-		where: { avsAddress }
-	})
-
 	const processedKeys = new Set<string>()
 	const result: Array<{
 		metadataKey: string
