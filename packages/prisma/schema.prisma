@@ -24,6 +24,7 @@ model Avs {
 
   operators             AvsOperator[]
   curatedMetadata       AvsCuratedMetadata?
+  additionalInfo        AvsAdditionalInfo[]
   restakeableStrategies String[]
   rewardSubmissions     AvsStrategyRewardSubmission[]
 
@@ -55,15 +56,25 @@ model AvsCuratedMetadata {
   metadataX            String?
   metadataGithub       String?
   metadataTokenAddress String?
-  additionalConfig     Json?
 
   tags       String[]
   isVisible  Boolean  @default(false)
   isVerified Boolean  @default(false)
 
-  metadatasUpdatedAt BigInt[]
-
   @@index([tags], map: "tags_1")
+}
+
+model AvsAdditionalInfo {
+  avs        Avs    @relation(fields: [avsAddress], references: [address])
+  avsAddress String
+
+  metadataKey     String
+  metadataContent String?
+
+  createdAt DateTime
+  updatedAt DateTime
+
+  @@id([avsAddress, metadataKey])
 }
 
 model AvsOperator {
