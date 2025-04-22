@@ -199,7 +199,8 @@ model User {
 }
 
 model Deposit {
-  transactionHash String @id @unique
+  id              Int @id @default(autoincrement())
+  transactionHash String
   stakerAddress   String
   tokenAddress    String
   strategyAddress String
