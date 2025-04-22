@@ -13,6 +13,12 @@ export type Submission = {
 		multiplier: string
 		amount: string
 	}[]
+	operators?: {
+		operatorAddress: string
+		totalAmount: string
+		strategies: string[]
+		strategyAmounts: string[]
+	}[]
 }
 
 /**

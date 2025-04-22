@@ -326,7 +326,8 @@ export async function getOperatorRewards(req: Request, res: Response) {
 					include: {
 						avs: {
 							include: {
-								rewardSubmissions: true
+								rewardSubmissions: true,
+								operatorDirectedRewardSubmissions: true
 							}
 						}
 					}
@@ -362,6 +363,14 @@ export async function getOperatorRewards(req: Request, res: Response) {
 
 			// Iterate through all reward submissions
 			for (const submission of avs.rewardSubmissions) {
+				result.rewardTokens.add(submission.token.toLowerCase())
+
+				if (operatorActiveStrategies.has(submission.strategyAddress.toLowerCase())) {
+					result.rewardStrategies.add(submission.strategyAddress.toLowerCase())
+				}
+			}
+
+			for (const submission of avs.operatorDirectedRewardSubmissions) {
 				result.rewardTokens.add(submission.token.toLowerCase())
 
 				if (operatorActiveStrategies.has(submission.strategyAddress.toLowerCase())) {
