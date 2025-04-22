@@ -644,11 +644,7 @@ async function calculateOperatorApy(operator: any) {
 					}
 
 					// Apply operator commission (90% of rewards)
-					rewardIncrementEth = rewardIncrementEth
-						.mul(submission.multiplier)
-						.div(new Prisma.Prisma.Decimal(10).pow(18))
-						.mul(90)
-						.div(100)
+					rewardIncrementEth = rewardIncrementEth.mul(90).div(100)
 
 					// Accumulate token-specific rewards and duration
 					const tokenData = tokenRewards.get(rewardTokenAddress) || {

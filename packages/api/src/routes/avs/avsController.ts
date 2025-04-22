@@ -1142,11 +1142,6 @@ async function calculateAvsApy(avs: any) {
 						.div(new Prisma.Prisma.Decimal(10).pow(tokenPrice?.decimals ?? 18)) // No decimals
 				}
 
-				// Multiply reward amount in ETH by the strategy weight
-				rewardIncrementEth = rewardIncrementEth
-					.mul(submission.multiplier)
-					.div(new Prisma.Prisma.Decimal(10).pow(18))
-
 				// Accumulate token-specific rewards and duration
 				const tokenData = tokenRewards.get(rewardTokenAddress) || {
 					totalRewardsEth: new Prisma.Prisma.Decimal(0),
