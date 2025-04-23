@@ -791,8 +791,9 @@ export async function updateMetadata(req: Request, res: Response) {
 			throw new EigenExplorerApiError({ code: 'unauthorized', message: 'Unauthorized access.' })
 		}
 
+		const storageBucket = 'avs-curated-metadata-media' // Storage bucket on DB must match name
 		const { address } = req.params
-		const updateData = bodyCheck.data
+		const { items } = bodyCheck.data
 
 		try {
 			await prisma.avs.findUniqueOrThrow({
@@ -806,33 +807,103 @@ export async function updateMetadata(req: Request, res: Response) {
 		// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 		const dbTransactions: any[] = []
 
-		for (const metadataItem of updateData) {
-			dbTransactions.push(
-				prisma.avsAdditionalInfo.upsert({
-					where: {
-						avsAddress_metadataKey: {
+		for (const item of items) {
+			if (item.contentType === 'application/json') {
+				const jsonItem = item as {
+					contentType: 'application/json'
+					metadataKey: string
+					metadataContent: string | null
+				}
+
+				dbTransactions.push(
+					prisma.avsAdditionalInfo.upsert({
+						where: {
+							avsAddress_metadataKey: {
+								avsAddress: address.toLowerCase(),
+								metadataKey: jsonItem.metadataKey
+							}
+						},
+						create: {
 							avsAddress: address.toLowerCase(),
-							metadataKey: metadataItem.metadataKey
+							metadataKey: jsonItem.metadataKey,
+							metadataContent: jsonItem.metadataContent as string,
+							createdAt: new Date(),
+							updatedAt: new Date()
+						},
+						update: {
+							metadataContent: jsonItem.metadataContent,
+							updatedAt: new Date()
 						}
+					})
+				)
+			} else {
+				const imageItem = item as {
+					metadataKey: string
+					contentType: string
+					fileData: string
+				}
+
+				const base64String = imageItem.fileData.replace(/^data:image\/\w+;base64,/, '')
+				const fileBuffer = Buffer.from(base64String, 'base64')
+
+				const supportedExtensions = {
+					'image/jpeg': 'jpg',
+					'image/jpg': 'jpg',
+					'image/png': 'png',
+					'image/gif': 'gif',
+					'image/webp': 'webp',
+					'image/svg+xml': 'svg'
+				}
+
+				const extension = supportedExtensions[imageItem.contentType] || 'bin'
+				const fileName = `${address.toLowerCase()}/${imageItem.metadataKey}.${extension}` // Will overwrite existing media file for a given (avs, metadata key)
+				const uploadUrl = `https://${process.env.SUPABASE_PROJECT_REF}.supabase.co/storage/v1/object/${storageBucket}/${fileName}`
+				const uploadResponse = await fetch(uploadUrl, {
+					method: 'POST',
+					headers: {
+						Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+						'Content-Type': imageItem.contentType,
+						'x-upsert': 'true'
 					},
-					create: {
-						avsAddress: address.toLowerCase(),
-						metadataKey: metadataItem.metadataKey,
-						metadataContent: metadataItem.metadataContent,
-						createdAt: new Date(),
-						updatedAt: new Date()
-					},
-					update: {
-						metadataContent: metadataItem.metadataContent,
-						updatedAt: new Date()
-					}
+					body: fileBuffer
 				})
-			)
+
+				if (!uploadResponse.ok) {
+					throw new EigenExplorerApiError({
+						code: 'internal_server_error',
+						message: `Supabase storage error: ${uploadResponse.statusText}`
+					})
+				}
+
+				const fileUrl = `https://${process.env.SUPABASE_PROJECT_REF}.supabase.co/storage/v1/object/public/${storageBucket}/${fileName}`
+
+				dbTransactions.push(
+					prisma.avsAdditionalInfo.upsert({
+						where: {
+							avsAddress_metadataKey: {
+								avsAddress: address.toLowerCase(),
+								metadataKey: imageItem.metadataKey
+							}
+						},
+						create: {
+							avsAddress: address.toLowerCase(),
+							metadataKey: imageItem.metadataKey,
+							metadataContent: fileUrl,
+							createdAt: new Date(),
+							updatedAt: new Date()
+						},
+						update: {
+							metadataContent: fileUrl,
+							updatedAt: new Date()
+						}
+					})
+				)
+			}
 		}
 
-		await bulkUpdateDbTransactions(dbTransactions)
+		if (dbTransactions.length > 0) await bulkUpdateDbTransactions(dbTransactions)
 
-		res.send({ updated: updateData.length })
+		res.send({ updated: items.length })
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
 	}

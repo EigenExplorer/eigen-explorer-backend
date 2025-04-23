@@ -1,10 +1,35 @@
 import z from '..'
 
-export const AvsAdditionalInfoItemSchema = z.object({
-	metadataKey: z.string(),
-	metadataContent: z.string().nullable()
+export const AvsAdditionalInfoSchema = z.object({
+	items: z.array(
+		z.union([
+			// For storing strings
+			z.object({
+				contentType: z.literal('application/json'),
+				metadataKey: z.string().min(1, 'metadataKey cannot be empty'),
+				metadataContent: z.string().nullable()
+			}),
+			// For storing image media
+			z.object({
+				contentType: z.string().refine((contentType) => contentType.startsWith('image/'), {
+					message: 'Content-Type must be an image format'
+				}),
+				metadataKey: z.string().min(1, 'metadataKey cannot be empty'),
+				fileData: z.string().refine(
+					(str) => {
+						try {
+							// base64 validation
+							const base64String = str.replace(/^data:image\/\w+;base64,/, '')
+							return /^[A-Za-z0-9+/]*={0,2}$/.test(base64String)
+						} catch {
+							return false
+						}
+					},
+					{ message: 'fileData must be a valid base64 string' }
+				)
+			})
+		])
+	)
 })
 
-export const AvsAdditionalInfoSchema = z.array(AvsAdditionalInfoItemSchema)
-
-export const AvsAdditionalInfoKeys = z.array(z.string())
+export const AvsAdditionalInfoKeys = z.array(z.string().min(1, 'metadataKeys cannot be empty'))
