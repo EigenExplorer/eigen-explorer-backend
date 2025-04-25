@@ -9,6 +9,7 @@ export interface StrategyWithShareUnderlying {
 	strategyAddress: string
 	tokenAddress: string
 	sharesToUnderlying: number
+	decimals: number
 	ethPrice: number
 }
 
@@ -32,6 +33,7 @@ export async function getStrategiesWithShareUnderlying(): Promise<StrategyWithSh
 			strategyAddress: s.address,
 			tokenAddress: s.underlyingToken,
 			sharesToUnderlying: BigInt(s.sharesToUnderlying) as unknown as number,
+			decimals: foundTokenPrice?.decimals || 18,
 			ethPrice: foundTokenPrice?.ethPrice || 0
 		}
 	})
@@ -72,7 +74,7 @@ export function sharesToTVL(
 		if (sharesUnderlying) {
 			const strategyShares =
 				Number((BigInt(s.shares) * BigInt(sharesUnderlying.sharesToUnderlying)) / BigInt(1e18)) /
-				1e18
+				Math.pow(10, sharesUnderlying.decimals)
 
 			tvlStrategies.set(sharesUnderlying.symbol, strategyShares)
 
@@ -125,7 +127,7 @@ export function sharesToTVLStrategies(
 				new prisma.Prisma.Decimal(share.shares)
 					.mul(new prisma.Prisma.Decimal(sharesUnderlying.sharesToUnderlying.toString()))
 					.div(new prisma.Prisma.Decimal(10).pow(18))
-					.toNumber() / 1e18
+					.toNumber() / Math.pow(10, sharesUnderlying.decimals)
 
 			const strategyTokenPrice = sharesUnderlying.ethPrice || 0
 			const strategyTvl = strategyShares * strategyTokenPrice
