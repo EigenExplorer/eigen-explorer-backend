@@ -1,7 +1,11 @@
 import { Prisma } from '@prisma/client'
 import { getPrismaClient } from '../utils/prismaClient'
-import { getSharesToUnderlying, getEthPrices, getStrategyToSymbolMap } from '../utils/strategies'
+import { getEthPrices, getStrategyToSymbolMap } from '../utils/strategies'
 import { bulkUpdateDbTransactions, fetchLastSyncTime } from '../utils/seeder'
+import {
+	getStrategiesWithShareUnderlying,
+	StrategyWithShareUnderlying
+} from '../utils/strategyShares'
 
 const timeSyncKey = 'lastSyncedTime_metrics_deposit'
 
@@ -35,9 +39,9 @@ export async function seedMetricsDeposit() {
 	}
 
 	// Fetch required data for processing
-	const [strategyToSymbolMap, sharesToUnderlying, ethPriceData] = await Promise.all([
+	const [strategyToSymbolMap, strategiesWithShareUnderlying, ethPriceData] = await Promise.all([
 		getStrategyToSymbolMap(),
-		getSharesToUnderlying(),
+		getStrategiesWithShareUnderlying(),
 		getEthPrices(startAt.getTime())
 	])
 
@@ -59,7 +63,7 @@ export async function seedMetricsDeposit() {
 			tvlEth,
 			totalDeposits,
 			strategyToSymbolMap,
-			sharesToUnderlying,
+			strategiesWithShareUnderlying,
 			ethPriceData
 		)
 
@@ -122,7 +126,7 @@ async function processDeposits(
 	initialTvlEth: number,
 	initialTotalDeposits: number,
 	strategyToSymbolMap: Map<string, string>,
-	sharesToUnderlying: Map<string, string>,
+	strategiesWithShareUnderlying: StrategyWithShareUnderlying[],
 	ethPriceData: any
 ) {
 	const prismaClient = getPrismaClient()
@@ -151,12 +155,19 @@ async function processDeposits(
 		}
 
 		const symbol = strategyToSymbolMap.get(deposit.strategyAddress)?.toLowerCase()
-		const sharesMultiplier = Number(sharesToUnderlying.get(deposit.strategyAddress.toLowerCase()))
+		const sharesUnderlying = strategiesWithShareUnderlying.find(
+			(su) => su.strategyAddress.toLowerCase() === deposit.strategyAddress.toLowerCase()
+		)
 		const ethPrice =
 			Number(ethPriceData.find((price) => price.symbol.toLowerCase() === symbol)?.ethPrice) || 0
 
-		if (sharesMultiplier && ethPrice) {
-			const depositValueEth = (Number(deposit.shares) / 1e18) * sharesMultiplier * ethPrice
+		if (sharesUnderlying && ethPrice) {
+			const depositValueEth =
+				(Number(
+					(BigInt(deposit.shares) * BigInt(sharesUnderlying.sharesToUnderlying)) / BigInt(1e18)
+				) /
+					Math.pow(10, sharesUnderlying.decimals)) *
+				ethPrice
 			acc[dayTimestamp].changeTvlEth = Number(acc[dayTimestamp].changeTvlEth) + depositValueEth
 			acc[dayTimestamp].changeDeposits += 1
 		}

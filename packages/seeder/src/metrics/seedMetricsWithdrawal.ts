@@ -1,7 +1,11 @@
 import { Prisma } from '@prisma/client'
 import { getPrismaClient } from '../utils/prismaClient'
-import { getSharesToUnderlying, getEthPrices, getStrategyToSymbolMap } from '../utils/strategies'
+import { getEthPrices, getStrategyToSymbolMap } from '../utils/strategies'
 import { bulkUpdateDbTransactions, fetchLastSyncTime } from '../utils/seeder'
+import {
+	getStrategiesWithShareUnderlying,
+	StrategyWithShareUnderlying
+} from '../utils/strategyShares'
 
 const timeSyncKey = 'lastSyncedTime_metrics_withdrawal'
 
@@ -35,9 +39,9 @@ export async function seedMetricsWithdrawal() {
 	}
 
 	// Fetch required data for processing
-	const [strategyToSymbolMap, sharesToUnderlying, ethPriceData] = await Promise.all([
+	const [strategyToSymbolMap, strategiesWithShareUnderlying, ethPriceData] = await Promise.all([
 		getStrategyToSymbolMap(),
-		getSharesToUnderlying(),
+		getStrategiesWithShareUnderlying(),
 		getEthPrices(startAt.getTime())
 	])
 
@@ -59,7 +63,7 @@ export async function seedMetricsWithdrawal() {
 			tvlEth,
 			totalWithdrawals,
 			strategyToSymbolMap,
-			sharesToUnderlying,
+			strategiesWithShareUnderlying,
 			ethPriceData
 		)
 
@@ -113,7 +117,7 @@ async function processWithdrawals(
 	initialTvlEth: number,
 	initialTotalWithdrawals: number,
 	strategyToSymbolMap: Map<string, string>,
-	sharesToUnderlying: Map<string, string>,
+	strategiesWithShareUnderlying: StrategyWithShareUnderlying[],
 	ethPriceData: any
 ) {
 	const prismaClient = getPrismaClient()
@@ -149,13 +153,18 @@ async function processWithdrawals(
 
 		withdrawal.strategies.forEach((strategyAddress, index) => {
 			const symbol = strategyToSymbolMap.get(strategyAddress)?.toLowerCase()
-			const sharesMultiplier = Number(sharesToUnderlying.get(strategyAddress.toLowerCase()))
+			const sharesUnderlying = strategiesWithShareUnderlying.find(
+				(su) => su.strategyAddress.toLowerCase() === strategyAddress.toLowerCase()
+			)
 			const ethPrice =
 				Number(ethPriceData.find((price) => price.symbol.toLowerCase() === symbol)?.ethPrice) || 0
 
-			if (sharesMultiplier && ethPrice) {
+			if (sharesUnderlying && ethPrice) {
 				const shares = withdrawal.shares[index]
-				const withdrawalValueEth = (Number(shares) / 1e18) * sharesMultiplier * ethPrice
+				const withdrawalValueEth =
+					(Number((BigInt(shares) * BigInt(sharesUnderlying.sharesToUnderlying)) / BigInt(1e18)) /
+						Math.pow(10, sharesUnderlying.decimals)) *
+					ethPrice
 				acc[dayTimestamp].changeTvlEth = Number(acc[dayTimestamp].changeTvlEth) + withdrawalValueEth
 			}
 		})
