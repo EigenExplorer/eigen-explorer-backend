@@ -115,7 +115,7 @@ export async function getProgrammaticIncentives(req: Request, res: Response) {
 
 		const calcApy = (weeklyToken: any, totalTvl: number) => {
 			return weeklyToken
-				.mul(0.9 * 52 * 100) // Stake share and annulize weekly reward
+				.mul(0.9 * 52 * 100) // Stake share and annualize weekly reward
 				.mul(new Prisma.Prisma.Decimal(eigenTokenPrice?.ethPrice ?? 0))
 				.div(totalTvl)
 		}
@@ -149,6 +149,9 @@ export async function getProgrammaticIncentives(req: Request, res: Response) {
 			}
 		})
 
+		let eigenTokenAmount = new Prisma.Prisma.Decimal(0)
+		let ethLstTokenAmount = new Prisma.Prisma.Decimal(0)
+
 		const rewardPortion = (
 			weeklyToken: any,
 			stakedAmount: Prisma.Prisma.Decimal,
@@ -159,27 +162,41 @@ export async function getProgrammaticIncentives(req: Request, res: Response) {
 				: new Prisma.Prisma.Decimal(0)
 		}
 
-		const eigenTokenAmount = rewardPortion(
-			WEEKLY_PI_EIGEN,
-			eigenStakedAmount,
-			totalTvlEigenStrategy
-		).mul(new Prisma.Prisma.Decimal(10).pow(18))
+		if (!eigenStakedAmount.isZero()) {
+			eigenTokenAmount = rewardPortion(
+				WEEKLY_PI_EIGEN,
+				eigenStakedAmount,
+				totalTvlEigenStrategy
+			).mul(new Prisma.Prisma.Decimal(10).pow(18))
+		}
 
-		const ethLstTokenAmount = rewardPortion(
-			WEEKLY_PI_ETH_LST,
-			ethLstStakedAmount,
-			totalTvlEthLst
-		).mul(new Prisma.Prisma.Decimal(10).pow(18))
+		if (!ethLstStakedAmount.isZero()) {
+			ethLstTokenAmount = rewardPortion(WEEKLY_PI_ETH_LST, ethLstStakedAmount, totalTvlEthLst).mul(
+				new Prisma.Prisma.Decimal(10).pow(18)
+			)
+		}
 
 		const totalPiTokenAmount = eigenTokenAmount.add(ethLstTokenAmount)
 		const totalPiEth = totalPiTokenAmount.mul(
 			new Prisma.Prisma.Decimal(eigenTokenPrice?.ethPrice ?? 0)
 		)
 
-		const aggregateApy =
-			eigenStakedAmount.add(ethLstStakedAmount) > new Prisma.Prisma.Decimal(0)
-				? totalPiEth.mul(52).div(eigenStakedAmount.add(ethLstStakedAmount)).mul(100).toNumber()
+		let aggregateApy = 0
+
+		if (!eigenStakedAmount.isZero() && ethLstStakedAmount.isZero()) {
+			aggregateApy = eigenStrategyApy
+		} else if (eigenStakedAmount.isZero() && !ethLstStakedAmount.isZero()) {
+			aggregateApy = ethAndLstStrategiesApy
+		} else if (!eigenStakedAmount.isZero() && !ethLstStakedAmount.isZero()) {
+			aggregateApy = eigenStakedAmount.add(ethLstStakedAmount).gt(new Prisma.Prisma.Decimal(0))
+				? totalPiEth
+						.mul(52)
+						.div(eigenStakedAmount.add(ethLstStakedAmount))
+						.mul(100)
+						.div(new Prisma.Prisma.Decimal(10).pow(18))
+						.toNumber()
 				: 0
+		}
 
 		res.send({
 			eigenStrategyApy,
