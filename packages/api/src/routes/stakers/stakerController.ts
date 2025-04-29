@@ -759,6 +759,10 @@ async function calculateStakerRewards(
 			(tp) => tp.address.toLowerCase() === eigenTokenAddress.toLowerCase()
 		)
 
+		if (!eigenTokenPrice) {
+			throw new Error('EIGEN token price not found')
+		}
+
 		// EIGEN Strategy PI
 		const piWeeklyEigenTokens = new Prisma.Prisma.Decimal(321855)
 		const eigenTokenAmount =
