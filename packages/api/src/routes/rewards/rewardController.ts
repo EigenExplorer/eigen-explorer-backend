@@ -84,6 +84,10 @@ export async function getProgrammaticIncentives(req: Request, res: Response) {
 			(tp) => tp.address.toLowerCase() === eigenTokenAddress.toLowerCase()
 		)
 
+		if (!eigenTokenPrice) {
+			throw new Error('EIGEN token price not found')
+		}
+
 		const eigenStrategyAddress = isHolesky
 			? '0x43252609bff8a13dfe5e057097f2f45a24387a84'
 			: '0xacb55c530acdb2849e6d4f36992cd8c9d50ed8f7'
@@ -113,11 +117,15 @@ export async function getProgrammaticIncentives(req: Request, res: Response) {
 		const WEEKLY_PI_EIGEN = new Prisma.Prisma.Decimal(321855)
 		const WEEKLY_PI_ETH_LST = new Prisma.Prisma.Decimal(965565)
 
-		const calcApy = (weeklyToken: any, totalTvl: number) => {
-			return weeklyToken
-				.mul(0.9 * 52 * 100) // Stake share and annualize weekly reward
-				.mul(new Prisma.Prisma.Decimal(eigenTokenPrice?.ethPrice ?? 0))
-				.div(totalTvl)
+		const calcApy = (weeklyToken: Prisma.Prisma.Decimal, totalTvl: number) => {
+			return totalTvl > 0
+				? weeklyToken
+						.mul(new Prisma.Prisma.Decimal('0.9')) // Stake share
+						.mul(new Prisma.Prisma.Decimal(52)) // Annualize weekly reward
+						.mul(new Prisma.Prisma.Decimal(100))
+						.mul(new Prisma.Prisma.Decimal(eigenTokenPrice?.ethPrice ?? 0))
+						.div(new Prisma.Prisma.Decimal(totalTvl))
+				: new Prisma.Prisma.Decimal(0)
 		}
 
 		const eigenStrategyApy = calcApy(WEEKLY_PI_EIGEN, totalTvlEigenStrategy)
@@ -149,40 +157,43 @@ export async function getProgrammaticIncentives(req: Request, res: Response) {
 			}
 		})
 
-		let eigenTokenAmount = new Prisma.Prisma.Decimal(0)
-		let ethLstTokenAmount = new Prisma.Prisma.Decimal(0)
+		let eigenTokenAmount = BigInt(0)
+		let ethLstTokenAmount = BigInt(0)
 
 		const rewardPortion = (
-			weeklyToken: any,
+			weeklyToken: Prisma.Prisma.Decimal,
 			stakedAmount: Prisma.Prisma.Decimal,
 			totalTvl: number
 		) => {
 			return totalTvl > 0
-				? weeklyToken.mul(0.9).mul(stakedAmount).div(totalTvl)
+				? weeklyToken
+						.mul(new Prisma.Prisma.Decimal('0.9'))
+						.mul(stakedAmount)
+						.div(new Prisma.Prisma.Decimal(totalTvl))
 				: new Prisma.Prisma.Decimal(0)
 		}
 
 		if (!eigenStakedAmount.isZero()) {
-			eigenTokenAmount = rewardPortion(
-				WEEKLY_PI_EIGEN,
-				eigenStakedAmount,
-				totalTvlEigenStrategy
-			).mul(new Prisma.Prisma.Decimal(10).pow(18))
+			const reward = rewardPortion(WEEKLY_PI_EIGEN, eigenStakedAmount, totalTvlEigenStrategy)
+			const rewardScaled = reward.mul(new Prisma.Prisma.Decimal(10).pow(18))
+			const rewardStr = rewardScaled.floor().toFixed(0)
+			eigenTokenAmount = BigInt(rewardStr)
 		}
 
 		if (!ethLstStakedAmount.isZero()) {
-			ethLstTokenAmount = rewardPortion(WEEKLY_PI_ETH_LST, ethLstStakedAmount, totalTvlEthLst).mul(
-				new Prisma.Prisma.Decimal(10).pow(18)
-			)
+			const reward = rewardPortion(WEEKLY_PI_ETH_LST, ethLstStakedAmount, totalTvlEthLst)
+			const rewardScaled = reward.mul(new Prisma.Prisma.Decimal(10).pow(18))
+			const rewardStr = rewardScaled.floor().toFixed(0)
+			ethLstTokenAmount = BigInt(rewardStr)
 		}
 
-		const totalPiTokenAmount = eigenTokenAmount.add(ethLstTokenAmount)
-		const totalPiEth = totalPiTokenAmount.mul(
+		const totalPiTokenAmount = eigenTokenAmount + ethLstTokenAmount
+
+		const totalPiEth = new Prisma.Prisma.Decimal(totalPiTokenAmount.toString()).mul(
 			new Prisma.Prisma.Decimal(eigenTokenPrice?.ethPrice ?? 0)
 		)
 
-		let aggregateApy = 0
-
+		let aggregateApy = new Prisma.Prisma.Decimal(0)
 		if (!eigenStakedAmount.isZero() && ethLstStakedAmount.isZero()) {
 			aggregateApy = eigenStrategyApy
 		} else if (eigenStakedAmount.isZero() && !ethLstStakedAmount.isZero()) {
@@ -194,18 +205,17 @@ export async function getProgrammaticIncentives(req: Request, res: Response) {
 						.div(eigenStakedAmount.add(ethLstStakedAmount))
 						.mul(100)
 						.div(new Prisma.Prisma.Decimal(10).pow(18))
-						.toNumber()
-				: 0
+				: new Prisma.Prisma.Decimal(0)
 		}
 
 		res.send({
 			eigenStrategyApy,
 			ethAndLstStrategiesApy,
 			aggregateApy,
-			totalWeeklyRewardsEigen: totalPiTokenAmount,
+			totalWeeklyRewardsEigen: totalPiTokenAmount.toString(),
 			weeklyRewardsEigen: {
-				eigenStrategy: eigenTokenAmount,
-				ethAndLstStrategies: ethLstTokenAmount
+				eigenStrategy: eigenTokenAmount.toString(),
+				ethAndLstStrategies: ethLstTokenAmount.toString()
 			}
 		})
 	} catch (error) {
