@@ -12,7 +12,7 @@ const blockSyncKeyLogs = 'lastSyncedBlock_logs_deposit'
 
 export async function seedDeposits(toBlock?: bigint, fromBlock?: bigint) {
 	const prismaClient = getPrismaClient()
-	const depositList: prisma.Deposit[] = []
+	const depositList: Omit<prisma.Deposit, 'id'>[] = []
 
 	const firstBlock = fromBlock ? fromBlock : await fetchLastSyncBlock(blockSyncKey)
 	const lastBlock = toBlock ? toBlock : await fetchLastSyncBlock(blockSyncKeyLogs)
