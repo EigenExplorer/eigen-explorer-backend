@@ -786,7 +786,7 @@ export async function getRestakingRatio(req: Request, res: Response) {
  * @param withChange
  * @returns
  */
-async function doGetTvl(withChange: boolean) {
+export async function doGetTvl(withChange: boolean) {
 	let tvlRestaking: TvlWithoutChange = 0
 	const ethPrices = withChange ? await fetchCurrentEthPrices() : undefined
 
@@ -852,7 +852,7 @@ async function doGetTvl(withChange: boolean) {
  * @param withChange
  * @returns
  */
-async function doGetTvlStrategy(
+export async function doGetTvlStrategy(
 	strategy: `0x${string}`,
 	underlyingToken: `0x${string}`,
 	withChange: boolean
@@ -897,7 +897,9 @@ async function doGetTvlStrategy(
  *
  * @returns
  */
-async function doGetTvlBeaconChain(withChange: boolean): Promise<TvlWithoutChange | TvlWithChange> {
+export async function doGetTvlBeaconChain(
+	withChange: boolean
+): Promise<TvlWithoutChange | TvlWithChange> {
 	const totalValidators = await prisma.validator.aggregate({
 		where: {
 			status: { in: ['active_ongoing', 'active_exiting'] }
