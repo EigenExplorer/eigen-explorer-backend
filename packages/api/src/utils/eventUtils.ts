@@ -882,7 +882,8 @@ async function calculateStrategyData(
 
 		if (sharesUnderlying) {
 			underlyingValue =
-				Number((shares * BigInt(sharesUnderlying.sharesToUnderlying)) / BigInt(1e18)) / 1e18
+				Number((shares * BigInt(sharesUnderlying.sharesToUnderlying)) / BigInt(1e18)) /
+				Math.pow(10, sharesUnderlying.decimals)
 
 			if (sharesUnderlying.ethPrice) {
 				ethValue = underlyingValue * sharesUnderlying.ethPrice
