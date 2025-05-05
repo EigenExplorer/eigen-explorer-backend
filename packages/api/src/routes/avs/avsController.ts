@@ -2,7 +2,7 @@ import type { Request, Response } from 'express'
 import type { Submission } from '../rewards/rewardController'
 import { PaginationQuerySchema } from '../../schema/zod/schemas/paginationQuery'
 import { EthereumAddressSchema } from '../../schema/zod/schemas/base/ethereumAddress'
-import { WithTvlQuerySchema } from '../../schema/zod/schemas/withTvlQuery'
+import { WithTrailingApySchema, WithTvlQuerySchema } from '../../schema/zod/schemas/withTvlQuery'
 import { WithCuratedMetadata } from '../../schema/zod/schemas/withCuratedMetadataQuery'
 import { UpdatedSinceQuerySchema } from '../../schema/zod/schemas/updatedSinceQuery'
 import { SortByQuerySchema } from '../../schema/zod/schemas/sortByQuery'
@@ -13,7 +13,8 @@ import { EigenExplorerApiError, handleAndReturnErrorResponse } from '../../schem
 import {
 	getStrategiesWithShareUnderlying,
 	sharesToTVL,
-	sharesToTVLStrategies
+	sharesToTVLStrategies,
+	StrategyWithShareUnderlying
 } from '../../utils/strategyShares'
 import Prisma from '@prisma/client'
 import prisma from '../../utils/prismaClient'
@@ -243,6 +244,7 @@ export async function getAVS(req: Request, res: Response) {
 	// Validate query and params
 	const queryCheck = WithTvlQuerySchema.and(WithCuratedMetadata)
 		.and(WithRewardsQuerySchema)
+		.and(WithTrailingApySchema)
 		.safeParse(req.query)
 	if (!queryCheck.success) {
 		return handleAndReturnErrorResponse(req, res, queryCheck.error)
@@ -255,14 +257,14 @@ export async function getAVS(req: Request, res: Response) {
 
 	try {
 		const { address } = req.params
-		const { withTvl, withCuratedMetadata, withRewards } = queryCheck.data
+		const { withTvl, withCuratedMetadata, withRewards, withTrailingAPY } = queryCheck.data
 
 		const avs = await prisma.avs.findUniqueOrThrow({
 			where: { address: address.toLowerCase(), ...getAvsFilterQuery() },
 			include: {
 				curatedMetadata: withCuratedMetadata,
 				additionalInfo: withCuratedMetadata,
-				rewardSubmissions: withRewards,
+				rewardSubmissions: withRewards || withTrailingAPY,
 				operators: {
 					where: { isActive: true },
 					include: {
@@ -292,7 +294,8 @@ export async function getAVS(req: Request, res: Response) {
 			totalOperators: avs.totalOperators,
 			totalStakers: avs.totalStakers,
 			tvl: withTvl ? sharesToTVL(shares, strategiesWithSharesUnderlying) : undefined,
-			rewards: withRewards ? await calculateAvsApy(avs) : undefined,
+			rewards:
+				withRewards || withTrailingAPY ? await calculateAvsApy(avs, withTrailingAPY) : undefined,
 			operators: undefined,
 			metadataUrl: undefined,
 			isMetadataSynced: undefined,
@@ -1066,19 +1069,126 @@ export function getAvsSearchQuery(
 	}
 }
 
+interface DailyAvsStrategyTvlMap {
+	[dayKey: string]: { [avsAddress: string]: { [strategyAddress: string]: number } }
+}
+
+export async function getDailyAvsStrategyTvl(
+	avsStrategyPairs: { avsAddress: string; strategyAddress: string }[],
+	startDate: Date,
+	endDate: Date,
+	strategiesWithSharesUnderlying: StrategyWithShareUnderlying[]
+): Promise<DailyAvsStrategyTvlMap> {
+	startDate = new Date(startDate.setUTCHours(0, 0, 0, 0))
+	endDate = new Date(endDate.setUTCHours(0, 0, 0, 0))
+
+	const dailyTvlMap: DailyAvsStrategyTvlMap = {}
+
+	const dayKeys: string[] = []
+	for (let day = new Date(startDate); day <= endDate; day.setDate(day.getDate() + 1)) {
+		const dayKey = day.toISOString().split('T')[0]
+		dayKeys.push(dayKey)
+		dailyTvlMap[dayKey] = {}
+	}
+
+	if (avsStrategyPairs.length === 0) {
+		return dailyTvlMap
+	}
+
+	const strategyPriceMap = new Map<string, number>()
+	strategiesWithSharesUnderlying.forEach((strategy) => {
+		strategyPriceMap.set(strategy.strategyAddress.toLowerCase(), strategy.ethPrice)
+	})
+
+	// Fetch TVL records
+	const tvlRecords = await prisma.metricAvsStrategyUnit.findMany({
+		where: {
+			OR: avsStrategyPairs.map(({ avsAddress, strategyAddress }) => ({
+				avsAddress: avsAddress.toLowerCase(),
+				strategyAddress: strategyAddress.toLowerCase()
+			})),
+			timestamp: {
+				gte: startDate,
+				lte: endDate
+			}
+		},
+		select: {
+			avsAddress: true,
+			strategyAddress: true,
+			tvl: true,
+			timestamp: true
+		},
+		orderBy: [{ avsAddress: 'asc' }, { strategyAddress: 'asc' }, { timestamp: 'asc' }]
+	})
+
+	// Group records by AVS-strategy pair and convert TVL to ETH
+	const recordsByPair = new Map<string, Array<{ timestamp: Date; tvl: number }>>()
+	for (const record of tvlRecords) {
+		const key = `${record.avsAddress}:${record.strategyAddress}`
+		if (!recordsByPair.has(key)) {
+			recordsByPair.set(key, [])
+		}
+		const ethPrice = strategyPriceMap.get(record.strategyAddress.toLowerCase())
+		let tvlEth = 0
+		if (ethPrice && ethPrice > 0) {
+			// Convert TVL from native token to ETH
+			tvlEth = record.tvl.mul(new Prisma.Prisma.Decimal(ethPrice)).toNumber()
+		}
+		recordsByPair.get(key)!.push({
+			timestamp: record.timestamp,
+			tvl: tvlEth
+		})
+	}
+
+	// Fill daily TVL map
+	for (const { avsAddress, strategyAddress } of avsStrategyPairs) {
+		const avsAddr = avsAddress.toLowerCase()
+		const stratAddr = strategyAddress.toLowerCase()
+		const key = `${avsAddr}:${stratAddr}`
+		const records = recordsByPair.get(key) || []
+
+		let currentTvl = 0
+		let recordIndex = 0
+
+		for (const dayKey of dayKeys) {
+			const dayDate = new Date(dayKey)
+			while (
+				recordIndex < records.length &&
+				new Date(records[recordIndex].timestamp).setUTCHours(0, 0, 0, 0) <= dayDate.getTime()
+			) {
+				currentTvl = records[recordIndex].tvl
+				recordIndex++
+			}
+
+			if (!dailyTvlMap[dayKey][avsAddr]) {
+				dailyTvlMap[dayKey][avsAddr] = {}
+			}
+			dailyTvlMap[dayKey][avsAddr][stratAddr] = currentTvl
+		}
+	}
+
+	return dailyTvlMap
+}
+
 // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-async function calculateAvsApy(avs: any) {
+async function calculateAvsApy(avs: any, withTrailingAPY: boolean = false) {
 	try {
 		const strategyApyMap: Map<
 			string,
 			{
 				apy: number
-				tokens: Map<string, number>
+				trailingApy?: number
+				tokens: Map<string, { apy: number; trailingApy?: number }>
 			}
 		> = new Map()
 
-		const tokenPrices = await fetchTokenPrices()
-		const strategiesWithSharesUnderlying = await getStrategiesWithShareUnderlying()
+		const startDate = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000)
+		const endDate = new Date()
+
+		const [tokenPrices, strategiesWithSharesUnderlying] = await Promise.all([
+			fetchTokenPrices(),
+			getStrategiesWithShareUnderlying()
+		])
 
 		// Get share amounts for each restakeable strategy
 		const shares = withOperatorShares(avs.operators).filter(
@@ -1090,10 +1200,11 @@ async function calculateAvsApy(avs: any) {
 
 		// Iterate through each strategy and calculate all its rewards
 		for (const strategyAddress of avs.restakeableStrategies) {
-			const strategyTvl = tvlStrategiesEth[strategyAddress.toLowerCase()] || 0
+			const strategyAddressLower = strategyAddress.toLowerCase()
+			const strategyTvl = tvlStrategiesEth[strategyAddressLower] || 0
 			if (strategyTvl === 0) continue
 
-			const tokenApyMap: Map<string, number> = new Map()
+			const tokenApyMap: Map<string, { apy: number; trailingApy?: number }> = new Map()
 			const tokenRewards: Map<
 				string,
 				{
@@ -1107,7 +1218,7 @@ async function calculateAvsApy(avs: any) {
 
 			// Find all reward submissions attributable to the strategy
 			const relevantSubmissions = avs.rewardSubmissions.filter(
-				(submission) => submission.strategyAddress.toLowerCase() === strategyAddress.toLowerCase()
+				(submission) => submission.strategyAddress.toLowerCase() === strategyAddressLower
 			)
 
 			// Calculate each reward amount for the strategy
@@ -1124,11 +1235,6 @@ async function calculateAvsApy(avs: any) {
 						.mul(new Prisma.Prisma.Decimal(tokenPrice?.ethPrice ?? 0))
 						.div(new Prisma.Prisma.Decimal(10).pow(tokenPrice?.decimals ?? 18)) // No decimals
 				}
-
-				// Multiply reward amount in ETH by the strategy weight
-				rewardIncrementEth = rewardIncrementEth
-					.mul(submission.multiplier)
-					.div(new Prisma.Prisma.Decimal(10).pow(18))
 
 				// Accumulate token-specific rewards and duration
 				const tokenData = tokenRewards.get(rewardTokenAddress) || {
@@ -1152,38 +1258,150 @@ async function calculateAvsApy(avs: any) {
 					const tokenRewardRate = data.totalRewardsEth.toNumber() / strategyTvl
 					const tokenAnnualizedRate = tokenRewardRate * ((365 * 24 * 60 * 60) / data.totalDuration)
 					const tokenApy = tokenAnnualizedRate * 100
-
-					tokenApyMap.set(tokenAddress, tokenApy)
+					tokenApyMap.set(tokenAddress, { apy: tokenApy })
 				}
 			})
 
 			// Calculate overall strategy APY summing token APYs
-			const strategyApy = Array.from(tokenApyMap.values()).reduce((sum, apy) => sum + apy, 0)
+			const strategyApy = Array.from(tokenApyMap.values()).reduce((sum, { apy }) => sum + apy, 0)
 
-			// Update strategy rewards map
-			const currentStrategyRewards = {
+			if (strategyApy > 0) {
+				strategyApyMap.set(strategyAddress, {
+					apy: strategyApy,
+					tokens: tokenApyMap
+				})
+			}
+		}
+
+		if (!withTrailingAPY) {
+			return {
+				strategyApys: Array.from(strategyApyMap.entries()).map(([strategyAddress, data]) => ({
+					strategyAddress,
+					apy: data.apy,
+					tokens: Array.from(data.tokens.entries()).map(([tokenAddress, tokenData]) => ({
+						tokenAddress,
+						apy: tokenData.apy
+					}))
+				}))
+			}
+		}
+
+		// Fetch daily TVL for trailing APY
+		const avsStrategyPairs = avs.restakeableStrategies.map((strategyAddress: string) => ({
+			avsAddress: avs.address.toLowerCase(),
+			strategyAddress: strategyAddress.toLowerCase()
+		}))
+		const dailyTvlMap = await getDailyAvsStrategyTvl(
+			avsStrategyPairs,
+			startDate,
+			endDate,
+			strategiesWithSharesUnderlying
+		)
+
+		// Process Trailing APY
+		for (const strategyAddress of avs.restakeableStrategies) {
+			const strategyAddressLower = strategyAddress.toLowerCase()
+
+			const strategyData = strategyApyMap.get(strategyAddress) || {
 				apy: 0,
+				trailingApy: 0,
 				tokens: new Map()
 			}
 
-			tokenApyMap.forEach((apy, tokenAddress) => {
-				currentStrategyRewards.tokens.set(tokenAddress, apy)
-			})
-			currentStrategyRewards.apy += strategyApy
-			strategyApyMap.set(strategyAddress, currentStrategyRewards)
+			const dailyRewardsByTokenAndDay: {
+				[tokenAddress: string]: { [day: string]: Prisma.Prisma.Decimal }
+			} = {}
+
+			// Distribute rewards daily
+			const relevantSubmissions = avs.rewardSubmissions.filter(
+				(submission) => submission.strategyAddress.toLowerCase() === strategyAddressLower
+			)
+
+			for (const submission of relevantSubmissions) {
+				const tokenAddress = submission.token.toLowerCase()
+				const startTime = new Date(Number(submission.startTimestamp) * 1000)
+				const durationDays = submission.duration / 86400
+				if (durationDays <= 0) continue
+
+				let rewardIncrementEth = new Prisma.Prisma.Decimal(submission.amount)
+				if (tokenAddress) {
+					const tokenPrice = tokenPrices.find((tp) => tp.address.toLowerCase() === tokenAddress)
+					rewardIncrementEth = rewardIncrementEth
+						.mul(new Prisma.Prisma.Decimal(tokenPrice?.ethPrice ?? 0))
+						.div(new Prisma.Prisma.Decimal(10).pow(tokenPrice?.decimals ?? 18))
+				}
+
+				const dailyRewardEth = rewardIncrementEth.div(new Prisma.Prisma.Decimal(durationDays))
+
+				const endTime = new Date(startTime)
+				endTime.setDate(endTime.getDate() + Math.floor(durationDays) - 1)
+				for (
+					let day = new Date(Math.max(startTime.getTime(), startDate.getTime()));
+					day <= endTime && day <= endDate;
+					day.setDate(day.getDate() + 1)
+				) {
+					const dayKey = day.toISOString().split('T')[0]
+					if (!dailyRewardsByTokenAndDay[tokenAddress]) {
+						dailyRewardsByTokenAndDay[tokenAddress] = {}
+					}
+					if (!dailyRewardsByTokenAndDay[tokenAddress][dayKey]) {
+						dailyRewardsByTokenAndDay[tokenAddress][dayKey] = new Prisma.Prisma.Decimal(0)
+					}
+					dailyRewardsByTokenAndDay[tokenAddress][dayKey] =
+						dailyRewardsByTokenAndDay[tokenAddress][dayKey].add(dailyRewardEth)
+				}
+			}
+
+			let strategyTrailingApy = 0
+			const tokenApyMap = strategyData.tokens
+
+			// Calculate daily APY using daily TVL
+			for (let day = new Date(startDate); day <= endDate; day.setDate(day.getDate() + 1)) {
+				const dayKey = day.toISOString().split('T')[0]
+				const dailyTvl =
+					dailyTvlMap[dayKey]?.[avs.address.toLowerCase()]?.[strategyAddressLower] || 0
+				if (dailyTvl === 0) continue
+
+				let dailyStrategyRewardsEth = new Prisma.Prisma.Decimal(0)
+				for (const [tokenAddress, rewardsByDay] of Object.entries(dailyRewardsByTokenAndDay)) {
+					const dailyTokenRewardsEth = rewardsByDay[dayKey] || new Prisma.Prisma.Decimal(0)
+					dailyStrategyRewardsEth = dailyStrategyRewardsEth.add(dailyTokenRewardsEth)
+
+					if (dailyTokenRewardsEth.greaterThan(0)) {
+						const dailyTokenApy = (dailyTokenRewardsEth.toNumber() / dailyTvl) * 100
+
+						const tokenData = tokenApyMap.get(tokenAddress) || { apy: 0, trailingApy: 0 }
+						tokenData.trailingApy = (tokenData.trailingApy || 0) + dailyTokenApy
+						tokenApyMap.set(tokenAddress, tokenData)
+					}
+				}
+
+				if (dailyStrategyRewardsEth.greaterThan(0)) {
+					const dailyApy = (dailyStrategyRewardsEth.toNumber() / dailyTvl) * 100
+					strategyTrailingApy += dailyApy
+				}
+			}
+
+			if (strategyTrailingApy > 0 || strategyData.apy > 0) {
+				strategyApyMap.set(strategyAddress, {
+					apy: strategyData.apy,
+					trailingApy: strategyTrailingApy,
+					tokens: tokenApyMap
+				})
+			}
 		}
 
 		return {
-			strategyApys: Array.from(strategyApyMap.entries()).map(([strategyAddress, data]) => {
-				return {
-					strategyAddress,
-					apy: data.apy,
-					tokens: Array.from(data.tokens.entries()).map(([tokenAddress, apy]) => ({
-						tokenAddress,
-						apy
-					}))
-				}
-			})
+			strategyApys: Array.from(strategyApyMap.entries()).map(([strategyAddress, data]) => ({
+				strategyAddress,
+				apy: data.apy,
+				trailingApy: withTrailingAPY ? data.trailingApy : undefined,
+				tokens: Array.from(data.tokens.entries()).map(([tokenAddress, tokenData]) => ({
+					tokenAddress,
+					apy: tokenData.apy,
+					trailingApy: withTrailingAPY ? tokenData.trailingApy : undefined
+				}))
+			}))
 		}
 	} catch {}
 }
