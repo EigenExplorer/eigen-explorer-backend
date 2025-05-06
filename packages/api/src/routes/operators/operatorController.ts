@@ -83,7 +83,7 @@ export async function getAllOperators(req: Request, res: Response) {
 					select: { avsAddress: true, isActive: true }
 				},
 				shares: {
-					select: { strategyAddress: true, shares: true }
+					select: { strategyAddress: true, shares: true, slashedShares: true }
 				}
 			},
 			orderBy: sortConfig
@@ -212,7 +212,7 @@ export async function getOperator(req: Request, res: Response) {
 							: {})
 					}
 				},
-				shares: { select: { strategyAddress: true, shares: true } }
+				shares: { select: { strategyAddress: true, shares: true, slashedShares: true } }
 			}
 		})
 

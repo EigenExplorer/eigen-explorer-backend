@@ -165,14 +165,14 @@ export async function getRestakeableStrategies(avsAddress: string): Promise<stri
  * Get `sharesToWithdraw` for slashable withdrawals.
  *
  * @param withdrawal
- * @param sharesAmount
+ * @param scaledShares
  * @param strategyAddress
  * @param slashableUntil
  * @returns
  */
 async function calculateSharesToWithdraw(
 	withdrawal: any,
-	sharesAmount: string,
+	scaledShares: string,
 	strategyAddress: string,
 	slashableUntil: bigint
 ) {
@@ -199,14 +199,10 @@ async function calculateSharesToWithdraw(
 
 	const sharesToWithdraw =
 		strategyAddress === beaconAddress
-			? (BigInt(sharesAmount) * maxMagnitude * beaconChainSlashingFactor) / (WAD * WAD)
-			: (BigInt(sharesAmount) * maxMagnitude) / WAD
+			? (BigInt(scaledShares) * maxMagnitude * beaconChainSlashingFactor) / (WAD * WAD)
+			: (BigInt(scaledShares) * maxMagnitude) / WAD
 
-	return {
-		strategyAddress,
-		shares: sharesAmount,
-		sharesToWithdraw: sharesToWithdraw.toString()
-	}
+	return sharesToWithdraw.toString()
 }
 
 /**
@@ -223,7 +219,9 @@ export async function processWithdrawals(withdrawalRecords: any[]) {
 					...withdrawal,
 					shares: withdrawal.shares.map((s, i) => ({
 						strategyAddress: withdrawal.strategies[i],
-						shares: s
+						shares: s,
+						scaledShares: s,
+						sharesToWithdraw: s
 					})),
 					strategies: undefined,
 					isSlashable: undefined,
@@ -243,9 +241,40 @@ export async function processWithdrawals(withdrawalRecords: any[]) {
 				withdrawal.createdAtBlock + BigInt((minDelayBlocks?.value as string) || '0')
 
 			const shares = await Promise.all(
-				withdrawal.shares.map((s, i) =>
-					calculateSharesToWithdraw(withdrawal, s, withdrawal.strategies[i], slashableUntil)
-				)
+				withdrawal.shares.map(async (scaledShares, i) => {
+					const strategyAddress = withdrawal.strategies[i]
+
+					const stakerAddress = withdrawal.stakerAddress
+					const stakerStrategyShare = await getPrismaClient().stakerStrategyShares.findUnique({
+						where: {
+							stakerAddress_strategyAddress: {
+								stakerAddress: stakerAddress.toLowerCase(),
+								strategyAddress: strategyAddress.toLowerCase()
+							}
+						}
+					})
+
+					let depositScalingFactor = BigInt(stakerStrategyShare?.depositScalingFactor || 1e18)
+					if (depositScalingFactor === 0n) {
+						depositScalingFactor = BigInt(1e18)
+					}
+
+					const shares = ((BigInt(scaledShares) * BigInt(1e18)) / depositScalingFactor).toString()
+
+					const sharesToWithdraw = await calculateSharesToWithdraw(
+						withdrawal,
+						scaledShares,
+						strategyAddress,
+						slashableUntil
+					)
+
+					return {
+						strategyAddress,
+						shares,
+						scaledShares,
+						sharesToWithdraw
+					}
+				})
 			)
 
 			return {
