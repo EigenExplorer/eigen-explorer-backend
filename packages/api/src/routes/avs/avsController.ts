@@ -2,7 +2,7 @@ import type { Request, Response } from 'express'
 import type { Submission } from '../rewards/rewardController'
 import { PaginationQuerySchema } from '../../schema/zod/schemas/paginationQuery'
 import { EthereumAddressSchema } from '../../schema/zod/schemas/base/ethereumAddress'
-import { WithTrailingApySchema, WithTvlQuerySchema } from '../../schema/zod/schemas/withTvlQuery'
+import { WithTvlQuerySchema } from '../../schema/zod/schemas/withTvlQuery'
 import { WithCuratedMetadata } from '../../schema/zod/schemas/withCuratedMetadataQuery'
 import { UpdatedSinceQuerySchema } from '../../schema/zod/schemas/updatedSinceQuery'
 import { SortByQuerySchema } from '../../schema/zod/schemas/sortByQuery'
@@ -13,8 +13,7 @@ import { EigenExplorerApiError, handleAndReturnErrorResponse } from '../../schem
 import {
 	getStrategiesWithShareUnderlying,
 	sharesToTVL,
-	sharesToTVLStrategies,
-	StrategyWithShareUnderlying
+	sharesToTVLStrategies
 } from '../../utils/strategyShares'
 import Prisma from '@prisma/client'
 import prisma from '../../utils/prismaClient'
@@ -31,6 +30,8 @@ import {
 	AvsAdditionalInfoKeys
 } from '../../schema/zod/schemas/updateAvsMetadata'
 import { isAuthRequired } from '../../utils/authMiddleware'
+import { WithTrailingApySchema } from '../../schema/zod/schemas/withTrailingApySchema'
+import { getDailyAvsStrategyTvl } from '../../utils/trailingApyUtils'
 
 /**
  * Function for route /avs
@@ -257,14 +258,14 @@ export async function getAVS(req: Request, res: Response) {
 
 	try {
 		const { address } = req.params
-		const { withTvl, withCuratedMetadata, withRewards, withTrailingAPY } = queryCheck.data
+		const { withTvl, withCuratedMetadata, withRewards, withTrailingApy } = queryCheck.data
 
 		const avs = await prisma.avs.findUniqueOrThrow({
 			where: { address: address.toLowerCase(), ...getAvsFilterQuery() },
 			include: {
 				curatedMetadata: withCuratedMetadata,
 				additionalInfo: withCuratedMetadata,
-				rewardSubmissions: withRewards || withTrailingAPY,
+				rewardSubmissions: withRewards || withTrailingApy,
 				operators: {
 					where: { isActive: true },
 					include: {
@@ -295,7 +296,7 @@ export async function getAVS(req: Request, res: Response) {
 			totalStakers: avs.totalStakers,
 			tvl: withTvl ? sharesToTVL(shares, strategiesWithSharesUnderlying) : undefined,
 			rewards:
-				withRewards || withTrailingAPY ? await calculateAvsApy(avs, withTrailingAPY) : undefined,
+				withRewards || withTrailingApy ? await calculateAvsApy(avs, withTrailingApy) : undefined,
 			operators: undefined,
 			metadataUrl: undefined,
 			isMetadataSynced: undefined,
@@ -1069,126 +1070,43 @@ export function getAvsSearchQuery(
 	}
 }
 
-interface DailyAvsStrategyTvlMap {
-	[dayKey: string]: { [avsAddress: string]: { [strategyAddress: string]: number } }
-}
-
-export async function getDailyAvsStrategyTvl(
-	avsStrategyPairs: { avsAddress: string; strategyAddress: string }[],
-	startDate: Date,
-	endDate: Date,
-	strategiesWithSharesUnderlying: StrategyWithShareUnderlying[]
-): Promise<DailyAvsStrategyTvlMap> {
-	startDate = new Date(startDate.setUTCHours(0, 0, 0, 0))
-	endDate = new Date(endDate.setUTCHours(0, 0, 0, 0))
-
-	const dailyTvlMap: DailyAvsStrategyTvlMap = {}
-
-	const dayKeys: string[] = []
-	for (let day = new Date(startDate); day <= endDate; day.setDate(day.getDate() + 1)) {
-		const dayKey = day.toISOString().split('T')[0]
-		dayKeys.push(dayKey)
-		dailyTvlMap[dayKey] = {}
-	}
-
-	if (avsStrategyPairs.length === 0) {
-		return dailyTvlMap
-	}
-
-	const strategyPriceMap = new Map<string, number>()
-	strategiesWithSharesUnderlying.forEach((strategy) => {
-		strategyPriceMap.set(strategy.strategyAddress.toLowerCase(), strategy.ethPrice)
-	})
-
-	// Fetch TVL records
-	const tvlRecords = await prisma.metricAvsStrategyUnit.findMany({
-		where: {
-			OR: avsStrategyPairs.map(({ avsAddress, strategyAddress }) => ({
-				avsAddress: avsAddress.toLowerCase(),
-				strategyAddress: strategyAddress.toLowerCase()
-			})),
-			timestamp: {
-				gte: startDate,
-				lte: endDate
-			}
-		},
-		select: {
-			avsAddress: true,
-			strategyAddress: true,
-			tvl: true,
-			timestamp: true
-		},
-		orderBy: [{ avsAddress: 'asc' }, { strategyAddress: 'asc' }, { timestamp: 'asc' }]
-	})
-
-	// Group records by AVS-strategy pair and convert TVL to ETH
-	const recordsByPair = new Map<string, Array<{ timestamp: Date; tvl: number }>>()
-	for (const record of tvlRecords) {
-		const key = `${record.avsAddress}:${record.strategyAddress}`
-		if (!recordsByPair.has(key)) {
-			recordsByPair.set(key, [])
-		}
-		const ethPrice = strategyPriceMap.get(record.strategyAddress.toLowerCase())
-		let tvlEth = 0
-		if (ethPrice && ethPrice > 0) {
-			// Convert TVL from native token to ETH
-			tvlEth = record.tvl.mul(new Prisma.Prisma.Decimal(ethPrice)).toNumber()
-		}
-		recordsByPair.get(key)!.push({
-			timestamp: record.timestamp,
-			tvl: tvlEth
-		})
-	}
-
-	// Fill daily TVL map
-	for (const { avsAddress, strategyAddress } of avsStrategyPairs) {
-		const avsAddr = avsAddress.toLowerCase()
-		const stratAddr = strategyAddress.toLowerCase()
-		const key = `${avsAddr}:${stratAddr}`
-		const records = recordsByPair.get(key) || []
-
-		let currentTvl = 0
-		let recordIndex = 0
-
-		for (const dayKey of dayKeys) {
-			const dayDate = new Date(dayKey)
-			while (
-				recordIndex < records.length &&
-				new Date(records[recordIndex].timestamp).setUTCHours(0, 0, 0, 0) <= dayDate.getTime()
-			) {
-				currentTvl = records[recordIndex].tvl
-				recordIndex++
-			}
-
-			if (!dailyTvlMap[dayKey][avsAddr]) {
-				dailyTvlMap[dayKey][avsAddr] = {}
-			}
-			dailyTvlMap[dayKey][avsAddr][stratAddr] = currentTvl
-		}
-	}
-
-	return dailyTvlMap
-}
-
 // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-async function calculateAvsApy(avs: any, withTrailingAPY: boolean = false) {
+async function calculateAvsApy(avs: any, withTrailingApy: boolean = false) {
 	try {
 		const strategyApyMap: Map<
 			string,
 			{
 				apy: number
-				trailingApy?: number
-				tokens: Map<string, { apy: number; trailingApy?: number }>
+				trailingApy7d?: number
+				trailingApy30d?: number
+				trailingApy3m?: number
+				trailingApy6m?: number
+				trailingApy1y?: number
+				tokens: Map<string, number>
 			}
 		> = new Map()
 
 		const startDate = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000)
-		const endDate = new Date()
+		startDate.setUTCHours(0, 0, 0, 0)
+		const endDate = new Date(Date.now())
+		endDate.setUTCHours(0, 0, 0, 0)
 
-		const [tokenPrices, strategiesWithSharesUnderlying] = await Promise.all([
+		// Prepare AVS strategy pairs for TVL fetching
+		const avsStrategyPairs = withTrailingApy
+			? avs.restakeableStrategies.map((strategyAddress: string) => ({
+					avsAddress: avs.address.toLowerCase(),
+					strategyAddress: strategyAddress.toLowerCase()
+			  }))
+			: []
+
+		// Fetch initial data
+		const [tokenPrices, strategiesWithSharesUnderlying, dailyTvlMap] = await Promise.all([
 			fetchTokenPrices(),
-			getStrategiesWithShareUnderlying()
+			getStrategiesWithShareUnderlying(),
+			withTrailingApy ? getDailyAvsStrategyTvl(avsStrategyPairs, startDate, endDate) : {}
 		])
+
+		const tokenPriceMap = new Map(tokenPrices.map((tp) => [tp.address.toLowerCase(), tp]))
 
 		// Get share amounts for each restakeable strategy
 		const shares = withOperatorShares(avs.operators).filter(
@@ -1204,7 +1122,7 @@ async function calculateAvsApy(avs: any, withTrailingAPY: boolean = false) {
 			const strategyTvl = tvlStrategiesEth[strategyAddressLower] || 0
 			if (strategyTvl === 0) continue
 
-			const tokenApyMap: Map<string, { apy: number; trailingApy?: number }> = new Map()
+			const tokenApyMap: Map<string, number> = new Map()
 			const tokenRewards: Map<
 				string,
 				{
@@ -1216,27 +1134,34 @@ async function calculateAvsApy(avs: any, withTrailingAPY: boolean = false) {
 			let strategyTotalRewardsEth = new Prisma.Prisma.Decimal(0)
 			let strategyTotalDuration = 0
 
-			// Find all reward submissions attributable to the strategy
-			const relevantSubmissions = avs.rewardSubmissions.filter(
-				(submission) => submission.strategyAddress.toLowerCase() === strategyAddressLower
-			)
+			const dailyRewardsByDay: { [day: string]: Prisma.Prisma.Decimal } = {}
 
-			// Calculate each reward amount for the strategy
+			const pastYearStartSec = Math.floor(startDate.getTime() / 1000)
+			// Filter submissions ending within the past year
+			const relevantSubmissions = avs.rewardSubmissions.filter((submission) => {
+				const endTimeSec = submission.startTimestamp + BigInt(submission.duration)
+				return (
+					submission.strategyAddress.toLowerCase() === strategyAddressLower &&
+					endTimeSec >= BigInt(pastYearStartSec)
+				)
+			})
+
+			if (!relevantSubmissions || relevantSubmissions.length === 0) continue
+
+			// Process submissions for both Current and Trailing APY
 			for (const submission of relevantSubmissions) {
 				let rewardIncrementEth = new Prisma.Prisma.Decimal(0)
 				const rewardTokenAddress = submission.token.toLowerCase()
 
 				// Normalize reward amount to its ETH price
 				if (rewardTokenAddress) {
-					const tokenPrice = tokenPrices.find(
-						(tp) => tp.address.toLowerCase() === rewardTokenAddress
-					)
+					const tokenPrice = tokenPriceMap.get(rewardTokenAddress)
 					rewardIncrementEth = submission.amount
 						.mul(new Prisma.Prisma.Decimal(tokenPrice?.ethPrice ?? 0))
-						.div(new Prisma.Prisma.Decimal(10).pow(tokenPrice?.decimals ?? 18)) // No decimals
+						.div(new Prisma.Prisma.Decimal(10).pow(tokenPrice?.decimals ?? 18))
 				}
 
-				// Accumulate token-specific rewards and duration
+				// Current APY: Accumulate token-specific rewards and duration
 				const tokenData = tokenRewards.get(rewardTokenAddress) || {
 					totalRewardsEth: new Prisma.Prisma.Decimal(0),
 					totalDuration: 0
@@ -1245,161 +1170,118 @@ async function calculateAvsApy(avs: any, withTrailingAPY: boolean = false) {
 				tokenData.totalDuration += submission.duration
 				tokenRewards.set(rewardTokenAddress, tokenData)
 
-				// Accumulate strategy totals
+				// Current APY: Accumulate strategy totals
 				strategyTotalRewardsEth = strategyTotalRewardsEth.add(rewardIncrementEth)
 				strategyTotalDuration += submission.duration
+
+				// Trailing APY: Distribute daily rewards if requested
+				if (withTrailingApy) {
+					const startTime = new Date(Number(submission.startTimestamp) * 1000)
+					const durationDays = submission.duration / 86400
+					if (durationDays <= 0) continue
+
+					const dailyRewardEth = rewardIncrementEth.div(new Prisma.Prisma.Decimal(durationDays))
+
+					const endTime = new Date(startTime)
+					endTime.setDate(endTime.getDate() + Math.floor(durationDays) - 1)
+					for (
+						let day = new Date(Math.max(startTime.getTime(), startDate.getTime()));
+						day <= endTime && day <= endDate;
+						day.setDate(day.getDate() + 1)
+					) {
+						const dayKey = day.toISOString().split('T')[0]
+						if (!dailyRewardsByDay[dayKey]) {
+							dailyRewardsByDay[dayKey] = new Prisma.Prisma.Decimal(0)
+						}
+						dailyRewardsByDay[dayKey] = dailyRewardsByDay[dayKey].add(dailyRewardEth)
+					}
+				}
 			}
 
 			if (strategyTotalDuration === 0) continue
 
-			// Calculate token APYs using accumulated values
+			// Calculate token APYs for Current APY
+			let strategyApy = 0
 			tokenRewards.forEach((data, tokenAddress) => {
 				if (data.totalDuration !== 0) {
 					const tokenRewardRate = data.totalRewardsEth.toNumber() / strategyTvl
 					const tokenAnnualizedRate = tokenRewardRate * ((365 * 24 * 60 * 60) / data.totalDuration)
 					const tokenApy = tokenAnnualizedRate * 100
-					tokenApyMap.set(tokenAddress, { apy: tokenApy })
+					tokenApyMap.set(tokenAddress, tokenApy)
+					strategyApy += tokenApy
 				}
 			})
 
-			// Calculate overall strategy APY summing token APYs
-			const strategyApy = Array.from(tokenApyMap.values()).reduce((sum, { apy }) => sum + apy, 0)
+			// Initialize strategy data
+			const strategyData = {
+				apy: strategyApy,
+				tokens: tokenApyMap
+			}
 
-			if (strategyApy > 0) {
-				strategyApyMap.set(strategyAddress, {
-					apy: strategyApy,
-					tokens: tokenApyMap
+			// Calculate Trailing APY if requested
+			if (withTrailingApy) {
+				// Define timeframe boundaries
+				const timeframes = [
+					{ days: 7, key: 'trailingApy7d' },
+					{ days: 30, key: 'trailingApy30d' },
+					{ days: 90, key: 'trailingApy3m' },
+					{ days: 180, key: 'trailingApy6m' },
+					{ days: 365, key: 'trailingApy1y' }
+				]
+				const timeframeStarts: { [key: string]: Date } = {}
+				const trailingSums: { [key: string]: number } = {}
+				timeframes.forEach(({ key, days }) => {
+					const start = new Date(Date.now() - (days - 1) * 24 * 60 * 60 * 1000)
+					start.setUTCHours(0, 0, 0, 0)
+					timeframeStarts[key] = start
+					trailingSums[key] = 0
 				})
-			}
-		}
 
-		if (!withTrailingAPY) {
-			return {
-				strategyApys: Array.from(strategyApyMap.entries()).map(([strategyAddress, data]) => ({
-					strategyAddress,
-					apy: data.apy,
-					tokens: Array.from(data.tokens.entries()).map(([tokenAddress, tokenData]) => ({
-						tokenAddress,
-						apy: tokenData.apy
-					}))
-				}))
-			}
-		}
-
-		// Fetch daily TVL for trailing APY
-		const avsStrategyPairs = avs.restakeableStrategies.map((strategyAddress: string) => ({
-			avsAddress: avs.address.toLowerCase(),
-			strategyAddress: strategyAddress.toLowerCase()
-		}))
-		const dailyTvlMap = await getDailyAvsStrategyTvl(
-			avsStrategyPairs,
-			startDate,
-			endDate,
-			strategiesWithSharesUnderlying
-		)
-
-		// Process Trailing APY
-		for (const strategyAddress of avs.restakeableStrategies) {
-			const strategyAddressLower = strategyAddress.toLowerCase()
-
-			const strategyData = strategyApyMap.get(strategyAddress) || {
-				apy: 0,
-				trailingApy: 0,
-				tokens: new Map()
-			}
-
-			const dailyRewardsByTokenAndDay: {
-				[tokenAddress: string]: { [day: string]: Prisma.Prisma.Decimal }
-			} = {}
-
-			// Distribute rewards daily
-			const relevantSubmissions = avs.rewardSubmissions.filter(
-				(submission) => submission.strategyAddress.toLowerCase() === strategyAddressLower
-			)
-
-			for (const submission of relevantSubmissions) {
-				const tokenAddress = submission.token.toLowerCase()
-				const startTime = new Date(Number(submission.startTimestamp) * 1000)
-				const durationDays = submission.duration / 86400
-				if (durationDays <= 0) continue
-
-				let rewardIncrementEth = new Prisma.Prisma.Decimal(submission.amount)
-				if (tokenAddress) {
-					const tokenPrice = tokenPrices.find((tp) => tp.address.toLowerCase() === tokenAddress)
-					rewardIncrementEth = rewardIncrementEth
-						.mul(new Prisma.Prisma.Decimal(tokenPrice?.ethPrice ?? 0))
-						.div(new Prisma.Prisma.Decimal(10).pow(tokenPrice?.decimals ?? 18))
-				}
-
-				const dailyRewardEth = rewardIncrementEth.div(new Prisma.Prisma.Decimal(durationDays))
-
-				const endTime = new Date(startTime)
-				endTime.setDate(endTime.getDate() + Math.floor(durationDays) - 1)
-				for (
-					let day = new Date(Math.max(startTime.getTime(), startDate.getTime()));
-					day <= endTime && day <= endDate;
-					day.setDate(day.getDate() + 1)
-				) {
+				// Calculate daily APY and accumulate for relevant timeframes
+				for (let day = new Date(startDate); day <= endDate; day.setDate(day.getDate() + 1)) {
 					const dayKey = day.toISOString().split('T')[0]
-					if (!dailyRewardsByTokenAndDay[tokenAddress]) {
-						dailyRewardsByTokenAndDay[tokenAddress] = {}
-					}
-					if (!dailyRewardsByTokenAndDay[tokenAddress][dayKey]) {
-						dailyRewardsByTokenAndDay[tokenAddress][dayKey] = new Prisma.Prisma.Decimal(0)
-					}
-					dailyRewardsByTokenAndDay[tokenAddress][dayKey] =
-						dailyRewardsByTokenAndDay[tokenAddress][dayKey].add(dailyRewardEth)
-				}
-			}
+					const dailyTvl =
+						dailyTvlMap[dayKey]?.[avs.address.toLowerCase()]?.[strategyAddressLower] || 0
+					if (dailyTvl === 0) continue
 
-			let strategyTrailingApy = 0
-			const tokenApyMap = strategyData.tokens
+					const dailyStrategyRewardsEth = dailyRewardsByDay[dayKey] || new Prisma.Prisma.Decimal(0)
 
-			// Calculate daily APY using daily TVL
-			for (let day = new Date(startDate); day <= endDate; day.setDate(day.getDate() + 1)) {
-				const dayKey = day.toISOString().split('T')[0]
-				const dailyTvl =
-					dailyTvlMap[dayKey]?.[avs.address.toLowerCase()]?.[strategyAddressLower] || 0
-				if (dailyTvl === 0) continue
+					if (dailyStrategyRewardsEth.greaterThan(0)) {
+						const dailyApy = (dailyStrategyRewardsEth.toNumber() / dailyTvl) * 100
 
-				let dailyStrategyRewardsEth = new Prisma.Prisma.Decimal(0)
-				for (const [tokenAddress, rewardsByDay] of Object.entries(dailyRewardsByTokenAndDay)) {
-					const dailyTokenRewardsEth = rewardsByDay[dayKey] || new Prisma.Prisma.Decimal(0)
-					dailyStrategyRewardsEth = dailyStrategyRewardsEth.add(dailyTokenRewardsEth)
-
-					if (dailyTokenRewardsEth.greaterThan(0)) {
-						const dailyTokenApy = (dailyTokenRewardsEth.toNumber() / dailyTvl) * 100
-
-						const tokenData = tokenApyMap.get(tokenAddress) || { apy: 0, trailingApy: 0 }
-						tokenData.trailingApy = (tokenData.trailingApy || 0) + dailyTokenApy
-						tokenApyMap.set(tokenAddress, tokenData)
+						timeframes.forEach(({ key }) => {
+							if (day >= timeframeStarts[key]) {
+								trailingSums[key] += dailyApy
+							}
+						})
 					}
 				}
 
-				if (dailyStrategyRewardsEth.greaterThan(0)) {
-					const dailyApy = (dailyStrategyRewardsEth.toNumber() / dailyTvl) * 100
-					strategyTrailingApy += dailyApy
-				}
-			}
-
-			if (strategyTrailingApy > 0 || strategyData.apy > 0) {
-				strategyApyMap.set(strategyAddress, {
-					apy: strategyData.apy,
-					trailingApy: strategyTrailingApy,
-					tokens: tokenApyMap
+				// Annualize trailing APYs
+				timeframes.forEach(({ key, days }) => {
+					const annualizationFactor = new Prisma.Prisma.Decimal(365).div(days)
+					strategyData[key] = new Prisma.Prisma.Decimal(trailingSums[key])
+						.mul(annualizationFactor)
+						.toNumber()
 				})
 			}
+
+			// Store strategy data
+			strategyApyMap.set(strategyAddressLower, strategyData)
 		}
 
 		return {
 			strategyApys: Array.from(strategyApyMap.entries()).map(([strategyAddress, data]) => ({
 				strategyAddress,
 				apy: data.apy,
-				trailingApy: withTrailingAPY ? data.trailingApy : undefined,
-				tokens: Array.from(data.tokens.entries()).map(([tokenAddress, tokenData]) => ({
+				trailingApy7d: data.trailingApy7d,
+				trailingApy30d: data.trailingApy30d,
+				trailingApy3m: data.trailingApy3m,
+				trailingApy6m: data.trailingApy6m,
+				trailingApy1y: data.trailingApy1y,
+				tokens: Array.from(data.tokens.entries()).map(([tokenAddress, apy]) => ({
 					tokenAddress,
-					apy: tokenData.apy,
-					trailingApy: withTrailingAPY ? tokenData.trailingApy : undefined
+					apy
 				}))
 			}))
 		}
