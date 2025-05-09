@@ -8,12 +8,3 @@ export const WithTvlQuerySchema = z.object({
 		.transform((val) => val === 'true')
 		.openapi({ example: 'false' })
 })
-
-export const WithTrailingApySchema = z.object({
-	withTrailingAPY: z
-		.enum(['true', 'false'])
-		.default('false')
-		.describe('')
-		.transform((val) => val === 'true')
-		.openapi({ example: 'false' })
-})
