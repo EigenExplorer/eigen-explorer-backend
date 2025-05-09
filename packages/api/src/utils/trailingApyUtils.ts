@@ -47,7 +47,7 @@ export async function getDailyAvsStrategyTvl(
 			tvl: true,
 			timestamp: true
 		},
-		orderBy: [{ avsAddress: 'asc' }, { strategyAddress: 'asc' }, { timestamp: 'asc' }]
+		orderBy: [{ timestamp: 'asc' }]
 	})
 
 	// Group records by AVS-strategy pair and convert TVL to ETH
