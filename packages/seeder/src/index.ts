@@ -41,8 +41,32 @@ import { monitorOperatorApy } from './monitors/operatorApy'
 import { seedLogStrategyWhitelist } from './events/seedLogStrategyWhitelist'
 import { seedLogsDistributionRootSubmitted } from './events/seedLogsDistributionRootSubmitted'
 import { seedMetricsStakerRewards } from './metrics/seedMetricsStakerRewards'
+import { seedLogsSlashingWithdrawalCompleted } from './events/seedLogsSlashingWithdrawalCompleted'
+import { seedLogsSlashingWithdrawalQueued } from './events/seedLogsSlashingWithdrawalQueued'
+import { seedCompletedSlashingWithdrawals } from './seedSlashingWithdrawalsCompleted'
+import { seedQueuedSlashingWithdrawals } from './seedSlashingWithdrawalsQueued'
+import { seedLogsAVSRegistrarSet } from './events/seedLogsAVSRegistrarSet'
+import { seedLogsAllocationDelaySet } from './events/seedLogsAllocationDelaySet'
+import { seedLogsAllocationUpdated } from './events/seedLogsAllocationUpdated'
+import { seedLogsOperatorSetCreated } from './events/seedLogsOperatorSetCreated'
+import { seedLogsOperatorSlashed } from './events/seedLogsOperatorSlashed'
+import { seedLogsOperatorMagnitudeUpdated } from './events/seedLogsOperatorMagnitudeUpdated'
 import { monitorAvsMetadata } from './monitors/avsMetadata'
 import { monitorOperatorMetadata } from './monitors/operatorMetadata'
+import { seedLogsBeaconChainSlashingFactor } from './events/seedLogsBeaconChainSlashingFactorDecreased'
+import { seedBeaconChainSlashingFactor } from './seedBeaconChainSlashingFactor'
+import { seedLogsAVSOperatorSetOperators } from './events/seedLogsAVSOperatorSetOperators'
+import { seedLogsOperatorSetStrategies } from './events/seedLogsOperatorSetStrategies'
+import { seedAllocationDelay } from './seedAllocationDelay'
+import { seedAvsAllocation } from './seedAvsAllocation'
+import { seedAvsOperatorSets } from './seedAvsOperatorSets'
+import { seedAvsRegistrar } from './seedAvsRegistrar'
+import { seedOperatorSet } from './seedOperatorSet'
+import { seedOperatorSetStrategies } from './seedOperatorSetStrategies'
+import { seedOperatorSlashed } from './seedOperatorSlashed'
+import { seedOperatorMagnitude } from './seedOperatorMagnitude'
+import { seedLogsDepositScalingFactor } from './events/seedLogsDepositScalingFactor'
+import { seedLogsOperatorSharesSlashed } from './events/seedLogsOperatorSharesSlashed'
 
 console.log('Initializing Seeder ...')
 
@@ -55,7 +79,7 @@ let isSeedingBlockData = false
 let isSeedingLogs = false
 
 // Complete a full data seed and schedule future seeding events
-seedEigenDataFull().then(() => {
+seedEigenLogs().then(() => {
 	// Start seeding data instantly
 	cron.schedule('*/1 * * * *', () => seedEigenLogs())
 
@@ -90,21 +114,22 @@ async function seedEigenLogs() {
 		console.time('Seeded logs in')
 
 		await doSeedBlockData(targetBlock)
-		const results = await doSeedLogs(targetBlock)
+		const logResults = await doSeedLogs(targetBlock)
 		const updateEvents: Promise<void>[] = []
 
-		// Schedule additional seeding based on log changes
-		if (results.some((changed) => changed)) {
-			// Schedule specific seed functions based on which logs changed
+		// Schedule specific seed functions based on which logs changed
+		if (Object.values(logResults).some((result) => result.updatedCount > 0)) {
 			if (
-				results[0].updatedCount > 0 ||
-				results[1].updatedCount > 0 ||
-				results[2].updatedCount > 0 ||
-				results[3].updatedCount > 0 ||
-				results[4].updatedCount > 0
+				logResults.avsRegistrarSet.updatedCount > 0 ||
+				logResults.avsMetadata.updatedCount > 0 ||
+				logResults.operatorMetadata.updatedCount > 0 ||
+				logResults.operatorAvsRegistration.updatedCount > 0 ||
+				logResults.operatorShares.updatedCount > 0 ||
+				logResults.stakerDelegation.updatedCount > 0
 			) {
 				updateEvents.push(
 					(async () => {
+						await seedAvsRegistrar()
 						await seedAvs()
 						await seedOperators()
 						await seedAvsOperators()
@@ -114,7 +139,35 @@ async function seedEigenLogs() {
 				)
 			}
 
-			if (results[5].updatedCount > 0) {
+			if (
+				logResults.operatorSetCreated.updatedCount > 0 ||
+				logResults.allocationDelaySet.updatedCount > 0 ||
+				logResults.avsOperatorSetOperators.updatedCount > 0 ||
+				logResults.allocationUpdated.updatedCount > 0 ||
+				logResults.operatorSlashed.updatedCount > 0 ||
+				logResults.operatorMagnitudeUpdated.updatedCount > 0
+			) {
+				updateEvents.push(
+					(async () => {
+						await seedOperatorSet()
+						await seedAllocationDelay()
+						await seedAvsOperatorSets()
+						await seedAvsAllocation()
+						await seedOperatorMagnitude()
+						await seedOperatorSlashed()
+					})()
+				)
+			}
+
+			if (logResults.operatorSetStrategies.updatedCount > 0) {
+				updateEvents.push(
+					(async () => {
+						await seedOperatorSetStrategies()
+					})()
+				)
+			}
+
+			if (logResults.podDeployed.updatedCount > 0) {
 				updateEvents.push(
 					(async () => {
 						await seedPods()
@@ -123,22 +176,34 @@ async function seedEigenLogs() {
 				)
 			}
 
+			if (logResults.beaconChainSlashingFactor.updatedCount > 0) {
+				updateEvents.push(
+					(async () => {
+						await seedBeaconChainSlashingFactor()
+					})()
+				)
+			}
+
 			if (
-				results[6].updatedCount > 0 ||
-				results[7].updatedCount > 0 ||
-				results[8].updatedCount > 0 ||
-				results[9].updatedCount > 0
+				logResults.withdrawalQueued.updatedCount > 0 ||
+				logResults.withdrawalCompleted.updatedCount > 0 ||
+				logResults.deposit.updatedCount > 0 ||
+				logResults.podSharesUpdated.updatedCount > 0 ||
+				logResults.slashingWithdrawalQueued.updatedCount > 0 ||
+				logResults.slashingWithdrawalCompleted.updatedCount > 0
 			) {
 				updateEvents.push(
 					(async () => {
 						await seedQueuedWithdrawals()
 						await seedCompletedWithdrawals()
+						await seedQueuedSlashingWithdrawals()
+						await seedCompletedSlashingWithdrawals()
 						await seedDeposits()
 					})()
 				)
 			}
 
-			if (results[10].updatedCount > 0) {
+			if (logResults.avsRewardsSubmission.updatedCount > 0) {
 				updateEvents.push(
 					(async () => {
 						await seedAvsStrategyRewards()
@@ -147,20 +212,20 @@ async function seedEigenLogs() {
 				)
 			}
 
-			if (results[11].updatedCount > 0) {
+			if (logResults.strategyWhitelist.updatedCount > 0) {
 				updateEvents.push(seedStrategies())
 			}
 
 			await Promise.all(updateEvents)
 
 			if (
-				results[3].updatedCount > 0 &&
-				results[3].entityType === 'operator' &&
-				results[3].entities &&
-				results[3].entities.length > 0
+				logResults.operatorShares.updatedCount > 0 &&
+				logResults.operatorShares.entityType === 'operator' &&
+				logResults.operatorShares.entities &&
+				logResults.operatorShares.entities.length > 0
 			) {
-				await monitorAvsMetrics({ filterOperators: results[3].entities })
-				await monitorOperatorMetrics({ filterOperators: results[3].entities })
+				await monitorAvsMetrics({ filterOperators: logResults.operatorShares.entities })
+				await monitorOperatorMetrics({ filterOperators: logResults.operatorShares.entities })
 			}
 		}
 
@@ -170,61 +235,6 @@ async function seedEigenLogs() {
 		console.log('Failed to seed logs at:', Date.now())
 		console.log(error)
 		isSeedingLogs = false
-	}
-}
-
-/**
- * Seed data
- *
- * @returns
- */
-async function seedEigenDataFull() {
-	try {
-		const viemClient = getViemClient()
-		const targetBlock = await viemClient.getBlockNumber()
-		console.log(`\nSeeding data till block ${targetBlock}:`)
-		console.time('Seeded data in')
-
-		await doSeedBlockData(targetBlock)
-		await doSeedLogs(targetBlock)
-
-		await Promise.all([
-			// Avs, Operators and Avs Operators
-			(async () => {
-				await seedAvs()
-				await seedOperators()
-				await seedAvsOperators()
-				await seedStakers()
-				await seedOperatorShares()
-			})(),
-			// Deposits
-			seedDeposits(),
-			// Withdrawals
-			(async () => {
-				await seedQueuedWithdrawals()
-				await seedCompletedWithdrawals()
-			})(),
-			// Pods and Validators
-			(async () => {
-				await seedPods()
-				await seedValidators()
-			})()
-		])
-
-		await Promise.all([
-			// Rewards
-			seedAvsStrategyRewards(),
-			seedStakerRewardSnapshots(),
-
-			// Metrics
-			monitorAvsMetrics({}),
-			monitorOperatorMetrics({})
-		])
-
-		console.timeEnd('Seeded data in')
-	} catch (error) {
-		console.log('Failed to seed data at:', Date.now())
-		console.log(error)
 	}
 }
 
@@ -359,8 +369,41 @@ async function doSeedBlockData(targetBlock: bigint) {
 	}
 }
 
+/**
+ * Seed logs
+ *
+ * @param targetBlock
+ * @returns
+ */
 async function doSeedLogs(targetBlock: bigint) {
-	return await Promise.all([
+	const [
+		avsMetadata,
+		operatorMetadata,
+		operatorAvsRegistration,
+		operatorShares,
+		stakerDelegation,
+		podDeployed,
+		withdrawalQueued,
+		withdrawalCompleted,
+		deposit,
+		podSharesUpdated,
+		avsRewardsSubmission,
+		strategyWhitelist,
+		distributionRootSubmitted,
+		allocationDelaySet,
+		allocationUpdated,
+		avsRegistrarSet,
+		operatorMagnitudeUpdated,
+		avsOperatorSetOperators,
+		operatorSetCreated,
+		operatorSlashed,
+		operatorSetStrategies,
+		beaconChainSlashingFactor,
+		depositScalingFactor,
+		operatorSharesSlashed,
+		slashingWithdrawalQueued,
+		slashingWithdrawalCompleted
+	] = await Promise.all([
 		seedLogsAVSMetadata(targetBlock),
 		seedLogsOperatorMetadata(targetBlock),
 		seedLogsOperatorAVSRegistrationStatus(targetBlock),
@@ -373,6 +416,48 @@ async function doSeedLogs(targetBlock: bigint) {
 		seedLogsPodSharesUpdated(targetBlock),
 		seedLogsAVSRewardsSubmission(targetBlock),
 		seedLogStrategyWhitelist(targetBlock),
-		seedLogsDistributionRootSubmitted(targetBlock)
+		seedLogsDistributionRootSubmitted(targetBlock),
+		seedLogsAllocationDelaySet(targetBlock),
+		seedLogsAllocationUpdated(targetBlock),
+		seedLogsAVSRegistrarSet(targetBlock),
+		seedLogsOperatorMagnitudeUpdated(targetBlock),
+		seedLogsAVSOperatorSetOperators(targetBlock),
+		seedLogsOperatorSetCreated(targetBlock),
+		seedLogsOperatorSlashed(targetBlock),
+		seedLogsOperatorSetStrategies(targetBlock),
+		seedLogsBeaconChainSlashingFactor(targetBlock),
+		seedLogsDepositScalingFactor(targetBlock),
+		seedLogsOperatorSharesSlashed(targetBlock),
+		seedLogsSlashingWithdrawalQueued(targetBlock),
+		seedLogsSlashingWithdrawalCompleted(targetBlock)
 	])
+
+	return {
+		avsMetadata,
+		operatorMetadata,
+		operatorAvsRegistration,
+		operatorShares,
+		stakerDelegation,
+		podDeployed,
+		withdrawalQueued,
+		withdrawalCompleted,
+		deposit,
+		podSharesUpdated,
+		avsRewardsSubmission,
+		strategyWhitelist,
+		distributionRootSubmitted,
+		allocationDelaySet,
+		allocationUpdated,
+		avsRegistrarSet,
+		operatorMagnitudeUpdated,
+		avsOperatorSetOperators,
+		operatorSetCreated,
+		operatorSlashed,
+		operatorSetStrategies,
+		beaconChainSlashingFactor,
+		depositScalingFactor,
+		operatorSharesSlashed,
+		slashingWithdrawalQueued,
+		slashingWithdrawalCompleted
+	}
 }

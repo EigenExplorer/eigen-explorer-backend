@@ -7,6 +7,11 @@ import {
 	getAVSStakers,
 	getAVSRewards,
 	getAVSRewardsEvents,
+	getAvsOperatorSets,
+	getAvsOperatorSetDetails,
+	getAvsAllocations,
+	getAvsSlashed,
+	getAvsOperatorSetOperators,
 	invalidateMetadata,
 	getAvsRegistrationEvents,
 	updateMetadata,
@@ -38,6 +43,24 @@ router.get(
 	routeCache.cacheSeconds(120),
 	getAvsRegistrationEvents
 )
+
+router.get('/:address/operator-sets', routeCache.cacheSeconds(120), getAvsOperatorSets)
+
+router.get(
+	'/:address/operator-sets/:operatorSetId',
+	routeCache.cacheSeconds(120),
+	getAvsOperatorSetDetails
+)
+
+router.get(
+	'/:address/operator-sets/:operatorSetId/operators',
+	routeCache.cacheSeconds(120),
+	getAvsOperatorSetOperators
+)
+
+router.get('/:address/allocations', routeCache.cacheSeconds(120), getAvsAllocations)
+
+router.get('/:address/slashed', routeCache.cacheSeconds(120), getAvsSlashed)
 
 // Protected routes
 router.get('/:address/invalidate-metadata', routeCache.cacheSeconds(120), invalidateMetadata)

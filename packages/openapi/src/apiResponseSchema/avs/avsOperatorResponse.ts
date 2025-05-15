@@ -81,3 +81,17 @@ export const AvsOperatorResponseSchema = z.object({
 			}
 		})
 })
+
+export const AvsOperatorSetOperatorsSchema = AvsOperatorResponseSchema.omit({
+	restakedStrategies: true
+}).extend({
+	shares: z
+		.array(StrategySharesSchema)
+		.describe('The strategy shares held in the AVS operator')
+		.openapi({ example: [] }),
+	tvl: z
+		.object({})
+		.optional()
+		.describe('The total value locked (TVL) in the AVS operator')
+		.openapi({ example: {} })
+})

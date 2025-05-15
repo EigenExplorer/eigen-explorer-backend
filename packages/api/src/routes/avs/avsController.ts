@@ -26,6 +26,11 @@ import {
 } from '../../schema/zod/schemas/eventSchemas'
 import { MinTvlQuerySchema } from '../../schema/zod/schemas/minTvlQuerySchema'
 import {
+	AvsAllocationQuerySchema,
+	AvsOperatorSetParamsSchema,
+	AvsOperatorSetQuerySchema
+} from '../../schema/zod/schemas/operatorSetSchemas'
+import {
 	AvsAdditionalInfoSchema,
 	AvsAdditionalInfoKeys
 } from '../../schema/zod/schemas/updateAvsMetadata'
@@ -723,6 +728,351 @@ export async function getAvsRegistrationEvents(req: Request, res: Response) {
 		res.send({
 			data: response.eventRecords,
 			meta: { total: response.total, skip, take }
+		})
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+/**
+ * Function for route /avs/:avsAddress/operator-sets
+ * Fetches and returns a list of Operator Sets under an AVS
+ * @param req
+ * @param res
+ * @returns
+ */
+export async function getAvsOperatorSets(req: Request, res: Response) {
+	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
+	if (!paramCheck.success) return handleAndReturnErrorResponse(req, res, paramCheck.error)
+
+	const queryCheck = PaginationQuerySchema.safeParse(req.query)
+
+	if (!queryCheck.success) {
+		return handleAndReturnErrorResponse(req, res, queryCheck.error)
+	}
+
+	try {
+		const { address } = req.params
+		const { skip, take } = queryCheck.data
+
+		const operatorSets = await prisma.operatorSet.findMany({
+			where: { avsAddress: address.toLowerCase() },
+			skip,
+			take
+		})
+
+		const operatorSetCount = await prisma.operatorSet.count({
+			where: {
+				avsAddress: address.toLowerCase()
+			}
+		})
+
+		res.send({
+			data: operatorSets,
+			meta: {
+				total: operatorSetCount,
+				skip,
+				take
+			}
+		})
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+/**
+ * Function for route /avs/:avsAddress/operator-set/:operatorSetId
+ * Fetches and returns details for a specific Operator Set
+ * @param req
+ * @param res
+ * @returns
+ */
+export async function getAvsOperatorSetDetails(req: Request, res: Response) {
+	const paramCheck = AvsOperatorSetParamsSchema.safeParse(req.params)
+	if (!paramCheck.success) return handleAndReturnErrorResponse(req, res, paramCheck.error)
+
+	try {
+		const { address, operatorSetId } = req.params
+
+		if (operatorSetId === '4294967295') {
+			const avs = await prisma.avs.findUnique({
+				where: { address: address.toLowerCase() },
+				select: { totalStakers: true, totalOperators: true, restakeableStrategies: true }
+			})
+
+			if (!avs) {
+				throw new EigenExplorerApiError({
+					code: 'unprocessable_entity',
+					message: 'invalid_string: Invalid AVS Address'
+				})
+			}
+
+			return res.send({
+				avsAddress: address.toLowerCase(),
+				operatorSetId,
+				strategies: avs.restakeableStrategies ?? [],
+				totalOperators: avs.totalOperators,
+				totalStakers: avs.totalStakers,
+				createdAtBlock: null,
+				updatedAtBlock: null,
+				createdAt: null,
+				updatedAt: null,
+				allocations: null
+			})
+		}
+
+		let totalOperators = 0
+		let totalStakers = 0
+
+		const operatorSet = await prisma.operatorSet.findUnique({
+			where: {
+				avsAddress_operatorSetId: { avsAddress: address, operatorSetId: Number(operatorSetId) }
+			},
+			include: { allocations: true }
+		})
+
+		if (!operatorSet) {
+			throw new EigenExplorerApiError({
+				code: 'unprocessable_entity',
+				message: 'invalid_string: Invalid Operator Set ID'
+			})
+		}
+
+		totalOperators = await prisma.avsOperatorSet.count({
+			where: { avsAddress: address, operatorSetId: Number(operatorSetId), registered: true }
+		})
+
+		const operators = await prisma.operator.findMany({
+			where: {
+				avsOperatorSets: {
+					some: { avsAddress: address, operatorSetId: Number(operatorSetId), registered: true }
+				}
+			},
+			select: { totalStakers: true }
+		})
+
+		totalStakers = operators.reduce((sum, operator) => sum + operator.totalStakers, 0)
+
+		res.send({
+			...operatorSet,
+			totalOperators,
+			totalStakers,
+			allocations: operatorSet.allocations.map(
+				({
+					avsAddress,
+					operatorSetId,
+					createdAtBlock,
+					updatedAtBlock,
+					createdAt,
+					updatedAt,
+					...allocation
+				}) => ({
+					...allocation
+				})
+			)
+		})
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+/**
+ * Function for route /avs/:avsAddress/operator-set/:operatorSetId/operators
+ * Fetches and returns details of operators for a specific Operator Set
+ * @param req
+ * @param res
+ * @returns
+ */
+export async function getAvsOperatorSetOperators(req: Request, res: Response) {
+	const paramCheck = AvsOperatorSetParamsSchema.safeParse(req.params)
+	if (!paramCheck.success) return handleAndReturnErrorResponse(req, res, paramCheck.error)
+
+	const queryCheck = PaginationQuerySchema.safeParse(req.query)
+	if (!queryCheck.success) {
+		return handleAndReturnErrorResponse(req, res, queryCheck.error)
+	}
+
+	try {
+		const { address, operatorSetId } = req.params
+		const { skip, take } = queryCheck.data
+
+		const avs = await prisma.avs.findUnique({
+			where: { address: address.toLowerCase() },
+			include: { operators: { where: { isActive: true } } }
+		})
+
+		if (!avs) {
+			throw new EigenExplorerApiError({
+				code: 'unprocessable_entity',
+				message: 'invalid_string: Invalid AVS Address'
+			})
+		}
+
+		let operatorAddresses: string[] = []
+
+		if (operatorSetId === '4294967295') {
+			operatorAddresses = avs.operators.map((o) => o.operatorAddress)
+		} else {
+			const operatorSet = await prisma.operatorSet.findUnique({
+				where: {
+					avsAddress_operatorSetId: { avsAddress: address, operatorSetId: Number(operatorSetId) }
+				},
+				include: { avsOperatorSets: true }
+			})
+
+			if (!operatorSet) {
+				throw new EigenExplorerApiError({
+					code: 'unprocessable_entity',
+					message: 'invalid_string: Invalid Operator Set ID'
+				})
+			}
+
+			operatorAddresses = operatorSet.avsOperatorSets
+				.filter((o) => o.registered)
+				.map((o) => o.operatorAddress)
+		}
+
+		const total = await prisma.operator.count({
+			where: { address: { in: operatorAddresses } }
+		})
+
+		const operatorsRecords = await prisma.operator.findMany({
+			where: { address: { in: operatorAddresses } },
+			skip,
+			take
+		})
+
+		const data = operatorsRecords.map((operator) => ({
+			...operator,
+			shares: [],
+			tvl: {},
+			stakers: undefined,
+			metadataUrl: undefined,
+			isMetadataSynced: undefined,
+			tvlEth: undefined,
+			sharesHash: undefined
+		}))
+
+		res.send({
+			data,
+			meta: {
+				total,
+				skip,
+				take
+			}
+		})
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+/**
+ * Function for route /avs/:avsAddress/allocations
+ * Fetches and returns Allocations under an AVS.
+ * @param req
+ * @param res
+ * @returns
+ */
+export async function getAvsAllocations(req: Request, res: Response) {
+	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
+	if (!paramCheck.success) return handleAndReturnErrorResponse(req, res, paramCheck.error)
+
+	const queryCheck = PaginationQuerySchema.and(AvsAllocationQuerySchema).safeParse(req.query)
+
+	if (!queryCheck.success) {
+		return handleAndReturnErrorResponse(req, res, queryCheck.error)
+	}
+
+	try {
+		const { address } = req.params
+		const { skip, take } = queryCheck.data
+
+		const { operatorAddress, operatorSetId, strategyAddress } = queryCheck.data
+		const allocations = await prisma.avsAllocation.findMany({
+			where: {
+				avsAddress: address.toLowerCase(),
+				...(operatorAddress && { operatorAddress: operatorAddress.toLowerCase() }),
+				...(operatorSetId && { operatorSetId }),
+				...(strategyAddress && { strategyAddress: strategyAddress.toLowerCase() })
+			},
+			skip,
+			take
+		})
+
+		const allocationCount = await prisma.avsAllocation.count({
+			where: {
+				avsAddress: address.toLowerCase(),
+				...(operatorAddress && { operatorAddress: operatorAddress.toLowerCase() }),
+				...(operatorSetId && { operatorSetId }),
+				...(strategyAddress && { strategyAddress: strategyAddress.toLowerCase() })
+			}
+		})
+
+		res.send({
+			data: allocations,
+			meta: {
+				total: allocationCount,
+				skip,
+				take
+			}
+		})
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+/**
+ * Function for route /avs/:address/slashed
+ * Fetches and returns slashing events for an AVS
+ * @param req
+ * @param res
+ * @returns
+ */
+export async function getAvsSlashed(req: Request, res: Response) {
+	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	}
+
+	const queryCheck = PaginationQuerySchema.and(AvsOperatorSetQuerySchema).safeParse(req.query)
+	if (!queryCheck.success) {
+		return handleAndReturnErrorResponse(req, res, queryCheck.error)
+	}
+
+	try {
+		const { address } = req.params
+		const { skip, take, operatorAddress, operatorSetId } = queryCheck.data
+
+		const slashingRecords = await prisma.avsOperatorSlashed.findMany({
+			where: {
+				avsAddress: address.toLowerCase(),
+				...(operatorAddress && { operatorAddress: operatorAddress.toLowerCase() }),
+				...(operatorSetId && { operatorSetId })
+			},
+			skip,
+			take
+		})
+
+		const data = slashingRecords.map(({ id, ...event }) => ({
+			...event,
+			id: undefined
+		}))
+
+		const total = await prisma.avsOperatorSlashed.count({
+			where: {
+				avsAddress: address.toLowerCase(),
+				...(operatorAddress && { operatorAddress: operatorAddress.toLowerCase() }),
+				...(operatorSetId && { operatorSetId })
+			}
+		})
+
+		res.send({
+			data,
+			meta: {
+				total,
+				skip,
+				take
+			}
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)

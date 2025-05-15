@@ -13,6 +13,9 @@ export interface StrategyWithShareUnderlying {
 	ethPrice: number
 }
 
+const WAD = BigInt(1e18)
+const beaconAddress = '0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0'
+
 /**
  * Get the strategies with their shares underlying and their token prices
  *
@@ -158,4 +161,137 @@ export async function getRestakeableStrategies(avsAddress: string): Promise<stri
 	} catch (error) {}
 
 	return []
+}
+
+/**
+ * Get `sharesToWithdraw` for slashable withdrawals.
+ *
+ * @param withdrawal
+ * @param scaledShares
+ * @param strategyAddress
+ * @param slashableUntil
+ * @returns
+ */
+async function calculateSharesToWithdraw(
+	withdrawal: any,
+	scaledShares: string,
+	strategyAddress: string,
+	slashableUntil: bigint
+) {
+	const maxMagnitudeRecord = await getPrismaClient().eventLogs_MaxMagnitudeUpdated.findFirst({
+		where: {
+			operator: withdrawal.delegatedTo,
+			strategy: strategyAddress,
+			blockNumber: { lte: slashableUntil }
+		},
+		orderBy: { blockNumber: 'desc' }
+	})
+
+	const maxMagnitude = BigInt(maxMagnitudeRecord?.maxMagnitude || WAD)
+	let beaconChainSlashingFactor = WAD
+
+	// If strategy is beacon chain, fetch beaconChainSlashingFactor
+	if (strategyAddress === beaconAddress) {
+		const pod = await getPrismaClient().pod.findFirst({
+			where: { owner: withdrawal.stakerAddress },
+			select: { beaconChainSlashingFactor: true }
+		})
+		beaconChainSlashingFactor = BigInt(pod?.beaconChainSlashingFactor || WAD)
+	}
+
+	const sharesToWithdraw =
+		strategyAddress === beaconAddress
+			? (BigInt(scaledShares) * maxMagnitude * beaconChainSlashingFactor) / (WAD * WAD)
+			: (BigInt(scaledShares) * maxMagnitude) / WAD
+
+	return sharesToWithdraw.toString()
+}
+
+/**
+ * Process withdrawal records and compute `sharesToWithdraw` for slashable withdrawals.
+ *
+ * @param withdrawalRecords
+ * @returns
+ */
+export async function processWithdrawals(withdrawalRecords: any[]) {
+	const processedWithdrawals = await Promise.all(
+		withdrawalRecords.map(async (withdrawal) => {
+			if (!withdrawal.isSlashable) {
+				return {
+					...withdrawal,
+					shares: withdrawal.shares.map((s, i) => ({
+						strategyAddress: withdrawal.strategies[i],
+						shares: s,
+						scaledShares: s,
+						sharesToWithdraw: s
+					})),
+					strategies: undefined,
+					isSlashable: undefined,
+					completedWithdrawal: undefined,
+					sharesToWithdraw: undefined,
+					isCompleted: !!withdrawal.completedWithdrawal,
+					updatedAt: withdrawal.completedWithdrawal?.createdAt || withdrawal.createdAt,
+					updatedAtBlock:
+						withdrawal.completedWithdrawal?.createdAtBlock || withdrawal.createdAtBlock
+				}
+			}
+
+			const minDelayBlocks = await getPrismaClient().settings.findUnique({
+				where: { key: 'withdrawMinDelayBlocks' }
+			})
+			const slashableUntil =
+				withdrawal.createdAtBlock + BigInt((minDelayBlocks?.value as string) || '0')
+
+			const shares = await Promise.all(
+				withdrawal.shares.map(async (scaledShares, i) => {
+					const strategyAddress = withdrawal.strategies[i]
+
+					const stakerAddress = withdrawal.stakerAddress
+					const stakerStrategyShare = await getPrismaClient().stakerStrategyShares.findUnique({
+						where: {
+							stakerAddress_strategyAddress: {
+								stakerAddress: stakerAddress.toLowerCase(),
+								strategyAddress: strategyAddress.toLowerCase()
+							}
+						}
+					})
+
+					let depositScalingFactor = BigInt(stakerStrategyShare?.depositScalingFactor || 1e18)
+					if (depositScalingFactor === 0n) {
+						depositScalingFactor = BigInt(1e18)
+					}
+
+					const shares = ((BigInt(scaledShares) * BigInt(1e18)) / depositScalingFactor).toString()
+
+					const sharesToWithdraw = await calculateSharesToWithdraw(
+						withdrawal,
+						scaledShares,
+						strategyAddress,
+						slashableUntil
+					)
+
+					return {
+						strategyAddress,
+						shares,
+						scaledShares,
+						sharesToWithdraw
+					}
+				})
+			)
+
+			return {
+				...withdrawal,
+				shares,
+				strategies: undefined,
+				isSlashable: undefined,
+				completedWithdrawal: undefined,
+				sharesToWithdraw: undefined,
+				isCompleted: !!withdrawal.completedWithdrawal,
+				updatedAt: withdrawal.completedWithdrawal?.createdAt || withdrawal.createdAt,
+				updatedAtBlock: withdrawal.completedWithdrawal?.createdAtBlock || withdrawal.createdAtBlock
+			}
+		})
+	)
+
+	return processedWithdrawals
 }

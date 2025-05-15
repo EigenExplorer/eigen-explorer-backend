@@ -7,6 +7,7 @@ import { WithTvlQuerySchema } from '../../schema/zod/schemas/withTvlQuery'
 import { getViemClient } from '../../viem/viemClient'
 import {
 	getStrategiesWithShareUnderlying,
+	processWithdrawals,
 	sharesToTVL,
 	sharesToTVLStrategies
 } from '../../utils/strategyShares'
@@ -83,17 +84,39 @@ export async function getAllStakers(req: Request, res: Response) {
 			},
 			include: {
 				shares: {
-					select: { strategyAddress: true, shares: true }
+					select: { strategyAddress: true, shares: true, depositScalingFactor: true }
 				}
 			}
 		})
 
 		const strategiesWithSharesUnderlying = withTvl ? await getStrategiesWithShareUnderlying() : []
 
-		const stakers = stakersRecords.map((staker) => ({
-			...staker,
-			tvl: withTvl ? sharesToTVL(staker.shares, strategiesWithSharesUnderlying) : undefined
-		}))
+		const stakers = await Promise.all(
+			stakersRecords.map(async (staker) => {
+				const shares = await Promise.all(
+					staker.shares.map(async (share) => {
+						const withdrawableShares = await calculateWithdrawableShares(
+							staker.address,
+							share.strategyAddress,
+							share.shares,
+							share.depositScalingFactor,
+							staker.operatorAddress
+						)
+						return {
+							strategyAddress: share.strategyAddress,
+							shares: share.shares,
+							withdrawableShares
+						}
+					})
+				)
+
+				return {
+					...staker,
+					shares,
+					tvl: withTvl ? sharesToTVL(staker.shares, strategiesWithSharesUnderlying) : undefined
+				}
+			})
+		)
 
 		res.send({
 			data: stakers,
@@ -109,7 +132,7 @@ export async function getAllStakers(req: Request, res: Response) {
 }
 
 /**
- * Route to get a single operator
+ * Route to get a single staker
  *
  * @param req
  * @param res
@@ -134,7 +157,7 @@ export async function getStaker(req: Request, res: Response) {
 			where: { address: address.toLowerCase() },
 			include: {
 				shares: {
-					select: { strategyAddress: true, shares: true }
+					select: { strategyAddress: true, shares: true, depositScalingFactor: true }
 				},
 				...(withRewards
 					? {
@@ -179,8 +202,26 @@ export async function getStaker(req: Request, res: Response) {
 				? sharesToTVLStrategies(staker.shares, strategiesWithSharesUnderlying)
 				: null
 
+		const shares = await Promise.all(
+			staker.shares.map(async (share) => {
+				const withdrawableShares = await calculateWithdrawableShares(
+					staker.address,
+					share.strategyAddress,
+					share.shares,
+					share.depositScalingFactor,
+					staker.operatorAddress
+				)
+				return {
+					strategyAddress: share.strategyAddress,
+					shares: share.shares,
+					withdrawableShares
+				}
+			})
+		)
+
 		res.send({
 			...staker,
+			shares,
 			tvl,
 			rewards:
 				withRewards && tvlStrategiesEth
@@ -224,22 +265,7 @@ export async function getStakerWithdrawals(req: Request, res: Response) {
 			orderBy: { createdAtBlock: 'desc' }
 		})
 
-		const data = withdrawalRecords.map((withdrawal) => {
-			const shares = withdrawal.shares.map((s, i) => ({
-				strategyAddress: withdrawal.strategies[i],
-				shares: s
-			}))
-
-			return {
-				...withdrawal,
-				shares,
-				strategies: undefined,
-				completedWithdrawal: undefined,
-				isCompleted: !!withdrawal.completedWithdrawal,
-				updatedAt: withdrawal.completedWithdrawal?.createdAt || withdrawal.createdAt,
-				updatedAtBlock: withdrawal.completedWithdrawal?.createdAtBlock || withdrawal.createdAtBlock
-			}
-		})
+		const data = await processWithdrawals(withdrawalRecords)
 
 		res.send({
 			data,
@@ -282,18 +308,7 @@ export async function getStakerWithdrawalsQueued(req: Request, res: Response) {
 			orderBy: { createdAtBlock: 'desc' }
 		})
 
-		const data = withdrawalRecords.map((withdrawal) => {
-			const shares = withdrawal.shares.map((s, i) => ({
-				strategyAddress: withdrawal.strategies[i],
-				shares: s
-			}))
-
-			return {
-				...withdrawal,
-				shares,
-				strategies: undefined
-			}
-		})
+		const data = await processWithdrawals(withdrawalRecords)
 
 		res.send({
 			data,
@@ -348,18 +363,7 @@ export async function getStakerWithdrawalsWithdrawable(req: Request, res: Respon
 			orderBy: { createdAtBlock: 'desc' }
 		})
 
-		const data = withdrawalRecords.map((withdrawal) => {
-			const shares = withdrawal.shares.map((s, i) => ({
-				strategyAddress: withdrawal.strategies[i],
-				shares: s
-			}))
-
-			return {
-				...withdrawal,
-				shares,
-				strategies: undefined
-			}
-		})
+		const data = await processWithdrawals(withdrawalRecords)
 
 		res.send({
 			data,
@@ -410,21 +414,7 @@ export async function getStakerWithdrawalsCompleted(req: Request, res: Response)
 			orderBy: { createdAtBlock: 'desc' }
 		})
 
-		const data = withdrawalRecords.map((withdrawal) => {
-			const shares = withdrawal.shares.map((s, i) => ({
-				strategyAddress: withdrawal.strategies[i],
-				shares: s
-			}))
-
-			return {
-				...withdrawal,
-				shares,
-				strategies: undefined,
-				completedWithdrawal: undefined,
-				updatedAt: withdrawal.completedWithdrawal?.createdAt || withdrawal.createdAt,
-				updatedAtBlock: withdrawal.completedWithdrawal?.createdAtBlock || withdrawal.createdAtBlock
-			}
-		})
+		const data = await processWithdrawals(withdrawalRecords)
 
 		res.send({
 			data,
@@ -880,4 +870,49 @@ async function calculateStakerRewards(
 			avsApys
 		}
 	} catch {}
+}
+
+// Helper function to calculate withdrawable shares
+async function calculateWithdrawableShares(
+	stakerAddress: string,
+	strategyAddress: string,
+	depositShares: string,
+	depositScalingFactor: string,
+	operatorAddress: string | null
+) {
+	const WAD = BigInt(1e18)
+	const beaconAddress = '0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0'
+
+	// Get maxMagnitude if operator exists
+	const magnitude = operatorAddress
+		? await prisma.operatorStrategyMagnitude.findUnique({
+				where: {
+					operatorAddress_strategyAddress: {
+						operatorAddress: operatorAddress.toLowerCase(),
+						strategyAddress: strategyAddress.toLowerCase()
+					}
+				}
+		  })
+		: null
+
+	const maxMagnitude = magnitude?.maxMagnitude || WAD
+
+	let beaconChainSlashingFactor = WAD
+	if (strategyAddress === beaconAddress) {
+		const pod = await prisma.pod.findFirst({
+			where: { owner: stakerAddress.toLowerCase() }
+		})
+		beaconChainSlashingFactor = BigInt(pod?.beaconChainSlashingFactor ?? WAD)
+	}
+
+	const withdrawableShares =
+		strategyAddress === beaconAddress
+			? (BigInt(depositShares) *
+					BigInt(depositScalingFactor) *
+					BigInt(maxMagnitude) *
+					beaconChainSlashingFactor) /
+			  (WAD * WAD * WAD)
+			: (BigInt(depositShares) * BigInt(depositScalingFactor) * BigInt(maxMagnitude)) / (WAD * WAD)
+
+	return withdrawableShares
 }

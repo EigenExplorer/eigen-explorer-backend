@@ -5420,6 +5420,990 @@
 				}
 			}
 		},
+		"/avs/{address}/operator-sets": {
+			"get": {
+				"operationId": "getAvsOperatorSets",
+				"summary": "Retrieve all operator-sets for an AVS",
+				"description": "Returns a list of all operator-sets for an AVS address. This page supports pagination.",
+				"tags": ["AVS"],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "address",
+						"description": "AVS service manager contract address",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "AVS service manager contract address",
+							"example": "0x870679e138bcdf293b7ff14dd44b70fc97e12fc0"
+						},
+						"required": true
+					},
+					{
+						"in": "query",
+						"name": "skip",
+						"description": "The number of records to skip for pagination",
+						"schema": {
+							"type": "string",
+							"default": "0",
+							"description": "The number of records to skip for pagination",
+							"example": 0
+						}
+					},
+					{
+						"in": "query",
+						"name": "take",
+						"description": "The number of records to return for pagination",
+						"schema": {
+							"type": "string",
+							"default": "12",
+							"description": "The number of records to return for pagination",
+							"example": 12
+						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The list of operator-sets.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"data": {
+											"type": "array",
+											"items": {
+												"type": "object",
+												"properties": {
+													"avsAddress": {
+														"type": "string",
+														"pattern": "^0x[a-fA-F0-9]{40}$",
+														"description": "The AVS contract address",
+														"example": "0xba7cda36abeb28ad200591e6e4a963359b1f43df"
+													},
+													"operatorSetId": {
+														"type": "number",
+														"description": "The ID of the operator-set",
+														"example": 0
+													},
+													"strategies": {
+														"type": "array",
+														"items": {
+															"type": "string",
+															"pattern": "^0x[a-fA-F0-9]{40}$",
+															"description": "The strategy contract address",
+															"example": "0x7d704507b76571a51d9cae8addabbfd0ba0e63d3"
+														},
+														"description": "Array of strategy contract addresses"
+													},
+													"createdAt": {
+														"type": "string",
+														"description": "The timestamp when the record was created as an ISO 8601 string",
+														"example": "2025-02-01T00:00:00.000Z"
+													},
+													"createdAtBlock": {
+														"type": "number",
+														"description": "The block number when the record was created",
+														"example": 3325343
+													},
+													"updatedAt": {
+														"type": "string",
+														"description": "The timestamp when the record was last updated as an ISO 8601 string",
+														"example": "2025-02-01T00:00:00.000Z"
+													},
+													"updatedAtBlock": {
+														"type": "number",
+														"description": "The block number when the record was last updated",
+														"example": 3325343
+													}
+												},
+												"required": [
+													"avsAddress",
+													"operatorSetId",
+													"strategies",
+													"createdAt",
+													"createdAtBlock",
+													"updatedAt",
+													"updatedAtBlock"
+												]
+											}
+										},
+										"meta": {
+											"type": "object",
+											"properties": {
+												"total": {
+													"type": "number",
+													"description": "Total number of records in the database",
+													"example": 30
+												},
+												"skip": {
+													"type": "number",
+													"description": "The number of skiped records for this query",
+													"example": 0
+												},
+												"take": {
+													"type": "number",
+													"description": "The number of records returned for this query",
+													"example": 12
+												}
+											},
+											"required": ["total", "skip", "take"]
+										}
+									},
+									"required": ["data", "meta"]
+								}
+							}
+						}
+					},
+					"400": {
+						"$ref": "#/components/responses/400"
+					},
+					"401": {
+						"$ref": "#/components/responses/401"
+					},
+					"403": {
+						"$ref": "#/components/responses/403"
+					},
+					"404": {
+						"$ref": "#/components/responses/404"
+					},
+					"422": {
+						"$ref": "#/components/responses/422"
+					},
+					"429": {
+						"$ref": "#/components/responses/429"
+					},
+					"500": {
+						"$ref": "#/components/responses/500"
+					}
+				}
+			}
+		},
+		"/avs/{address}/operator-sets/{operatorSetId}": {
+			"get": {
+				"operationId": "getAvsOperatorSetDetails",
+				"summary": "Retrieve details about an operator-set for an AVS",
+				"description": "Returns information about a particular operator-set for an AVS address",
+				"tags": ["AVS"],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "address",
+						"description": "AVS service manager contract address",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "AVS service manager contract address",
+							"example": "0x870679e138bcdf293b7ff14dd44b70fc97e12fc0"
+						},
+						"required": true
+					},
+					{
+						"in": "path",
+						"name": "operatorSetId",
+						"description": "The ID of the operator-set",
+						"schema": {
+							"type": "number",
+							"description": "The ID of the operator-set",
+							"example": 1
+						},
+						"required": true
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The information about operator-set.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"avsAddress": {
+											"type": "string",
+											"pattern": "^0x[a-fA-F0-9]{40}$",
+											"description": "The AVS contract address",
+											"example": "0xba7cda36abeb28ad200591e6e4a963359b1f43df"
+										},
+										"operatorSetId": {
+											"type": "number",
+											"description": "The ID of the operator-set",
+											"example": 0
+										},
+										"strategies": {
+											"type": "array",
+											"items": {
+												"type": "string",
+												"pattern": "^0x[a-fA-F0-9]{40}$",
+												"description": "The strategy contract address",
+												"example": "0x7d704507b76571a51d9cae8addabbfd0ba0e63d3"
+											},
+											"description": "Array of strategy contract addresses"
+										},
+										"totalStakers": {
+											"type": "number",
+											"description": "The count of stakers whose delegated operator is registered in the operator-set",
+											"example": 1
+										},
+										"totalOperators": {
+											"type": "number",
+											"description": "The count of operators registered in the operator-set",
+											"example": 1
+										},
+										"allocations": {
+											"type": "array",
+											"items": {
+												"type": "object",
+												"properties": {
+													"operatorAddress": {
+														"type": "string",
+														"pattern": "^0x[a-fA-F0-9]{40}$",
+														"description": "The operator contract address",
+														"example": "0xd9322bb31f42c7caa12daad49699d655393f9524"
+													},
+													"strategyAddress": {
+														"type": "string",
+														"pattern": "^0x[a-fA-F0-9]{40}$",
+														"description": "The strategy contract address",
+														"example": "0x7d704507b76571a51d9cae8addabbfd0ba0e63d3"
+													},
+													"magnitude": {
+														"type": "string",
+														"description": "The allocation magnitude applicable for this operator-set/strategy pair from effectBlock",
+														"example": "100000"
+													},
+													"effectBlock": {
+														"type": "number",
+														"description": "The block number when the allocated magnitude takes effect",
+														"example": 3326552
+													}
+												},
+												"required": [
+													"operatorAddress",
+													"strategyAddress",
+													"magnitude",
+													"effectBlock"
+												]
+											}
+										},
+										"createdAt": {
+											"type": "string",
+											"description": "The timestamp when the record was created as an ISO 8601 string",
+											"example": "2025-02-01T00:00:00.000Z"
+										},
+										"createdAtBlock": {
+											"type": "number",
+											"description": "The block number when the record was created",
+											"example": 3325343
+										},
+										"updatedAt": {
+											"type": "string",
+											"description": "The timestamp when the record was last updated as an ISO 8601 string",
+											"example": "2025-02-01T00:00:00.000Z"
+										},
+										"updatedAtBlock": {
+											"type": "number",
+											"description": "The block number when the record was last updated",
+											"example": 3325343
+										}
+									},
+									"required": [
+										"avsAddress",
+										"operatorSetId",
+										"strategies",
+										"totalStakers",
+										"totalOperators",
+										"allocations",
+										"createdAt",
+										"createdAtBlock",
+										"updatedAt",
+										"updatedAtBlock"
+									]
+								}
+							}
+						}
+					},
+					"400": {
+						"$ref": "#/components/responses/400"
+					},
+					"401": {
+						"$ref": "#/components/responses/401"
+					},
+					"403": {
+						"$ref": "#/components/responses/403"
+					},
+					"404": {
+						"$ref": "#/components/responses/404"
+					},
+					"422": {
+						"$ref": "#/components/responses/422"
+					},
+					"429": {
+						"$ref": "#/components/responses/429"
+					},
+					"500": {
+						"$ref": "#/components/responses/500"
+					}
+				}
+			}
+		},
+		"/avs/{address}/operator-sets/{operatorSetId}/operators": {
+			"get": {
+				"operationId": "getAvsOperatorSetOperators",
+				"summary": "Retrieve all operators of an operator-set for an AVS",
+				"description": "Returns a list of all operators of an operator-set for an AVS address. This page supports pagination.",
+				"tags": ["AVS"],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "address",
+						"description": "AVS service manager contract address",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "AVS service manager contract address",
+							"example": "0x870679e138bcdf293b7ff14dd44b70fc97e12fc0"
+						},
+						"required": true
+					},
+					{
+						"in": "path",
+						"name": "operatorSetId",
+						"description": "The ID of the operator-set",
+						"schema": {
+							"type": "number",
+							"description": "The ID of the operator-set",
+							"example": 1
+						},
+						"required": true
+					},
+					{
+						"in": "query",
+						"name": "skip",
+						"description": "The number of records to skip for pagination",
+						"schema": {
+							"type": "string",
+							"default": "0",
+							"description": "The number of records to skip for pagination",
+							"example": 0
+						}
+					},
+					{
+						"in": "query",
+						"name": "take",
+						"description": "The number of records to return for pagination",
+						"schema": {
+							"type": "string",
+							"default": "12",
+							"description": "The number of records to return for pagination",
+							"example": 12
+						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The list of operators.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"data": {
+											"type": "array",
+											"items": {
+												"type": "object",
+												"properties": {
+													"address": {
+														"type": "string",
+														"pattern": "^0x[a-fA-F0-9]{40}$",
+														"description": "The contract address of the AVS operator",
+														"example": "0x09e6eb09213bdd3698bd8afb43ec3cb0ecff683a"
+													},
+													"metadataName": {
+														"type": "string",
+														"description": "The name of the AVS operator",
+														"example": "Example AVS Operator"
+													},
+													"metadataDescription": {
+														"type": "string",
+														"nullable": true,
+														"description": "The description of the AVS operator",
+														"example": "This is an example AVS operator"
+													},
+													"metadataDiscord": {
+														"type": "string",
+														"nullable": true,
+														"format": "uri",
+														"description": "The URL of the AVS operator's Discord server",
+														"example": "https://discord.com/invite/abcdefghij"
+													},
+													"metadataLogo": {
+														"type": "string",
+														"nullable": true,
+														"format": "uri",
+														"description": "The URL of the AVS operator's logo"
+													},
+													"metadataTelegram": {
+														"type": "string",
+														"nullable": true,
+														"format": "uri",
+														"description": "The URL of the AVS operator's Telegram channel",
+														"example": "https://t.me/acme"
+													},
+													"metadataWebsite": {
+														"type": "string",
+														"nullable": true,
+														"format": "uri",
+														"description": "The URL of the AVS operator's website",
+														"example": "https://acme.com"
+													},
+													"metadataX": {
+														"type": "string",
+														"nullable": true,
+														"format": "uri",
+														"description": "The URL of the AVS operator's X",
+														"example": "https://twitter.com/acme"
+													},
+													"totalStakers": {
+														"type": "number",
+														"description": "The total number of stakers who have delegated to this AVS operator",
+														"example": 10
+													},
+													"totalAvs": {
+														"type": "number",
+														"description": "The total number of AVS opted by the AVS operator",
+														"example": 10
+													},
+													"maxApy": {
+														"type": "number",
+														"description": "The max APY for the AVS Operator across all the strategies",
+														"example": 1
+													},
+													"createdAtBlock": {
+														"type": "string",
+														"description": "The block number at which the AVS Operator was registered",
+														"example": "19631203"
+													},
+													"updatedAtBlock": {
+														"type": "string",
+														"description": "The block number at which the AVS Operator registration was last updated",
+														"example": "19631203"
+													},
+													"createdAt": {
+														"type": "string",
+														"description": "The time stamp at which the AVS Operator was registered",
+														"example": "2024-04-11T08:31:11.000Z"
+													},
+													"updatedAt": {
+														"type": "string",
+														"description": "The time stamp at which the AVS Operator registration was last updated",
+														"example": "2024-04-11T08:31:11.000Z"
+													},
+													"shares": {
+														"type": "array",
+														"items": {
+															"type": "object",
+															"properties": {
+																"strategyAddress": {
+																	"type": "string",
+																	"pattern": "^0x[a-fA-F0-9]{40}$",
+																	"description": "The contract address of the restaking strategy",
+																	"example": "0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0"
+																},
+																"shares": {
+																	"type": "string",
+																	"description": "The amount of shares held in the strategy",
+																	"example": "1277920000000000000000000"
+																}
+															},
+															"required": ["strategyAddress", "shares"]
+														},
+														"description": "The strategy shares held in the AVS operator",
+														"example": []
+													},
+													"tvl": {
+														"type": "object",
+														"description": "The total value locked (TVL) in the AVS operator",
+														"example": {}
+													}
+												},
+												"required": [
+													"address",
+													"metadataName",
+													"metadataDescription",
+													"metadataDiscord",
+													"metadataLogo",
+													"metadataTelegram",
+													"metadataWebsite",
+													"metadataX",
+													"totalStakers",
+													"totalAvs",
+													"maxApy",
+													"createdAtBlock",
+													"updatedAtBlock",
+													"createdAt",
+													"updatedAt",
+													"shares"
+												]
+											}
+										},
+										"meta": {
+											"type": "object",
+											"properties": {
+												"total": {
+													"type": "number",
+													"description": "Total number of records in the database",
+													"example": 30
+												},
+												"skip": {
+													"type": "number",
+													"description": "The number of skiped records for this query",
+													"example": 0
+												},
+												"take": {
+													"type": "number",
+													"description": "The number of records returned for this query",
+													"example": 12
+												}
+											},
+											"required": ["total", "skip", "take"]
+										}
+									},
+									"required": ["data", "meta"]
+								}
+							}
+						}
+					},
+					"400": {
+						"$ref": "#/components/responses/400"
+					},
+					"401": {
+						"$ref": "#/components/responses/401"
+					},
+					"403": {
+						"$ref": "#/components/responses/403"
+					},
+					"404": {
+						"$ref": "#/components/responses/404"
+					},
+					"422": {
+						"$ref": "#/components/responses/422"
+					},
+					"429": {
+						"$ref": "#/components/responses/429"
+					},
+					"500": {
+						"$ref": "#/components/responses/500"
+					}
+				}
+			}
+		},
+		"/avs/{address}/allocations": {
+			"get": {
+				"operationId": "getAvsAllocations",
+				"summary": "Retrieve all allocations for an AVS",
+				"description": "Returns a list of all allocations for an AVS address. This page supports pagination.",
+				"tags": ["AVS"],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "address",
+						"description": "AVS service manager contract address",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "AVS service manager contract address",
+							"example": "0x870679e138bcdf293b7ff14dd44b70fc97e12fc0"
+						},
+						"required": true
+					},
+					{
+						"in": "query",
+						"name": "operatorAddress",
+						"description": "The address of the Operator",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "The address of the Operator"
+						}
+					},
+					{
+						"in": "query",
+						"name": "operatorSetId",
+						"schema": {
+							"type": "string",
+							"pattern": "^\\d+$"
+						}
+					},
+					{
+						"in": "query",
+						"name": "strategyAddress",
+						"description": "The address of the restaking strategy",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "The address of the restaking strategy"
+						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The list of allocations.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"data": {
+											"type": "array",
+											"items": {
+												"type": "object",
+												"properties": {
+													"avsAddress": {
+														"type": "string",
+														"pattern": "^0x[a-fA-F0-9]{40}$",
+														"description": "The AVS contract address",
+														"example": "0xba7cda36abeb28ad200591e6e4a963359b1f43df"
+													},
+													"operatorSetId": {
+														"type": "number",
+														"description": "The ID of the operator-set",
+														"example": 0
+													},
+													"operatorAddress": {
+														"type": "string",
+														"pattern": "^0x[a-fA-F0-9]{40}$",
+														"description": "The operator contract address",
+														"example": "0xd9322bb31f42c7caa12daad49699d655393f9524"
+													},
+													"strategyAddress": {
+														"type": "string",
+														"pattern": "^0x[a-fA-F0-9]{40}$",
+														"description": "The strategy contract address",
+														"example": "0x7d704507b76571a51d9cae8addabbfd0ba0e63d3"
+													},
+													"magnitude": {
+														"type": "string",
+														"description": "The allocation magnitude applicable for this operator-set/strategy pair from effectBlock",
+														"example": "100000"
+													},
+													"effectBlock": {
+														"type": "number",
+														"description": "The block number when the allocated magnitude takes effect",
+														"example": 3326552
+													},
+													"createdAt": {
+														"type": "string",
+														"description": "The timestamp when the record was created as an ISO 8601 string",
+														"example": "2025-02-01T00:00:00.000Z"
+													},
+													"createdAtBlock": {
+														"type": "number",
+														"description": "The block number when the record was created",
+														"example": 3325343
+													},
+													"updatedAt": {
+														"type": "string",
+														"description": "The timestamp when the record was last updated as an ISO 8601 string",
+														"example": "2025-02-01T00:00:00.000Z"
+													},
+													"updatedAtBlock": {
+														"type": "number",
+														"description": "The block number when the record was last updated",
+														"example": 3325343
+													}
+												},
+												"required": [
+													"avsAddress",
+													"operatorSetId",
+													"operatorAddress",
+													"strategyAddress",
+													"magnitude",
+													"effectBlock",
+													"createdAt",
+													"createdAtBlock",
+													"updatedAt",
+													"updatedAtBlock"
+												]
+											}
+										},
+										"meta": {
+											"type": "object",
+											"properties": {
+												"total": {
+													"type": "number",
+													"description": "Total number of records in the database",
+													"example": 30
+												},
+												"skip": {
+													"type": "number",
+													"description": "The number of skiped records for this query",
+													"example": 0
+												},
+												"take": {
+													"type": "number",
+													"description": "The number of records returned for this query",
+													"example": 12
+												}
+											},
+											"required": ["total", "skip", "take"]
+										}
+									},
+									"required": ["data", "meta"]
+								}
+							}
+						}
+					},
+					"400": {
+						"$ref": "#/components/responses/400"
+					},
+					"401": {
+						"$ref": "#/components/responses/401"
+					},
+					"403": {
+						"$ref": "#/components/responses/403"
+					},
+					"404": {
+						"$ref": "#/components/responses/404"
+					},
+					"422": {
+						"$ref": "#/components/responses/422"
+					},
+					"429": {
+						"$ref": "#/components/responses/429"
+					},
+					"500": {
+						"$ref": "#/components/responses/500"
+					}
+				}
+			}
+		},
+		"/avs/{address}/slashed": {
+			"get": {
+				"operationId": "getAvsSlashed",
+				"summary": "Retrieve all slashes for an AVS",
+				"description": "Returns a list of all slashing done for an AVS address. This page supports pagination.",
+				"tags": ["AVS"],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "address",
+						"description": "AVS service manager contract address",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "AVS service manager contract address",
+							"example": "0x870679e138bcdf293b7ff14dd44b70fc97e12fc0"
+						},
+						"required": true
+					},
+					{
+						"in": "query",
+						"name": "operatorAddress",
+						"description": "The address of the Operator",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "The address of the Operator"
+						}
+					},
+					{
+						"in": "query",
+						"name": "operatorSetId",
+						"schema": {
+							"type": "string",
+							"pattern": "^\\d+$"
+						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The list of slashes.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"data": {
+											"type": "array",
+											"items": {
+												"type": "object",
+												"properties": {
+													"avsAddress": {
+														"type": "string",
+														"pattern": "^0x[a-fA-F0-9]{40}$",
+														"description": "The AVS contract address",
+														"example": "0xba7cda36abeb28ad200591e6e4a963359b1f43df"
+													},
+													"operatorSetId": {
+														"type": "number",
+														"description": "The ID of the operator-set",
+														"example": 0
+													},
+													"operatorAddress": {
+														"type": "string",
+														"pattern": "^0x[a-fA-F0-9]{40}$",
+														"description": "The operator contract address",
+														"example": "0xd9322bb31f42c7caa12daad49699d655393f9524"
+													},
+													"strategies": {
+														"type": "array",
+														"items": {
+															"type": "string",
+															"pattern": "^0x[a-fA-F0-9]{40}$",
+															"description": "The strategy contract address",
+															"example": "0x7d704507b76571a51d9cae8addabbfd0ba0e63d3"
+														},
+														"description": "Array of strategy contract addresses"
+													},
+													"wadSlashed": {
+														"type": "array",
+														"items": {
+															"type": "string"
+														},
+														"description": "Array of proportions of the operator's total allocated (slashable) stake being slashed for each strategy, expressed in WAD (1e18) units",
+														"example": ["0", "0"]
+													},
+													"description": {
+														"type": "string",
+														"description": "Description of the slashing event",
+														"example": "temp"
+													},
+													"createdAt": {
+														"type": "string",
+														"description": "The timestamp when the record was created as an ISO 8601 string",
+														"example": "2025-02-01T00:00:00.000Z"
+													},
+													"createdAtBlock": {
+														"type": "number",
+														"description": "The block number when the record was created",
+														"example": 3325343
+													},
+													"updatedAt": {
+														"type": "string",
+														"description": "The timestamp when the record was last updated as an ISO 8601 string",
+														"example": "2025-02-01T00:00:00.000Z"
+													},
+													"updatedAtBlock": {
+														"type": "number",
+														"description": "The block number when the record was last updated",
+														"example": 3325343
+													}
+												},
+												"required": [
+													"avsAddress",
+													"operatorSetId",
+													"operatorAddress",
+													"strategies",
+													"wadSlashed",
+													"description",
+													"createdAt",
+													"createdAtBlock",
+													"updatedAt",
+													"updatedAtBlock"
+												]
+											}
+										},
+										"meta": {
+											"type": "object",
+											"properties": {
+												"total": {
+													"type": "number",
+													"description": "Total number of records in the database",
+													"example": 30
+												},
+												"skip": {
+													"type": "number",
+													"description": "The number of skiped records for this query",
+													"example": 0
+												},
+												"take": {
+													"type": "number",
+													"description": "The number of records returned for this query",
+													"example": 12
+												}
+											},
+											"required": ["total", "skip", "take"]
+										}
+									},
+									"required": ["data", "meta"]
+								}
+							}
+						}
+					},
+					"400": {
+						"$ref": "#/components/responses/400"
+					},
+					"401": {
+						"$ref": "#/components/responses/401"
+					},
+					"403": {
+						"$ref": "#/components/responses/403"
+					},
+					"404": {
+						"$ref": "#/components/responses/404"
+					},
+					"422": {
+						"$ref": "#/components/responses/422"
+					},
+					"429": {
+						"$ref": "#/components/responses/429"
+					},
+					"500": {
+						"$ref": "#/components/responses/500"
+					}
+				}
+			}
+		},
 		"/operators": {
 			"get": {
 				"operationId": "getAllOperators",
@@ -7167,6 +8151,872 @@
 										}
 									},
 									"required": ["tx", "blockNumber", "blockTime", "type", "args"]
+								}
+							}
+						}
+					},
+					"400": {
+						"$ref": "#/components/responses/400"
+					},
+					"401": {
+						"$ref": "#/components/responses/401"
+					},
+					"403": {
+						"$ref": "#/components/responses/403"
+					},
+					"404": {
+						"$ref": "#/components/responses/404"
+					},
+					"422": {
+						"$ref": "#/components/responses/422"
+					},
+					"429": {
+						"$ref": "#/components/responses/429"
+					},
+					"500": {
+						"$ref": "#/components/responses/500"
+					}
+				}
+			}
+		},
+		"/operators/{address}/operator-sets": {
+			"get": {
+				"operationId": "getOperatorOperatorSets",
+				"summary": "Retrieve all operator-sets for an operator addresses",
+				"description": "Returns a list of all operator-sets for an operator addresses. This page supports pagination.",
+				"tags": ["Operators"],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "address",
+						"description": "The address of the operator",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "The address of the operator",
+							"example": "0x00107cfdeaddc0a3160ed2f6fedd627f313e7b1a"
+						},
+						"required": true
+					},
+					{
+						"in": "query",
+						"name": "avsAddress",
+						"description": "The address of the AVS",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "The address of the AVS"
+						}
+					},
+					{
+						"in": "query",
+						"name": "operatorSetId",
+						"schema": {
+							"type": "string",
+							"pattern": "^\\d+$"
+						}
+					},
+					{
+						"in": "query",
+						"name": "registered",
+						"description": "If the Operator is registered in the Operator Set",
+						"schema": {
+							"type": "string",
+							"enum": ["true", "false"],
+							"description": "If the Operator is registered in the Operator Set"
+						}
+					},
+					{
+						"in": "query",
+						"name": "skip",
+						"description": "The number of records to skip for pagination",
+						"schema": {
+							"type": "string",
+							"default": "0",
+							"description": "The number of records to skip for pagination",
+							"example": 0
+						}
+					},
+					{
+						"in": "query",
+						"name": "take",
+						"description": "The number of records to return for pagination",
+						"schema": {
+							"type": "string",
+							"default": "12",
+							"description": "The number of records to return for pagination",
+							"example": 12
+						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The list of operator-sets.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"data": {
+											"type": "array",
+											"items": {
+												"type": "object",
+												"properties": {
+													"avsAddress": {
+														"type": "string",
+														"pattern": "^0x[a-fA-F0-9]{40}$",
+														"description": "The AVS contract address",
+														"example": "0xba7cda36abeb28ad200591e6e4a963359b1f43df"
+													},
+													"operatorSetId": {
+														"type": "number",
+														"description": "The ID of the operator-set",
+														"example": 0
+													},
+													"operatorAddress": {
+														"type": "string",
+														"pattern": "^0x[a-fA-F0-9]{40}$",
+														"description": "The operator contract address",
+														"example": "0xd9322bb31f42c7caa12daad49699d655393f9524"
+													},
+													"registered": {
+														"type": "boolean",
+														"description": "Whether the operator is registered in the operator-set",
+														"example": true
+													},
+													"slashableUntil": {
+														"type": "number",
+														"description": "Block number until which operator can be slashed after deregistration",
+														"example": 3312767
+													},
+													"createdAt": {
+														"type": "string",
+														"description": "The timestamp when the record was created as an ISO 8601 string",
+														"example": "2025-02-01T00:00:00.000Z"
+													},
+													"createdAtBlock": {
+														"type": "number",
+														"description": "The block number when the record was created",
+														"example": 3325343
+													},
+													"updatedAt": {
+														"type": "string",
+														"description": "The timestamp when the record was last updated as an ISO 8601 string",
+														"example": "2025-02-01T00:00:00.000Z"
+													},
+													"updatedAtBlock": {
+														"type": "number",
+														"description": "The block number when the record was last updated",
+														"example": 3325343
+													}
+												},
+												"required": [
+													"avsAddress",
+													"operatorSetId",
+													"operatorAddress",
+													"registered",
+													"createdAt",
+													"createdAtBlock",
+													"updatedAt",
+													"updatedAtBlock"
+												]
+											}
+										},
+										"meta": {
+											"type": "object",
+											"properties": {
+												"total": {
+													"type": "number",
+													"description": "Total number of records in the database",
+													"example": 30
+												},
+												"skip": {
+													"type": "number",
+													"description": "The number of skiped records for this query",
+													"example": 0
+												},
+												"take": {
+													"type": "number",
+													"description": "The number of records returned for this query",
+													"example": 12
+												}
+											},
+											"required": ["total", "skip", "take"]
+										}
+									},
+									"required": ["data", "meta"]
+								}
+							}
+						}
+					},
+					"400": {
+						"$ref": "#/components/responses/400"
+					},
+					"401": {
+						"$ref": "#/components/responses/401"
+					},
+					"403": {
+						"$ref": "#/components/responses/403"
+					},
+					"404": {
+						"$ref": "#/components/responses/404"
+					},
+					"422": {
+						"$ref": "#/components/responses/422"
+					},
+					"429": {
+						"$ref": "#/components/responses/429"
+					},
+					"500": {
+						"$ref": "#/components/responses/500"
+					}
+				}
+			}
+		},
+		"/operators/{address}/allocations": {
+			"get": {
+				"operationId": "getOperatorAllocations",
+				"summary": "Retrieve all allocations for an operator addresses",
+				"description": "Returns a list of all allocations for an operator addresses. This page supports pagination.",
+				"tags": ["Operators"],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "address",
+						"description": "The address of the operator",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "The address of the operator",
+							"example": "0x00107cfdeaddc0a3160ed2f6fedd627f313e7b1a"
+						},
+						"required": true
+					},
+					{
+						"in": "query",
+						"name": "avsAddress",
+						"description": "The address of the AVS",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "The address of the AVS"
+						}
+					},
+					{
+						"in": "query",
+						"name": "operatorSetId",
+						"schema": {
+							"type": "string",
+							"pattern": "^\\d+$"
+						}
+					},
+					{
+						"in": "query",
+						"name": "strategyAddress",
+						"description": "The address of the restaking strategy",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "The address of the restaking strategy"
+						}
+					},
+					{
+						"in": "query",
+						"name": "skip",
+						"description": "The number of records to skip for pagination",
+						"schema": {
+							"type": "string",
+							"default": "0",
+							"description": "The number of records to skip for pagination",
+							"example": 0
+						}
+					},
+					{
+						"in": "query",
+						"name": "take",
+						"description": "The number of records to return for pagination",
+						"schema": {
+							"type": "string",
+							"default": "12",
+							"description": "The number of records to return for pagination",
+							"example": 12
+						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The list of allocations.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"data": {
+											"type": "array",
+											"items": {
+												"type": "object",
+												"properties": {
+													"avsAddress": {
+														"type": "string",
+														"pattern": "^0x[a-fA-F0-9]{40}$",
+														"description": "The AVS contract address",
+														"example": "0xba7cda36abeb28ad200591e6e4a963359b1f43df"
+													},
+													"operatorSetId": {
+														"type": "number",
+														"description": "The ID of the operator-set",
+														"example": 0
+													},
+													"operatorAddress": {
+														"type": "string",
+														"pattern": "^0x[a-fA-F0-9]{40}$",
+														"description": "The operator contract address",
+														"example": "0xd9322bb31f42c7caa12daad49699d655393f9524"
+													},
+													"strategyAddress": {
+														"type": "string",
+														"pattern": "^0x[a-fA-F0-9]{40}$",
+														"description": "The strategy contract address",
+														"example": "0x7d704507b76571a51d9cae8addabbfd0ba0e63d3"
+													},
+													"magnitude": {
+														"type": "string",
+														"description": "The allocation magnitude applicable for this operator-set/strategy pair from effectBlock",
+														"example": "100000"
+													},
+													"effectBlock": {
+														"type": "number",
+														"description": "The block number when the allocated magnitude takes effect",
+														"example": 3326552
+													},
+													"createdAt": {
+														"type": "string",
+														"description": "The timestamp when the record was created as an ISO 8601 string",
+														"example": "2025-02-01T00:00:00.000Z"
+													},
+													"createdAtBlock": {
+														"type": "number",
+														"description": "The block number when the record was created",
+														"example": 3325343
+													},
+													"updatedAt": {
+														"type": "string",
+														"description": "The timestamp when the record was last updated as an ISO 8601 string",
+														"example": "2025-02-01T00:00:00.000Z"
+													},
+													"updatedAtBlock": {
+														"type": "number",
+														"description": "The block number when the record was last updated",
+														"example": 3325343
+													}
+												},
+												"required": [
+													"avsAddress",
+													"operatorSetId",
+													"operatorAddress",
+													"strategyAddress",
+													"magnitude",
+													"effectBlock",
+													"createdAt",
+													"createdAtBlock",
+													"updatedAt",
+													"updatedAtBlock"
+												]
+											}
+										},
+										"meta": {
+											"type": "object",
+											"properties": {
+												"total": {
+													"type": "number",
+													"description": "Total number of records in the database",
+													"example": 30
+												},
+												"skip": {
+													"type": "number",
+													"description": "The number of skiped records for this query",
+													"example": 0
+												},
+												"take": {
+													"type": "number",
+													"description": "The number of records returned for this query",
+													"example": 12
+												}
+											},
+											"required": ["total", "skip", "take"]
+										}
+									},
+									"required": ["data", "meta"]
+								}
+							}
+						}
+					},
+					"400": {
+						"$ref": "#/components/responses/400"
+					},
+					"401": {
+						"$ref": "#/components/responses/401"
+					},
+					"403": {
+						"$ref": "#/components/responses/403"
+					},
+					"404": {
+						"$ref": "#/components/responses/404"
+					},
+					"422": {
+						"$ref": "#/components/responses/422"
+					},
+					"429": {
+						"$ref": "#/components/responses/429"
+					},
+					"500": {
+						"$ref": "#/components/responses/500"
+					}
+				}
+			}
+		},
+		"/operators/{address}/slashed": {
+			"get": {
+				"operationId": "getOperatorSlashed",
+				"summary": "Retrieve all slashes for an operator addresses",
+				"description": "Returns a list of all slashes for an operator addresses. This page supports pagination.",
+				"tags": ["Operators"],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "address",
+						"description": "The address of the operator",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "The address of the operator",
+							"example": "0x00107cfdeaddc0a3160ed2f6fedd627f313e7b1a"
+						},
+						"required": true
+					},
+					{
+						"in": "query",
+						"name": "avsAddress",
+						"description": "The address of the AVS",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "The address of the AVS"
+						}
+					},
+					{
+						"in": "query",
+						"name": "operatorSetId",
+						"schema": {
+							"type": "string",
+							"pattern": "^\\d+$"
+						}
+					},
+					{
+						"in": "query",
+						"name": "skip",
+						"description": "The number of records to skip for pagination",
+						"schema": {
+							"type": "string",
+							"default": "0",
+							"description": "The number of records to skip for pagination",
+							"example": 0
+						}
+					},
+					{
+						"in": "query",
+						"name": "take",
+						"description": "The number of records to return for pagination",
+						"schema": {
+							"type": "string",
+							"default": "12",
+							"description": "The number of records to return for pagination",
+							"example": 12
+						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The ist of slashes.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"data": {
+											"type": "array",
+											"items": {
+												"type": "object",
+												"properties": {
+													"avsAddress": {
+														"type": "string",
+														"pattern": "^0x[a-fA-F0-9]{40}$",
+														"description": "The AVS contract address",
+														"example": "0xba7cda36abeb28ad200591e6e4a963359b1f43df"
+													},
+													"operatorSetId": {
+														"type": "number",
+														"description": "The ID of the operator-set",
+														"example": 0
+													},
+													"operatorAddress": {
+														"type": "string",
+														"pattern": "^0x[a-fA-F0-9]{40}$",
+														"description": "The operator contract address",
+														"example": "0xd9322bb31f42c7caa12daad49699d655393f9524"
+													},
+													"strategies": {
+														"type": "array",
+														"items": {
+															"type": "string",
+															"pattern": "^0x[a-fA-F0-9]{40}$",
+															"description": "The strategy contract address",
+															"example": "0x7d704507b76571a51d9cae8addabbfd0ba0e63d3"
+														},
+														"description": "Array of strategy contract addresses"
+													},
+													"wadSlashed": {
+														"type": "array",
+														"items": {
+															"type": "string"
+														},
+														"description": "Array of proportions of the operator's total allocated (slashable) stake being slashed for each strategy, expressed in WAD (1e18) units",
+														"example": ["0", "0"]
+													},
+													"description": {
+														"type": "string",
+														"description": "Description of the slashing event",
+														"example": "temp"
+													},
+													"createdAt": {
+														"type": "string",
+														"description": "The timestamp when the record was created as an ISO 8601 string",
+														"example": "2025-02-01T00:00:00.000Z"
+													},
+													"createdAtBlock": {
+														"type": "number",
+														"description": "The block number when the record was created",
+														"example": 3325343
+													},
+													"updatedAt": {
+														"type": "string",
+														"description": "The timestamp when the record was last updated as an ISO 8601 string",
+														"example": "2025-02-01T00:00:00.000Z"
+													},
+													"updatedAtBlock": {
+														"type": "number",
+														"description": "The block number when the record was last updated",
+														"example": 3325343
+													}
+												},
+												"required": [
+													"avsAddress",
+													"operatorSetId",
+													"operatorAddress",
+													"strategies",
+													"wadSlashed",
+													"description",
+													"createdAt",
+													"createdAtBlock",
+													"updatedAt",
+													"updatedAtBlock"
+												]
+											}
+										},
+										"meta": {
+											"type": "object",
+											"properties": {
+												"total": {
+													"type": "number",
+													"description": "Total number of records in the database",
+													"example": 30
+												},
+												"skip": {
+													"type": "number",
+													"description": "The number of skiped records for this query",
+													"example": 0
+												},
+												"take": {
+													"type": "number",
+													"description": "The number of records returned for this query",
+													"example": 12
+												}
+											},
+											"required": ["total", "skip", "take"]
+										}
+									},
+									"required": ["data", "meta"]
+								}
+							}
+						}
+					},
+					"400": {
+						"$ref": "#/components/responses/400"
+					},
+					"401": {
+						"$ref": "#/components/responses/401"
+					},
+					"403": {
+						"$ref": "#/components/responses/403"
+					},
+					"404": {
+						"$ref": "#/components/responses/404"
+					},
+					"422": {
+						"$ref": "#/components/responses/422"
+					},
+					"429": {
+						"$ref": "#/components/responses/429"
+					},
+					"500": {
+						"$ref": "#/components/responses/500"
+					}
+				}
+			}
+		},
+		"/operators/{address}/magnitudes": {
+			"get": {
+				"operationId": "getOperatorMagnitudes",
+				"summary": "Retrieve magnitude for an operator addresses",
+				"description": "Returns the magnitude details for an operator addresses.",
+				"tags": ["Operators"],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "address",
+						"description": "The address of the operator",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "The address of the operator",
+							"example": "0x00107cfdeaddc0a3160ed2f6fedd627f313e7b1a"
+						},
+						"required": true
+					},
+					{
+						"in": "query",
+						"name": "strategyAddress",
+						"description": "The address of the restaking strategy",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "The address of the restaking strategy"
+						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The information regarding magnitudes.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"operatorAddress": {
+											"type": "string",
+											"pattern": "^0x[a-fA-F0-9]{40}$",
+											"description": "The operator contract address",
+											"example": "0xd9322bb31f42c7caa12daad49699d655393f9524"
+										},
+										"strategyAddress": {
+											"type": "string",
+											"pattern": "^0x[a-fA-F0-9]{40}$",
+											"description": "The strategy contract address",
+											"example": "0x7d704507b76571a51d9cae8addabbfd0ba0e63d3"
+										},
+										"maxMagnitude": {
+											"type": "string",
+											"description": "The maximum magnitude that can be allocated between all operator-sets for a strategy",
+											"example": "1000000000000000000"
+										},
+										"encumberedMagnitude": {
+											"type": "string",
+											"description": "The currently-allocated magnitude for the strategy",
+											"example": "300000"
+										},
+										"createdAt": {
+											"type": "string",
+											"description": "The timestamp when the record was created as an ISO 8601 string",
+											"example": "2025-02-01T00:00:00.000Z"
+										},
+										"createdAtBlock": {
+											"type": "number",
+											"description": "The block number when the record was created",
+											"example": 3325343
+										},
+										"updatedAt": {
+											"type": "string",
+											"description": "The timestamp when the record was last updated as an ISO 8601 string",
+											"example": "2025-02-01T00:00:00.000Z"
+										},
+										"updatedAtBlock": {
+											"type": "number",
+											"description": "The block number when the record was last updated",
+											"example": 3325343
+										}
+									},
+									"required": [
+										"operatorAddress",
+										"strategyAddress",
+										"maxMagnitude",
+										"encumberedMagnitude",
+										"createdAt",
+										"createdAtBlock",
+										"updatedAt",
+										"updatedAtBlock"
+									]
+								}
+							}
+						}
+					},
+					"400": {
+						"$ref": "#/components/responses/400"
+					},
+					"401": {
+						"$ref": "#/components/responses/401"
+					},
+					"403": {
+						"$ref": "#/components/responses/403"
+					},
+					"404": {
+						"$ref": "#/components/responses/404"
+					},
+					"422": {
+						"$ref": "#/components/responses/422"
+					},
+					"429": {
+						"$ref": "#/components/responses/429"
+					},
+					"500": {
+						"$ref": "#/components/responses/500"
+					}
+				}
+			}
+		},
+		"/operators/{address}/allocation-delay": {
+			"get": {
+				"operationId": "getOperatorAllocationDelay",
+				"summary": "Retrieve allocation delay for an operator addresses",
+				"description": "Returns the allocation delay for an operator addresses.",
+				"tags": ["Operators"],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "address",
+						"description": "The address of the operator",
+						"schema": {
+							"type": "string",
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"description": "The address of the operator",
+							"example": "0x00107cfdeaddc0a3160ed2f6fedd627f313e7b1a"
+						},
+						"required": true
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The information regarding allocation delay.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"operatorAddress": {
+											"type": "string",
+											"pattern": "^0x[a-fA-F0-9]{40}$",
+											"description": "The operator contract address",
+											"example": "0xd9322bb31f42c7caa12daad49699d655393f9524"
+										},
+										"delay": {
+											"type": "number",
+											"description": "The allocation delay in blocks i.e no. of blocks between an operator allocating magnitude to an operator-set, and the magnitude becoming slashable",
+											"example": 0
+										},
+										"effectBlock": {
+											"type": "number",
+											"description": "The block number when the delay takes effect",
+											"example": 3325366
+										},
+										"createdAt": {
+											"type": "string",
+											"description": "The timestamp when the record was created as an ISO 8601 string",
+											"example": "2025-02-01T00:00:00.000Z"
+										},
+										"createdAtBlock": {
+											"type": "number",
+											"description": "The block number when the record was created",
+											"example": 3325343
+										},
+										"updatedAt": {
+											"type": "string",
+											"description": "The timestamp when the record was last updated as an ISO 8601 string",
+											"example": "2025-02-01T00:00:00.000Z"
+										},
+										"updatedAtBlock": {
+											"type": "number",
+											"description": "The block number when the record was last updated",
+											"example": 3325343
+										}
+									},
+									"required": [
+										"operatorAddress",
+										"delay",
+										"effectBlock",
+										"createdAt",
+										"createdAtBlock",
+										"updatedAt",
+										"updatedAtBlock"
+									]
 								}
 							}
 						}
