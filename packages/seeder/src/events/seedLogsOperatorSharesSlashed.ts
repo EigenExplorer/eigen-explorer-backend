@@ -6,7 +6,8 @@ import {
 	bulkUpdateDbTransactions,
 	fetchLastSyncBlock,
 	getBlockDataFromDb,
-	loopThroughBlocks
+	loopThroughBlocks,
+	LogsUpdateMetadata
 } from '../utils/seeder'
 import { getPrismaClient } from '../utils/prismaClient'
 
@@ -18,12 +19,18 @@ const blockSyncKeyLogs = 'lastSyncedBlock_logs_operatorShares'
  * @param fromBlock
  * @param toBlock
  */
-export async function seedLogsOperatorSharesSlashed(toBlock?: bigint, fromBlock?: bigint) {
+export async function seedLogsOperatorSharesSlashed(
+	toBlock?: bigint,
+	fromBlock?: bigint
+): Promise<LogsUpdateMetadata> {
 	const viemClient = getViemClient()
 	const prismaClient = getPrismaClient()
 
 	const firstBlock = fromBlock ? fromBlock : await fetchLastSyncBlock(blockSyncKeyLogs)
 	const lastBlock = toBlock ? toBlock : await viemClient.getBlockNumber()
+
+	let isUpdated = false
+	let updatedCount = 0
 
 	// Loop through evm logs
 	await loopThroughBlocks(firstBlock, lastBlock, async (fromBlock, toBlock) => {
@@ -81,8 +88,16 @@ export async function seedLogsOperatorSharesSlashed(toBlock?: bigint, fromBlock?
 
 			await bulkUpdateDbTransactions(
 				dbTransactions,
-				`[Logs] Operator Slashed from: ${fromBlock} to: ${toBlock} size: ${seedLength}`
+				`[Logs] Operator Shares Slashed from: ${fromBlock} to: ${toBlock} size: ${seedLength}`
 			)
+
+			isUpdated = true
+			updatedCount += seedLength
 		} catch (error) {}
 	})
+
+	return {
+		isUpdated,
+		updatedCount
+	}
 }
