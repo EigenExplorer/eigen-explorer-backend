@@ -121,6 +121,7 @@ async function seedEigenLogs() {
 		if (results.some((changed) => changed)) {
 			// Schedule specific seed functions based on which logs changed
 			if (
+				results[15].updatedCount > 0 ||
 				results[0].updatedCount > 0 ||
 				results[1].updatedCount > 0 ||
 				results[2].updatedCount > 0 ||
@@ -129,11 +130,42 @@ async function seedEigenLogs() {
 			) {
 				updateEvents.push(
 					(async () => {
+						await seedAvsRegistrar()
 						await seedAvs()
 						await seedOperators()
 						await seedAvsOperators()
 						await seedOperatorShares()
 						await seedStakers()
+					})()
+				)
+			}
+
+			if (
+				results[18].updatedCount > 0 ||
+				results[20].updatedCount > 0 ||
+				results[13].updatedCount > 0 ||
+				results[17].updatedCount > 0 ||
+				results[14].updatedCount > 0 ||
+				results[19].updatedCount > 0 ||
+				results[16].updatedCount > 0
+			) {
+				updateEvents.push(
+					(async () => {
+						await seedOperatorSet()
+						await seedAllocationDelay()
+
+						await seedAvsOperatorSets()
+						await seedAvsAllocation()
+						await seedOperatorMagnitude()
+						await seedOperatorSlashed()
+					})()
+				)
+			}
+
+			if (results[20].updatedCount > 0) {
+				updateEvents.push(
+					(async () => {
+						await seedOperatorSetStrategies()
 					})()
 				)
 			}
@@ -147,9 +179,19 @@ async function seedEigenLogs() {
 				)
 			}
 
+			if (results[21].updatedCount > 0) {
+				updateEvents.push(
+					(async () => {
+						await seedBeaconChainSlashingFactor()
+					})()
+				)
+			}
+
 			if (
 				results[6].updatedCount > 0 ||
 				results[7].updatedCount > 0 ||
+				results[24].updatedCount > 0 ||
+				results[25].updatedCount > 0 ||
 				results[8].updatedCount > 0 ||
 				results[9].updatedCount > 0
 			) {
@@ -157,6 +199,8 @@ async function seedEigenLogs() {
 					(async () => {
 						await seedQueuedWithdrawals()
 						await seedCompletedWithdrawals()
+						await seedQueuedSlashingWithdrawals()
+						await seedCompletedSlashingWithdrawals()
 						await seedDeposits()
 					})()
 				)
@@ -213,35 +257,6 @@ async function seedEigenDataFull() {
 		await doSeedLogs(targetBlock)
 
 		await Promise.all([
-			seedLogsAVSMetadata(targetBlock),
-			seedLogsOperatorMetadata(targetBlock),
-			seedLogsOperatorAVSRegistrationStatus(targetBlock),
-			seedLogsOperatorShares(targetBlock),
-			seedLogsStakerDelegation(targetBlock),
-			seedLogsPodDeployed(targetBlock),
-			seedLogsWithdrawalQueued(targetBlock),
-			seedLogsWithdrawalCompleted(targetBlock),
-			seedLogsSlashingWithdrawalQueued(targetBlock),
-			seedLogsSlashingWithdrawalCompleted(targetBlock),
-			seedLogsDeposit(targetBlock),
-			seedLogsPodSharesUpdated(targetBlock),
-			seedLogsAVSRewardsSubmission(targetBlock),
-			seedLogStrategyWhitelist(targetBlock),
-			seedLogsDistributionRootSubmitted(targetBlock),
-			seedLogsAllocationDelaySet(targetBlock),
-			seedLogsAllocationUpdated(targetBlock),
-			seedLogsAVSRegistrarSet(targetBlock),
-			seedLogsOperatorMagnitudeUpdated(targetBlock),
-			seedLogsAVSOperatorSetOperators(targetBlock),
-			seedLogsOperatorSetCreated(targetBlock),
-			seedLogsOperatorSlashed(targetBlock),
-			seedLogsOperatorSetStrategies(targetBlock),
-			seedLogsBeaconChainSlashingFactor(targetBlock),
-			seedLogsDepositScalingFactor(targetBlock),
-			seedLogsOperatorSharesSlashed(targetBlock)
-		])
-
-		await Promise.all([
 			// Avs, Operators, Avs Operators, OperatorSets, AvsOperatorSets and Slashing
 			(async () => {
 				await seedAvs()
@@ -280,11 +295,11 @@ async function seedEigenDataFull() {
 		await Promise.all([
 			// Rewards
 			seedAvsStrategyRewards(),
-			seedStakerRewardSnapshots(),
+			seedStakerRewardSnapshots()
 
 			// Metrics
-			monitorAvsMetrics({}),
-			monitorOperatorMetrics({})
+			// monitorAvsMetrics({}),
+			// monitorOperatorMetrics({})
 		])
 
 		console.timeEnd('Seeded data in')
@@ -427,18 +442,34 @@ async function doSeedBlockData(targetBlock: bigint) {
 
 async function doSeedLogs(targetBlock: bigint) {
 	return await Promise.all([
-		seedLogsAVSMetadata(targetBlock),
-		seedLogsOperatorMetadata(targetBlock),
-		seedLogsOperatorAVSRegistrationStatus(targetBlock),
-		seedLogsOperatorShares(targetBlock),
-		seedLogsStakerDelegation(targetBlock),
-		seedLogsPodDeployed(targetBlock),
-		seedLogsWithdrawalQueued(targetBlock),
-		seedLogsWithdrawalCompleted(targetBlock),
-		seedLogsDeposit(targetBlock),
-		seedLogsPodSharesUpdated(targetBlock),
-		seedLogsAVSRewardsSubmission(targetBlock),
-		seedLogStrategyWhitelist(targetBlock),
-		seedLogsDistributionRootSubmitted(targetBlock)
+		// Existing ...
+		seedLogsAVSMetadata(targetBlock), // 0
+		seedLogsOperatorMetadata(targetBlock), // 1
+		seedLogsOperatorAVSRegistrationStatus(targetBlock), // 2
+		seedLogsOperatorShares(targetBlock), // 3
+		seedLogsStakerDelegation(targetBlock), // 4
+		seedLogsPodDeployed(targetBlock), // 5
+		seedLogsWithdrawalQueued(targetBlock), // 6
+		seedLogsWithdrawalCompleted(targetBlock), // 7
+		seedLogsDeposit(targetBlock), // 8
+		seedLogsPodSharesUpdated(targetBlock), // 9
+		seedLogsAVSRewardsSubmission(targetBlock), // 10
+		seedLogStrategyWhitelist(targetBlock), // 11
+		seedLogsDistributionRootSubmitted(targetBlock), // 12
+
+		// New ...
+		seedLogsAllocationDelaySet(targetBlock), // 13
+		seedLogsAllocationUpdated(targetBlock), // 14
+		seedLogsAVSRegistrarSet(targetBlock), // 15
+		seedLogsOperatorMagnitudeUpdated(targetBlock), // 16
+		seedLogsAVSOperatorSetOperators(targetBlock), // 17
+		seedLogsOperatorSetCreated(targetBlock), // 18
+		seedLogsOperatorSlashed(targetBlock), // 19
+		seedLogsOperatorSetStrategies(targetBlock), // 20
+		seedLogsBeaconChainSlashingFactor(targetBlock), // 21
+		seedLogsDepositScalingFactor(targetBlock), // 22
+		seedLogsOperatorSharesSlashed(targetBlock), // 23
+		seedLogsSlashingWithdrawalQueued(targetBlock), // 24
+		seedLogsSlashingWithdrawalCompleted(targetBlock) // 25
 	])
 }

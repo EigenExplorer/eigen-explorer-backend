@@ -6,6 +6,7 @@ import {
 	bulkUpdateDbTransactions,
 	fetchLastSyncBlock,
 	getBlockDataFromDb,
+	LogsUpdateMetadata,
 	loopThroughBlocks
 } from '../utils/seeder'
 import { getPrismaClient } from '../utils/prismaClient'
@@ -18,12 +19,18 @@ const blockSyncKeyLogs = 'lastSyncedBlock_logs_beaconChainSlashingFactor'
  * @param toBlock
  * @param fromBlock
  */
-export async function seedLogsBeaconChainSlashingFactor(toBlock?: bigint, fromBlock?: bigint) {
+export async function seedLogsBeaconChainSlashingFactor(
+	toBlock?: bigint,
+	fromBlock?: bigint
+): Promise<LogsUpdateMetadata> {
 	const viemClient = getViemClient()
 	const prismaClient = getPrismaClient()
 
 	const firstBlock = fromBlock ? fromBlock : await fetchLastSyncBlock(blockSyncKeyLogs)
 	const lastBlock = toBlock ? toBlock : await viemClient.getBlockNumber()
+
+	let isUpdated = false
+	let updatedCount = 0
 
 	// Loop through EVM logs
 	await loopThroughBlocks(firstBlock, lastBlock, async (fromBlock, toBlock) => {
@@ -82,8 +89,16 @@ export async function seedLogsBeaconChainSlashingFactor(toBlock?: bigint, fromBl
 				dbTransactions,
 				`[Logs] Beacon Chain Slashing Factor Decreased from: ${fromBlock} to: ${toBlock} size: ${seedLength}`
 			)
+
+			isUpdated = true
+			updatedCount += seedLength
 		} catch (error) {
 			console.error('Error seeding BeaconChainSlashingFactorDecreased logs:', error)
 		}
 	})
+
+	return {
+		isUpdated,
+		updatedCount
+	}
 }
