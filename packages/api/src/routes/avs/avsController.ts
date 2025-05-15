@@ -28,9 +28,13 @@ import { MinTvlQuerySchema } from '../../schema/zod/schemas/minTvlQuerySchema'
 import {
 	AvsAllocationQuerySchema,
 	AvsOperatorSetParamsSchema,
-	AvsOperatorSetQuerySchema,
-	OperatorSetQuerySchema
+	AvsOperatorSetQuerySchema
 } from '../../schema/zod/schemas/operatorSetSchemas'
+import {
+	AvsAdditionalInfoSchema,
+	AvsAdditionalInfoKeys
+} from '../../schema/zod/schemas/updateAvsMetadata'
+import { isAuthRequired } from '../../utils/authMiddleware'
 
 /**
  * Function for route /avs
@@ -90,6 +94,7 @@ export async function getAllAVS(req: Request, res: Response) {
 			},
 			include: {
 				curatedMetadata: withCuratedMetadata,
+				additionalInfo: withCuratedMetadata,
 				operators: {
 					where: { isActive: true },
 					include: {
@@ -129,7 +134,10 @@ export async function getAllAVS(req: Request, res: Response) {
 
 				return {
 					...avs,
-					curatedMetadata: withCuratedMetadata ? avs.curatedMetadata : undefined,
+					curatedMetadata: withCuratedMetadata ? avs.curatedMetadata : undefined, // Legacy
+					additionalInfo: withCuratedMetadata
+						? getAdditionalInfo(avs.additionalInfo, avs.curatedMetadata)
+						: undefined,
 					totalOperators: avs.totalOperators,
 					totalStakers: avs.totalStakers,
 					shares,
@@ -258,6 +266,7 @@ export async function getAVS(req: Request, res: Response) {
 			where: { address: address.toLowerCase(), ...getAvsFilterQuery() },
 			include: {
 				curatedMetadata: withCuratedMetadata,
+				additionalInfo: withCuratedMetadata,
 				rewardSubmissions: withRewards,
 				operators: {
 					where: { isActive: true },
@@ -281,6 +290,9 @@ export async function getAVS(req: Request, res: Response) {
 		res.send({
 			...avs,
 			curatedMetadata: withCuratedMetadata ? avs.curatedMetadata : undefined,
+			additionalInfo: withCuratedMetadata
+				? getAdditionalInfo(avs.additionalInfo, avs.curatedMetadata)
+				: undefined,
 			shares,
 			totalOperators: avs.totalOperators,
 			totalStakers: avs.totalStakers,
@@ -1081,7 +1093,7 @@ export async function invalidateMetadata(req: Request, res: Response) {
 	}
 
 	try {
-		const accessLevel = req.accessLevel || 0
+		const accessLevel = isAuthRequired() ? req.accessLevel || 0 : 999
 
 		if (accessLevel !== 999) {
 			throw new EigenExplorerApiError({ code: 'unauthorized', message: 'Unauthorized access.' })
@@ -1095,10 +1107,232 @@ export async function invalidateMetadata(req: Request, res: Response) {
 		})
 
 		if (updateResult.count === 0) {
-			throw new Error('Address not found.')
+			throw new EigenExplorerApiError({ code: 'not_found', message: 'AVS address not found.' })
 		}
 
 		res.send({ message: 'Metadata invalidated successfully.' })
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+/**
+ * Function for route /avs/:address/update-metadata
+ * Protected route to update the additional info of a given AVS
+ *
+ * @param req
+ * @param res
+ */
+export async function updateMetadata(req: Request, res: Response) {
+	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	}
+
+	const bodyCheck = AvsAdditionalInfoSchema.safeParse(req.body)
+	if (!bodyCheck.success) {
+		return handleAndReturnErrorResponse(req, res, bodyCheck.error)
+	}
+
+	try {
+		const accessLevel = isAuthRequired() ? req.accessLevel || 0 : 999
+
+		if (accessLevel !== 999) {
+			throw new EigenExplorerApiError({ code: 'unauthorized', message: 'Unauthorized access.' })
+		}
+
+		const storageBucket = 'avs-curated-metadata-media' // Storage bucket on DB must match name
+		const { address } = req.params
+		const { items } = bodyCheck.data
+
+		try {
+			await prisma.avs.findUniqueOrThrow({
+				where: { address: address.toLowerCase() },
+				select: { address: true }
+			})
+		} catch {
+			throw new EigenExplorerApiError({ code: 'not_found', message: 'AVS not found.' })
+		}
+
+		// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+		const dbTransactions: any[] = []
+
+		for (const item of items) {
+			if (item.contentType === 'application/json') {
+				const jsonItem = item as {
+					contentType: 'application/json'
+					metadataKey: string
+					metadataContent: string | null
+				}
+
+				dbTransactions.push(
+					prisma.avsAdditionalInfo.upsert({
+						where: {
+							avsAddress_metadataKey: {
+								avsAddress: address.toLowerCase(),
+								metadataKey: jsonItem.metadataKey
+							}
+						},
+						create: {
+							avsAddress: address.toLowerCase(),
+							metadataKey: jsonItem.metadataKey,
+							metadataContent: jsonItem.metadataContent as string,
+							createdAt: new Date(),
+							updatedAt: new Date()
+						},
+						update: {
+							metadataContent: jsonItem.metadataContent,
+							updatedAt: new Date()
+						}
+					})
+				)
+			} else {
+				const imageItem = item as {
+					metadataKey: string
+					contentType: string
+					fileData: string
+				}
+
+				const base64String = imageItem.fileData.replace(/^data:image\/\w+;base64,/, '')
+				const fileBuffer = Buffer.from(base64String, 'base64')
+
+				const supportedExtensions = {
+					'image/jpeg': 'jpg',
+					'image/jpg': 'jpg',
+					'image/png': 'png',
+					'image/gif': 'gif',
+					'image/webp': 'webp',
+					'image/svg+xml': 'svg'
+				}
+
+				const extension = supportedExtensions[imageItem.contentType] || 'bin'
+				const fileName = `${address.toLowerCase()}/${imageItem.metadataKey}.${extension}` // Will overwrite existing media file for a given (avs, metadata key)
+				const uploadUrl = `https://${process.env.SUPABASE_PROJECT_REF}.supabase.co/storage/v1/object/${storageBucket}/${fileName}`
+				const uploadResponse = await fetch(uploadUrl, {
+					method: 'POST',
+					headers: {
+						Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+						'Content-Type': imageItem.contentType,
+						'x-upsert': 'true'
+					},
+					body: fileBuffer
+				})
+
+				if (!uploadResponse.ok) {
+					throw new EigenExplorerApiError({
+						code: 'internal_server_error',
+						message: `Supabase storage error: ${uploadResponse.statusText}`
+					})
+				}
+
+				const fileUrl = `https://${process.env.SUPABASE_PROJECT_REF}.supabase.co/storage/v1/object/public/${storageBucket}/${fileName}`
+
+				dbTransactions.push(
+					prisma.avsAdditionalInfo.upsert({
+						where: {
+							avsAddress_metadataKey: {
+								avsAddress: address.toLowerCase(),
+								metadataKey: imageItem.metadataKey
+							}
+						},
+						create: {
+							avsAddress: address.toLowerCase(),
+							metadataKey: imageItem.metadataKey,
+							metadataContent: fileUrl,
+							createdAt: new Date(),
+							updatedAt: new Date()
+						},
+						update: {
+							metadataContent: fileUrl,
+							updatedAt: new Date()
+						}
+					})
+				)
+			}
+		}
+
+		if (dbTransactions.length > 0) await bulkUpdateDbTransactions(dbTransactions)
+
+		res.send({ updated: items.length })
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+/**
+ * Function for route /avs/:address/delete-metadata
+ * Protected route to delete an array of additional info items for a given AVS
+ *
+ * @param req
+ * @param res
+ */
+export async function deleteMetadata(req: Request, res: Response) {
+	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	}
+
+	const bodyCheck = AvsAdditionalInfoKeys.safeParse(req.body)
+	if (!bodyCheck.success) {
+		return handleAndReturnErrorResponse(req, res, bodyCheck.error)
+	}
+
+	try {
+		const accessLevel = isAuthRequired() ? req.accessLevel || 0 : 999
+		const deleteData = bodyCheck.data
+
+		if (accessLevel !== 999) {
+			throw new EigenExplorerApiError({ code: 'unauthorized', message: 'Unauthorized access.' })
+		}
+
+		const { address } = req.params
+
+		const result = await prisma.avsAdditionalInfo.deleteMany({
+			where: {
+				AND: [
+					{ avsAddress: address.toLowerCase() },
+					{
+						metadataKey: {
+							in: deleteData
+						}
+					}
+				]
+			}
+		})
+
+		res.send({ deleted: result.count })
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+/**
+ * Function for route /avs/:address/delete-all-metadata
+ * Protected route to delete all additional info items for a given AVS
+ *
+ * @param req
+ * @param res
+ */
+export async function deleteAllMetadata(req: Request, res: Response) {
+	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	}
+
+	try {
+		const accessLevel = isAuthRequired() ? req.accessLevel || 0 : 999
+
+		if (accessLevel !== 999) {
+			throw new EigenExplorerApiError({ code: 'unauthorized', message: 'Unauthorized access.' })
+		}
+
+		const { address } = req.params
+
+		const result = await prisma.avsAdditionalInfo.deleteMany({
+			where: { avsAddress: address.toLowerCase() }
+		})
+
+		res.send({ deleted: result.count })
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
 	}
@@ -1302,4 +1536,88 @@ async function calculateAvsApy(avs: any) {
 			})
 		}
 	} catch {}
+}
+
+function getAdditionalInfo(
+	allAdditionalInfo: Prisma.AvsAdditionalInfo[],
+	curatedMetadata: Prisma.AvsCuratedMetadata | null
+) {
+	const processedKeys = new Set<string>()
+	const result: Array<{
+		metadataKey: string
+		metadataValue: string | null
+		createdAt: Date | null
+		updatedAt: Date | null
+	}> = []
+
+	for (const info of allAdditionalInfo) {
+		result.push({
+			metadataKey: info.metadataKey,
+			metadataValue: info.metadataContent,
+			createdAt: info.createdAt,
+			updatedAt: info.updatedAt
+		})
+
+		processedKeys.add(info.metadataKey)
+	}
+
+	// If curatedMetadata exists, use it as fallback if any of these keys are missing
+	if (curatedMetadata) {
+		const curatedFields = [
+			'metadataName',
+			'name',
+			'metadataDescription',
+			'description',
+			'metadataDiscord',
+			'discord',
+			'metadataLogo',
+			'logo',
+			'metadataTelegram',
+			'telegram',
+			'metadataWebsite',
+			'website',
+			'metadataX',
+			'X',
+			'x',
+			'metadataGithub',
+			'github',
+			'metadataTokenAddress'
+		]
+
+		for (const field of curatedFields) {
+			if (!processedKeys.has(field) && field in curatedMetadata) {
+				result.push({
+					metadataKey: field,
+					metadataValue: curatedMetadata[field as keyof typeof curatedMetadata] as string | null,
+					createdAt: null,
+					updatedAt: null
+				})
+			}
+		}
+	}
+
+	return result
+}
+
+async function bulkUpdateDbTransactions(
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+	dbTransactions: any[]
+) {
+	const chunkSize = 1000
+
+	let i = 0
+	for (const chunk of chunkArray(dbTransactions, chunkSize)) {
+		await prisma.$transaction(chunk)
+
+		i++
+	}
+}
+
+function chunkArray(array, chunkSize = 1000) {
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+	const chunks: any = []
+	for (let i = 0; i < array.length; i += chunkSize) {
+		chunks.push(array.slice(i, i + chunkSize))
+	}
+	return chunks
 }

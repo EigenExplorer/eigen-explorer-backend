@@ -6,7 +6,8 @@ import {
 	bulkUpdateDbTransactions,
 	fetchLastSyncBlock,
 	getBlockDataFromDb,
-	loopThroughBlocks
+	loopThroughBlocks,
+	LogsUpdateMetadata
 } from '../utils/seeder'
 import { getPrismaClient } from '../utils/prismaClient'
 
@@ -18,12 +19,19 @@ const blockSyncKeyLogs = 'lastSyncedBlock_logs_operatorShares'
  * @param fromBlock
  * @param toBlock
  */
-export async function seedLogsOperatorShares(toBlock?: bigint, fromBlock?: bigint) {
+export async function seedLogsOperatorShares(
+	toBlock?: bigint,
+	fromBlock?: bigint
+): Promise<LogsUpdateMetadata> {
 	const viemClient = getViemClient()
 	const prismaClient = getPrismaClient()
 
 	const firstBlock = fromBlock ? fromBlock : await fetchLastSyncBlock(blockSyncKeyLogs)
 	const lastBlock = toBlock ? toBlock : await viemClient.getBlockNumber()
+
+	let isUpdated = false
+	let updatedCount = 0
+	let entities: string[] = []
 
 	// Loop through evm logs
 	await loopThroughBlocks(firstBlock, lastBlock, async (fromBlock, toBlock) => {
@@ -52,6 +60,9 @@ export async function seedLogsOperatorShares(toBlock?: bigint, fromBlock?: bigin
 			// Setup a list containing event data
 			for (const l in logs) {
 				const log = logs[l]
+
+				const operatorAddress = String(log.args.operator).toLowerCase()
+				entities.push(operatorAddress)
 
 				if (log.eventName === 'OperatorSharesIncreased') {
 					logsOperatorSharesIncreased.push({
@@ -112,6 +123,16 @@ export async function seedLogsOperatorShares(toBlock?: bigint, fromBlock?: bigin
 				dbTransactions,
 				`[Logs] Operator Shares from: ${fromBlock} to: ${toBlock} size: ${seedLength}`
 			)
+
+			isUpdated = true
+			updatedCount += seedLength
 		} catch (error) {}
 	})
+
+	return {
+		isUpdated,
+		updatedCount,
+		entityType: 'operator',
+		entities
+	}
 }

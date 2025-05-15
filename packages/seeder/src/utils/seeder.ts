@@ -1,6 +1,13 @@
 import { getPrismaClient } from './prismaClient'
 import { chunkArray } from './array'
 
+export interface LogsUpdateMetadata {
+	isUpdated: boolean
+	updatedCount: number
+	entityType?: 'operator' | 'avs'
+	entities?: string[]
+}
+
 // Fix for broken types
 export interface IMap<K, V> extends Map<K, V> {
 	get(key: K): V
