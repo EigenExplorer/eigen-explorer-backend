@@ -282,10 +282,31 @@ export async function getAVS(req: Request, res: Response) {
 		})
 
 		const shares = withOperatorShares(avs.operators).filter(
-			(s) => avs.restakeableStrategies.indexOf(s.strategyAddress.toLowerCase()) !== -1
+			(s) => true
+			// TODO: Add back with operator set strategies
+			// (s) => avs.restakeableStrategies.indexOf(s.strategyAddress.toLowerCase()) !== -1
 		)
 
 		const strategiesWithSharesUnderlying = withTvl ? await getStrategiesWithShareUnderlying() : []
+
+		const newTotalStakers = await prisma.staker.count({
+			where: {
+				operatorAddress: {
+					in: avs.operators.map((o) => o.operatorAddress)
+				}
+				// TODO: Add back with operator set strategies
+				// shares: {
+				// 	some: {
+				// 		strategyAddress: {
+				// 			in: avs.restakeableStrategies
+				// 		},
+				// 		shares: { gt: '0' }
+				// 	}
+				// }
+			}
+		})
+
+		console.log('newTotalStakers', newTotalStakers)
 
 		res.send({
 			...avs,
@@ -295,7 +316,7 @@ export async function getAVS(req: Request, res: Response) {
 				: undefined,
 			shares,
 			totalOperators: avs.totalOperators,
-			totalStakers: avs.totalStakers,
+			totalStakers: newTotalStakers,
 			tvl: withTvl ? sharesToTVL(shares, strategiesWithSharesUnderlying) : undefined,
 			rewards: withRewards ? await calculateAvsApy(avs) : undefined,
 			operators: undefined,
