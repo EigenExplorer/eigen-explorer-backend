@@ -97,7 +97,7 @@ export async function seedAvsAllocation(toBlock?: bigint, fromBlock?: bigint) {
 					const existingAllocation = existingAllocations.find(
 						(a) =>
 							a.avsAddress.toLowerCase() === avsAddress &&
-							a.operatorSetId === Number(operatorSetId) &&
+							Number(a.operatorSetId) === Number(operatorSetId) &&
 							a.operatorAddress.toLowerCase() === operatorAddress &&
 							a.strategyAddress.toLowerCase() === strategyAddress
 					)
