@@ -98,3 +98,143 @@ export async function getDailyAvsStrategyTvl(
 
 	return dailyTvlMap
 }
+
+interface RegistrationEvent {
+	avs: string
+	blockTime: Date
+	status: number // 1 = registered, 0 = deregistered
+}
+
+async function fetchOperatorAvsRegistrationData(
+	operatorAddress: string,
+	avsAddresses: string[],
+	startDate: Date = new Date(new Date().setFullYear(new Date().getFullYear() - 1)),
+	endDate: Date = new Date()
+): Promise<RegistrationEvent[]> {
+	try {
+		// Normalize dates to start of day
+		startDate = new Date(startDate.setUTCHours(0, 0, 0, 0))
+		endDate = new Date(endDate.setUTCHours(0, 0, 0, 0))
+
+		// Fetch registration events within startDate to endDate
+		const registrationEvents = await prisma.eventLogs_OperatorAVSRegistrationStatusUpdated.findMany(
+			{
+				where: {
+					operator: {
+						equals: operatorAddress,
+						mode: 'insensitive'
+					},
+					OR: avsAddresses.map((addr) => ({
+						avs: {
+							equals: addr,
+							mode: 'insensitive'
+						}
+					})),
+					blockTime: { gte: startDate, lte: endDate }
+				},
+				orderBy: [{ blockNumber: 'desc' }],
+				select: {
+					avs: true,
+					blockTime: true,
+					status: true
+				}
+			}
+		)
+
+		return registrationEvents
+	} catch (error) {
+		console.error('Error fetching AVS registration events:', error)
+		return []
+	}
+}
+
+interface AvsOperatorData {
+	avsAddress: string
+	isActive: boolean
+}
+
+interface AvsDailyRegistrationMap {
+	[dayKey: string]: { [avsAddress: string]: boolean }
+}
+
+export async function buildOperatorAvsRegistrationMap(
+	operatorAddress: string,
+	avsOperators: AvsOperatorData[],
+	startDate: Date = new Date(new Date().setFullYear(new Date().getFullYear() - 1)),
+	endDate: Date = new Date()
+): Promise<AvsDailyRegistrationMap> {
+	startDate = new Date(startDate.setUTCHours(0, 0, 0, 0))
+	endDate = new Date(endDate.setUTCHours(0, 0, 0, 0))
+
+	const avsRegistrationMap: AvsDailyRegistrationMap = {}
+
+	if (avsOperators.length === 0) {
+		return avsRegistrationMap
+	}
+
+	const registrationEvents: RegistrationEvent[] = await fetchOperatorAvsRegistrationData(
+		operatorAddress,
+		avsOperators.map((avsOperator) => avsOperator.avsAddress.toLowerCase()),
+		startDate,
+		endDate
+	)
+
+	// Initialize daily map for all days in [startDate, endDate]
+	for (let day = new Date(startDate); day <= endDate; day.setDate(day.getDate() + 1)) {
+		const dayKey = day.toISOString().split('T')[0]
+		avsRegistrationMap[dayKey] = {}
+	}
+
+	// Process each AVS
+	for (const avsOperator of avsOperators) {
+		const avsAddress = avsOperator.avsAddress.toLowerCase()
+		const isActive = avsOperator.isActive
+
+		// Get events for this AVS, sorted by descending blockTime
+		const avsEvents = registrationEvents.filter((event) => event.avs.toLowerCase() === avsAddress)
+
+		let currentStatus = isActive
+		let periodEnd = new Date(endDate)
+
+		if (avsEvents.length === 0) {
+			// No events: Apply isActive to all days
+			for (let day = new Date(startDate); day <= endDate; day.setDate(day.getDate() + 1)) {
+				const dayKey = day.toISOString().split('T')[0]
+				avsRegistrationMap[dayKey][avsAddress] = currentStatus
+			}
+		} else {
+			for (const event of avsEvents) {
+				const eventDate = new Date(event.blockTime.setUTCHours(0, 0, 0, 0))
+				if (eventDate < startDate) break
+
+				// Fill days from eventDate to periodEnd with currentStatus
+				for (
+					let day = new Date(eventDate);
+					day <= periodEnd && day >= startDate;
+					day.setDate(day.getDate() + 1)
+				) {
+					const dayKey = day.toISOString().split('T')[0]
+					avsRegistrationMap[dayKey][avsAddress] = currentStatus
+				}
+
+				// Update status and period end
+				currentStatus = !currentStatus
+				periodEnd = new Date(eventDate)
+				periodEnd.setDate(periodEnd.getDate() - 1)
+			}
+
+			if (periodEnd >= startDate) {
+				for (
+					let day = new Date(startDate);
+					day <= periodEnd && day <= endDate;
+					day.setDate(day.getDate() + 1)
+				) {
+					const dayKey = day.toISOString().split('T')[0]
+					avsRegistrationMap[dayKey][avsAddress] = currentStatus
+				}
+			}
+		}
+	}
+
+	return avsRegistrationMap
+}
