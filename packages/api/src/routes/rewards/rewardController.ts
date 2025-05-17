@@ -16,8 +16,8 @@ export type Submission = {
 }
 
 /**
- * Function for route /operators
- * Returns a list of all Operators with optional sorts & text search
+ * Function for route /strategies
+ * Returns a list of all Strategies with their corresponding reward tokens based on reward submissions
  *
  * @param req
  * @param res

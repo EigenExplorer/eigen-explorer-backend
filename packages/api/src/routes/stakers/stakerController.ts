@@ -759,6 +759,10 @@ async function calculateStakerRewards(
 			(tp) => tp.address.toLowerCase() === eigenTokenAddress.toLowerCase()
 		)
 
+		if (!eigenTokenPrice) {
+			throw new Error('EIGEN token price not found')
+		}
+
 		// EIGEN Strategy PI
 		const piWeeklyEigenTokens = new Prisma.Prisma.Decimal(321855)
 		const eigenTokenAmount =
@@ -775,9 +779,9 @@ async function calculateStakerRewards(
 
 		// Calculate Native APY
 		const totalPiTokenAmount = eigenTokenAmount.add(ethLstTokenAmount) // Total weekly tokens
-		const totalPiEth = totalPiTokenAmount
-			.mul(new Prisma.Prisma.Decimal(eigenTokenPrice?.ethPrice ?? 0))
-			.div(new Prisma.Prisma.Decimal(10).pow(eigenTokenPrice?.decimals ?? 18)) // Convert to value in ETH
+		const totalPiEth = totalPiTokenAmount.mul(
+			new Prisma.Prisma.Decimal(eigenTokenPrice?.ethPrice ?? 0)
+		) // Convert to value in ETH
 
 		const totalPiProfitEth = totalPiEth.mul(52) // Annualize
 

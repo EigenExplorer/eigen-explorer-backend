@@ -46,7 +46,7 @@ import { monitorOperatorMetadata } from './monitors/operatorMetadata'
 import { seedLogsOperatorAVSSplitBipsSet } from './events/seedLogsOperatorAVSSplitBipsSet'
 import { seedLogsOperatorPISplitBipsSet } from './events/seedLogsOperatorPISplitBipsSet'
 import { seedLogsOperatorDirectedAVSRewardsSubmission } from './events/seedLogsOperatorDirectedAVSRewardsSubmission'
-import { seedOperatorDirectedAvsRewards } from './seedOperatorDirectedAVSRewards'
+import { seedOperatorDirectedAvsRewards } from './seedOperatorDirectedAvsRewards'
 import { seedOperatorAvsSplits } from './seedOperatorAvsSplits'
 import { monitorOperatorPiSplit } from './monitors/operatorPiSplit'
 
