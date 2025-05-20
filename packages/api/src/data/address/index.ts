@@ -1,8 +1,9 @@
 import type { Chain } from 'viem'
-import { holesky } from 'viem/chains'
+import { holesky, sepolia } from 'viem/chains'
 import { getNetwork } from '../../viem/viemClient'
 import { eigenHoleskyContracts } from './eigenHoleskyContracts'
 import { eigenContracts } from './eigenMainnetContracts'
+import { eigenSepoliaContracts } from './eigenSepoliaContracts'
 
 export interface EigenStrategiesContractAddress {
 	Eigen?: { strategyContract: `0x${string}`; tokenContract: `0x${string}` }
@@ -31,15 +32,16 @@ export interface EigenContractAddress {
 	Slasher: `0x${string}`
 	StrategyManager: `0x${string}`
 	EigenPodManager: `0x${string}`
-
-	Strategies: EigenStrategiesContractAddress
-	Rewards: RewardsTokensContractAddress
+	RewardsCoordinator: `0x${string}`
+	AllocationManager: `0x${string}`
 }
 
 export function getEigenContracts(network?: Chain) {
 	const chain = network ? network : getNetwork()
 
 	switch (chain) {
+		case sepolia:
+			return eigenSepoliaContracts
 		case holesky:
 			return eigenHoleskyContracts
 		default:

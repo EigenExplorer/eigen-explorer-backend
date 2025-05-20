@@ -306,8 +306,6 @@ export async function getAVS(req: Request, res: Response) {
 			}
 		})
 
-		console.log('newTotalStakers', newTotalStakers)
-
 		res.send({
 			...avs,
 			curatedMetadata: withCuratedMetadata ? avs.curatedMetadata : undefined,

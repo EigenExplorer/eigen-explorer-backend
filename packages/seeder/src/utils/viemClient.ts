@@ -1,5 +1,5 @@
 import { type PublicClient, createPublicClient, http } from 'viem'
-import { type Chain, holesky, mainnet } from 'viem/chains'
+import { type Chain, holesky, mainnet, sepolia } from 'viem/chains'
 
 let publicViemClient: PublicClient
 let network: Chain = mainnet
@@ -8,6 +8,9 @@ if (process.env.NETWORK) {
 	switch (process.env.NETWORK) {
 		case 'holesky':
 			network = holesky
+			break
+		case 'sepolia':
+			network = sepolia
 			break
 	}
 }
