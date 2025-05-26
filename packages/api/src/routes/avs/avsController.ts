@@ -32,6 +32,7 @@ import {
 import { isAuthRequired } from '../../utils/authMiddleware'
 import { WithTrailingApySchema } from '../../schema/zod/schemas/withTrailingApySchema'
 import { getDailyAvsStrategyTvl } from '../../utils/trailingApyUtils'
+import { fetchBaseApys } from '../../utils/baseApys'
 
 /**
  * Function for route /avs
@@ -1077,6 +1078,7 @@ async function calculateAvsApy(avs: any, withTrailingApy: boolean = false) {
 			string,
 			{
 				apy: number
+				baseApy: number
 				trailingApy7d?: number
 				trailingApy30d?: number
 				trailingApy3m?: number
@@ -1100,13 +1102,16 @@ async function calculateAvsApy(avs: any, withTrailingApy: boolean = false) {
 			: []
 
 		// Fetch initial data
-		const [tokenPrices, strategiesWithSharesUnderlying, dailyTvlMap] = await Promise.all([
+		const [tokenPrices, strategiesWithSharesUnderlying, dailyTvlMap, baseApys] = await Promise.all([
 			fetchTokenPrices(),
 			getStrategiesWithShareUnderlying(),
-			withTrailingApy ? getDailyAvsStrategyTvl(avsStrategyPairs, startDate, endDate) : {}
+			withTrailingApy ? getDailyAvsStrategyTvl(avsStrategyPairs, startDate, endDate) : {},
+			fetchBaseApys()
 		])
 
 		const tokenPriceMap = new Map(tokenPrices.map((tp) => [tp.address.toLowerCase(), tp]))
+
+		const baseApyMap = new Map(baseApys.map((ba) => [ba.strategyAddress.toLowerCase(), ba.apy]))
 
 		// Get share amounts for each restakeable strategy
 		const shares = withOperatorShares(avs.operators).filter(
@@ -1212,9 +1217,12 @@ async function calculateAvsApy(avs: any, withTrailingApy: boolean = false) {
 				}
 			})
 
+			const baseApy = baseApyMap.get(strategyAddressLower) || 0
+
 			// Initialize strategy data
 			const strategyData = {
 				apy: strategyApy,
+				baseApy,
 				tokens: tokenApyMap
 			}
 
@@ -1274,6 +1282,7 @@ async function calculateAvsApy(avs: any, withTrailingApy: boolean = false) {
 			strategyApys: Array.from(strategyApyMap.entries()).map(([strategyAddress, data]) => ({
 				strategyAddress,
 				apy: data.apy,
+				baseApy: data.baseApy,
 				trailingApy7d: data.trailingApy7d,
 				trailingApy30d: data.trailingApy30d,
 				trailingApy3m: data.trailingApy3m,
