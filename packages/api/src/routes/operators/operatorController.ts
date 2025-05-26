@@ -27,6 +27,7 @@ import {
 	buildOperatorAvsRegistrationMap,
 	getDailyAvsStrategyTvl
 } from '../../utils/trailingApyUtils'
+import { fetchBaseApys } from '../../utils/baseApys'
 
 /**
  * Function for route /operators
@@ -563,6 +564,7 @@ async function calculateOperatorApy(operator: any, withTrailingApy: boolean = fa
 				strategyApys: {
 					strategyAddress: string
 					apy: number
+					baseApy: number
 					trailingApy7d?: number
 					trailingApy30d?: number
 					trailingApy3m?: number
@@ -631,21 +633,29 @@ async function calculateOperatorApy(operator: any, withTrailingApy: boolean = fa
 		}))
 
 		// Parallelize initial data fetching
-		const [tokenPrices, strategiesWithSharesUnderlying, avsRegistrationByDay, dailyTvlMap] =
-			await Promise.all([
-				fetchTokenPrices(),
-				getStrategiesWithShareUnderlying(),
-				withTrailingApy
-					? buildOperatorAvsRegistrationMap(
-							operator.address.toLowerCase(),
-							avsOperators,
-							startDate,
-							endDate
-					  )
-					: [],
-				withTrailingApy ? getDailyAvsStrategyTvl(avsStrategyPairs, startDate, endDate) : {}
-			])
+		const [
+			tokenPrices,
+			strategiesWithSharesUnderlying,
+			avsRegistrationByDay,
+			dailyTvlMap,
+			baseApys
+		] = await Promise.all([
+			fetchTokenPrices(),
+			getStrategiesWithShareUnderlying(),
+			withTrailingApy
+				? buildOperatorAvsRegistrationMap(
+						operator.address.toLowerCase(),
+						avsOperators,
+						startDate,
+						endDate
+				  )
+				: [],
+			withTrailingApy ? getDailyAvsStrategyTvl(avsStrategyPairs, startDate, endDate) : {},
+			fetchBaseApys()
+		])
+
 		const tokenPriceMap = new Map(tokenPrices.map((tp) => [tp.address.toLowerCase(), tp]))
+		const baseApyMap = new Map(baseApys.map((ba) => [ba.strategyAddress.toLowerCase(), ba.apy]))
 
 		// Process Projected and Trailing APY for AVSs
 		for (const { avs, eligibleRewards, status } of avsWithEligibleRewardSubmissions) {
@@ -654,6 +664,7 @@ async function calculateOperatorApy(operator: any, withTrailingApy: boolean = fa
 				string,
 				{
 					apy: number
+					baseApy: number
 					trailingApy7d?: number
 					trailingApy30d?: number
 					trailingApy3m?: number
@@ -769,9 +780,12 @@ async function calculateOperatorApy(operator: any, withTrailingApy: boolean = fa
 					}
 				})
 
+				const baseApy = baseApyMap.get(strategyAddressLower) || 0
+
 				// Initialize strategy data
 				const strategyData = {
 					apy: strategyApy,
+					baseApy,
 					tokens: tokenApyMap
 				}
 
@@ -835,6 +849,7 @@ async function calculateOperatorApy(operator: any, withTrailingApy: boolean = fa
 					strategyApys: Array.from(strategyApyMap.entries()).map(([strategyAddress, data]) => ({
 						strategyAddress,
 						apy: data.apy,
+						baseApy: data.baseApy,
 						trailingApy7d: data.trailingApy7d,
 						trailingApy30d: data.trailingApy30d,
 						trailingApy3m: data.trailingApy3m,
