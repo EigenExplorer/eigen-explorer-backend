@@ -821,7 +821,7 @@ export async function doGetTvl(withChange: boolean) {
 			if (foundTotalShares) {
 				const strategyShares =
 					Number((BigInt(foundTotalShares.shares) * BigInt(s.sharesToUnderlying)) / BigInt(1e18)) /
-					1e18
+					Math.pow(10, s.decimals)
 
 				tvlStrategies[s.symbol] = strategyShares
 
@@ -875,7 +875,8 @@ export async function doGetTvlStrategy(
 		})
 
 		tvl =
-			Number(await contract.read.sharesToUnderlyingView([await contract.read.totalShares()])) / 1e18
+			Number(await contract.read.sharesToUnderlyingView([await contract.read.totalShares()])) /
+			Math.pow(10, strategyTokenPrice?.decimals || 18)
 
 		if (strategyTokenPrice) {
 			tvlEth = tvl * strategyTokenPrice.ethPrice

@@ -253,11 +253,7 @@ export async function refreshAuthStore() {
  *
  */
 export function isAuthRequired() {
-	return (
-		process.env.SUPABASE_SERVICE_ROLE_KEY &&
-		process.env.SUPABASE_PROJECT_REF &&
-		process.env.SUPABASE_EF_SELECTORS
-	)
+	return process.env.SUPABASE_EF_SELECTORS
 }
 
 /**
