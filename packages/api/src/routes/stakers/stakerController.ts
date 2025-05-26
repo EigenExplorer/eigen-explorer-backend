@@ -26,6 +26,7 @@ import {
 	DepositEventQuerySchema,
 	WithdrawalEventQuerySchema
 } from '../../schema/zod/schemas/eventSchemas'
+import { doGetTvlStrategy, doGetTvl, doGetTvlBeaconChain } from '../metrics/metricController'
 
 /**
  * Route to get a list of all stakers
@@ -702,6 +703,7 @@ async function calculateStakerRewards(
 		if (!avsWithEligibleRewardSubmissions) {
 			return {
 				aggregateApy: '0',
+				nativeApy: '0',
 				tokenRewards: [],
 				strategyApys: [],
 				avsApys: []
@@ -710,6 +712,81 @@ async function calculateStakerRewards(
 
 		const tokenPrices = await fetchTokenPrices()
 		const strategiesWithSharesUnderlying = await getStrategiesWithShareUnderlying()
+
+		const eigenStrategyAddress =
+			process.env.NETWORK === 'holesky'
+				? '0x43252609bff8a13dfe5e057097f2f45a24387a84'
+				: '0xacb55c530acdb2849e6d4f36992cd8c9d50ed8f7'
+
+		// Calculate totalTvlEth for the staker
+		const stakerTotalTvlEth = Object.values(stakerTvlStrategiesEth).reduce(
+			(sum, tvl) => sum + tvl,
+			0
+		)
+		const stakerEigenTvlEth = Number(
+			stakerTvlStrategiesEth[eigenStrategyAddress.toLowerCase()] || 0
+		)
+		const stakerEthLstTvlEth = stakerTotalTvlEth - stakerEigenTvlEth
+
+		// Fetch Total TVL for EIGEN Strategy
+		const foundEigenStrategy = await prisma.strategies.findUnique({
+			where: { address: eigenStrategyAddress.toLowerCase() }
+		})
+
+		if (!foundEigenStrategy) {
+			throw new Error(`EIGEN strategy not found for address: ${eigenStrategyAddress}`)
+		}
+
+		const tvlEigenResponse = await doGetTvlStrategy(
+			foundEigenStrategy.address as `0x${string}`,
+			foundEigenStrategy.underlyingToken as `0x${string}`,
+			false
+		)
+		const totalTvlEigenStrategy = tvlEigenResponse.tvlEth as number
+
+		// Fetch Total TVL (Restaking + Beacon Chain)
+		const tvlRestaking = (await doGetTvl(false)).tvlRestaking
+		const tvlBeaconChain = await doGetTvlBeaconChain(false)
+		const totalTvlEthNetwork = (tvlRestaking as number) + (tvlBeaconChain as number)
+
+		// Calculate Total TVL ETH/LST
+		const totalTvlEthLst = totalTvlEthNetwork - totalTvlEigenStrategy
+		const eigenTokenAddress =
+			process.env.NETWORK === 'holesky'
+				? '0x275ccf9be51f4a6c94aba6114cdf2a4c45b9cb27'
+				: '0xec53bF9167f50cDEB3Ae105f56099aaaB9061F83'
+		const eigenTokenPrice = tokenPrices.find(
+			(tp) => tp.address.toLowerCase() === eigenTokenAddress.toLowerCase()
+		)
+
+		if (!eigenTokenPrice) {
+			throw new Error('EIGEN token price not found')
+		}
+
+		// EIGEN Strategy PI
+		const piWeeklyEigenTokens = new Prisma.Prisma.Decimal(321855)
+		const eigenTokenAmount =
+			totalTvlEigenStrategy > 0
+				? piWeeklyEigenTokens.mul(0.9).mul(stakerEigenTvlEth).div(totalTvlEigenStrategy)
+				: new Prisma.Prisma.Decimal(0)
+
+		// ETH/LST Strategies PI
+		const piWeeklyEthLstTokens = new Prisma.Prisma.Decimal(965565)
+		const ethLstTokenAmount =
+			totalTvlEthLst > 0
+				? piWeeklyEthLstTokens.mul(0.9).mul(stakerEthLstTvlEth).div(totalTvlEthLst)
+				: new Prisma.Prisma.Decimal(0)
+
+		// Calculate Native APY
+		const totalPiTokenAmount = eigenTokenAmount.add(ethLstTokenAmount) // Total weekly tokens
+		const totalPiEth = totalPiTokenAmount.mul(
+			new Prisma.Prisma.Decimal(eigenTokenPrice?.ethPrice ?? 0)
+		) // Convert to value in ETH
+
+		const totalPiProfitEth = totalPiEth.mul(52) // Annualize
+
+		const nativeApy =
+			stakerTotalTvlEth > 0 ? totalPiProfitEth.div(stakerTotalTvlEth).mul(100).toNumber() : 0
 
 		// Calc aggregate APY for each AVS basis the opted-in strategies
 		for (const avs of avsWithEligibleRewardSubmissions) {
@@ -757,11 +834,6 @@ async function calculateStakerRewards(
 							.mul(new Prisma.Prisma.Decimal(tokenPrice?.ethPrice ?? 0))
 							.div(new Prisma.Prisma.Decimal(10).pow(tokenPrice?.decimals ?? 18)) // No decimals
 					}
-
-					// Multiply reward amount in ETH by the strategy weight
-					rewardIncrementEth = rewardIncrementEth
-						.mul(submission.multiplier)
-						.div(new Prisma.Prisma.Decimal(10).pow(18))
 
 					// Operator takes 10% in commission
 					const operatorFeesEth = rewardIncrementEth.mul(10).div(100) // No decimals
@@ -874,7 +946,8 @@ async function calculateStakerRewards(
 		})
 
 		return {
-			aggregateApy: avsApys.reduce((sum, avs) => sum + avs.apy, 0),
+			aggregateApy: avsApys.reduce((sum, avs) => sum + avs.apy, 0) + nativeApy,
+			nativeApy,
 			tokenAmounts,
 			strategyApys,
 			avsApys
