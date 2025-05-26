@@ -43,6 +43,7 @@ import { seedLogsDistributionRootSubmitted } from './events/seedLogsDistribution
 import { seedMetricsStakerRewards } from './metrics/seedMetricsStakerRewards'
 import { monitorAvsMetadata } from './monitors/avsMetadata'
 import { monitorOperatorMetadata } from './monitors/operatorMetadata'
+import { seedStrategyWhitelist } from './seedStrategyWhitelist'
 
 console.log('Initializing Seeder ...')
 
@@ -148,7 +149,7 @@ async function seedEigenLogs() {
 			}
 
 			if (results[11].updatedCount > 0) {
-				updateEvents.push(seedStrategies())
+				updateEvents.push(seedStrategyWhitelist())
 			}
 
 			await Promise.all(updateEvents)
@@ -246,6 +247,7 @@ async function seedEigenDailyData(retryCount = 0) {
 
 		console.time('Seeded daily data in')
 
+		await seedStrategies()
 		await seedRestakedStrategies()
 		await seedEthPricesDaily()
 
