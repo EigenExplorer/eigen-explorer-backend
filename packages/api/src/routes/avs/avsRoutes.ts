@@ -9,6 +9,8 @@ import {
 	getAVSRewardsEvents,
 	invalidateMetadata,
 	getAvsRegistrationEvents,
+	getAllMetadata,
+	getMetadata,
 	updateMetadata,
 	deleteMetadata,
 	deleteAllMetadata
@@ -22,6 +24,8 @@ const router = express.Router()
 router.get('/', routeCache.cacheSeconds(120), getAllAVS)
 
 router.get('/addresses', routeCache.cacheSeconds(120), getAllAVSAddresses)
+
+router.get('/get-all-metadata', routeCache.cacheSeconds(5), getAllMetadata) // Protected route for area-internal-dashboard
 
 router.get('/:address', routeCache.cacheSeconds(120), getAVS)
 
@@ -39,13 +43,15 @@ router.get(
 	getAvsRegistrationEvents
 )
 
-// Protected routes
-router.get('/:address/invalidate-metadata', routeCache.cacheSeconds(120), invalidateMetadata)
+// Protected AVS-specific routes custom for area-internal-dashboard
+router.get('/:address/get-metadata', routeCache.cacheSeconds(5), getMetadata)
 
 router.post('/:address/update-metadata', updateMetadata)
 
 router.post('/:address/delete-metadata', deleteMetadata)
 
 router.post('/:address/delete-all-metadata', deleteAllMetadata)
+
+router.get('/:address/invalidate-metadata', routeCache.cacheSeconds(120), invalidateMetadata) // Legacy
 
 export default router
