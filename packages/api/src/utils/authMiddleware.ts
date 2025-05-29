@@ -139,7 +139,7 @@ export const authenticator = async (req: Request, res: Response, next: NextFunct
 		const response = await fetch(`${functionUrl}/${apiToken}`, {
 			method: 'GET',
 			headers: {
-				Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+				Authorization: `Bearer ${process.env.SUPABASE_EF_SERVICE_ROLE_KEY}`,
 				'Content-Type': 'application/json'
 			}
 		})
@@ -205,7 +205,7 @@ export async function refreshAuthStore() {
 			const response = await fetch(`${functionUrl}?skip=${skip}&take=${take}`, {
 				method: 'GET',
 				headers: {
-					Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+					Authorization: `Bearer ${process.env.SUPABASE_EF_SERVICE_ROLE_KEY}`,
 					'Content-Type': 'application/json'
 				}
 			})
@@ -253,7 +253,11 @@ export async function refreshAuthStore() {
  *
  */
 export function isAuthRequired() {
-	return process.env.SUPABASE_EF_SELECTORS
+	return (
+		process.env.SUPABASE_EF_SERVICE_ROLE_KEY &&
+		process.env.SUPABASE_EF_PROJECT_REF &&
+		process.env.SUPABASE_EF_SELECTORS
+	)
 }
 
 /**
@@ -266,7 +270,7 @@ export function isAuthRequired() {
  * @returns
  */
 export function constructEfUrl(index: number) {
-	const projectRef = process.env.SUPABASE_PROJECT_REF || null
+	const projectRef = process.env.SUPABASE_EF_PROJECT_REF || null
 	const functionSelector = process.env.SUPABASE_EF_SELECTORS?.split(':')[index - 1] || null
 
 	return projectRef && functionSelector
