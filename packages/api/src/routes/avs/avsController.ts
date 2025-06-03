@@ -612,15 +612,27 @@ export async function getAVSRewards(req: Request, res: Response) {
 	try {
 		const { address } = req.params
 
-		// Fetch all rewards submissions for a given Avs
-		const rewardsSubmissions = await prisma.avsStrategyRewardSubmission.findMany({
+		// Fetch RewardsV1 submissions for a given Avs
+		const rewardsV1Submissions = await prisma.avsStrategyRewardSubmission.findMany({
 			where: {
 				avsAddress: address.toLowerCase()
 			},
 			orderBy: {
-				rewardsSubmissionHash: 'asc'
+				startTimestamp: 'asc'
 			}
 		})
+
+		// Fetch RewardsV2 submissions for a given Avs
+		const rewardsV2Submissions = await prisma.operatorDirectedAvsStrategyRewardsSubmission.findMany(
+			{
+				where: {
+					avsAddress: address.toLowerCase()
+				},
+				orderBy: {
+					startTimestamp: 'asc'
+				}
+			}
+		)
 
 		const result: {
 			address: string
@@ -638,83 +650,172 @@ export async function getAVSRewards(req: Request, res: Response) {
 			rewardStrategies: []
 		}
 
-		if (!rewardsSubmissions || rewardsSubmissions.length === 0) {
-			return res.send(result)
-		}
-
 		const tokenPrices = await fetchTokenPrices()
-		const rewardTokens: string[] = []
-		const rewardStrategies: string[] = []
-		let currentSubmission: Submission | null = null
-		let currentTotalAmount = new Prisma.Prisma.Decimal(0)
-		let currentTotalAmountEth = new Prisma.Prisma.Decimal(0)
+		const rewardTokens: Set<string> = new Set()
+		const rewardStrategies: Set<string> = new Set()
 
-		// Iterate over each rewards submission by the Avs
-		for (const submission of rewardsSubmissions) {
-			if (
-				!currentSubmission ||
-				currentSubmission.rewardsSubmissionHash !== submission.rewardsSubmissionHash
-			) {
-				if (currentSubmission) {
-					currentSubmission.totalAmount = currentTotalAmount.toFixed(0)
-					result.submissions.push(currentSubmission)
-					result.totalSubmissions++
-				}
-				currentSubmission = {
-					rewardsSubmissionHash: submission.rewardsSubmissionHash,
+		// Process RewardsV1 submissions
+		const v1Submissions: Submission[] = []
+		let v1SubmissionMap: { [hash: string]: Submission } = {}
+		for (const submission of rewardsV1Submissions) {
+			const hash = submission.rewardsSubmissionHash.toLowerCase()
+			if (!v1SubmissionMap[hash]) {
+				v1SubmissionMap[hash] = {
+					rewardsSubmissionHash: hash,
 					startTimestamp: Number(submission.startTimestamp),
 					duration: submission.duration,
 					totalAmount: '0',
-					tokenAddress: submission.token,
+					tokenAddress: submission.token.toLowerCase(),
 					strategies: []
 				}
-				currentTotalAmount = new Prisma.Prisma.Decimal(0)
-				result.totalRewards += currentTotalAmountEth.toNumber()
-				currentTotalAmountEth = new Prisma.Prisma.Decimal(0)
+				v1Submissions.push(v1SubmissionMap[hash])
 			}
 
 			const amount = submission.amount || new Prisma.Prisma.Decimal(0)
-			currentTotalAmount = currentTotalAmount.add(amount)
+			v1SubmissionMap[hash].totalAmount = new Prisma.Prisma.Decimal(
+				v1SubmissionMap[hash].totalAmount
+			)
+				.add(amount)
+				.toFixed(0)
 
 			const rewardTokenAddress = submission.token.toLowerCase()
 			const strategyAddress = submission.strategyAddress.toLowerCase()
+			rewardTokens.add(rewardTokenAddress)
+			rewardStrategies.add(strategyAddress)
 
-			// Document reward token & rewarded strategy addresses
-			if (!rewardTokens.includes(rewardTokenAddress)) rewardTokens.push(rewardTokenAddress)
-			if (!rewardStrategies.includes(strategyAddress)) rewardStrategies.push(strategyAddress)
-
+			let amountInEth = new Prisma.Prisma.Decimal(0)
 			if (rewardTokenAddress) {
 				const tokenPrice = tokenPrices.find((tp) => tp.address.toLowerCase() === rewardTokenAddress)
-				const amountInEth = amount
+				amountInEth = amount
 					.div(new Prisma.Prisma.Decimal(10).pow(tokenPrice?.decimals ?? 18))
 					.mul(new Prisma.Prisma.Decimal(tokenPrice?.ethPrice ?? 0))
 					.mul(new Prisma.Prisma.Decimal(10).pow(18)) // 18 decimals
-				currentTotalAmountEth = currentTotalAmountEth.add(amountInEth)
 			}
 
-			currentSubmission.strategies.push({
+			v1SubmissionMap[hash].strategies.push({
 				strategyAddress,
 				multiplier: submission.multiplier?.toString() || '0',
 				amount: amount.toFixed(0)
 			})
+
+			result.totalRewards += amountInEth.toNumber()
 		}
 
-		// Add final submission
-		if (currentSubmission) {
-			currentSubmission.totalAmount = currentTotalAmount.toFixed(0)
-			result.submissions.push(currentSubmission)
-			result.totalSubmissions++
-			result.totalRewards += currentTotalAmountEth.toNumber() // 18 decimals
+		// Process RewardsV2 submissions
+		const v2Submissions: Submission[] = []
+		const v2SubmissionMap: {
+			[hash: string]: {
+				submission: Submission
+				operators: {
+					[address: string]: {
+						totalAmount: Prisma.Prisma.Decimal
+						strategies: { strategyAddress: string; amount: Prisma.Prisma.Decimal }[]
+					}
+				}
+			}
+		} = {}
+		for (const submission of rewardsV2Submissions) {
+			const hash = submission.operatorDirectedRewardsSubmissionHash.toLowerCase()
+			if (!v2SubmissionMap[hash]) {
+				v2SubmissionMap[hash] = {
+					submission: {
+						rewardsSubmissionHash: hash,
+						startTimestamp: Number(submission.startTimestamp),
+						duration: submission.duration,
+						totalAmount: '0',
+						tokenAddress: submission.token.toLowerCase(),
+						strategies: [],
+						operators: []
+					},
+					operators: {}
+				}
+				v2Submissions.push(v2SubmissionMap[hash].submission)
+			}
+
+			const amount = submission.amount || new Prisma.Prisma.Decimal(0)
+			const operatorAddress = submission.operatorAddress.toLowerCase()
+			const strategyAddress = submission.strategyAddress.toLowerCase()
+			const rewardTokenAddress = submission.token.toLowerCase()
+
+			// Aggregate operator data
+			if (!v2SubmissionMap[hash].operators[operatorAddress]) {
+				v2SubmissionMap[hash].operators[operatorAddress] = {
+					totalAmount: new Prisma.Prisma.Decimal(0),
+					strategies: []
+				}
+			}
+			v2SubmissionMap[hash].operators[operatorAddress].totalAmount =
+				v2SubmissionMap[hash].operators[operatorAddress].totalAmount.add(amount)
+
+			// Track strategy-specific amounts for the operator
+			let operatorStrategy = v2SubmissionMap[hash].operators[operatorAddress].strategies.find(
+				(s) => s.strategyAddress === strategyAddress
+			)
+			if (!operatorStrategy) {
+				operatorStrategy = { strategyAddress, amount: new Prisma.Prisma.Decimal(0) }
+				v2SubmissionMap[hash].operators[operatorAddress].strategies.push(operatorStrategy)
+			}
+			operatorStrategy.amount = operatorStrategy.amount.add(amount)
+
+			// Aggregate strategy amounts for submission
+			let strategy = v2SubmissionMap[hash].submission.strategies.find(
+				(s) => s.strategyAddress === strategyAddress
+			)
+			if (!strategy) {
+				strategy = {
+					strategyAddress,
+					multiplier: submission.multiplier?.toString() || '0',
+					amount: '0'
+				}
+				v2SubmissionMap[hash].submission.strategies.push(strategy)
+			}
+			strategy.amount = new Prisma.Prisma.Decimal(strategy.amount).add(amount).toFixed(0)
+
+			v2SubmissionMap[hash].submission.totalAmount = new Prisma.Prisma.Decimal(
+				v2SubmissionMap[hash].submission.totalAmount
+			)
+				.add(amount)
+				.toFixed(0)
+
+			rewardTokens.add(rewardTokenAddress)
+			rewardStrategies.add(strategyAddress)
+
+			let amountInEth = new Prisma.Prisma.Decimal(0)
+			if (rewardTokenAddress) {
+				const tokenPrice = tokenPrices.find((tp) => tp.address.toLowerCase() === rewardTokenAddress)
+				amountInEth = amount
+					.div(new Prisma.Prisma.Decimal(10).pow(tokenPrice?.decimals ?? 18))
+					.mul(new Prisma.Prisma.Decimal(tokenPrice?.ethPrice ?? 0))
+					.mul(new Prisma.Prisma.Decimal(10).pow(18)) // 18 decimals
+			}
+			result.totalRewards += amountInEth.toNumber()
 		}
 
-		result.rewardTokens = rewardTokens
-		result.rewardStrategies = rewardStrategies
+		// Populate operators for RewardsV2
+		for (const hash in v2SubmissionMap) {
+			v2SubmissionMap[hash].submission.operators = Object.entries(
+				v2SubmissionMap[hash].operators
+			).map(([operatorAddress, data]) => ({
+				operatorAddress,
+				totalAmount: data.totalAmount.toFixed(0),
+				strategies: data.strategies.map((s) => s.strategyAddress),
+				strategyAmounts: data.strategies.map((s) => s.amount.toFixed(0))
+			}))
+		}
+
+		result.submissions = [...v1Submissions, ...v2Submissions].sort(
+			(a, b) => a.startTimestamp - b.startTimestamp
+		)
+		result.totalSubmissions = result.submissions.length
+		result.rewardTokens = Array.from(rewardTokens)
+		result.rewardStrategies = Array.from(rewardStrategies)
 
 		res.send(result)
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
 	}
 }
+
 /**
  * Function for route /avs/:address/events/rewards
  * Fetches and returns a list of rewards-related events for a specific AVS

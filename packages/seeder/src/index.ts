@@ -43,6 +43,12 @@ import { seedLogsDistributionRootSubmitted } from './events/seedLogsDistribution
 import { seedMetricsStakerRewards } from './metrics/seedMetricsStakerRewards'
 import { monitorAvsMetadata } from './monitors/avsMetadata'
 import { monitorOperatorMetadata } from './monitors/operatorMetadata'
+import { seedLogsOperatorAVSSplitBipsSet } from './events/seedLogsOperatorAVSSplitBipsSet'
+import { seedLogsOperatorPISplitBipsSet } from './events/seedLogsOperatorPISplitBipsSet'
+import { seedLogsOperatorDirectedAVSRewardsSubmission } from './events/seedLogsOperatorDirectedAVSRewardsSubmission'
+import { seedOperatorDirectedAvsRewards } from './seedOperatorDirectedAvsRewards'
+import { seedOperatorAvsSplits } from './seedOperatorAvsSplits'
+import { monitorOperatorPiSplit } from './monitors/operatorPiSplit'
 import { seedStrategyWhitelist } from './seedStrategyWhitelist'
 
 console.log('Initializing Seeder ...')
@@ -71,6 +77,9 @@ seedEigenDataFull().then(() => {
 
 	// Schedule seedApyData to run at 5 minutes past 2am every day
 	cron.schedule('5 2 * * *', () => seedApyData())
+
+	// Schedule seedOperatorPiSplit to run at 5 minutes past 4am every day
+	cron.schedule('5 4 * * *', () => seedOperatorPiSplit())
 })
 
 /**
@@ -152,6 +161,14 @@ async function seedEigenLogs() {
 				updateEvents.push(seedStrategyWhitelist())
 			}
 
+			if (results[14].updatedCount > 0) {
+				updateEvents.push(seedOperatorAvsSplits())
+			}
+
+			if (results[15].updatedCount > 0) {
+				updateEvents.push(seedOperatorDirectedAvsRewards())
+			}
+
 			await Promise.all(updateEvents)
 
 			if (
@@ -216,6 +233,10 @@ async function seedEigenDataFull() {
 			// Rewards
 			seedAvsStrategyRewards(),
 			seedStakerRewardSnapshots(),
+			seedOperatorDirectedAvsRewards(),
+
+			//Rewards Splits
+			seedOperatorAvsSplits(),
 
 			// Metrics
 			monitorAvsMetrics({}),
@@ -361,6 +382,20 @@ async function doSeedBlockData(targetBlock: bigint) {
 	}
 }
 
+/**
+ * Seed metadata
+ *
+ * @returns
+ */
+async function seedOperatorPiSplit() {
+	try {
+		console.log('\nSeeding Operator PI split ...')
+		await monitorOperatorPiSplit()
+	} catch (error) {
+		console.error('Failed to seed Operator PI split', error)
+	}
+}
+
 async function doSeedLogs(targetBlock: bigint) {
 	return await Promise.all([
 		seedLogsAVSMetadata(targetBlock),
@@ -375,6 +410,9 @@ async function doSeedLogs(targetBlock: bigint) {
 		seedLogsPodSharesUpdated(targetBlock),
 		seedLogsAVSRewardsSubmission(targetBlock),
 		seedLogStrategyWhitelist(targetBlock),
-		seedLogsDistributionRootSubmitted(targetBlock)
+		seedLogsDistributionRootSubmitted(targetBlock),
+		seedLogsOperatorPISplitBipsSet(targetBlock),
+		seedLogsOperatorAVSSplitBipsSet(targetBlock),
+		seedLogsOperatorDirectedAVSRewardsSubmission(targetBlock)
 	])
 }

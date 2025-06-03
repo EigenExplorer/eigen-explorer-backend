@@ -27,6 +27,8 @@ model Avs {
   additionalInfo        AvsAdditionalInfo[]
   restakeableStrategies String[]
   rewardSubmissions     AvsStrategyRewardSubmission[]
+  operatorDirectedRewardSubmissions OperatorDirectedAvsStrategyRewardsSubmission[]
+  operatorSplits                    OperatorAvsSplit[]
 
   totalStakers   Int     @default(0)
   totalOperators Int     @default(0)
@@ -140,6 +142,11 @@ model Operator {
   shares  OperatorStrategyShares[]
   stakers Staker[]
 
+  avsSplits                         OperatorAvsSplit[]
+  operatorDirectedRewardSubmissions OperatorDirectedAvsStrategyRewardsSubmission[]
+
+  piSplitBips Int @default(1000)
+
   totalStakers Int     @default(0)
   totalAvs     Int     @default(0)
   maxApy       Decimal @default(0) @db.Decimal(8, 4)
@@ -194,7 +201,7 @@ model StakerStrategyShares {
 model StakerRewardSnapshot {
   stakerAddress    String
   tokenAddress     String
-  cumulativeAmount Decimal @default(0) @db.Decimal(78, 18)
+  cumulativeAmount Decimal  @default(0) @db.Decimal(78, 18)
   timestamp        DateTime
 
   @@id([stakerAddress, tokenAddress])
@@ -211,7 +218,7 @@ model User {
 }
 
 model Deposit {
-  id              Int @id @default(autoincrement())
+  id              Int    @id @default(autoincrement())
   transactionHash String
   stakerAddress   String
   tokenAddress    String
@@ -298,6 +305,44 @@ model AvsStrategyRewardSubmission {
 
   createdAtBlock BigInt   @default(0)
   createdAt      DateTime @default(now())
+}
+
+model OperatorDirectedAvsStrategyRewardsSubmission {
+  id       Int      @id @default(autoincrement())
+  avs      Avs      @relation(fields: [avsAddress], references: [address])
+  operator Operator @relation(fields: [operatorAddress], references: [address])
+
+  submissionNonce                       BigInt
+  operatorDirectedRewardsSubmissionHash String
+
+  avsAddress      String
+  operatorAddress String
+  strategyAddress String
+  multiplier      Decimal @default(0) @db.Decimal(78, 0)
+  token           String
+  amount          Decimal @default(0) @db.Decimal(78, 0)
+  startTimestamp  BigInt
+  duration        Int
+  description     String
+
+  createdAtBlock BigInt   @default(0)
+  createdAt      DateTime @default(now())
+}
+
+model OperatorAvsSplit {
+  operator        Operator @relation(fields: [operatorAddress], references: [address])
+  operatorAddress String
+
+  avs        Avs    @relation(fields: [avsAddress], references: [address])
+  avsAddress String
+
+  splitBips   Int
+  activatedAt BigInt
+
+  createdAtBlock BigInt   @default(0)
+  createdAt      DateTime @default(now())
+
+  @@id([operatorAddress, avsAddress, activatedAt])
 }
 
 // Collection to store system settings
@@ -691,6 +736,77 @@ model EventLogs_AVSRewardsSubmission {
 
   @@id([transactionHash, transactionIndex])
   @@index([address])
+  @@index([blockNumber])
+  @@index([blockTime])
+}
+
+model EventLogs_OperatorDirectedAVSRewardsSubmission {
+  address String
+
+  transactionHash  String
+  transactionIndex Int
+  blockNumber      BigInt
+  blockHash        String
+  blockTime        DateTime
+
+  caller                                String
+  avs                                   String
+  operatorDirectedRewardsSubmissionHash String
+  submissionNonce                       BigInt
+
+  operatorDirectedRewardsSubmission_token          String
+  operatorDirectedRewardsSubmission_startTimestamp BigInt
+  operatorDirectedRewardsSubmission_duration       Int
+  operatorDirectedRewardsSubmission_description    String
+
+  strategiesAndMultipliers_strategies  String[]
+  strategiesAndMultipliers_multipliers String[]
+  operatorRewards_operators            String[]
+  operatorRewards_amounts              String[]
+
+  @@id([transactionHash, transactionIndex])
+  @@index([address])
+  @@index([blockNumber])
+  @@index([blockTime])
+}
+
+model EventLogs_OperatorAVSSplitBipsSet {
+  address String
+
+  transactionHash  String
+  transactionIndex Int
+  blockNumber      BigInt
+  blockHash        String
+  blockTime        DateTime
+
+  caller                  String
+  operator                String
+  avs                     String
+  activatedAt             BigInt
+  oldOperatorAVSSplitBips Int
+  newOperatorAVSSplitBips Int
+
+  @@id([transactionHash, transactionIndex])
+  @@index([blockNumber])
+  @@index([blockTime])
+}
+
+model EventLogs_OperatorPISplitBipsSet {
+  address String
+
+  transactionHash  String
+  transactionIndex Int
+  blockNumber      BigInt
+  blockHash        String
+  blockTime        DateTime
+
+  caller                 String
+  operator               String
+  activatedAt            BigInt
+  oldOperatorPISplitBips Int
+  newOperatorPISplitBips Int
+
+  @@id([transactionHash, transactionIndex])
   @@index([blockNumber])
   @@index([blockTime])
 }
