@@ -22,6 +22,8 @@ export async function monitorOperatorApy() {
 	const tokenPrices = await fetchTokenPrices()
 	const strategiesWithSharesUnderlying = await getStrategiesWithShareUnderlying()
 
+	const startDate = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000)
+
 	while (true) {
 		try {
 			// Fetch Avs data for all operators in this iteration
@@ -71,13 +73,21 @@ export async function monitorOperatorApy() {
 				const optedStrategyAddresses: Set<string> = new Set(
 					operator?.shares.map((share) => share.strategyAddress.toLowerCase())
 				)
+
+				const pastYearStartSec = Math.floor(startDate.getTime() / 1000)
+				// Filter AVS with eligible rewards
+
 				const avsWithEligibleRewardSubmissions = operator?.avs
 					.filter((avsOp) => avsOp.avs.rewardSubmissions.length > 0)
 					.map((avsOp) => ({
 						avs: avsOp.avs,
-						eligibleRewards: avsOp.avs.rewardSubmissions.filter((reward) =>
-							optedStrategyAddresses.has(reward.strategyAddress.toLowerCase())
-						)
+						eligibleRewards: avsOp.avs.rewardSubmissions.filter((reward) => {
+							const endTimeSec = reward.startTimestamp + BigInt(reward.duration)
+							return (
+								optedStrategyAddresses.has(reward.strategyAddress.toLowerCase()) &&
+								endTimeSec >= BigInt(pastYearStartSec)
+							)
+						})
 					}))
 					.filter((item) => item.eligibleRewards.length > 0)
 

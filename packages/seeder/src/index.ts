@@ -49,6 +49,7 @@ import { seedLogsOperatorDirectedAVSRewardsSubmission } from './events/seedLogsO
 import { seedOperatorDirectedAvsRewards } from './seedOperatorDirectedAvsRewards'
 import { seedOperatorAvsSplits } from './seedOperatorAvsSplits'
 import { monitorOperatorPiSplit } from './monitors/operatorPiSplit'
+import { seedStrategyWhitelist } from './seedStrategyWhitelist'
 
 console.log('Initializing Seeder ...')
 
@@ -157,7 +158,7 @@ async function seedEigenLogs() {
 			}
 
 			if (results[11].updatedCount > 0) {
-				updateEvents.push(seedStrategies())
+				updateEvents.push(seedStrategyWhitelist())
 			}
 
 			if (results[14].updatedCount > 0) {
@@ -267,6 +268,7 @@ async function seedEigenDailyData(retryCount = 0) {
 
 		console.time('Seeded daily data in')
 
+		await seedStrategies()
 		await seedRestakedStrategies()
 		await seedEthPricesDaily()
 

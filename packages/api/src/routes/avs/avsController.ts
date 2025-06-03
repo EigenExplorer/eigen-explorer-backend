@@ -30,6 +30,9 @@ import {
 	AvsAdditionalInfoKeys
 } from '../../schema/zod/schemas/updateAvsMetadata'
 import { isAuthRequired } from '../../utils/authMiddleware'
+import { WithTrailingApySchema } from '../../schema/zod/schemas/withTrailingApySchema'
+import { getDailyAvsStrategyTvl } from '../../utils/trailingApyUtils'
+import { fetchBaseApys } from '../../utils/baseApys'
 
 /**
  * Function for route /avs
@@ -130,9 +133,7 @@ export async function getAllAVS(req: Request, res: Response) {
 				return {
 					...avs,
 					curatedMetadata: withCuratedMetadata ? avs.curatedMetadata : undefined, // Legacy
-					additionalInfo: withCuratedMetadata
-						? getAdditionalInfo(avs.additionalInfo, avs.curatedMetadata)
-						: undefined,
+					additionalInfo: withCuratedMetadata ? getAdditionalInfo(avs) : undefined,
 					totalOperators: avs.totalOperators,
 					totalStakers: avs.totalStakers,
 					shares,
@@ -233,6 +234,60 @@ export async function getAllAVSAddresses(req: Request, res: Response) {
 }
 
 /**
+ * Function for route /avs/get-all-metadata
+ * Protected route to return all AVS metadata, customized for admin access via area-internal-dashboard
+ *
+ * @param req
+ * @param res
+ */
+export async function getAllMetadata(req: Request, res: Response) {
+	try {
+		const accessLevel = isAuthRequired() ? req.accessLevel || 0 : 999
+
+		if (accessLevel !== 999) {
+			throw new EigenExplorerApiError({ code: 'unauthorized', message: 'Unauthorized access.' })
+		}
+
+		const skip = 0
+		const take = 1000
+		const allAvs = await prisma.avs.findMany({
+			include: {
+				additionalInfo: true,
+				curatedMetadata: true
+			},
+			skip,
+			take
+		})
+
+		// Process each AVS
+		const processedAvs = allAvs.map((avs) => ({
+			address: avs.address,
+			createdAt: avs.createdAt,
+			updatedAt: avs.updatedAt,
+			additionalInfo: getAdditionalInfo(avs)
+		}))
+
+		// Sort so bookmarked AVSs (metadataKey: 'bookmarked', metadataValue: 'true') come first
+		const sortedAvs = processedAvs.sort((a, b) => {
+			const aIsBookmarked = a.additionalInfo.some(
+				(info) => info.metadataKey === 'bookmarked' && info.metadataValue === 'true'
+			)
+			const bIsBookmarked = b.additionalInfo.some(
+				(info) => info.metadataKey === 'bookmarked' && info.metadataValue === 'true'
+			)
+
+			if (aIsBookmarked && !bIsBookmarked) return -1
+			if (!aIsBookmarked && bIsBookmarked) return 1
+			return 0
+		})
+
+		res.send({ data: sortedAvs, meta: { total: sortedAvs.length, skip, take } })
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+/**
  * Function for route /avs/:address
  * Returns a single AVS by address
  *
@@ -243,6 +298,7 @@ export async function getAVS(req: Request, res: Response) {
 	// Validate query and params
 	const queryCheck = WithTvlQuerySchema.and(WithCuratedMetadata)
 		.and(WithRewardsQuerySchema)
+		.and(WithTrailingApySchema)
 		.safeParse(req.query)
 	if (!queryCheck.success) {
 		return handleAndReturnErrorResponse(req, res, queryCheck.error)
@@ -255,14 +311,14 @@ export async function getAVS(req: Request, res: Response) {
 
 	try {
 		const { address } = req.params
-		const { withTvl, withCuratedMetadata, withRewards } = queryCheck.data
+		const { withTvl, withCuratedMetadata, withRewards, withTrailingApy } = queryCheck.data
 
 		const avs = await prisma.avs.findUniqueOrThrow({
 			where: { address: address.toLowerCase(), ...getAvsFilterQuery() },
 			include: {
 				curatedMetadata: withCuratedMetadata,
 				additionalInfo: withCuratedMetadata,
-				rewardSubmissions: withRewards,
+				rewardSubmissions: withRewards || withTrailingApy,
 				operators: {
 					where: { isActive: true },
 					include: {
@@ -302,14 +358,13 @@ export async function getAVS(req: Request, res: Response) {
 		res.send({
 			...avs,
 			curatedMetadata: withCuratedMetadata ? avs.curatedMetadata : undefined,
-			additionalInfo: withCuratedMetadata
-				? getAdditionalInfo(avs.additionalInfo, avs.curatedMetadata)
-				: undefined,
+			additionalInfo: withCuratedMetadata ? getAdditionalInfo(avs) : undefined,
 			shares,
 			totalOperators: avs.totalOperators,
 			totalStakers: newTotalStakers,
 			tvl: withTvl ? sharesToTVL(shares, strategiesWithSharesUnderlying) : undefined,
-			rewards: withRewards ? await calculateAvsApy(avs) : undefined,
+			rewards:
+				withRewards || withTrailingApy ? await calculateAvsApy(avs, withTrailingApy) : undefined,
 			operators: undefined,
 			metadataUrl: undefined,
 			isMetadataSynced: undefined,
@@ -848,13 +903,14 @@ export async function getAvsRegistrationEvents(req: Request, res: Response) {
 }
 
 /**
- * Function for route /avs/:address/invalidate-metadata
- * Protected route to invalidate the metadata of a given AVS
+ * Function for route /avs/:address/get-metadata
+ * Protected route to return a given AVS metadata, customized for admin access via area-internal-dashboard
  *
  * @param req
  * @param res
  */
-export async function invalidateMetadata(req: Request, res: Response) {
+export async function getMetadata(req: Request, res: Response) {
+	// Validate query and params
 	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
 	if (!paramCheck.success) {
 		return handleAndReturnErrorResponse(req, res, paramCheck.error)
@@ -869,16 +925,19 @@ export async function invalidateMetadata(req: Request, res: Response) {
 
 		const { address } = req.params
 
-		const updateResult = await prisma.avs.updateMany({
+		const avs = await prisma.avs.findUniqueOrThrow({
 			where: { address: address.toLowerCase() },
-			data: { isMetadataSynced: false }
+			include: {
+				additionalInfo: true,
+				curatedMetadata: true
+			}
 		})
 
-		if (updateResult.count === 0) {
-			throw new EigenExplorerApiError({ code: 'not_found', message: 'AVS address not found.' })
-		}
-
-		res.send({ message: 'Metadata invalidated successfully.' })
+		res.send({
+			...avs,
+			additionalInfo: getAdditionalInfo(avs),
+			curatedMetadata: undefined
+		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
 	}
@@ -1047,13 +1106,13 @@ export async function deleteMetadata(req: Request, res: Response) {
 
 	try {
 		const accessLevel = isAuthRequired() ? req.accessLevel || 0 : 999
-		const deleteData = bodyCheck.data
 
 		if (accessLevel !== 999) {
 			throw new EigenExplorerApiError({ code: 'unauthorized', message: 'Unauthorized access.' })
 		}
 
 		const { address } = req.params
+		const deleteData = bodyCheck.data
 
 		const result = await prisma.avsAdditionalInfo.deleteMany({
 			where: {
@@ -1101,6 +1160,43 @@ export async function deleteAllMetadata(req: Request, res: Response) {
 		})
 
 		res.send({ deleted: result.count })
+	} catch (error) {
+		handleAndReturnErrorResponse(req, res, error)
+	}
+}
+
+/**
+ * Function for route /avs/:address/invalidate-metadata
+ * Protected route to invalidate the metadata of a given AVS
+ *
+ * @param req
+ * @param res
+ */
+export async function invalidateMetadata(req: Request, res: Response) {
+	const paramCheck = EthereumAddressSchema.safeParse(req.params.address)
+	if (!paramCheck.success) {
+		return handleAndReturnErrorResponse(req, res, paramCheck.error)
+	}
+
+	try {
+		const accessLevel = isAuthRequired() ? req.accessLevel || 0 : 999
+
+		if (accessLevel !== 999) {
+			throw new EigenExplorerApiError({ code: 'unauthorized', message: 'Unauthorized access.' })
+		}
+
+		const { address } = req.params
+
+		const updateResult = await prisma.avs.updateMany({
+			where: { address: address.toLowerCase() },
+			data: { isMetadataSynced: false }
+		})
+
+		if (updateResult.count === 0) {
+			throw new EigenExplorerApiError({ code: 'not_found', message: 'AVS address not found.' })
+		}
+
+		res.send({ message: 'Metadata invalidated successfully.' })
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
 	}
@@ -1185,18 +1281,46 @@ export function getAvsSearchQuery(
 }
 
 // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-async function calculateAvsApy(avs: any) {
+async function calculateAvsApy(avs: any, withTrailingApy: boolean = false) {
 	try {
 		const strategyApyMap: Map<
 			string,
 			{
 				apy: number
+				baseApy: number
+				trailingApy7d?: number
+				trailingApy30d?: number
+				trailingApy3m?: number
+				trailingApy6m?: number
+				trailingApy1y?: number
 				tokens: Map<string, number>
 			}
 		> = new Map()
 
-		const tokenPrices = await fetchTokenPrices()
-		const strategiesWithSharesUnderlying = await getStrategiesWithShareUnderlying()
+		const startDate = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000)
+		startDate.setUTCHours(0, 0, 0, 0)
+		const endDate = new Date(Date.now())
+		endDate.setUTCHours(0, 0, 0, 0)
+
+		// Prepare AVS strategy pairs for TVL fetching
+		const avsStrategyPairs = withTrailingApy
+			? avs.restakeableStrategies.map((strategyAddress: string) => ({
+					avsAddress: avs.address.toLowerCase(),
+					strategyAddress: strategyAddress.toLowerCase()
+			  }))
+			: []
+
+		// Fetch initial data
+		const [tokenPrices, strategiesWithSharesUnderlying, dailyTvlMap, baseApys] = await Promise.all([
+			fetchTokenPrices(),
+			getStrategiesWithShareUnderlying(),
+			withTrailingApy ? getDailyAvsStrategyTvl(avsStrategyPairs, startDate, endDate) : {},
+			fetchBaseApys()
+		])
+
+		const tokenPriceMap = new Map(tokenPrices.map((tp) => [tp.address.toLowerCase(), tp]))
+
+		const baseApyMap = new Map(baseApys.map((ba) => [ba.strategyAddress.toLowerCase(), ba.apy]))
 
 		// Get share amounts for each restakeable strategy
 		const shares = withOperatorShares(avs.operators).filter(
@@ -1208,7 +1332,8 @@ async function calculateAvsApy(avs: any) {
 
 		// Iterate through each strategy and calculate all its rewards
 		for (const strategyAddress of avs.restakeableStrategies) {
-			const strategyTvl = tvlStrategiesEth[strategyAddress.toLowerCase()] || 0
+			const strategyAddressLower = strategyAddress.toLowerCase()
+			const strategyTvl = tvlStrategiesEth[strategyAddressLower] || 0
 			if (strategyTvl === 0) continue
 
 			const tokenApyMap: Map<string, number> = new Map()
@@ -1223,27 +1348,34 @@ async function calculateAvsApy(avs: any) {
 			let strategyTotalRewardsEth = new Prisma.Prisma.Decimal(0)
 			let strategyTotalDuration = 0
 
-			// Find all reward submissions attributable to the strategy
-			const relevantSubmissions = avs.rewardSubmissions.filter(
-				(submission) => submission.strategyAddress.toLowerCase() === strategyAddress.toLowerCase()
-			)
+			const dailyRewardsByDay: { [day: string]: Prisma.Prisma.Decimal } = {}
 
-			// Calculate each reward amount for the strategy
+			const pastYearStartSec = Math.floor(startDate.getTime() / 1000)
+			// Filter submissions ending within the past year
+			const relevantSubmissions = avs.rewardSubmissions.filter((submission) => {
+				const endTimeSec = submission.startTimestamp + BigInt(submission.duration)
+				return (
+					submission.strategyAddress.toLowerCase() === strategyAddressLower &&
+					endTimeSec >= BigInt(pastYearStartSec)
+				)
+			})
+
+			if (!relevantSubmissions || relevantSubmissions.length === 0) continue
+
+			// Process submissions for both Current and Trailing APY
 			for (const submission of relevantSubmissions) {
 				let rewardIncrementEth = new Prisma.Prisma.Decimal(0)
 				const rewardTokenAddress = submission.token.toLowerCase()
 
 				// Normalize reward amount to its ETH price
 				if (rewardTokenAddress) {
-					const tokenPrice = tokenPrices.find(
-						(tp) => tp.address.toLowerCase() === rewardTokenAddress
-					)
+					const tokenPrice = tokenPriceMap.get(rewardTokenAddress)
 					rewardIncrementEth = submission.amount
 						.mul(new Prisma.Prisma.Decimal(tokenPrice?.ethPrice ?? 0))
-						.div(new Prisma.Prisma.Decimal(10).pow(tokenPrice?.decimals ?? 18)) // No decimals
+						.div(new Prisma.Prisma.Decimal(10).pow(tokenPrice?.decimals ?? 18))
 				}
 
-				// Accumulate token-specific rewards and duration
+				// Current APY: Accumulate token-specific rewards and duration
 				const tokenData = tokenRewards.get(rewardTokenAddress) || {
 					totalRewardsEth: new Prisma.Prisma.Decimal(0),
 					totalDuration: 0
@@ -1252,59 +1384,132 @@ async function calculateAvsApy(avs: any) {
 				tokenData.totalDuration += submission.duration
 				tokenRewards.set(rewardTokenAddress, tokenData)
 
-				// Accumulate strategy totals
+				// Current APY: Accumulate strategy totals
 				strategyTotalRewardsEth = strategyTotalRewardsEth.add(rewardIncrementEth)
 				strategyTotalDuration += submission.duration
+
+				// Trailing APY: Distribute daily rewards if requested
+				if (withTrailingApy) {
+					const startTime = new Date(Number(submission.startTimestamp) * 1000)
+					const durationDays = submission.duration / 86400
+					if (durationDays <= 0) continue
+
+					const dailyRewardEth = rewardIncrementEth.div(new Prisma.Prisma.Decimal(durationDays))
+
+					const endTime = new Date(startTime)
+					endTime.setDate(endTime.getDate() + Math.floor(durationDays) - 1)
+					for (
+						let day = new Date(Math.max(startTime.getTime(), startDate.getTime()));
+						day <= endTime && day <= endDate;
+						day.setDate(day.getDate() + 1)
+					) {
+						const dayKey = day.toISOString().split('T')[0]
+						if (!dailyRewardsByDay[dayKey]) {
+							dailyRewardsByDay[dayKey] = new Prisma.Prisma.Decimal(0)
+						}
+						dailyRewardsByDay[dayKey] = dailyRewardsByDay[dayKey].add(dailyRewardEth)
+					}
+				}
 			}
 
 			if (strategyTotalDuration === 0) continue
 
-			// Calculate token APYs using accumulated values
+			// Calculate token APYs for Current APY
+			let strategyApy = 0
 			tokenRewards.forEach((data, tokenAddress) => {
 				if (data.totalDuration !== 0) {
 					const tokenRewardRate = data.totalRewardsEth.toNumber() / strategyTvl
 					const tokenAnnualizedRate = tokenRewardRate * ((365 * 24 * 60 * 60) / data.totalDuration)
 					const tokenApy = tokenAnnualizedRate * 100
-
 					tokenApyMap.set(tokenAddress, tokenApy)
+					strategyApy += tokenApy
 				}
 			})
 
-			// Calculate overall strategy APY summing token APYs
-			const strategyApy = Array.from(tokenApyMap.values()).reduce((sum, apy) => sum + apy, 0)
+			const baseApy = baseApyMap.get(strategyAddressLower) || 0
 
-			// Update strategy rewards map
-			const currentStrategyRewards = {
-				apy: 0,
-				tokens: new Map()
+			// Initialize strategy data
+			const strategyData = {
+				apy: strategyApy,
+				baseApy,
+				tokens: tokenApyMap
 			}
 
-			tokenApyMap.forEach((apy, tokenAddress) => {
-				currentStrategyRewards.tokens.set(tokenAddress, apy)
-			})
-			currentStrategyRewards.apy += strategyApy
-			strategyApyMap.set(strategyAddress, currentStrategyRewards)
+			// Calculate Trailing APY if requested
+			if (withTrailingApy) {
+				// Define timeframe boundaries
+				const timeframes = [
+					{ days: 7, key: 'trailingApy7d' },
+					{ days: 30, key: 'trailingApy30d' },
+					{ days: 90, key: 'trailingApy3m' },
+					{ days: 180, key: 'trailingApy6m' },
+					{ days: 365, key: 'trailingApy1y' }
+				]
+				const timeframeStarts: { [key: string]: Date } = {}
+				const trailingSums: { [key: string]: number } = {}
+				timeframes.forEach(({ key, days }) => {
+					const start = new Date(Date.now() - (days - 1) * 24 * 60 * 60 * 1000)
+					start.setUTCHours(0, 0, 0, 0)
+					timeframeStarts[key] = start
+					trailingSums[key] = 0
+				})
+
+				// Calculate daily APY and accumulate for relevant timeframes
+				for (let day = new Date(startDate); day <= endDate; day.setDate(day.getDate() + 1)) {
+					const dayKey = day.toISOString().split('T')[0]
+					const dailyTvl =
+						dailyTvlMap[dayKey]?.[avs.address.toLowerCase()]?.[strategyAddressLower] || 0
+					if (dailyTvl === 0) continue
+
+					const dailyStrategyRewardsEth = dailyRewardsByDay[dayKey] || new Prisma.Prisma.Decimal(0)
+
+					if (dailyStrategyRewardsEth.greaterThan(0)) {
+						const dailyApy = (dailyStrategyRewardsEth.toNumber() / dailyTvl) * 100
+
+						timeframes.forEach(({ key }) => {
+							if (day >= timeframeStarts[key]) {
+								trailingSums[key] += dailyApy
+							}
+						})
+					}
+				}
+
+				// Annualize trailing APYs
+				timeframes.forEach(({ key, days }) => {
+					const annualizationFactor = new Prisma.Prisma.Decimal(365).div(days)
+					strategyData[key] = new Prisma.Prisma.Decimal(trailingSums[key])
+						.mul(annualizationFactor)
+						.toNumber()
+				})
+			}
+
+			// Store strategy data
+			strategyApyMap.set(strategyAddressLower, strategyData)
 		}
 
 		return {
-			strategyApys: Array.from(strategyApyMap.entries()).map(([strategyAddress, data]) => {
-				return {
-					strategyAddress,
-					apy: data.apy,
-					tokens: Array.from(data.tokens.entries()).map(([tokenAddress, apy]) => ({
-						tokenAddress,
-						apy
-					}))
-				}
-			})
+			strategyApys: Array.from(strategyApyMap.entries()).map(([strategyAddress, data]) => ({
+				strategyAddress,
+				apy: data.apy,
+				baseApy: data.baseApy,
+				trailingApy7d: data.trailingApy7d,
+				trailingApy30d: data.trailingApy30d,
+				trailingApy3m: data.trailingApy3m,
+				trailingApy6m: data.trailingApy6m,
+				trailingApy1y: data.trailingApy1y,
+				tokens: Array.from(data.tokens.entries()).map(([tokenAddress, apy]) => ({
+					tokenAddress,
+					apy
+				}))
+			}))
 		}
 	} catch {}
 }
 
-function getAdditionalInfo(
-	allAdditionalInfo: Prisma.AvsAdditionalInfo[],
-	curatedMetadata: Prisma.AvsCuratedMetadata | null
-) {
+// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+function getAdditionalInfo(avs: any) {
+	const additionalInfo = avs.additionalInfo
+	const curatedMetadata = avs.curatedMetadata
 	const processedKeys = new Set<string>()
 	const result: Array<{
 		metadataKey: string
@@ -1313,7 +1518,7 @@ function getAdditionalInfo(
 		updatedAt: Date | null
 	}> = []
 
-	for (const info of allAdditionalInfo) {
+	for (const info of additionalInfo) {
 		result.push({
 			metadataKey: info.metadataKey,
 			metadataValue: info.metadataContent,
@@ -1324,38 +1529,45 @@ function getAdditionalInfo(
 		processedKeys.add(info.metadataKey)
 	}
 
-	// If curatedMetadata exists, use it as fallback if any of these keys are missing
-	if (curatedMetadata) {
-		const curatedFields = [
-			'metadataName',
-			'name',
-			'metadataDescription',
-			'description',
-			'metadataDiscord',
-			'discord',
-			'metadataLogo',
-			'logo',
-			'metadataTelegram',
-			'telegram',
-			'metadataWebsite',
-			'website',
-			'metadataX',
-			'X',
-			'x',
-			'metadataGithub',
-			'github',
-			'metadataTokenAddress'
-		]
-
-		for (const field of curatedFields) {
-			if (!processedKeys.has(field) && field in curatedMetadata) {
-				result.push({
-					metadataKey: field,
-					metadataValue: curatedMetadata[field as keyof typeof curatedMetadata] as string | null,
-					createdAt: null,
-					updatedAt: null
-				})
-			}
+	const defaultAvsFields = [
+		'metadataName',
+		'name',
+		'metadataDescription',
+		'description',
+		'metadataDiscord',
+		'discord',
+		'metadataLogo',
+		'logo',
+		'metadataTelegram',
+		'telegram',
+		'metadataWebsite',
+		'website',
+		'metadataX',
+		'X',
+		'x',
+		'metadataGithub',
+		'github',
+		'metadataTokenAddress',
+		'isVerified',
+		'isVisible'
+	]
+	for (const field of defaultAvsFields) {
+		// If curatedMetadata (from legacy table `AvsCuratedMetadata`) exists, use it as fallback if any of the default keys are missing
+		if (curatedMetadata && !processedKeys.has(field) && field in curatedMetadata) {
+			result.push({
+				metadataKey: field,
+				metadataValue: curatedMetadata[field as keyof typeof curatedMetadata] as string | null,
+				createdAt: null,
+				updatedAt: null
+			})
+		} else if (!processedKeys.has(field) && field in avs) {
+			// Else use the default data from the `Avs` table as fallback
+			result.push({
+				metadataKey: field,
+				metadataValue: avs[field as keyof typeof avs] as string | null,
+				createdAt: null,
+				updatedAt: null
+			})
 		}
 	}
 

@@ -22,6 +22,8 @@ export async function monitorAvsApy() {
 	const tokenPrices = await fetchTokenPrices()
 	const strategiesWithSharesUnderlying = await getStrategiesWithShareUnderlying()
 
+	const startDate = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000)
+
 	while (true) {
 		try {
 			// Fetch totalStakers, totalOperators & rewards data for all avs in this iteration
@@ -70,11 +72,14 @@ export async function monitorAvsApy() {
 						let totalRewardsEth = new Prisma.Prisma.Decimal(0)
 						let totalDuration = 0
 
-						// Find all reward submissions attributable to the strategy
-						const relevantSubmissions = avs.rewardSubmissions.filter(
-							(submission) =>
-								submission.strategyAddress.toLowerCase() === strategyAddress.toLowerCase()
-						)
+						const pastYearStartSec = Math.floor(startDate.getTime() / 1000)
+						const relevantSubmissions = avs.rewardSubmissions.filter((submission) => {
+							const endTimeSec = submission.startTimestamp + BigInt(submission.duration)
+							return (
+								submission.strategyAddress.toLowerCase() === strategyAddress.toLowerCase() &&
+								endTimeSec >= BigInt(pastYearStartSec)
+							)
+						})
 
 						// Calculate each reward amount for the strategy
 						for (const submission of relevantSubmissions) {

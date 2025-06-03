@@ -116,7 +116,8 @@ model Tokens {
   name     String
   decimals Int
 
-  cmcId Int
+  cmcId    Int
+  dlPoolId String?
 
   createdAtBlock BigInt   @default(0)
   updatedAtBlock BigInt   @default(0)
