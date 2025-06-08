@@ -27,7 +27,8 @@ import {
 import { MinTvlQuerySchema } from '../../schema/zod/schemas/minTvlQuerySchema'
 import {
 	AvsAdditionalInfoSchema,
-	AvsAdditionalInfoKeys
+	AvsAdditionalInfoKeys,
+	defaultAvsFields
 } from '../../schema/zod/schemas/updateAvsMetadata'
 import { isAuthRequired } from '../../utils/authMiddleware'
 import { WithTrailingApySchema } from '../../schema/zod/schemas/withTrailingApySchema'
@@ -1523,17 +1524,6 @@ function getAdditionalInfo(avs: any) {
 		updatedAt: Date | null
 	}> = []
 
-	const defaultAvsFields = [
-		'metadataName',
-		'metadataDescription',
-		'metadataDiscord',
-		'metadataLogo',
-		'metadataTelegram',
-		'metadataWebsite',
-		'metadataX',
-		'metadataGithub',
-		'metadataTokenAddress'
-	]
 	for (const field of defaultAvsFields) {
 		if (field in avs) {
 			// Load up the default keys from the `Avs` table
