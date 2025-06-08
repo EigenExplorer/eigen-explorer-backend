@@ -1527,17 +1527,6 @@ function getAdditionalInfo(avs: any) {
 		updatedAt: Date | null
 	}> = []
 
-	for (const info of additionalInfo) {
-		result.push({
-			metadataKey: info.metadataKey,
-			metadataValue: info.metadataContent,
-			createdAt: info.createdAt,
-			updatedAt: info.updatedAt
-		})
-
-		processedKeys.add(info.metadataKey)
-	}
-
 	const defaultAvsFields = [
 		'metadataName',
 		'metadataDescription',
@@ -1547,9 +1536,7 @@ function getAdditionalInfo(avs: any) {
 		'metadataWebsite',
 		'metadataX',
 		'metadataGithub',
-		'metadataTokenAddress',
-		'isVerified',
-		'isVisible'
+		'metadataTokenAddress'
 	]
 	for (const field of defaultAvsFields) {
 		if (field in avs) {
@@ -1561,6 +1548,17 @@ function getAdditionalInfo(avs: any) {
 				updatedAt: null
 			})
 		}
+	}
+
+	for (const info of additionalInfo) {
+		result.push({
+			metadataKey: info.metadataKey,
+			metadataValue: info.metadataContent,
+			createdAt: info.createdAt,
+			updatedAt: info.updatedAt
+		})
+
+		processedKeys.add(info.metadataKey)
 	}
 
 	return result
