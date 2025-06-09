@@ -17,11 +17,17 @@ export type Submission = {
 		multiplier: string
 		amount: string
 	}[]
+	operators?: {
+		operatorAddress: string
+		totalAmount: string
+		strategies: string[]
+		strategyAmounts: string[]
+	}[]
 }
 
 /**
- * Function for route /operators
- * Returns a list of all Operators with optional sorts & text search
+ * Function for route /strategies
+ * Returns a list of all Strategies with their corresponding reward tokens based on reward submissions
  *
  * @param req
  * @param res
