@@ -1,12 +1,31 @@
 import z from '..'
 
+export const defaultAvsFields = [
+	'metadataName',
+	'metadataDescription',
+	'metadataDiscord',
+	'metadataLogo',
+	'metadataTelegram',
+	'metadataWebsite',
+	'metadataX',
+	'metadataGithub',
+	'metadataTokenAddress'
+]
+
 export const AvsAdditionalInfoSchema = z.object({
 	items: z.array(
 		z.union([
 			// For storing strings
 			z.object({
 				contentType: z.literal('application/json'),
-				metadataKey: z.string().min(1, 'metadataKey cannot be empty'),
+				metadataKey: z
+					.string()
+					.min(1, 'metadataKey cannot be empty')
+					.refine((key) => !defaultAvsFields.includes(key), {
+						message: `metadataKey cannot be one of the reserved fields: ${defaultAvsFields.join(
+							', '
+						)}`
+					}),
 				metadataContent: z.string().nullable()
 			}),
 			// For storing image media
@@ -32,4 +51,11 @@ export const AvsAdditionalInfoSchema = z.object({
 	)
 })
 
-export const AvsAdditionalInfoKeys = z.array(z.string().min(1, 'metadataKeys cannot be empty'))
+export const AvsAdditionalInfoKeys = z.array(
+	z
+		.string()
+		.min(1, 'metadataKeys cannot be empty')
+		.refine((key) => !defaultAvsFields.includes(key), {
+			message: `metadataKey cannot be one of the reserved fields: ${defaultAvsFields.join(', ')}`
+		})
+)

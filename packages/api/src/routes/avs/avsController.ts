@@ -27,7 +27,8 @@ import {
 import { MinTvlQuerySchema } from '../../schema/zod/schemas/minTvlQuerySchema'
 import {
 	AvsAdditionalInfoSchema,
-	AvsAdditionalInfoKeys
+	AvsAdditionalInfoKeys,
+	defaultAvsFields
 } from '../../schema/zod/schemas/updateAvsMetadata'
 import { isAuthRequired } from '../../utils/authMiddleware'
 import { WithTrailingApySchema } from '../../schema/zod/schemas/withTrailingApySchema'
@@ -235,7 +236,8 @@ export async function getAllAVSAddresses(req: Request, res: Response) {
 
 /**
  * Function for route /avs/get-all-metadata
- * Protected route to return all AVS metadata, customized for admin access via area-internal-dashboard
+ * Protected route to return all Avs metadata from the new `AvsAdditionalInfo`, instead of from the legacy `AvsCuratedMetadata`
+ * Differs from using `withMetadata` flag -- returns all Avs regardless of `isVisible` or existence of `curatedMetadata`, and with "bookmarked" ones first
  *
  * @param req
  * @param res
@@ -252,8 +254,7 @@ export async function getAllMetadata(req: Request, res: Response) {
 		const take = 1000
 		const allAvs = await prisma.avs.findMany({
 			include: {
-				additionalInfo: true,
-				curatedMetadata: true
+				additionalInfo: true
 			},
 			skip,
 			take
@@ -267,7 +268,7 @@ export async function getAllMetadata(req: Request, res: Response) {
 			additionalInfo: getAdditionalInfo(avs)
 		}))
 
-		// Sort so bookmarked AVSs (metadataKey: 'bookmarked', metadataValue: 'true') come first
+		// Sort such that bookmarked AVSs (metadataKey: 'bookmarked', metadataValue: 'true') come first
 		const sortedAvs = processedAvs.sort((a, b) => {
 			const aIsBookmarked = a.additionalInfo.some(
 				(info) => info.metadataKey === 'bookmarked' && info.metadataValue === 'true'
@@ -357,7 +358,7 @@ export async function getAVS(req: Request, res: Response) {
 
 		res.send({
 			...avs,
-			curatedMetadata: withCuratedMetadata ? avs.curatedMetadata : undefined,
+			curatedMetadata: withCuratedMetadata ? avs.curatedMetadata : undefined, // Legacy retained
 			additionalInfo: withCuratedMetadata ? getAdditionalInfo(avs) : undefined,
 			shares,
 			totalOperators: avs.totalOperators,
@@ -904,7 +905,8 @@ export async function getAvsRegistrationEvents(req: Request, res: Response) {
 
 /**
  * Function for route /avs/:address/get-metadata
- * Protected route to return a given AVS metadata, customized for admin access via area-internal-dashboard
+ * Protected route to return a given Avs metadata from the new `AvsAdditionalInfo`, instead of from the legacy `AvsCuratedMetadata`
+ * Differs from using `withMetadata` flag -- returns Avs regardless of `isVisible` or existence of `curatedMetadata`
  *
  * @param req
  * @param res
@@ -928,15 +930,13 @@ export async function getMetadata(req: Request, res: Response) {
 		const avs = await prisma.avs.findUniqueOrThrow({
 			where: { address: address.toLowerCase() },
 			include: {
-				additionalInfo: true,
-				curatedMetadata: true
+				additionalInfo: true
 			}
 		})
 
 		res.send({
 			...avs,
-			additionalInfo: getAdditionalInfo(avs),
-			curatedMetadata: undefined
+			additionalInfo: getAdditionalInfo(avs)
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
@@ -1506,10 +1506,16 @@ async function calculateAvsApy(avs: any, withTrailingApy: boolean = false) {
 	} catch {}
 }
 
-// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+/**
+ * Build the `additionalInfo` section for a given Avs
+ * Default metadata values from the `Avs` table are added to make the value complete in itself
+ *
+ * @param avs
+ * @returns
+ * biome-ignore lint/suspicious/noExplicitAny: <explanation>
+ */
 function getAdditionalInfo(avs: any) {
 	const additionalInfo = avs.additionalInfo
-	const curatedMetadata = avs.curatedMetadata
 	const processedKeys = new Set<string>()
 	const result: Array<{
 		metadataKey: string
@@ -1517,6 +1523,18 @@ function getAdditionalInfo(avs: any) {
 		createdAt: Date | null
 		updatedAt: Date | null
 	}> = []
+
+	for (const field of defaultAvsFields) {
+		if (field in avs) {
+			// Load up the default keys from the `Avs` table
+			result.push({
+				metadataKey: field,
+				metadataValue: avs[field as keyof typeof avs] as string | null,
+				createdAt: null,
+				updatedAt: null
+			})
+		}
+	}
 
 	for (const info of additionalInfo) {
 		result.push({
@@ -1527,48 +1545,6 @@ function getAdditionalInfo(avs: any) {
 		})
 
 		processedKeys.add(info.metadataKey)
-	}
-
-	const defaultAvsFields = [
-		'metadataName',
-		'name',
-		'metadataDescription',
-		'description',
-		'metadataDiscord',
-		'discord',
-		'metadataLogo',
-		'logo',
-		'metadataTelegram',
-		'telegram',
-		'metadataWebsite',
-		'website',
-		'metadataX',
-		'X',
-		'x',
-		'metadataGithub',
-		'github',
-		'metadataTokenAddress',
-		'isVerified',
-		'isVisible'
-	]
-	for (const field of defaultAvsFields) {
-		// If curatedMetadata (from legacy table `AvsCuratedMetadata`) exists, use it as fallback if any of the default keys are missing
-		if (curatedMetadata && !processedKeys.has(field) && field in curatedMetadata) {
-			result.push({
-				metadataKey: field,
-				metadataValue: curatedMetadata[field as keyof typeof curatedMetadata] as string | null,
-				createdAt: null,
-				updatedAt: null
-			})
-		} else if (!processedKeys.has(field) && field in avs) {
-			// Else use the default data from the `Avs` table as fallback
-			result.push({
-				metadataKey: field,
-				metadataValue: avs[field as keyof typeof avs] as string | null,
-				createdAt: null,
-				updatedAt: null
-			})
-		}
 	}
 
 	return result
