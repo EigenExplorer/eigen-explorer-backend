@@ -11,11 +11,41 @@ const SubmissionStrategySchema = z.object({
 	amount: z
 		.string()
 		.describe(
-			'The amount of rewards allocated to this strategy from the total rewards in this submissionn'
+			'The amount of rewards allocated to this strategy from the total rewards in this submission, denominated in the reward token (wei).'
 		)
 		.openapi({
 			example: '5000000000000000000'
 		})
+})
+
+// Schema for operator info
+const OperatorRewardSchema = z.object({
+	operatorAddress: EthereumAddressSchema.describe('The address of the operator').openapi({
+		example: '0x0f4e73f02e2b78f424a8e3f8e8553761c305f4d1'
+	}),
+	totalAmount: z
+		.string()
+		.describe(
+			'Total amount of rewards distributed to this operator, denominated in the reward token (wei).'
+		)
+		.openapi({
+			example: '5000000000000000000'
+		}),
+	strategies: z.array(
+		EthereumAddressSchema.describe('List of strategy addresses for reward distribution').openapi({
+			example: '0xacb55c530acdb2849e6d4f36992cd8c9d50ed8f7'
+		})
+	),
+	strategyAmounts: z.array(
+		z
+			.string()
+			.describe(
+				"The amount of rewards allocated to this strategy from the total rewards for this operator (same order as 'strategies'), denominated in the reward token (wei)."
+			)
+			.openapi({
+				example: '5000000000000000000'
+			})
+	)
 })
 
 const RewardsSubmissionSchema = z.object({
@@ -32,7 +62,9 @@ const RewardsSubmissionSchema = z.object({
 		.openapi({ example: 2500000 }),
 	totalAmount: z
 		.string()
-		.describe('The total amount of rewards allocated in this submission')
+		.describe(
+			'The total amount of rewards allocated in this submission, denominated in the reward token (wei).'
+		)
 		.openapi({
 			example: '5000000000000000000'
 		}),
@@ -43,7 +75,11 @@ const RewardsSubmissionSchema = z.object({
 	}),
 	strategies: z
 		.array(SubmissionStrategySchema)
-		.describe('List of strategies involved in the rewards submission')
+		.describe('List of strategies involved in the rewards submission'),
+	operators: z
+		.array(OperatorRewardSchema)
+		.optional()
+		.describe('Rewards distributed to each operator')
 })
 
 export const AvsRewardsSchema = z.object({
@@ -55,7 +91,7 @@ export const AvsRewardsSchema = z.object({
 		.describe('The list of of individual rewards submissions associated with the AVS'),
 	totalRewards: z
 		.string()
-		.describe('The aggregate amount of rewards distributed across all submissions')
+		.describe('Total rewards distributed for all submissions, aggregated in ETH (wei)')
 		.openapi({ example: '1000000000000000000' }),
 	totalSubmissions: z
 		.number()

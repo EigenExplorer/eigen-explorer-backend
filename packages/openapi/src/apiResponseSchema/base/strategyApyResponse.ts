@@ -9,6 +9,32 @@ export const StrategyApySchema = z.object({
 		.number()
 		.describe('The cumulative APY from all tokens in this strategy')
 		.openapi({ example: 0.1 }),
+	baseApy: z.number().describe('Base APY (from LST yield)').openapi({ example: 0.1 }),
+	trailingApy7d: z
+		.number()
+		.optional()
+		.describe('7-day trailing APY values')
+		.openapi({ example: 0.1 }),
+	trailingApy30d: z
+		.number()
+		.optional()
+		.describe('30-day trailing APY values')
+		.openapi({ example: 0.1 }),
+	trailingApy3m: z
+		.number()
+		.optional()
+		.describe('3-month trailing APY values')
+		.openapi({ example: 0.1 }),
+	trailingApy6m: z
+		.number()
+		.optional()
+		.describe('6-month trailing APY values')
+		.openapi({ example: 0.1 }),
+	trailingApy1y: z
+		.number()
+		.optional()
+		.describe('1-year trailing APY values')
+		.openapi({ example: 0.1 }),
 	tokens: z.array(
 		z.object({
 			tokenAddress: z
