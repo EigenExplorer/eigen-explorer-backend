@@ -320,6 +320,7 @@ export async function getAVS(req: Request, res: Response) {
 				curatedMetadata: withCuratedMetadata,
 				additionalInfo: withCuratedMetadata,
 				rewardSubmissions: withRewards || withTrailingApy,
+				operatorDirectedRewardSubmissions: withRewards || withTrailingApy,
 				operators: {
 					where: { isActive: true },
 					include: {
@@ -372,7 +373,8 @@ export async function getAVS(req: Request, res: Response) {
 			restakeableStrategies: undefined,
 			tvlEth: undefined,
 			sharesHash: undefined,
-			rewardSubmissions: undefined
+			rewardSubmissions: undefined,
+			operatorDirectedRewardSubmissions: undefined
 		})
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
@@ -1341,7 +1343,7 @@ async function calculateAvsApy(avs: any, withTrailingApy: boolean = false) {
 				string,
 				{
 					totalRewardsEth: Prisma.Prisma.Decimal
-					totalDuration: number
+					timeSegments: { start: number; end: number }[]
 				}
 			> = new Map()
 
@@ -1352,13 +1354,44 @@ async function calculateAvsApy(avs: any, withTrailingApy: boolean = false) {
 
 			const pastYearStartSec = Math.floor(startDate.getTime() / 1000)
 			// Filter submissions ending within the past year
-			const relevantSubmissions = avs.rewardSubmissions.filter((submission) => {
+			const isRelevantSubmission = (submission: any) => {
 				const endTimeSec = submission.startTimestamp + BigInt(submission.duration)
 				return (
 					submission.strategyAddress.toLowerCase() === strategyAddressLower &&
 					endTimeSec >= BigInt(pastYearStartSec)
 				)
-			})
+			}
+
+			// Aggregate operatorDirectedRewardSubmissions
+			const aggregatedOperatorSubmissions: Map<
+				string,
+				{
+					startTimestamp: bigint
+					duration: number
+					strategyAddress: string
+					token: string
+					amount: Prisma.Prisma.Decimal
+				}
+			> = new Map()
+
+			for (const submission of avs.operatorDirectedRewardSubmissions.filter(isRelevantSubmission)) {
+				const key = submission.operatorDirectedRewardsSubmissionHash.toLowerCase()
+				const existing = aggregatedOperatorSubmissions.get(key) || {
+					startTimestamp: submission.startTimestamp,
+					duration: submission.duration,
+					strategyAddress: submission.strategyAddress.toLowerCase(),
+					token: submission.token.toLowerCase(),
+					amount: new Prisma.Prisma.Decimal(0)
+				}
+				existing.amount = existing.amount.add(submission.amount)
+				aggregatedOperatorSubmissions.set(key, existing)
+			}
+
+			// Combine with rewardSubmissions
+			const relevantSubmissions = [
+				...avs.rewardSubmissions.filter(isRelevantSubmission),
+				...Array.from(aggregatedOperatorSubmissions.values())
+			]
 
 			if (!relevantSubmissions || relevantSubmissions.length === 0) continue
 
@@ -1378,10 +1411,13 @@ async function calculateAvsApy(avs: any, withTrailingApy: boolean = false) {
 				// Current APY: Accumulate token-specific rewards and duration
 				const tokenData = tokenRewards.get(rewardTokenAddress) || {
 					totalRewardsEth: new Prisma.Prisma.Decimal(0),
-					totalDuration: 0
+					timeSegments: []
 				}
 				tokenData.totalRewardsEth = tokenData.totalRewardsEth.add(rewardIncrementEth)
-				tokenData.totalDuration += submission.duration
+				tokenData.timeSegments.push({
+					start: Number(submission.startTimestamp),
+					end: Number(submission.startTimestamp) + submission.duration
+				})
 				tokenRewards.set(rewardTokenAddress, tokenData)
 
 				// Current APY: Accumulate strategy totals
@@ -1417,9 +1453,30 @@ async function calculateAvsApy(avs: any, withTrailingApy: boolean = false) {
 			// Calculate token APYs for Current APY
 			let strategyApy = 0
 			tokenRewards.forEach((data, tokenAddress) => {
-				if (data.totalDuration !== 0) {
+				if (data.timeSegments.length === 0) return
+
+				const sortedSegments = data.timeSegments.sort((a, b) => a.start - b.start)
+				const mergedSegments: { start: number; end: number }[] = []
+
+				let currentSegment = sortedSegments[0]
+				for (let i = 1; i < sortedSegments.length; i++) {
+					const nextSegment = sortedSegments[i]
+					if (nextSegment.start <= currentSegment.end) {
+						// Overlapping: extend current segment
+						currentSegment.end = Math.max(currentSegment.end, nextSegment.end)
+					} else {
+						// Non-overlapping: push current and start new segment
+						mergedSegments.push(currentSegment)
+						currentSegment = nextSegment
+					}
+				}
+				mergedSegments.push(currentSegment)
+
+				// Calculate total duration from merged segments
+				const totalDuration = mergedSegments.reduce((sum, seg) => sum + (seg.end - seg.start), 0)
+				if (totalDuration !== 0) {
 					const tokenRewardRate = data.totalRewardsEth.toNumber() / strategyTvl
-					const tokenAnnualizedRate = tokenRewardRate * ((365 * 24 * 60 * 60) / data.totalDuration)
+					const tokenAnnualizedRate = tokenRewardRate * ((365 * 24 * 60 * 60) / totalDuration)
 					const tokenApy = tokenAnnualizedRate * 100
 					tokenApyMap.set(tokenAddress, tokenApy)
 					strategyApy += tokenApy
@@ -1465,6 +1522,8 @@ async function calculateAvsApy(avs: any, withTrailingApy: boolean = false) {
 
 					if (dailyStrategyRewardsEth.greaterThan(0)) {
 						const dailyApy = (dailyStrategyRewardsEth.toNumber() / dailyTvl) * 100
+
+						if (dailyApy > 1000) continue
 
 						timeframes.forEach(({ key }) => {
 							if (day >= timeframeStarts[key]) {
