@@ -27,6 +27,7 @@ import {
 	WithdrawalEventQuerySchema
 } from '../../schema/zod/schemas/eventSchemas'
 import { doGetTvlStrategy, doGetTvl, doGetTvlBeaconChain } from '../metrics/metricController'
+import { fetchBaseApys } from '../../utils/baseApys'
 
 /**
  * Route to get a list of all stakers
@@ -149,6 +150,7 @@ export async function getStaker(req: Request, res: Response) {
 												select: {
 													address: true,
 													rewardSubmissions: true,
+													operatorDirectedRewardSubmissions: true,
 													restakeableStrategies: true,
 													operators: {
 														where: { isActive: true },
@@ -674,10 +676,21 @@ async function calculateStakerRewards(
 			string,
 			{
 				apy: number
+				baseApy: number
 				tvlEth: number
 				tokens: Map<string, number>
 			}
 		> = new Map()
+
+		const startDate = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000)
+		startDate.setUTCHours(0, 0, 0, 0)
+		const endDate = new Date()
+		endDate.setUTCHours(0, 0, 0, 0)
+
+		const eigenStrategyAddress =
+			process.env.NETWORK === 'holesky'
+				? '0x43252609bff8a13dfe5e057097f2f45a24387a84'
+				: '0xacb55c530acdb2849e6d4f36992cd8c9d50ed8f7'
 
 		// Grab the all reward submissions that the Staker is eligible for basis opted strategies & the Operator's opted AVSs
 		const operatorStrategyAddresses: Set<string> = new Set(
@@ -690,33 +703,121 @@ async function calculateStakerRewards(
 			)
 		)
 
-		const avsWithEligibleRewardSubmissions = staker.operator?.avs
-			.filter((avsOp) => avsOp.avs.rewardSubmissions.length > 0)
+		// Filter AVS with reward submissions
+		const avsWithRewards = staker.operator?.avs.filter(
+			(avsOp) =>
+				avsOp.avs.rewardSubmissions.length > 0 ||
+				avsOp.avs.operatorDirectedRewardSubmissions.length > 0
+		)
+
+		if (!avsWithRewards || avsWithRewards.length === 0)
+			return {
+				aggregateApy: '0',
+				nativeApy: '0',
+				tokenAmounts: [],
+				strategyApys: [],
+				avsApys: []
+			}
+
+		const pastYearStartSec = Math.floor(startDate.getTime() / 1000)
+		// Filter AVS with eligible rewards
+		const isEligibleReward = (reward: any) => {
+			const endTimeSec = reward.startTimestamp + BigInt(reward.duration)
+			return (
+				optedStrategyAddresses.has(reward.strategyAddress.toLowerCase()) &&
+				endTimeSec >= BigInt(pastYearStartSec) &&
+				(!reward.operatorAddress ||
+					reward.operatorAddress.toLowerCase() === staker.operator?.address.toLowerCase())
+			)
+		}
+
+		const avsWithEligibleRewardSubmissions = avsWithRewards
 			.map((avsOp) => ({
 				avs: avsOp.avs,
-				eligibleRewards: avsOp.avs.rewardSubmissions.filter((reward) =>
-					optedStrategyAddresses.has(reward.strategyAddress.toLowerCase())
-				)
+				eligibleRewards: [
+					// Filter for rewardSubmissions based on strategy address
+					...avsOp.avs.rewardSubmissions.filter(isEligibleReward),
+					// Filter for operatorDirectedRewardSubmissions based on strategy address and operator address
+					...avsOp.avs.operatorDirectedRewardSubmissions.filter(isEligibleReward)
+				],
+				status: avsOp.isActive
 			}))
 			.filter((item) => item.eligibleRewards.length > 0)
+
+		if (!avsWithEligibleRewardSubmissions || avsWithEligibleRewardSubmissions.length === 0)
+			return {
+				aggregateApy: '0',
+				nativeApy: '0',
+				tokenAmounts: [],
+				strategyApys: [],
+				avsApys: []
+			}
+
+		const [
+			tokenPrices,
+			strategiesWithSharesUnderlying,
+			baseApys,
+			operatorAvsSplits,
+			foundEigenStrategy,
+			stakerRewardRecords
+		] = await Promise.all([
+			fetchTokenPrices(),
+			getStrategiesWithShareUnderlying(),
+			fetchBaseApys(),
+			await prisma.operatorAvsSplit.findMany({
+				where: {
+					operatorAddress: staker.operator?.address.toLowerCase(),
+					avsAddress: {
+						in: avsWithEligibleRewardSubmissions.map(({ avs }) => avs.address.toLowerCase())
+					}
+				},
+				orderBy: [{ activatedAt: 'desc' }]
+			}),
+			await prisma.strategies.findUnique({
+				where: { address: eigenStrategyAddress.toLowerCase() }
+			}),
+			await prisma.stakerRewardSnapshot.findMany({
+				where: {
+					stakerAddress: staker.address.toLowerCase()
+				}
+			})
+		])
+
+		const tokenPriceMap = new Map(tokenPrices.map((tp) => [tp.address.toLowerCase(), tp]))
+		const baseApyMap = new Map(baseApys.map((ba) => [ba.strategyAddress.toLowerCase(), ba.apy]))
+
+		// Create a lookup for splitBips
+		const splitMap: Map<string, { activatedAt: bigint; splitBips: number }[]> = new Map()
+		operatorAvsSplits.forEach((split) => {
+			const key = `${split.operatorAddress.toLowerCase()}:${split.avsAddress.toLowerCase()}`
+			if (!splitMap.has(key)) {
+				splitMap.set(key, [])
+			}
+			splitMap.get(key)!.push({
+				activatedAt: split.activatedAt,
+				splitBips: split.splitBips
+			})
+		})
+
+		// Function to get splitBips for a given operator, AVS, and timestamp
+		const getSplit = (operatorAddress: string, avsAddress: string, timestamp: bigint): number => {
+			const key = `${operatorAddress.toLowerCase()}:${avsAddress.toLowerCase()}`
+			const splits = splitMap.get(key) || []
+			const validSplit = splits
+				.filter((split) => split.activatedAt <= timestamp)
+				.sort((a, b) => Number(b.activatedAt) - Number(a.activatedAt))[0]
+			return validSplit ? validSplit.splitBips / 100 : 10 // Default to 10%
+		}
 
 		if (!avsWithEligibleRewardSubmissions) {
 			return {
 				aggregateApy: '0',
 				nativeApy: '0',
-				tokenRewards: [],
+				tokenAmounts: [],
 				strategyApys: [],
 				avsApys: []
 			}
 		}
-
-		const tokenPrices = await fetchTokenPrices()
-		const strategiesWithSharesUnderlying = await getStrategiesWithShareUnderlying()
-
-		const eigenStrategyAddress =
-			process.env.NETWORK === 'holesky'
-				? '0x43252609bff8a13dfe5e057097f2f45a24387a84'
-				: '0xacb55c530acdb2849e6d4f36992cd8c9d50ed8f7'
 
 		// Calculate totalTvlEth for the staker
 		const stakerTotalTvlEth = Object.values(stakerTvlStrategiesEth).reduce(
@@ -727,11 +828,6 @@ async function calculateStakerRewards(
 			stakerTvlStrategiesEth[eigenStrategyAddress.toLowerCase()] || 0
 		)
 		const stakerEthLstTvlEth = stakerTotalTvlEth - stakerEigenTvlEth
-
-		// Fetch Total TVL for EIGEN Strategy
-		const foundEigenStrategy = await prisma.strategies.findUnique({
-			where: { address: eigenStrategyAddress.toLowerCase() }
-		})
 
 		if (!foundEigenStrategy) {
 			throw new Error(`EIGEN strategy not found for address: ${eigenStrategyAddress}`)
@@ -755,26 +851,22 @@ async function calculateStakerRewards(
 			process.env.NETWORK === 'holesky'
 				? '0x275ccf9be51f4a6c94aba6114cdf2a4c45b9cb27'
 				: '0xec53bF9167f50cDEB3Ae105f56099aaaB9061F83'
-		const eigenTokenPrice = tokenPrices.find(
-			(tp) => tp.address.toLowerCase() === eigenTokenAddress.toLowerCase()
-		)
+		const eigenTokenPrice = tokenPriceMap.get(eigenTokenAddress.toLowerCase())
 
-		if (!eigenTokenPrice) {
-			throw new Error('EIGEN token price not found')
-		}
+		const operatorPiSplit = (100 - (staker.operator?.piSplitBips ?? 1000) / 100) / 100
 
 		// EIGEN Strategy PI
 		const piWeeklyEigenTokens = new Prisma.Prisma.Decimal(321855)
 		const eigenTokenAmount =
 			totalTvlEigenStrategy > 0
-				? piWeeklyEigenTokens.mul(0.9).mul(stakerEigenTvlEth).div(totalTvlEigenStrategy)
+				? piWeeklyEigenTokens.mul(operatorPiSplit).mul(stakerEigenTvlEth).div(totalTvlEigenStrategy)
 				: new Prisma.Prisma.Decimal(0)
 
 		// ETH/LST Strategies PI
 		const piWeeklyEthLstTokens = new Prisma.Prisma.Decimal(965565)
 		const ethLstTokenAmount =
 			totalTvlEthLst > 0
-				? piWeeklyEthLstTokens.mul(0.9).mul(stakerEthLstTvlEth).div(totalTvlEthLst)
+				? piWeeklyEthLstTokens.mul(operatorPiSplit).mul(stakerEthLstTvlEth).div(totalTvlEthLst)
 				: new Prisma.Prisma.Decimal(0)
 
 		// Calculate Native APY
@@ -789,12 +881,12 @@ async function calculateStakerRewards(
 			stakerTotalTvlEth > 0 ? totalPiProfitEth.div(stakerTotalTvlEth).mul(100).toNumber() : 0
 
 		// Calc aggregate APY for each AVS basis the opted-in strategies
-		for (const avs of avsWithEligibleRewardSubmissions) {
-			const avsAddress = avs.avs.address.toLowerCase()
+		for (const { avs, eligibleRewards, status } of avsWithEligibleRewardSubmissions) {
+			const avsAddressLower = avs.address.toLowerCase()
 
 			// Get share amounts for each restakeable strategy
-			const shares = withOperatorShares(avs.avs.operators).filter(
-				(s) => avs.avs.restakeableStrategies.indexOf(s.strategyAddress.toLowerCase()) !== -1
+			const shares = withOperatorShares(avs.operators).filter(
+				(s) => avs.restakeableStrategies.indexOf(s.strategyAddress.toLowerCase()) !== -1
 			)
 
 			// Fetch the AVS tvl for each strategy
@@ -810,7 +902,7 @@ async function calculateStakerRewards(
 					string,
 					{
 						totalRewardsEth: Prisma.Prisma.Decimal
-						totalDuration: number
+						timeSegments: { start: number; end: number }[]
 					}
 				> = new Map()
 
@@ -818,7 +910,7 @@ async function calculateStakerRewards(
 				let strategyTotalDuration = 0
 
 				// Find all reward submissions attributable to the strategy
-				const relevantSubmissions = avs.eligibleRewards.filter(
+				const relevantSubmissions = eligibleRewards.filter(
 					(submission) => submission.strategyAddress.toLowerCase() === strategyAddress.toLowerCase()
 				)
 
@@ -827,29 +919,37 @@ async function calculateStakerRewards(
 					const rewardTokenAddress = submission.token.toLowerCase()
 
 					if (rewardTokenAddress) {
-						const tokenPrice = tokenPrices.find(
-							(tp) => tp.address.toLowerCase() === rewardTokenAddress
+						const tokenPrice = tokenPriceMap.get(rewardTokenAddress)
+
+						// Apply operator commission from OperatorAvsSplit
+						const operatorSplit = getSplit(
+							staker.operator?.address,
+							avsAddressLower,
+							submission.startTimestamp
 						)
 						rewardIncrementEth = submission.amount
 							.mul(new Prisma.Prisma.Decimal(tokenPrice?.ethPrice ?? 0))
-							.div(new Prisma.Prisma.Decimal(10).pow(tokenPrice?.decimals ?? 18)) // No decimals
+							.div(new Prisma.Prisma.Decimal(10).pow(tokenPrice?.decimals ?? 18))
+							.mul(100 - operatorSplit)
+							.div(100)
 					}
-
-					// Operator takes 10% in commission
-					const operatorFeesEth = rewardIncrementEth.mul(10).div(100) // No decimals
-					const netRewardEth = rewardIncrementEth.sub(operatorFeesEth)
 
 					// Accumulate token-specific rewards and duration
 					const tokenData = tokenRewards.get(rewardTokenAddress) || {
 						totalRewardsEth: new Prisma.Prisma.Decimal(0),
-						totalDuration: 0
+						timeSegments: []
 					}
-					tokenData.totalRewardsEth = tokenData.totalRewardsEth.add(netRewardEth)
-					tokenData.totalDuration += submission.duration
+					tokenData.totalRewardsEth = status
+						? tokenData.totalRewardsEth.add(rewardIncrementEth)
+						: (tokenData.totalRewardsEth = new Prisma.Prisma.Decimal(0))
+					tokenData.timeSegments.push({
+						start: Number(submission.startTimestamp),
+						end: Number(submission.startTimestamp) + submission.duration
+					})
 					tokenRewards.set(rewardTokenAddress, tokenData)
 
 					// Accumulate strategy totals
-					strategyTotalRewardsEth = strategyTotalRewardsEth.add(netRewardEth)
+					strategyTotalRewardsEth = strategyTotalRewardsEth.add(rewardIncrementEth)
 					strategyTotalDuration += submission.duration
 				}
 
@@ -857,10 +957,30 @@ async function calculateStakerRewards(
 
 				// Calculate token APYs using accumulated values
 				tokenRewards.forEach((data, tokenAddress) => {
-					if (data.totalDuration !== 0) {
+					if (data.timeSegments.length === 0) return
+
+					const sortedSegments = data.timeSegments.sort((a, b) => a.start - b.start)
+					const mergedSegments: { start: number; end: number }[] = []
+
+					let currentSegment = sortedSegments[0]
+					for (let i = 1; i < sortedSegments.length; i++) {
+						const nextSegment = sortedSegments[i]
+						if (nextSegment.start <= currentSegment.end) {
+							// Overlapping: extend current segment
+							currentSegment.end = Math.max(currentSegment.end, nextSegment.end)
+						} else {
+							// Non-overlapping: push current and start new segment
+							mergedSegments.push(currentSegment)
+							currentSegment = nextSegment
+						}
+					}
+					mergedSegments.push(currentSegment)
+
+					// Calculate total duration from merged segments
+					const totalDuration = mergedSegments.reduce((sum, seg) => sum + (seg.end - seg.start), 0)
+					if (totalDuration !== 0) {
 						const tokenRewardRate = data.totalRewardsEth.toNumber() / strategyTvl
-						const tokenAnnualizedRate =
-							tokenRewardRate * ((365 * 24 * 60 * 60) / data.totalDuration)
+						const tokenAnnualizedRate = tokenRewardRate * ((365 * 24 * 60 * 60) / totalDuration)
 						const tokenApy = tokenAnnualizedRate * 100
 
 						tokenApyMap.set(tokenAddress, tokenApy)
@@ -869,10 +989,12 @@ async function calculateStakerRewards(
 
 				// Calculate overall strategy APY summing token APYs
 				const strategyApy = Array.from(tokenApyMap.values()).reduce((sum, apy) => sum + apy, 0)
+				const baseApy = baseApyMap.get(strategyAddress) || 0
 
 				// Update strategy rewards map (across all AVSs)
 				const currentStrategyRewards = strategyApyMap.get(strategyAddress) || {
 					apy: 0,
+					baseApy,
 					tvlEth: strategyTvl,
 					tokens: new Map()
 				}
@@ -885,24 +1007,18 @@ async function calculateStakerRewards(
 				strategyApyMap.set(strategyAddress, currentStrategyRewards)
 
 				// Update AVS rewards map
-				const currentAvsRewards = avsApyMap.get(avsAddress) || { strategies: [] }
+				const currentAvsRewards = avsApyMap.get(avsAddressLower) || { strategies: [] }
 				currentAvsRewards.strategies.push({
 					address: strategyAddress,
 					tvlEth: strategyTvl,
 					apy: strategyApy,
 					tokens: tokenApyMap
 				})
-				avsApyMap.set(avsAddress, currentAvsRewards)
+				avsApyMap.set(avsAddressLower, currentAvsRewards)
 			}
 		}
 
 		// Build token amounts section
-		const stakerRewardRecords = await prisma.stakerRewardSnapshot.findMany({
-			where: {
-				stakerAddress: staker.address.toLowerCase()
-			}
-		})
-
 		const tokenAmounts = stakerRewardRecords.map((record) => ({
 			tokenAddress: record.tokenAddress.toLowerCase(),
 			cumulativeAmount: record.cumulativeAmount
@@ -912,6 +1028,7 @@ async function calculateStakerRewards(
 		const strategyApys = Array.from(strategyApyMap).map(([strategyAddress, data]) => ({
 			strategyAddress,
 			apy: data.apy,
+			baseApy: data.baseApy,
 			tokens: Array.from(data.tokens.entries()).map(([tokenAddress, apy]) => ({
 				tokenAddress,
 				apy
