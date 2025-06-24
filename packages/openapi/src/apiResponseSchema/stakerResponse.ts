@@ -74,15 +74,19 @@ export const AvsApysSchema = z.object({
 		.describe('The AVS service manager contract address')
 		.openapi({ example: '0x1de75eaab2df55d467494a172652579e6fa4540e' }),
 	apy: z.number().describe('The total APY calculated for this AVS').openapi({ example: 0.1 }),
-	strategies: z.array(StrategyApySchema)
+	strategies: z.array(StakerStrategyApySchema)
 })
 
 export const StakerRewardsSchema = z.object({
 	aggregateApy: z
 		.number()
 		.describe(
-			'The sum of amount staked per strategy multiplied by the strategy apy for this staker'
+			'The sum of amount staked per strategy multiplied by the strategy apy for this staker, combined with the nativeApy'
 		)
+		.openapi({ example: 0.15 }),
+	nativeApy: z
+		.number()
+		.describe('Native APY (from EigenLayer programmatic incentives)')
 		.openapi({ example: 0.1 }),
 	tokenAmounts: z.array(TokenAmountSchema),
 	strategyApys: z.array(StakerStrategyApySchema),

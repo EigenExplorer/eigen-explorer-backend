@@ -5,6 +5,7 @@ import { ZodOpenApiOperationObject } from 'zod-openapi'
 import { WithTvlQuerySchema } from '../../../../api/src/schema/zod/schemas/withTvlQuery'
 import { WithCuratedMetadata } from '../../../../api/src/schema/zod/schemas/withCuratedMetadataQuery'
 import { WithRewardsQuerySchema } from '../../../../api/src/schema/zod/schemas/withRewardsQuery'
+import { WithTrailingApySchema } from '../../../../api/src/schema/zod/schemas/withTrailingApySchema'
 import { AvsWithRewardsSchema } from '../../apiResponseSchema/avs/avsResponse'
 import { AuthHeaderSchema } from '../../authHeaderSchema'
 
@@ -13,6 +14,7 @@ const CombinedQuerySchema = z
 	.merge(WithTvlQuerySchema)
 	.merge(WithCuratedMetadata)
 	.merge(WithRewardsQuerySchema)
+	.merge(WithTrailingApySchema)
 
 const AvsAddressParam = z.object({
 	address: EthereumAddressSchema.describe('AVS service manager contract address').openapi({
