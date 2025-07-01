@@ -613,6 +613,11 @@ export async function getAVSRewards(req: Request, res: Response) {
 	try {
 		const { address } = req.params
 
+		// Define 30-day window
+		const now = Math.floor(Date.now() / 1000)
+		const thirtyDaysAgo = now - 30 * 24 * 60 * 60
+		let last30DaysRewardsEth = 0
+
 		// Fetch RewardsV1 submissions for a given Avs
 		const rewardsV1Submissions = await prisma.avsStrategyRewardSubmission.findMany({
 			where: {
@@ -642,13 +647,15 @@ export async function getAVSRewards(req: Request, res: Response) {
 			totalSubmissions: number
 			rewardTokens: string[]
 			rewardStrategies: string[]
+			last30DaysRewardsEth: number
 		} = {
 			address,
 			submissions: [],
 			totalRewards: 0,
 			totalSubmissions: 0,
 			rewardTokens: [],
-			rewardStrategies: []
+			rewardStrategies: [],
+			last30DaysRewardsEth: 0
 		}
 
 		const tokenPrices = await fetchTokenPrices()
@@ -691,6 +698,18 @@ export async function getAVSRewards(req: Request, res: Response) {
 					.div(new Prisma.Prisma.Decimal(10).pow(tokenPrice?.decimals ?? 18))
 					.mul(new Prisma.Prisma.Decimal(tokenPrice?.ethPrice ?? 0))
 					.mul(new Prisma.Prisma.Decimal(10).pow(18)) // 18 decimals
+			}
+
+			// Prorate for overlap
+			const start = Number(submission.startTimestamp)
+			const end = start + submission.duration
+			const overlapStart = Math.max(start, thirtyDaysAgo)
+			const overlapEnd = Math.min(end, now)
+			const overlapDuration = Math.max(0, overlapEnd - overlapStart)
+
+			if (overlapDuration > 0 && submission.duration > 0) {
+				const portion = overlapDuration / submission.duration
+				last30DaysRewardsEth += amountInEth.toNumber() * portion
 			}
 
 			v1SubmissionMap[hash].strategies.push({
@@ -789,6 +808,19 @@ export async function getAVSRewards(req: Request, res: Response) {
 					.mul(new Prisma.Prisma.Decimal(tokenPrice?.ethPrice ?? 0))
 					.mul(new Prisma.Prisma.Decimal(10).pow(18)) // 18 decimals
 			}
+
+			// Prorate for overlap
+			const start = Number(submission.startTimestamp)
+			const end = start + submission.duration
+			const overlapStart = Math.max(start, thirtyDaysAgo)
+			const overlapEnd = Math.min(end, now)
+			const overlapDuration = Math.max(0, overlapEnd - overlapStart)
+
+			if (overlapDuration > 0 && submission.duration > 0) {
+				const portion = overlapDuration / submission.duration
+				last30DaysRewardsEth += amountInEth.toNumber() * portion
+			}
+
 			result.totalRewards += amountInEth.toNumber()
 		}
 
@@ -810,6 +842,7 @@ export async function getAVSRewards(req: Request, res: Response) {
 		result.totalSubmissions = result.submissions.length
 		result.rewardTokens = Array.from(rewardTokens)
 		result.rewardStrategies = Array.from(rewardStrategies)
+		result.last30DaysRewardsEth = last30DaysRewardsEth
 
 		res.send(result)
 	} catch (error) {
