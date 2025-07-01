@@ -614,8 +614,8 @@ export async function getAVSRewards(req: Request, res: Response) {
 		const { address } = req.params
 
 		// Define 30-day window
-		const now = Math.floor(Date.now() / 1000)
-		const thirtyDaysAgo = now - 30 * 24 * 60 * 60
+		const startOfToday = Math.floor(new Date().setUTCHours(0, 0, 0, 0) / 1000)
+		const thirtyDaysAgo = startOfToday - 30 * 24 * 60 * 60
 		let last30DaysRewardsEth = 0
 
 		// Fetch RewardsV1 submissions for a given Avs
@@ -704,7 +704,7 @@ export async function getAVSRewards(req: Request, res: Response) {
 			const start = Number(submission.startTimestamp)
 			const end = start + submission.duration
 			const overlapStart = Math.max(start, thirtyDaysAgo)
-			const overlapEnd = Math.min(end, now)
+			const overlapEnd = Math.min(end, startOfToday)
 			const overlapDuration = Math.max(0, overlapEnd - overlapStart)
 
 			if (overlapDuration > 0 && submission.duration > 0) {
@@ -813,7 +813,7 @@ export async function getAVSRewards(req: Request, res: Response) {
 			const start = Number(submission.startTimestamp)
 			const end = start + submission.duration
 			const overlapStart = Math.max(start, thirtyDaysAgo)
-			const overlapEnd = Math.min(end, now)
+			const overlapEnd = Math.min(end, startOfToday)
 			const overlapDuration = Math.max(0, overlapEnd - overlapStart)
 
 			if (overlapDuration > 0 && submission.duration > 0) {
