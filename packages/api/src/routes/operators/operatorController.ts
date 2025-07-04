@@ -194,6 +194,7 @@ export async function getOperator(req: Request, res: Response) {
 														address: true,
 														maxApy: true,
 														rewardSubmissions: true,
+														operatorDirectedRewardSubmissions: true,
 														restakeableStrategies: true,
 														operators: {
 															where: { isActive: true },
@@ -603,7 +604,13 @@ async function calculateOperatorApy(operator: any, withTrailingApy: boolean = fa
 		)
 
 		// Filter AVS with reward submissions
-		const avsWithRewards = operator.avs.filter((avsOp) => avsOp.avs.rewardSubmissions.length > 0)
+		const avsWithRewards = operator.avs.filter(
+			(avsOp) =>
+				avsOp.avs.rewardSubmissions.length > 0 ||
+				avsOp.avs.operatorDirectedRewardSubmissions.length > 0
+		)
+
+		if (!avsWithRewards || avsWithRewards.length === 0) return []
 
 		const pastYearStartSec = Math.floor(startDate.getTime() / 1000)
 		// Filter AVS with eligible rewards
@@ -611,13 +618,21 @@ async function calculateOperatorApy(operator: any, withTrailingApy: boolean = fa
 			const endTimeSec = reward.startTimestamp + BigInt(reward.duration)
 			return (
 				(operatorStrategyTvlMap.get(reward.strategyAddress.toLowerCase()) ?? 0n) > 0n &&
-				endTimeSec >= BigInt(pastYearStartSec)
+				endTimeSec >= BigInt(pastYearStartSec) &&
+				(!reward.operatorAddress ||
+					reward.operatorAddress.toLowerCase() === operator.address.toLowerCase())
 			)
 		}
+
 		const avsWithEligibleRewardSubmissions = avsWithRewards
 			.map((avsOp) => ({
 				avs: avsOp.avs,
-				eligibleRewards: avsOp.avs.rewardSubmissions.filter(isEligibleReward),
+				eligibleRewards: [
+					// Filter for rewardSubmissions based on strategy address
+					...avsOp.avs.rewardSubmissions.filter(isEligibleReward),
+					// Filter for operatorDirectedRewardSubmissions based on strategy address and operator address
+					...avsOp.avs.operatorDirectedRewardSubmissions.filter(isEligibleReward)
+				],
 				status: avsOp.isActive
 			}))
 			.filter((item) => item.eligibleRewards.length > 0)
@@ -647,7 +662,8 @@ async function calculateOperatorApy(operator: any, withTrailingApy: boolean = fa
 			strategiesWithSharesUnderlying,
 			avsRegistrationByDay,
 			dailyTvlMap,
-			baseApys
+			baseApys,
+			operatorAvsSplits
 		] = await Promise.all([
 			fetchTokenPrices(),
 			getStrategiesWithShareUnderlying(),
@@ -660,11 +676,43 @@ async function calculateOperatorApy(operator: any, withTrailingApy: boolean = fa
 				  )
 				: [],
 			withTrailingApy ? getDailyAvsStrategyTvl(avsStrategyPairs, startDate, endDate) : {},
-			fetchBaseApys()
+			fetchBaseApys(),
+			await prisma.operatorAvsSplit.findMany({
+				where: {
+					operatorAddress: operator.address.toLowerCase(),
+					avsAddress: {
+						in: avsWithEligibleRewardSubmissions.map(({ avs }) => avs.address.toLowerCase())
+					}
+				},
+				orderBy: [{ activatedAt: 'desc' }]
+			})
 		])
 
 		const tokenPriceMap = new Map(tokenPrices.map((tp) => [tp.address.toLowerCase(), tp]))
 		const baseApyMap = new Map(baseApys.map((ba) => [ba.strategyAddress.toLowerCase(), ba.apy]))
+
+		// Create a lookup for splitBips
+		const splitMap: Map<string, { activatedAt: bigint; splitBips: number }[]> = new Map()
+		operatorAvsSplits.forEach((split) => {
+			const key = `${split.operatorAddress.toLowerCase()}:${split.avsAddress.toLowerCase()}`
+			if (!splitMap.has(key)) {
+				splitMap.set(key, [])
+			}
+			splitMap.get(key)!.push({
+				activatedAt: split.activatedAt,
+				splitBips: split.splitBips
+			})
+		})
+
+		// Function to get splitBips for a given operator, AVS, and timestamp
+		const getSplit = (operatorAddress: string, avsAddress: string, timestamp: bigint): number => {
+			const key = `${operatorAddress.toLowerCase()}:${avsAddress.toLowerCase()}`
+			const splits = splitMap.get(key) || []
+			const validSplit = splits
+				.filter((split) => split.activatedAt <= timestamp)
+				.sort((a, b) => Number(b.activatedAt) - Number(a.activatedAt))[0]
+			return validSplit ? validSplit.splitBips / 100 : 10 // Default to 10%
+		}
 
 		// Process Projected and Trailing APY for AVSs
 		for (const { avs, eligibleRewards, status } of avsWithEligibleRewardSubmissions) {
@@ -718,7 +766,7 @@ async function calculateOperatorApy(operator: any, withTrailingApy: boolean = fa
 					string,
 					{
 						totalRewardsEth: Prisma.Prisma.Decimal
-						totalDuration: number
+						timeSegments: { start: number; end: number }[]
 					}
 				> = new Map()
 				const dailyRewardsByDay: { [day: string]: Prisma.Prisma.Decimal } = {}
@@ -732,23 +780,32 @@ async function calculateOperatorApy(operator: any, withTrailingApy: boolean = fa
 					if (rewardTokenAddress) {
 						const tokenPrice = tokenPriceMap.get(rewardTokenAddress)
 
-						// Apply operator commission (90% of rewards)
+						// Apply operator commission from OperatorAvsSplit
+						const operatorSplit = getSplit(
+							operator.address,
+							avsAddressLower,
+							submission.startTimestamp
+						)
 						rewardIncrementEth = submission.amount
 							.mul(new Prisma.Prisma.Decimal(tokenPrice?.ethPrice ?? 0))
 							.div(new Prisma.Prisma.Decimal(10).pow(tokenPrice?.decimals ?? 18))
-							.mul(90)
+							.mul(100 - operatorSplit)
 							.div(100)
 					}
 
+					// Current APY: Accumulate only for active AVSs
 					// Accumulate token-specific rewards and duration
 					const tokenData = tokenRewards.get(rewardTokenAddress) || {
 						totalRewardsEth: new Prisma.Prisma.Decimal(0),
-						totalDuration: 0
+						timeSegments: []
 					}
 					tokenData.totalRewardsEth = status
 						? tokenData.totalRewardsEth.add(rewardIncrementEth)
 						: (tokenData.totalRewardsEth = new Prisma.Prisma.Decimal(0))
-					tokenData.totalDuration += submission.duration
+					tokenData.timeSegments.push({
+						start: Number(submission.startTimestamp),
+						end: Number(submission.startTimestamp) + submission.duration
+					})
 					tokenRewards.set(rewardTokenAddress, tokenData)
 
 					// Trailing APY: Distribute daily rewards if requested
@@ -778,10 +835,30 @@ async function calculateOperatorApy(operator: any, withTrailingApy: boolean = fa
 				// Calculate token APYs for Current APY, only for active AVSs
 				let strategyApy = 0
 				tokenRewards.forEach((data, tokenAddress) => {
-					if (data.totalDuration !== 0) {
+					if (data.timeSegments.length === 0) return
+
+					const sortedSegments = data.timeSegments.sort((a, b) => a.start - b.start)
+					const mergedSegments: { start: number; end: number }[] = []
+
+					let currentSegment = sortedSegments[0]
+					for (let i = 1; i < sortedSegments.length; i++) {
+						const nextSegment = sortedSegments[i]
+						if (nextSegment.start <= currentSegment.end) {
+							// Overlapping: extend current segment
+							currentSegment.end = Math.max(currentSegment.end, nextSegment.end)
+						} else {
+							// Non-overlapping: push current and start new segment
+							mergedSegments.push(currentSegment)
+							currentSegment = nextSegment
+						}
+					}
+					mergedSegments.push(currentSegment)
+
+					// Calculate total duration from merged segments
+					const totalDuration = mergedSegments.reduce((sum, seg) => sum + (seg.end - seg.start), 0)
+					if (totalDuration !== 0) {
 						const tokenRewardRate = data.totalRewardsEth.toNumber() / strategyTvl
-						const tokenAnnualizedRate =
-							tokenRewardRate * ((365 * 24 * 60 * 60) / data.totalDuration)
+						const tokenAnnualizedRate = tokenRewardRate * ((365 * 24 * 60 * 60) / totalDuration)
 						const tokenApy = tokenAnnualizedRate * 100
 						tokenApyMap.set(tokenAddress, tokenApy)
 						strategyApy += tokenApy
@@ -830,6 +907,7 @@ async function calculateOperatorApy(operator: any, withTrailingApy: boolean = fa
 
 						if (dailyStrategyRewardsEth.greaterThan(0)) {
 							const dailyApy = dailyStrategyRewardsEth.div(dailyTvl).mul(100).toNumber()
+							if (dailyApy > 1000) continue
 							timeframes.forEach(({ key }) => {
 								if (day >= timeframeStarts[key]) {
 									trailingSums[key] += dailyApy
