@@ -177,8 +177,9 @@ export async function getAllAVSAddresses(req: Request, res: Response) {
 	}
 
 	try {
-		const { skip, take, searchByText, searchMode } = queryCheck.data
+		const { skip, take, searchByText, searchMode, legacy } = queryCheck.data
 		const searchFilterQuery = getAvsSearchQuery(searchByText, searchMode, 'full')
+		const isLegacy = legacy === 'true'
 
 		// Fetch records
 		const avsRecords = await prisma.avs.findMany({
@@ -191,10 +192,23 @@ export async function getAllAVSAddresses(req: Request, res: Response) {
 						metadataName: true,
 						metadataLogo: true
 					}
-				}
+				},
+				...(!isLegacy && {
+					additionalInfo: {
+						select: {
+							metadataKey: true,
+							metadataContent: true
+						},
+						where: {
+							metadataKey: {
+								in: ['curatedLogo', 'curatedName']
+							}
+						}
+					}
+				})
 			},
 			where: {
-				...getAvsFilterQuery(true),
+				...getAvsFilterQuery(true, isLegacy),
 				...searchFilterQuery
 			},
 			...(searchByText && {
@@ -214,11 +228,33 @@ export async function getAllAVSAddresses(req: Request, res: Response) {
 			}
 		})
 
-		const data = avsRecords.map((avs) => ({
-			address: avs.address,
-			name: avs.curatedMetadata?.metadataName || avs.metadataName,
-			logo: avs.curatedMetadata?.metadataLogo || avs.metadataLogo
-		}))
+		const data = avsRecords.map((avs) => {
+			let name: string
+			let logo: string | null
+
+			if (isLegacy) {
+				// Legacy: curatedMetadata -> avs
+				name = avs.curatedMetadata?.metadataName || avs.metadataName
+				logo = avs.curatedMetadata?.metadataLogo || avs.metadataLogo
+			} else {
+				// Prefer additionalInfo -> curatedMetadata -> avs
+				const curatedName = avs.additionalInfo?.find(
+					(info) => info.metadataKey === 'curatedName'
+				)?.metadataContent
+				name = curatedName || avs.curatedMetadata?.metadataName || avs.metadataName
+
+				const curatedLogo = avs.additionalInfo?.find(
+					(info) => info.metadataKey === 'curatedLogo'
+				)?.metadataContent
+				logo = curatedLogo || avs.curatedMetadata?.metadataLogo || avs.metadataLogo
+			}
+
+			return {
+				address: avs.address,
+				name,
+				logo
+			}
+		})
 
 		// Send response with data and metadata
 		res.send({
@@ -1237,7 +1273,7 @@ export async function invalidateMetadata(req: Request, res: Response) {
 
 // --- Helper functions ---
 
-export function getAvsFilterQuery(filterName?: boolean) {
+export function getAvsFilterQuery(filterName?: boolean, isLegacy = true) {
 	const queryWithName = filterName
 		? {
 				OR: [
@@ -1248,18 +1284,58 @@ export function getAvsFilterQuery(filterName?: boolean) {
 		  }
 		: {}
 
+	if (isLegacy) {
+		return {
+			AND: [
+				queryWithName,
+				{
+					OR: [
+						{
+							curatedMetadata: {
+								isVisible: true
+							}
+						},
+						{
+							curatedMetadata: null
+						}
+					]
+				}
+			]
+		}
+	}
+
+	// After introduction of area-internal-dashboard, `isVisible` checks move to `AvsAdditionalInfo` with `CuratedMetadata` only as fallback
+	// Currently, this is only accessible by setting the flag `legacy=false` when using full text search
 	return {
 		AND: [
 			queryWithName,
 			{
 				OR: [
+					// Check if `additionalInfo.isVisible` is true
 					{
-						curatedMetadata: {
-							isVisible: true
+						additionalInfo: {
+							some: {
+								metadataKey: 'isVisible',
+								metadataContent: 'true'
+							}
 						}
 					},
+					// If `additionalInfo.isVisible` does not exist, check `curatedMetadata.isVisible` is true
 					{
-						curatedMetadata: null
+						AND: [
+							{
+								additionalInfo: {
+									none: {
+										metadataKey: 'isVisible'
+									}
+								}
+							},
+							{
+								curatedMetadata: {
+									isVisible: true
+								}
+							}
+						]
 					}
 				]
 			}
