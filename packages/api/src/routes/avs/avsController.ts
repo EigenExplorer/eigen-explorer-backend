@@ -177,8 +177,9 @@ export async function getAllAVSAddresses(req: Request, res: Response) {
 	}
 
 	try {
-		const { skip, take, searchByText, searchMode } = queryCheck.data
+		const { skip, take, searchByText, searchMode, legacy } = queryCheck.data
 		const searchFilterQuery = getAvsSearchQuery(searchByText, searchMode, 'full')
+		const isLegacy = legacy === 'true'
 
 		// Fetch records
 		const avsRecords = await prisma.avs.findMany({
@@ -191,10 +192,23 @@ export async function getAllAVSAddresses(req: Request, res: Response) {
 						metadataName: true,
 						metadataLogo: true
 					}
-				}
+				},
+				...(!isLegacy && {
+					additionalInfo: {
+						select: {
+							metadataKey: true,
+							metadataContent: true
+						},
+						where: {
+							metadataKey: {
+								in: ['curatedLogo', 'curatedName']
+							}
+						}
+					}
+				})
 			},
 			where: {
-				...getAvsFilterQuery(true),
+				...getAvsFilterQuery(true, isLegacy),
 				...searchFilterQuery
 			},
 			...(searchByText && {
@@ -214,11 +228,33 @@ export async function getAllAVSAddresses(req: Request, res: Response) {
 			}
 		})
 
-		const data = avsRecords.map((avs) => ({
-			address: avs.address,
-			name: avs.curatedMetadata?.metadataName || avs.metadataName,
-			logo: avs.curatedMetadata?.metadataLogo || avs.metadataLogo
-		}))
+		const data = avsRecords.map((avs) => {
+			let name: string
+			let logo: string | null
+
+			if (isLegacy) {
+				// Legacy: curatedMetadata -> avs
+				name = avs.curatedMetadata?.metadataName || avs.metadataName
+				logo = avs.curatedMetadata?.metadataLogo || avs.metadataLogo
+			} else {
+				// Prefer additionalInfo -> curatedMetadata -> avs
+				const curatedName = avs.additionalInfo?.find(
+					(info) => info.metadataKey === 'curatedName'
+				)?.metadataContent
+				name = curatedName || avs.curatedMetadata?.metadataName || avs.metadataName
+
+				const curatedLogo = avs.additionalInfo?.find(
+					(info) => info.metadataKey === 'curatedLogo'
+				)?.metadataContent
+				logo = curatedLogo || avs.curatedMetadata?.metadataLogo || avs.metadataLogo
+			}
+
+			return {
+				address: avs.address,
+				name,
+				logo
+			}
+		})
 
 		// Send response with data and metadata
 		res.send({
@@ -613,6 +649,11 @@ export async function getAVSRewards(req: Request, res: Response) {
 	try {
 		const { address } = req.params
 
+		// Define 30-day window
+		const startOfToday = Math.floor(new Date().setUTCHours(0, 0, 0, 0) / 1000)
+		const thirtyDaysAgo = startOfToday - 30 * 24 * 60 * 60
+		let last30DaysRewardsEth = 0
+
 		// Fetch RewardsV1 submissions for a given Avs
 		const rewardsV1Submissions = await prisma.avsStrategyRewardSubmission.findMany({
 			where: {
@@ -642,13 +683,15 @@ export async function getAVSRewards(req: Request, res: Response) {
 			totalSubmissions: number
 			rewardTokens: string[]
 			rewardStrategies: string[]
+			last30DaysRewardsEth: number
 		} = {
 			address,
 			submissions: [],
 			totalRewards: 0,
 			totalSubmissions: 0,
 			rewardTokens: [],
-			rewardStrategies: []
+			rewardStrategies: [],
+			last30DaysRewardsEth: 0
 		}
 
 		const tokenPrices = await fetchTokenPrices()
@@ -691,6 +734,18 @@ export async function getAVSRewards(req: Request, res: Response) {
 					.div(new Prisma.Prisma.Decimal(10).pow(tokenPrice?.decimals ?? 18))
 					.mul(new Prisma.Prisma.Decimal(tokenPrice?.ethPrice ?? 0))
 					.mul(new Prisma.Prisma.Decimal(10).pow(18)) // 18 decimals
+			}
+
+			// Prorate for overlap
+			const start = Number(submission.startTimestamp)
+			const end = start + submission.duration
+			const overlapStart = Math.max(start, thirtyDaysAgo)
+			const overlapEnd = Math.min(end, startOfToday)
+			const overlapDuration = Math.max(0, overlapEnd - overlapStart)
+
+			if (overlapDuration > 0 && submission.duration > 0) {
+				const portion = overlapDuration / submission.duration
+				last30DaysRewardsEth += amountInEth.toNumber() * portion
 			}
 
 			v1SubmissionMap[hash].strategies.push({
@@ -789,6 +844,19 @@ export async function getAVSRewards(req: Request, res: Response) {
 					.mul(new Prisma.Prisma.Decimal(tokenPrice?.ethPrice ?? 0))
 					.mul(new Prisma.Prisma.Decimal(10).pow(18)) // 18 decimals
 			}
+
+			// Prorate for overlap
+			const start = Number(submission.startTimestamp)
+			const end = start + submission.duration
+			const overlapStart = Math.max(start, thirtyDaysAgo)
+			const overlapEnd = Math.min(end, startOfToday)
+			const overlapDuration = Math.max(0, overlapEnd - overlapStart)
+
+			if (overlapDuration > 0 && submission.duration > 0) {
+				const portion = overlapDuration / submission.duration
+				last30DaysRewardsEth += amountInEth.toNumber() * portion
+			}
+
 			result.totalRewards += amountInEth.toNumber()
 		}
 
@@ -810,6 +878,7 @@ export async function getAVSRewards(req: Request, res: Response) {
 		result.totalSubmissions = result.submissions.length
 		result.rewardTokens = Array.from(rewardTokens)
 		result.rewardStrategies = Array.from(rewardStrategies)
+		result.last30DaysRewardsEth = last30DaysRewardsEth
 
 		res.send(result)
 	} catch (error) {
@@ -1204,7 +1273,7 @@ export async function invalidateMetadata(req: Request, res: Response) {
 
 // --- Helper functions ---
 
-export function getAvsFilterQuery(filterName?: boolean) {
+export function getAvsFilterQuery(filterName?: boolean, isLegacy = true) {
 	const queryWithName = filterName
 		? {
 				OR: [
@@ -1215,18 +1284,58 @@ export function getAvsFilterQuery(filterName?: boolean) {
 		  }
 		: {}
 
+	if (isLegacy) {
+		return {
+			AND: [
+				queryWithName,
+				{
+					OR: [
+						{
+							curatedMetadata: {
+								isVisible: true
+							}
+						},
+						{
+							curatedMetadata: null
+						}
+					]
+				}
+			]
+		}
+	}
+
+	// After introduction of area-internal-dashboard, `isVisible` checks move to `AvsAdditionalInfo` with `CuratedMetadata` only as fallback
+	// Currently, this is only accessible by setting the flag `legacy=false` when using full text search
 	return {
 		AND: [
 			queryWithName,
 			{
 				OR: [
+					// Check if `additionalInfo.isVisible` is true
 					{
-						curatedMetadata: {
-							isVisible: true
+						additionalInfo: {
+							some: {
+								metadataKey: 'isVisible',
+								metadataContent: 'true'
+							}
 						}
 					},
+					// If `additionalInfo.isVisible` does not exist, check `curatedMetadata.isVisible` is true
 					{
-						curatedMetadata: null
+						AND: [
+							{
+								additionalInfo: {
+									none: {
+										metadataKey: 'isVisible'
+									}
+								}
+							},
+							{
+								curatedMetadata: {
+									isVisible: true
+								}
+							}
+						]
 					}
 				]
 			}
@@ -1335,6 +1444,19 @@ async function calculateAvsApy(avs: any, withTrailingApy: boolean = false) {
 			const strategyAddressLower = strategyAddress.toLowerCase()
 			const strategyTvl = tvlStrategiesEth[strategyAddressLower] || 0
 			if (strategyTvl === 0) continue
+
+			// Initialize strategyApyMap with baseApy
+			const initialStrategyData = {
+				apy: 0,
+				baseApy: baseApyMap.get(strategyAddressLower) || 0,
+				trailingApy7d: withTrailingApy ? 0 : undefined,
+				trailingApy30d: withTrailingApy ? 0 : undefined,
+				trailingApy3m: withTrailingApy ? 0 : undefined,
+				trailingApy6m: withTrailingApy ? 0 : undefined,
+				trailingApy1y: withTrailingApy ? 0 : undefined,
+				tokens: new Map<string, number>()
+			}
+			strategyApyMap.set(strategyAddressLower, initialStrategyData)
 
 			const tokenApyMap: Map<string, number> = new Map()
 			const tokenRewards: Map<

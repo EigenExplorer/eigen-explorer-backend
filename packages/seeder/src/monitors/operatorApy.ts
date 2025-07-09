@@ -20,9 +20,11 @@ export async function monitorOperatorApy() {
 	const MAX_APY = 9999.9999
 
 	const tokenPrices = await fetchTokenPrices()
+	const tokenPriceMap = new Map(tokenPrices.map((tp) => [tp.address.toLowerCase(), tp]))
 	const strategiesWithSharesUnderlying = await getStrategiesWithShareUnderlying()
 
 	const startDate = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000)
+	startDate.setUTCHours(0, 0, 0, 0)
 
 	while (true) {
 		try {
@@ -36,10 +38,12 @@ export async function monitorOperatorApy() {
 						where: { isActive: true },
 						select: {
 							avsAddress: true,
+							isActive: true,
 							avs: {
 								select: {
 									address: true,
 									rewardSubmissions: true,
+									operatorDirectedRewardSubmissions: true,
 									restakeableStrategies: true,
 									operators: {
 										where: { isActive: true },
@@ -65,58 +69,110 @@ export async function monitorOperatorApy() {
 
 			if (operatorMetrics.length === 0) break
 
-			// Setup all db transactions for this iteration
+			const operatorAvsSplits = await prismaClient.operatorAvsSplit.findMany({
+				where: {
+					operatorAddress: {
+						in: operatorMetrics.map((op) => op.address.toLowerCase())
+					}
+				},
+				orderBy: [{ activatedAt: 'desc' }]
+			})
+
+			const splitMap: Map<string, { activatedAt: bigint; splitBips: number }[]> = new Map()
+			operatorAvsSplits.forEach((split) => {
+				const key = `${split.operatorAddress.toLowerCase()}:${split.avsAddress.toLowerCase()}`
+				if (!splitMap.has(key)) {
+					splitMap.set(key, [])
+				}
+				splitMap.get(key)!.push({
+					activatedAt: split.activatedAt,
+					splitBips: split.splitBips
+				})
+			})
+
+			const getSplit = (operatorAddress: string, avsAddress: string, timestamp: bigint): number => {
+				const key = `${operatorAddress.toLowerCase()}:${avsAddress.toLowerCase()}`
+				const splits = splitMap.get(key) || []
+				const validSplit = splits
+					.filter((split) => split.activatedAt <= timestamp)
+					.sort((a, b) => Number(b.activatedAt) - Number(a.activatedAt))[0]
+				return validSplit ? validSplit.splitBips / 100 : 10 // Default to 10%
+			}
+
 			for (const operator of operatorMetrics) {
 				const strategyRewardsMap: Map<string, number> = new Map()
+				const operatorStrategyTvlMap: Map<string, bigint> = new Map()
 
-				// Grab the all reward submissions that the Operator is eligible for basis opted strategies & AVSs
-				const optedStrategyAddresses: Set<string> = new Set(
-					operator?.shares.map((share) => share.strategyAddress.toLowerCase())
+				operator.shares.forEach((share) =>
+					operatorStrategyTvlMap.set(share.strategyAddress.toLowerCase(), BigInt(share.shares))
 				)
 
 				const pastYearStartSec = Math.floor(startDate.getTime() / 1000)
 				// Filter AVS with eligible rewards
+				const isEligibleReward = (reward: any) => {
+					const endTimeSec = reward.startTimestamp + BigInt(reward.duration)
+					return (
+						(operatorStrategyTvlMap.get(reward.strategyAddress.toLowerCase()) ?? 0n) > 0n &&
+						endTimeSec >= BigInt(pastYearStartSec) &&
+						(!reward.operatorAddress ||
+							reward.operatorAddress.toLowerCase() === operator.address.toLowerCase())
+					)
+				}
 
-				const avsWithEligibleRewardSubmissions = operator?.avs
-					.filter((avsOp) => avsOp.avs.rewardSubmissions.length > 0)
+				const avsWithRewards = operator.avs.filter(
+					(avsOp) =>
+						avsOp.avs.rewardSubmissions.length > 0 ||
+						avsOp.avs.operatorDirectedRewardSubmissions.length > 0
+				)
+
+				const avsWithEligibleRewardSubmissions = avsWithRewards
 					.map((avsOp) => ({
 						avs: avsOp.avs,
-						eligibleRewards: avsOp.avs.rewardSubmissions.filter((reward) => {
-							const endTimeSec = reward.startTimestamp + BigInt(reward.duration)
-							return (
-								optedStrategyAddresses.has(reward.strategyAddress.toLowerCase()) &&
-								endTimeSec >= BigInt(pastYearStartSec)
-							)
-						})
+						eligibleRewards: [
+							...avsOp.avs.rewardSubmissions.filter(isEligibleReward),
+							...avsOp.avs.operatorDirectedRewardSubmissions.filter(isEligibleReward)
+						],
+						status: avsOp.isActive
 					}))
 					.filter((item) => item.eligibleRewards.length > 0)
 
 				if (avsWithEligibleRewardSubmissions.length > 0) {
-					let operatorEarningsEth = new Prisma.Prisma.Decimal(0)
-
 					// Calc aggregate APY for each AVS basis the opted-in strategies
-					for (const avs of avsWithEligibleRewardSubmissions) {
+					for (const { avs, eligibleRewards, status } of avsWithEligibleRewardSubmissions) {
+						const avsAddressLower = avs.address.toLowerCase()
 						// Get share amounts for each restakeable strategy
-						const shares = withOperatorShares(avs.avs.operators).filter(
-							(s) => avs.avs.restakeableStrategies.indexOf(s.strategyAddress.toLowerCase()) !== -1
+						const shares = withOperatorShares(avs.operators).filter(
+							(s) => avs.restakeableStrategies.indexOf(s.strategyAddress.toLowerCase()) !== -1
 						)
 
 						// Fetch the AVS tvl for each strategy
 						const tvlStrategiesEth = sharesToTVLStrategies(shares, strategiesWithSharesUnderlying)
 
 						// Iterate through each strategy and calculate all its rewards
-						for (const strategyAddress of optedStrategyAddresses) {
-							const strategyTvl = tvlStrategiesEth[strategyAddress.toLowerCase()] || 0
+						for (const strategyAddress of avs.restakeableStrategies) {
+							const strategyAddressLower = strategyAddress.toLowerCase()
+							if (
+								!operatorStrategyTvlMap.has(strategyAddressLower) ||
+								operatorStrategyTvlMap.get(strategyAddressLower) === 0n
+							) {
+								// Add strategy's APY to common strategy rewards store (across all Avs)
+								const currentStrategyApy = strategyRewardsMap.get(strategyAddressLower) || 0
+								strategyRewardsMap.set(strategyAddressLower, currentStrategyApy + 0)
+								continue
+							}
+
+							const strategyTvl = tvlStrategiesEth[strategyAddressLower] || 0
 							if (strategyTvl === 0) continue
 
 							let totalRewardsEth = new Prisma.Prisma.Decimal(0)
-							let totalDuration = 0
+							const timeSegments: { start: number; end: number }[] = []
 
 							// Find all reward submissions attributable to the strategy
-							const relevantSubmissions = avs.eligibleRewards.filter(
-								(submission) =>
-									submission.strategyAddress.toLowerCase() === strategyAddress.toLowerCase()
+							const relevantSubmissions = eligibleRewards.filter(
+								(submission) => submission.strategyAddress.toLowerCase() === strategyAddressLower
 							)
+
+							if (!relevantSubmissions || relevantSubmissions.length === 0) continue
 
 							for (const submission of relevantSubmissions) {
 								let rewardIncrementEth = new Prisma.Prisma.Decimal(0)
@@ -124,35 +180,59 @@ export async function monitorOperatorApy() {
 
 								// Normalize reward amount to its ETH price
 								if (rewardTokenAddress) {
-									const tokenPrice = tokenPrices.find(
-										(tp) => tp.address.toLowerCase() === rewardTokenAddress
+									const tokenPrice = tokenPriceMap.get(rewardTokenAddress)
+									const operatorSplit = getSplit(
+										operator.address,
+										avsAddressLower,
+										submission.startTimestamp
 									)
 									rewardIncrementEth = submission.amount
 										.mul(new Prisma.Prisma.Decimal(tokenPrice?.ethPrice ?? 0))
-										.div(new Prisma.Prisma.Decimal(10).pow(tokenPrice?.decimals ?? 18)) // No decimals
+										.div(new Prisma.Prisma.Decimal(10).pow(tokenPrice?.decimals ?? 18))
+										.mul(100 - operatorSplit)
+										.div(100)
 								}
 
-								// Operator takes 10% in commission
-								const operatorFeesEth = rewardIncrementEth.mul(10).div(100) // No decimals
-
-								operatorEarningsEth = operatorEarningsEth.add(
-									operatorFeesEth.mul(new Prisma.Prisma.Decimal(10).pow(18))
-								) // 18 decimals
-
-								totalRewardsEth = totalRewardsEth.add(rewardIncrementEth).sub(operatorFeesEth) // No decimals
-								totalDuration += submission.duration
+								totalRewardsEth = status
+									? totalRewardsEth.add(rewardIncrementEth)
+									: new Prisma.Prisma.Decimal(0)
+								timeSegments.push({
+									start: Number(submission.startTimestamp),
+									end: Number(submission.startTimestamp) + submission.duration
+								})
 							}
 
+							if (timeSegments.length === 0) continue
+
+							const sortedSegments = timeSegments.sort((a, b) => a.start - b.start)
+							const mergedSegments: { start: number; end: number }[] = []
+							let currentSegment = sortedSegments[0]
+
+							for (let i = 1; i < sortedSegments.length; i++) {
+								const nextSegment = sortedSegments[i]
+								if (nextSegment.start <= currentSegment.end) {
+									currentSegment.end = Math.max(currentSegment.end, nextSegment.end)
+								} else {
+									mergedSegments.push(currentSegment)
+									currentSegment = nextSegment
+								}
+							}
+							mergedSegments.push(currentSegment)
+
+							const totalDuration = mergedSegments.reduce(
+								(sum, seg) => sum + (seg.end - seg.start),
+								0
+							)
 							if (totalDuration === 0) continue
 
 							// Annualize the reward basis its duration to find yearly APY
-							const rewardRate = totalRewardsEth.toNumber() / strategyTvl // No decimals
+							const rewardRate = totalRewardsEth.toNumber() / strategyTvl
 							const annualizedRate = rewardRate * ((365 * 24 * 60 * 60) / totalDuration)
 							const apy = annualizedRate * 100
 
 							// Add strategy's APY to common strategy rewards store (across all Avs)
-							const currentStrategyApy = strategyRewardsMap.get(strategyAddress) || 0
-							strategyRewardsMap.set(strategyAddress, currentStrategyApy + apy)
+							const currentStrategyApy = strategyRewardsMap.get(strategyAddressLower) || 0
+							strategyRewardsMap.set(strategyAddressLower, currentStrategyApy + apy)
 						}
 					}
 

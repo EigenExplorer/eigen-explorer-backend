@@ -3710,6 +3710,18 @@
 						}
 					},
 					{
+						"in": "query",
+						"name": "withTrailingApy",
+						"description": "Toggle whether the route should calculate the Trailing APY Values",
+						"schema": {
+							"type": "string",
+							"enum": ["true", "false"],
+							"default": "false",
+							"description": "Toggle whether the route should calculate the Trailing APY Values",
+							"example": "false"
+						}
+					},
+					{
 						"in": "header",
 						"name": "X-API-Token",
 						"description": "API Token for authentication",
@@ -4056,6 +4068,36 @@
 																"description": "The cumulative APY from all tokens in this strategy",
 																"example": 0.1
 															},
+															"baseApy": {
+																"type": "number",
+																"description": "Base APY (from LST yield)",
+																"example": 0.1
+															},
+															"trailingApy7d": {
+																"type": "number",
+																"description": "7-day trailing APY values",
+																"example": 0.1
+															},
+															"trailingApy30d": {
+																"type": "number",
+																"description": "30-day trailing APY values",
+																"example": 0.1
+															},
+															"trailingApy3m": {
+																"type": "number",
+																"description": "3-month trailing APY values",
+																"example": 0.1
+															},
+															"trailingApy6m": {
+																"type": "number",
+																"description": "6-month trailing APY values",
+																"example": 0.1
+															},
+															"trailingApy1y": {
+																"type": "number",
+																"description": "1-year trailing APY values",
+																"example": 0.1
+															},
 															"tokens": {
 																"type": "array",
 																"items": {
@@ -4076,7 +4118,7 @@
 																}
 															}
 														},
-														"required": ["strategyAddress", "apy", "tokens"]
+														"required": ["strategyAddress", "apy", "baseApy", "tokens"]
 													},
 													"description": "An array of strategies with their respective APYs and token details"
 												}
@@ -4863,7 +4905,7 @@
 													},
 													"totalAmount": {
 														"type": "string",
-														"description": "The total amount of rewards allocated in this submission",
+														"description": "The total amount of rewards allocated in this submission, denominated in the reward token (wei).",
 														"example": "5000000000000000000"
 													},
 													"tokenAddress": {
@@ -4890,13 +4932,56 @@
 																},
 																"amount": {
 																	"type": "string",
-																	"description": "The amount of rewards allocated to this strategy from the total rewards in this submissionn",
+																	"description": "The amount of rewards allocated to this strategy from the total rewards in this submission, denominated in the reward token (wei).",
 																	"example": "5000000000000000000"
 																}
 															},
 															"required": ["strategyAddress", "multiplier", "amount"]
 														},
 														"description": "List of strategies involved in the rewards submission"
+													},
+													"operators": {
+														"type": "array",
+														"items": {
+															"type": "object",
+															"properties": {
+																"operatorAddress": {
+																	"type": "string",
+																	"pattern": "^0x[a-fA-F0-9]{40}$",
+																	"description": "The address of the operator",
+																	"example": "0x0f4e73f02e2b78f424a8e3f8e8553761c305f4d1"
+																},
+																"totalAmount": {
+																	"type": "string",
+																	"description": "Total amount of rewards distributed to this operator, denominated in the reward token (wei).",
+																	"example": "5000000000000000000"
+																},
+																"strategies": {
+																	"type": "array",
+																	"items": {
+																		"type": "string",
+																		"pattern": "^0x[a-fA-F0-9]{40}$",
+																		"description": "List of strategy addresses for reward distribution",
+																		"example": "0xacb55c530acdb2849e6d4f36992cd8c9d50ed8f7"
+																	}
+																},
+																"strategyAmounts": {
+																	"type": "array",
+																	"items": {
+																		"type": "string",
+																		"description": "The amount of rewards allocated to this strategy from the total rewards for this operator (same order as 'strategies'), denominated in the reward token (wei).",
+																		"example": "5000000000000000000"
+																	}
+																}
+															},
+															"required": [
+																"operatorAddress",
+																"totalAmount",
+																"strategies",
+																"strategyAmounts"
+															]
+														},
+														"description": "Rewards distributed to each operator"
 													}
 												},
 												"required": [
@@ -4912,7 +4997,7 @@
 										},
 										"totalRewards": {
 											"type": "string",
-											"description": "The aggregate amount of rewards distributed across all submissions",
+											"description": "Total rewards distributed for all submissions, aggregated in ETH (wei)",
 											"example": "1000000000000000000"
 										},
 										"totalSubmissions": {
@@ -6036,6 +6121,18 @@
 						}
 					},
 					{
+						"in": "query",
+						"name": "withTrailingApy",
+						"description": "Toggle whether the route should calculate the Trailing APY Values",
+						"schema": {
+							"type": "string",
+							"enum": ["true", "false"],
+							"default": "false",
+							"description": "Toggle whether the route should calculate the Trailing APY Values",
+							"example": "false"
+						}
+					},
+					{
 						"in": "header",
 						"name": "X-API-Token",
 						"description": "API Token for authentication",
@@ -6606,6 +6703,36 @@
 																	"description": "The cumulative APY from all tokens in this strategy",
 																	"example": 0.1
 																},
+																"baseApy": {
+																	"type": "number",
+																	"description": "Base APY (from LST yield)",
+																	"example": 0.1
+																},
+																"trailingApy7d": {
+																	"type": "number",
+																	"description": "7-day trailing APY values",
+																	"example": 0.1
+																},
+																"trailingApy30d": {
+																	"type": "number",
+																	"description": "30-day trailing APY values",
+																	"example": 0.1
+																},
+																"trailingApy3m": {
+																	"type": "number",
+																	"description": "3-month trailing APY values",
+																	"example": 0.1
+																},
+																"trailingApy6m": {
+																	"type": "number",
+																	"description": "6-month trailing APY values",
+																	"example": 0.1
+																},
+																"trailingApy1y": {
+																	"type": "number",
+																	"description": "1-year trailing APY values",
+																	"example": 0.1
+																},
 																"tokens": {
 																	"type": "array",
 																	"items": {
@@ -6626,7 +6753,7 @@
 																	}
 																}
 															},
-															"required": ["strategyAddress", "apy", "tokens"]
+															"required": ["strategyAddress", "apy", "baseApy", "tokens"]
 														}
 													}
 												},
@@ -8049,7 +8176,12 @@
 											"properties": {
 												"aggregateApy": {
 													"type": "number",
-													"description": "The sum of amount staked per strategy multiplied by the strategy apy for this staker",
+													"description": "The sum of amount staked per strategy multiplied by the strategy apy for this staker, combined with the nativeApy",
+													"example": 0.15
+												},
+												"nativeApy": {
+													"type": "number",
+													"description": "Native APY (from EigenLayer programmatic incentives)",
 													"example": 0.1
 												},
 												"tokenAmounts": {
@@ -8136,7 +8268,7 @@
 																		},
 																		"apy": {
 																			"type": "number",
-																			"description": "The cumulative APY from all tokens in this strategy",
+																			"description": "The cumulative APY for this strategy summed across all AVSs",
 																			"example": 0.1
 																		},
 																		"tokens": {
@@ -8167,7 +8299,13 @@
 													}
 												}
 											},
-											"required": ["aggregateApy", "tokenAmounts", "strategyApys", "avsApys"],
+											"required": [
+												"aggregateApy",
+												"nativeApy",
+												"tokenAmounts",
+												"strategyApys",
+												"avsApys"
+											],
 											"description": "The reward details for the Staker"
 										}
 									},
@@ -10135,6 +10273,115 @@
 										}
 									},
 									"required": ["strategies", "total"]
+								}
+							}
+						}
+					},
+					"400": {
+						"$ref": "#/components/responses/400"
+					},
+					"401": {
+						"$ref": "#/components/responses/401"
+					},
+					"403": {
+						"$ref": "#/components/responses/403"
+					},
+					"404": {
+						"$ref": "#/components/responses/404"
+					},
+					"422": {
+						"$ref": "#/components/responses/422"
+					},
+					"429": {
+						"$ref": "#/components/responses/429"
+					},
+					"500": {
+						"$ref": "#/components/responses/500"
+					}
+				}
+			}
+		},
+		"/rewards/programmatic-incentives": {
+			"get": {
+				"operationId": "getProgrammaticIncentives",
+				"summary": "Retrieve eigenlayer programmatic incentives data",
+				"description": "Returns base and aggregate APYs for EigenLayer strategies and estimated weekly EIGEN rewards.",
+				"tags": ["Rewards"],
+				"parameters": [
+					{
+						"in": "query",
+						"name": "tokenAddresses",
+						"description": "Comma-separated token addresses (no quotes), like 0xec5...83,0x8c1...49",
+						"schema": {
+							"type": "string",
+							"description": "Comma-separated token addresses (no quotes), like 0xec5...83,0x8c1...49"
+						}
+					},
+					{
+						"in": "query",
+						"name": "amounts",
+						"description": "Comma-separated raw amounts (no quotes), like 500000000000000000000,100000000000",
+						"schema": {
+							"type": "string",
+							"description": "Comma-separated raw amounts (no quotes), like 500000000000000000000,100000000000"
+						}
+					},
+					{
+						"in": "header",
+						"name": "X-API-Token",
+						"description": "API Token for authentication",
+						"schema": {
+							"type": "string",
+							"description": "API Token for authentication"
+						},
+						"required": true
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "APY values for Eigen and LST strategies, and estimated EIGEN rewards if token holdings are provided.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"eigenStrategyApy": {
+											"type": "string",
+											"description": "APY from EIGEN strategy based on its share of EigenLayer programmatic incentives rewarded in EIGEN token.",
+											"example": "0.1"
+										},
+										"ethAndLstStrategiesApy": {
+											"type": "string",
+											"description": "APY from ETH and LST strategies based on their share of EigenLayer programmatic incentives rewarded in EIGEN token.",
+											"example": "0.1"
+										},
+										"aggregateApy": {
+											"type": "string",
+											"description": "Combined APY calculated based on user-supplied token holdings across all strategies.",
+											"example": "0.1"
+										},
+										"totalWeeklyRewardsEigen": {
+											"type": "string",
+											"description": "Total estimated weekly EIGEN rewards (in wei) based on the user’s supplied token holdings.",
+											"example": "7388083376288200228"
+										},
+										"weeklyRewardsEigen": {
+											"type": "object",
+											"properties": {
+												"eigenStrategy": {
+													"type": "string",
+													"description": "Estimated weekly EIGEN rewards (in wei) for the Eigen strategy, based on user token input.",
+													"example": "341906218829227306"
+												},
+												"ethAndLstStrategies": {
+													"type": "string",
+													"description": "Estimated weekly EIGEN rewards (in wei) for ETH and LST strategies, based on user token input.",
+													"example": "7046177157458972922"
+												}
+											}
+										}
+									},
+									"required": ["eigenStrategyApy", "ethAndLstStrategiesApy", "weeklyRewardsEigen"]
 								}
 							}
 						}
