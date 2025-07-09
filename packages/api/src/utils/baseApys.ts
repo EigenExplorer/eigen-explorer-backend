@@ -42,18 +42,6 @@ export async function fetchBaseApys(): Promise<BaseApy[]> {
 
 	// Process each strategy
 	for (const strategy of strategies) {
-		const dlPoolId = tokenPoolIdMap.get(strategy.underlyingToken.toLowerCase())
-		if (!dlPoolId) {
-			// No pool ID, use default APY
-			baseApys.push({
-				poolId: tokenPoolIdMap.get(strategy.underlyingToken.toLowerCase()) || '',
-				strategyAddress: strategy.address,
-				tokenAddress: strategy.underlyingToken.toLowerCase(),
-				apy: 0
-			})
-			continue
-		}
-
 		const cacheKey = `apy_${strategy.address}`
 		const cachedApy = await cacheStore.get(cacheKey)
 
@@ -64,6 +52,57 @@ export async function fetchBaseApys(): Promise<BaseApy[]> {
 				strategyAddress: strategy.address,
 				tokenAddress: strategy.underlyingToken.toLowerCase(),
 				apy: cachedApy
+			})
+			continue
+		}
+
+		// Check if strategy is Beacon Chain
+		if (strategy.address.toLowerCase() === '0xbeac0eeeeeeeeeeeeeeeeeeeeeeeeeeeeeebeac0') {
+			try {
+				// Fetch APR from Beaconcha.in API
+				const response = await fetch('https://beaconcha.in/api/v1/ethstore/latest')
+
+				if (!response.ok) {
+					throw new Error(`Beaconcha.in API error: ${response.statusText}`)
+				}
+
+				const data = await response.json()
+				if (data.status !== 'OK' || !data.data || !data.data.apr) {
+					throw new Error(`Invalid APR data from Beaconcha.in: ${JSON.stringify(data)}`)
+				}
+
+				const apyBase = Number(data.data.apr) * 100 // Convert APR to percentage
+
+				// Cache APY
+				const ttlMillis = maxHours * 3_600_000 // Convert hours to milliseconds
+				await cacheStore.set(cacheKey, apyBase, ttlMillis)
+
+				baseApys.push({
+					poolId: '', // No dlPoolId for native staking
+					strategyAddress: strategy.address,
+					tokenAddress: strategy.underlyingToken.toLowerCase(),
+					apy: apyBase
+				})
+			} catch (error) {
+				console.error(`Error fetching APR for Beacon Chain staking:`, error)
+				baseApys.push({
+					poolId: '',
+					strategyAddress: strategy.address,
+					tokenAddress: strategy.underlyingToken.toLowerCase(),
+					apy: 0
+				})
+			}
+			continue
+		}
+
+		const dlPoolId = tokenPoolIdMap.get(strategy.underlyingToken.toLowerCase())
+		if (!dlPoolId) {
+			// No pool ID, use default APY
+			baseApys.push({
+				poolId: tokenPoolIdMap.get(strategy.underlyingToken.toLowerCase()) || '',
+				strategyAddress: strategy.address,
+				tokenAddress: strategy.underlyingToken.toLowerCase(),
+				apy: 0
 			})
 			continue
 		}
