@@ -1445,6 +1445,19 @@ async function calculateAvsApy(avs: any, withTrailingApy: boolean = false) {
 			const strategyTvl = tvlStrategiesEth[strategyAddressLower] || 0
 			if (strategyTvl === 0) continue
 
+			// Initialize strategyApyMap with baseApy
+			const initialStrategyData = {
+				apy: 0,
+				baseApy: baseApyMap.get(strategyAddressLower) || 0,
+				trailingApy7d: withTrailingApy ? 0 : undefined,
+				trailingApy30d: withTrailingApy ? 0 : undefined,
+				trailingApy3m: withTrailingApy ? 0 : undefined,
+				trailingApy6m: withTrailingApy ? 0 : undefined,
+				trailingApy1y: withTrailingApy ? 0 : undefined,
+				tokens: new Map<string, number>()
+			}
+			strategyApyMap.set(strategyAddressLower, initialStrategyData)
+
 			const tokenApyMap: Map<string, number> = new Map()
 			const tokenRewards: Map<
 				string,
