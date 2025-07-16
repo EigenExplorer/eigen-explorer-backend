@@ -121,7 +121,8 @@ export async function fetchBaseApys(): Promise<BaseApy[]> {
 			}
 
 			const latestEntry = data.data[data.data.length - 1]
-			const apyBase = Number(latestEntry.apyBase) || 0
+			const apyBase =
+				Number(latestEntry?.apyBase7d || latestEntry?.apyBase || latestEntry?.apy) || 0
 
 			// Cache APY with random TTL
 			const randomHour = Math.floor(Math.random() * (maxHours - minHours + 1)) + minHours // Random hour: 12 to 24
