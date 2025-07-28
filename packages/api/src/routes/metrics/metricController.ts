@@ -2268,7 +2268,7 @@ function resetTime(date: Date) {
  *
  * @returns
  */
-async function fetchCurrentEthPrices(): Promise<Map<string, number>> {
+export async function fetchCurrentEthPrices(): Promise<Map<string, number>> {
 	const prismaClient = getPrismaClient()
 	const strategies = await prismaClient.strategies.findMany()
 	const tokenPrices = await fetchTokenPrices()

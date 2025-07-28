@@ -67,6 +67,13 @@ import { seedOperatorSlashed } from './seedOperatorSlashed'
 import { seedOperatorMagnitude } from './seedOperatorMagnitude'
 import { seedLogsDepositScalingFactor } from './events/seedLogsDepositScalingFactor'
 import { seedLogsOperatorSharesSlashed } from './events/seedLogsOperatorSharesSlashed'
+import { seedLogsOperatorAVSSplitBipsSet } from './events/seedLogsOperatorAVSSplitBipsSet'
+import { seedLogsOperatorPISplitBipsSet } from './events/seedLogsOperatorPISplitBipsSet'
+import { seedLogsOperatorDirectedAVSRewardsSubmission } from './events/seedLogsOperatorDirectedAVSRewardsSubmission'
+import { seedOperatorDirectedAvsRewards } from './seedOperatorDirectedAvsRewards'
+import { seedOperatorAvsSplits } from './seedOperatorAvsSplits'
+import { monitorOperatorPiSplit } from './monitors/operatorPiSplit'
+import { seedStrategyWhitelist } from './seedStrategyWhitelist'
 
 console.log('Initializing Seeder ...')
 
@@ -94,6 +101,9 @@ seedEigenLogs().then(() => {
 
 	// Schedule seedApyData to run at 5 minutes past 2am every day
 	cron.schedule('5 2 * * *', () => seedApyData())
+
+	// Schedule seedOperatorPiSplit to run at 5 minutes past 4am every day
+	cron.schedule('5 4 * * *', () => seedOperatorPiSplit())
 })
 
 /**
@@ -213,8 +223,22 @@ async function seedEigenLogs() {
 			}
 
 			if (logResults.strategyWhitelist.updatedCount > 0) {
-				updateEvents.push(seedStrategies())
+				updateEvents.push(seedStrategyWhitelist())
 			}
+
+			// if (logResults.strategyWhitelist.updatedCount > 0) {
+			// 	updateEvents.push(seedStrategies())
+			// if (results[11].updatedCount > 0) {
+			// 	updateEvents.push(seedStrategyWhitelist())
+			// }
+
+			// if (results[14].updatedCount > 0) {
+			// 	updateEvents.push(seedOperatorAvsSplits())
+			// }
+
+			// if (results[15].updatedCount > 0) {
+			// 	updateEvents.push(seedOperatorDirectedAvsRewards())
+			// }
 
 			await Promise.all(updateEvents)
 
@@ -256,6 +280,7 @@ async function seedEigenDailyData(retryCount = 0) {
 
 		console.time('Seeded daily data in')
 
+		await seedStrategies()
 		await seedRestakedStrategies()
 		await seedEthPricesDaily()
 
@@ -370,6 +395,20 @@ async function doSeedBlockData(targetBlock: bigint) {
 }
 
 /**
+ * Seed metadata
+ *
+ * @returns
+ */
+async function seedOperatorPiSplit() {
+	try {
+		console.log('\nSeeding Operator PI split ...')
+		await monitorOperatorPiSplit()
+	} catch (error) {
+		console.error('Failed to seed Operator PI split', error)
+	}
+}
+
+/**
  * Seed logs
  *
  * @param targetBlock
@@ -429,7 +468,10 @@ async function doSeedLogs(targetBlock: bigint) {
 		seedLogsDepositScalingFactor(targetBlock),
 		seedLogsOperatorSharesSlashed(targetBlock),
 		seedLogsSlashingWithdrawalQueued(targetBlock),
-		seedLogsSlashingWithdrawalCompleted(targetBlock)
+		seedLogsSlashingWithdrawalCompleted(targetBlock),
+		seedLogsOperatorPISplitBipsSet(targetBlock),
+		seedLogsOperatorAVSSplitBipsSet(targetBlock),
+		seedLogsOperatorDirectedAVSRewardsSubmission(targetBlock)
 	])
 
 	return {

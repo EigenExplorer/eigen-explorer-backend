@@ -7,7 +7,9 @@ export function withOperatorShares(avsOperators) {
 
 	avsOperators.map((avsOperator) => {
 		const shares = avsOperator.operator.shares.filter(
-			(s) => avsOperator.restakedStrategies.indexOf(s.strategyAddress.toLowerCase()) !== -1
+			(s) => true
+			// TODO: Add back with operator set strategies
+			// avsOperator.restakedStrategies.indexOf(s.strategyAddress.toLowerCase()) !== -1
 		)
 
 		shares.map((s) => {

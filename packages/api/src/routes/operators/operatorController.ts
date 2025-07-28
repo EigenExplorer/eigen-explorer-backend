@@ -28,6 +28,12 @@ import {
 	StrategyAddressQuerySchema,
 	OperatorSetQuerySchemaWithRegistered
 } from '../../schema/zod/schemas/operatorSetSchemas'
+import { WithTrailingApySchema } from '../../schema/zod/schemas/withTrailingApySchema'
+import {
+	buildOperatorAvsRegistrationMap,
+	getDailyAvsStrategyTvl
+} from '../../utils/trailingApyUtils'
+import { fetchBaseApys } from '../../utils/baseApys'
 
 /**
  * Function for route /operators
@@ -141,6 +147,7 @@ export async function getAllOperators(req: Request, res: Response) {
 export async function getOperator(req: Request, res: Response) {
 	const result = WithTvlQuerySchema.and(WithAdditionalDataQuerySchema)
 		.and(WithRewardsQuerySchema)
+		.and(WithTrailingApySchema)
 		.safeParse(req.query)
 	if (!result.success) {
 		return handleAndReturnErrorResponse(req, res, result.error)
@@ -151,7 +158,7 @@ export async function getOperator(req: Request, res: Response) {
 		return handleAndReturnErrorResponse(req, res, paramCheck.error)
 	}
 
-	const { withTvl, withAvsData, withRewards } = result.data
+	const { withTvl, withAvsData, withRewards, withTrailingApy } = result.data
 
 	try {
 		const { address } = req.params
@@ -163,7 +170,7 @@ export async function getOperator(req: Request, res: Response) {
 					select: {
 						avsAddress: true,
 						isActive: true,
-						...(withAvsData || withRewards
+						...(withAvsData || withRewards || withTrailingApy
 							? {
 									avs: {
 										select: {
@@ -188,11 +195,12 @@ export async function getOperator(req: Request, res: Response) {
 														updatedAt: true
 												  }
 												: {}),
-											...(withRewards
+											...(withRewards || withTrailingApy
 												? {
 														address: true,
 														maxApy: true,
 														rewardSubmissions: true,
+														operatorDirectedRewardSubmissions: true,
 														restakeableStrategies: true,
 														operators: {
 															where: { isActive: true },
@@ -230,7 +238,10 @@ export async function getOperator(req: Request, res: Response) {
 			totalStakers: operator.totalStakers,
 			totalAvs: operator.totalAvs,
 			tvl: withTvl ? sharesToTVL(operator.shares, strategiesWithSharesUnderlying) : undefined,
-			rewards: withRewards ? await calculateOperatorApy(operator) : undefined,
+			rewards:
+				withRewards || withTrailingApy
+					? await calculateOperatorApy(operator, withTrailingApy)
+					: undefined,
 			stakers: undefined,
 			metadataUrl: undefined,
 			isMetadataSynced: undefined,
@@ -332,7 +343,8 @@ export async function getOperatorRewards(req: Request, res: Response) {
 					include: {
 						avs: {
 							include: {
-								rewardSubmissions: true
+								rewardSubmissions: true,
+								operatorDirectedRewardSubmissions: true
 							}
 						}
 					}
@@ -368,6 +380,14 @@ export async function getOperatorRewards(req: Request, res: Response) {
 
 			// Iterate through all reward submissions
 			for (const submission of avs.rewardSubmissions) {
+				result.rewardTokens.add(submission.token.toLowerCase())
+
+				if (operatorActiveStrategies.has(submission.strategyAddress.toLowerCase())) {
+					result.rewardStrategies.add(submission.strategyAddress.toLowerCase())
+				}
+			}
+
+			for (const submission of avs.operatorDirectedRewardSubmissions) {
 				result.rewardTokens.add(submission.token.toLowerCase())
 
 				if (operatorActiveStrategies.has(submission.strategyAddress.toLowerCase())) {
@@ -797,7 +817,7 @@ export function getOperatorSearchQuery(
 }
 
 // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-async function calculateOperatorApy(operator: any) {
+async function calculateOperatorApy(operator: any, withTrailingApy: boolean = false) {
 	try {
 		const avsApyMap: Map<
 			string,
@@ -807,6 +827,12 @@ async function calculateOperatorApy(operator: any) {
 				strategyApys: {
 					strategyAddress: string
 					apy: number
+					baseApy: number
+					trailingApy7d?: number
+					trailingApy30d?: number
+					trailingApy3m?: number
+					trailingApy6m?: number
+					trailingApy1y?: number
 					tokens: {
 						tokenAddress: string
 						apy: number
@@ -814,145 +840,367 @@ async function calculateOperatorApy(operator: any) {
 				}[]
 			}
 		> = new Map()
+		const strategyTvlMap: Map<string, number> = new Map()
+		const operatorStrategyTvlMap: Map<string, bigint> = new Map()
 
-		const tokenPrices = await fetchTokenPrices()
-		const strategiesWithSharesUnderlying = await getStrategiesWithShareUnderlying()
+		const startDate = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000)
+		startDate.setUTCHours(0, 0, 0, 0)
+		const endDate = new Date()
+		endDate.setUTCHours(0, 0, 0, 0)
 
-		// Grab the all reward submissions that the Operator is eligible for basis opted strategies & AVSs
-		const optedStrategyAddresses: Set<string> = new Set(
-			operator?.shares.map((share) => share.strategyAddress.toLowerCase())
+		if (!operator?.shares?.length) {
+			return []
+		}
+
+		operator.shares.forEach((share) =>
+			operatorStrategyTvlMap.set(share.strategyAddress.toLowerCase(), BigInt(share.shares))
 		)
-		const avsWithEligibleRewardSubmissions = operator?.avs
-			.filter((avsOp) => avsOp.avs.rewardSubmissions.length > 0)
+
+		// Filter AVS with reward submissions
+		const avsWithRewards = operator.avs.filter(
+			(avsOp) =>
+				avsOp.avs.rewardSubmissions.length > 0 ||
+				avsOp.avs.operatorDirectedRewardSubmissions.length > 0
+		)
+
+		if (!avsWithRewards || avsWithRewards.length === 0) return []
+
+		const pastYearStartSec = Math.floor(startDate.getTime() / 1000)
+		// Filter AVS with eligible rewards
+		const isEligibleReward = (reward: any) => {
+			const endTimeSec = reward.startTimestamp + BigInt(reward.duration)
+			return (
+				(operatorStrategyTvlMap.get(reward.strategyAddress.toLowerCase()) ?? 0n) > 0n &&
+				endTimeSec >= BigInt(pastYearStartSec) &&
+				(!reward.operatorAddress ||
+					reward.operatorAddress.toLowerCase() === operator.address.toLowerCase())
+			)
+		}
+
+		const avsWithEligibleRewardSubmissions = avsWithRewards
 			.map((avsOp) => ({
 				avs: avsOp.avs,
-				eligibleRewards: avsOp.avs.rewardSubmissions.filter((reward) =>
-					optedStrategyAddresses.has(reward.strategyAddress.toLowerCase())
-				)
+				eligibleRewards: [
+					// Filter for rewardSubmissions based on strategy address
+					...avsOp.avs.rewardSubmissions.filter(isEligibleReward),
+					// Filter for operatorDirectedRewardSubmissions based on strategy address and operator address
+					...avsOp.avs.operatorDirectedRewardSubmissions.filter(isEligibleReward)
+				],
+				status: avsOp.isActive
 			}))
 			.filter((item) => item.eligibleRewards.length > 0)
 
 		if (!avsWithEligibleRewardSubmissions || avsWithEligibleRewardSubmissions.length === 0)
 			return []
 
-		for (const avs of avsWithEligibleRewardSubmissions) {
+		const avsStrategyPairs = withTrailingApy
+			? avsWithEligibleRewardSubmissions.flatMap(({ avs, eligibleRewards }) =>
+					[...new Set(eligibleRewards.map((r: any) => r.strategyAddress.toLowerCase()))].map(
+						(strategyAddress) => ({
+							avsAddress: avs.address,
+							strategyAddress
+						})
+					)
+			  )
+			: []
+
+		const avsOperators = avsWithRewards.map((avsOp) => ({
+			avsAddress: avsOp.avsAddress,
+			isActive: avsOp.isActive
+		}))
+
+		// Parallelize initial data fetching
+		const [
+			tokenPrices,
+			strategiesWithSharesUnderlying,
+			avsRegistrationByDay,
+			dailyTvlMap,
+			baseApys,
+			operatorAvsSplits
+		] = await Promise.all([
+			fetchTokenPrices(),
+			getStrategiesWithShareUnderlying(),
+			withTrailingApy
+				? buildOperatorAvsRegistrationMap(
+						operator.address.toLowerCase(),
+						avsOperators,
+						startDate,
+						endDate
+				  )
+				: [],
+			withTrailingApy ? getDailyAvsStrategyTvl(avsStrategyPairs, startDate, endDate) : {},
+			fetchBaseApys(),
+			await prisma.operatorAvsSplit.findMany({
+				where: {
+					operatorAddress: operator.address.toLowerCase(),
+					avsAddress: {
+						in: avsWithEligibleRewardSubmissions.map(({ avs }) => avs.address.toLowerCase())
+					}
+				},
+				orderBy: [{ activatedAt: 'desc' }]
+			})
+		])
+
+		const tokenPriceMap = new Map(tokenPrices.map((tp) => [tp.address.toLowerCase(), tp]))
+		const baseApyMap = new Map(baseApys.map((ba) => [ba.strategyAddress.toLowerCase(), ba.apy]))
+
+		// Create a lookup for splitBips
+		const splitMap: Map<string, { activatedAt: bigint; splitBips: number }[]> = new Map()
+		operatorAvsSplits.forEach((split) => {
+			const key = `${split.operatorAddress.toLowerCase()}:${split.avsAddress.toLowerCase()}`
+			if (!splitMap.has(key)) {
+				splitMap.set(key, [])
+			}
+			splitMap.get(key)!.push({
+				activatedAt: split.activatedAt,
+				splitBips: split.splitBips
+			})
+		})
+
+		// Function to get splitBips for a given operator, AVS, and timestamp
+		const getSplit = (operatorAddress: string, avsAddress: string, timestamp: bigint): number => {
+			const key = `${operatorAddress.toLowerCase()}:${avsAddress.toLowerCase()}`
+			const splits = splitMap.get(key) || []
+			const validSplit = splits
+				.filter((split) => split.activatedAt <= timestamp)
+				.sort((a, b) => Number(b.activatedAt) - Number(a.activatedAt))[0]
+			return validSplit ? validSplit.splitBips / 100 : 10 // Default to 10%
+		}
+
+		// Process Projected and Trailing APY for AVSs
+		for (const { avs, eligibleRewards, status } of avsWithEligibleRewardSubmissions) {
+			const avsAddressLower = avs.address.toLowerCase()
 			const strategyApyMap: Map<
 				string,
 				{
 					apy: number
+					baseApy: number
+					trailingApy7d?: number
+					trailingApy30d?: number
+					trailingApy3m?: number
+					trailingApy6m?: number
+					trailingApy1y?: number
 					tokens: Map<string, number>
 				}
 			> = new Map()
 
-			const shares = withOperatorShares(avs.avs.operators).filter(
-				(s) => avs.avs.restakeableStrategies?.indexOf(s.strategyAddress.toLowerCase()) !== -1
+			const shares = withOperatorShares(avs.operators).filter(
+				(s) => avs.restakeableStrategies?.indexOf(s.strategyAddress.toLowerCase()) !== -1
 			)
 
 			// Fetch the AVS tvl for each strategy
 			const tvlStrategiesEth = sharesToTVLStrategies(shares, strategiesWithSharesUnderlying)
 
-			// Iterate through each strategy and calculate all its rewards
-			for (const strategyAddress of avs.avs.restakeableStrategies) {
-				// Omit strategy where the Operator doesn't have shares
-				if (
-					!operator.shares.find(
-						(share) => share.strategyAddress.toLowerCase() === strategyAddress.toLowerCase()
-					)
-				)
-					continue
+			// Process strategies for Current and Trailing APY
+			for (const strategyAddress of avs.restakeableStrategies || []) {
+				const strategyAddressLower = strategyAddress.toLowerCase()
 
-				const strategyTvl = tvlStrategiesEth[strategyAddress.toLowerCase()] || 0
+				if (
+					!operatorStrategyTvlMap.has(strategyAddressLower) ||
+					operatorStrategyTvlMap.get(strategyAddressLower) === 0n
+				) {
+					continue
+				}
+
+				const strategyTvl = tvlStrategiesEth[strategyAddressLower] || 0
 				if (strategyTvl === 0) continue
+
+				// Filter eligibleRewards by strategy; validate duration and timestamp
+				const relevantSubmissions = eligibleRewards.filter(
+					(submission) => submission.strategyAddress.toLowerCase() === strategyAddressLower
+				)
+
+				if (!relevantSubmissions || relevantSubmissions.length === 0) continue
+
+				strategyTvlMap.set(strategyAddressLower, strategyTvl)
 
 				const tokenApyMap: Map<string, number> = new Map()
 				const tokenRewards: Map<
 					string,
 					{
 						totalRewardsEth: Prisma.Prisma.Decimal
-						totalDuration: number
+						timeSegments: { start: number; end: number }[]
 					}
 				> = new Map()
+				const dailyRewardsByDay: { [day: string]: Prisma.Prisma.Decimal } = {}
 
-				let strategyTotalRewardsEth = new Prisma.Prisma.Decimal(0)
-				let strategyTotalDuration = 0
-
-				// Find all reward submissions for the strategy
-				const relevantSubmissions = avs.avs.rewardSubmissions.filter(
-					(submission) => submission.strategyAddress.toLowerCase() === strategyAddress.toLowerCase()
-				)
-
-				// Calculate each reward amount for the strategy
+				// Process submissions for both Current and Trailing APY
 				for (const submission of relevantSubmissions) {
 					let rewardIncrementEth = new Prisma.Prisma.Decimal(0)
 					const rewardTokenAddress = submission.token.toLowerCase()
 
 					// Normalize reward amount to its ETH price
 					if (rewardTokenAddress) {
-						const tokenPrice = tokenPrices.find(
-							(tp) => tp.address.toLowerCase() === rewardTokenAddress
+						const tokenPrice = tokenPriceMap.get(rewardTokenAddress)
+
+						// Apply operator commission from OperatorAvsSplit
+						const operatorSplit = getSplit(
+							operator.address,
+							avsAddressLower,
+							submission.startTimestamp
 						)
 						rewardIncrementEth = submission.amount
 							.mul(new Prisma.Prisma.Decimal(tokenPrice?.ethPrice ?? 0))
 							.div(new Prisma.Prisma.Decimal(10).pow(tokenPrice?.decimals ?? 18))
+							.mul(100 - operatorSplit)
+							.div(100)
 					}
 
-					// Apply operator commission (90% of rewards)
-					rewardIncrementEth = rewardIncrementEth
-						.mul(submission.multiplier)
-						.div(new Prisma.Prisma.Decimal(10).pow(18))
-						.mul(90)
-						.div(100)
-
+					// Current APY: Accumulate only for active AVSs
 					// Accumulate token-specific rewards and duration
 					const tokenData = tokenRewards.get(rewardTokenAddress) || {
 						totalRewardsEth: new Prisma.Prisma.Decimal(0),
-						totalDuration: 0
+						timeSegments: []
 					}
-					tokenData.totalRewardsEth = tokenData.totalRewardsEth.add(rewardIncrementEth)
-					tokenData.totalDuration += submission.duration
+					tokenData.totalRewardsEth = status
+						? tokenData.totalRewardsEth.add(rewardIncrementEth)
+						: (tokenData.totalRewardsEth = new Prisma.Prisma.Decimal(0))
+					tokenData.timeSegments.push({
+						start: Number(submission.startTimestamp),
+						end: Number(submission.startTimestamp) + submission.duration
+					})
 					tokenRewards.set(rewardTokenAddress, tokenData)
 
-					// Accumulate strategy totals
-					strategyTotalRewardsEth = strategyTotalRewardsEth.add(rewardIncrementEth)
-					strategyTotalDuration += submission.duration
+					// Trailing APY: Distribute daily rewards if requested
+					if (withTrailingApy) {
+						const startTime = new Date(Number(submission.startTimestamp) * 1000)
+						const durationDays = submission.duration / 86400
+						if (durationDays <= 0) continue
+
+						const dailyRewardEth = rewardIncrementEth.div(new Prisma.Prisma.Decimal(durationDays))
+
+						const endTime = new Date(startTime)
+						endTime.setDate(endTime.getDate() + Math.floor(durationDays) - 1)
+						for (
+							let day = new Date(Math.max(startTime.getTime(), startDate.getTime()));
+							day <= endTime && day <= endDate;
+							day.setDate(day.getDate() + 1)
+						) {
+							const dayKey = day.toISOString().split('T')[0]
+							if (!dailyRewardsByDay[dayKey]) {
+								dailyRewardsByDay[dayKey] = new Prisma.Prisma.Decimal(0)
+							}
+							dailyRewardsByDay[dayKey] = dailyRewardsByDay[dayKey].add(dailyRewardEth)
+						}
+					}
 				}
 
-				if (strategyTotalDuration === 0) continue
-
-				// Calculate token APYs
+				// Calculate token APYs for Current APY, only for active AVSs
+				let strategyApy = 0
 				tokenRewards.forEach((data, tokenAddress) => {
-					if (data.totalDuration !== 0) {
-						const tokenRewardRate = data.totalRewardsEth.toNumber() / strategyTvl
-						const tokenAnnualizedRate =
-							tokenRewardRate * ((365 * 24 * 60 * 60) / data.totalDuration)
-						const tokenApy = tokenAnnualizedRate * 100
+					if (data.timeSegments.length === 0) return
 
+					const sortedSegments = data.timeSegments.sort((a, b) => a.start - b.start)
+					const mergedSegments: { start: number; end: number }[] = []
+
+					let currentSegment = sortedSegments[0]
+					for (let i = 1; i < sortedSegments.length; i++) {
+						const nextSegment = sortedSegments[i]
+						if (nextSegment.start <= currentSegment.end) {
+							// Overlapping: extend current segment
+							currentSegment.end = Math.max(currentSegment.end, nextSegment.end)
+						} else {
+							// Non-overlapping: push current and start new segment
+							mergedSegments.push(currentSegment)
+							currentSegment = nextSegment
+						}
+					}
+					mergedSegments.push(currentSegment)
+
+					// Calculate total duration from merged segments
+					const totalDuration = mergedSegments.reduce((sum, seg) => sum + (seg.end - seg.start), 0)
+					if (totalDuration !== 0) {
+						const tokenRewardRate = data.totalRewardsEth.toNumber() / strategyTvl
+						const tokenAnnualizedRate = tokenRewardRate * ((365 * 24 * 60 * 60) / totalDuration)
+						const tokenApy = tokenAnnualizedRate * 100
 						tokenApyMap.set(tokenAddress, tokenApy)
+						strategyApy += tokenApy
 					}
 				})
 
-				// Calculate overall strategy APY
-				const strategyApy = Array.from(tokenApyMap.values()).reduce((sum, apy) => sum + apy, 0)
-				if (strategyApy > 0) {
-					strategyApyMap.set(strategyAddress, {
-						apy: strategyApy,
-						tokens: tokenApyMap
+				const baseApy = baseApyMap.get(strategyAddressLower) || 0
+
+				// Initialize strategy data
+				const strategyData = {
+					apy: strategyApy,
+					baseApy,
+					tokens: tokenApyMap
+				}
+
+				// Calculate Trailing APY if requested, for both active and non-active AVSs
+				if (withTrailingApy) {
+					// Define timeframe boundaries
+					const timeframes = [
+						{ days: 7, key: 'trailingApy7d' },
+						{ days: 30, key: 'trailingApy30d' },
+						{ days: 90, key: 'trailingApy3m' },
+						{ days: 180, key: 'trailingApy6m' },
+						{ days: 365, key: 'trailingApy1y' }
+					]
+					const timeframeStarts: { [key: string]: Date } = {}
+					const trailingSums: { [key: string]: number } = {}
+					timeframes.forEach(({ key, days }) => {
+						const start = new Date(Date.now() - (days - 1) * 24 * 60 * 60 * 1000)
+						start.setUTCHours(0, 0, 0, 0)
+						timeframeStarts[key] = start
+						trailingSums[key] = 0
+					})
+
+					// Calculate daily APY and accumulate for relevant timeframes
+					for (let day = new Date(startDate); day <= endDate; day.setDate(day.getDate() + 1)) {
+						const dayKey = day.toISOString().split('T')[0]
+						const isRegistered = avsRegistrationByDay[dayKey]?.[avsAddressLower] || false
+						if (!isRegistered) continue
+
+						const dailyTvl = dailyTvlMap[dayKey]?.[avsAddressLower]?.[strategyAddressLower] || 0
+						if (dailyTvl === 0) continue
+
+						const dailyStrategyRewardsEth =
+							dailyRewardsByDay[dayKey] || new Prisma.Prisma.Decimal(0)
+
+						if (dailyStrategyRewardsEth.greaterThan(0)) {
+							const dailyApy = dailyStrategyRewardsEth.div(dailyTvl).mul(100).toNumber()
+							if (dailyApy > 1000) continue
+							timeframes.forEach(({ key }) => {
+								if (day >= timeframeStarts[key]) {
+									trailingSums[key] += dailyApy
+								}
+							})
+						}
+					}
+
+					// Annualize trailing APYs
+					timeframes.forEach(({ key, days }) => {
+						const annualizationFactor = new Prisma.Prisma.Decimal(365).div(days)
+						strategyData[key] = new Prisma.Prisma.Decimal(trailingSums[key])
+							.mul(annualizationFactor)
+							.toNumber()
 					})
 				}
+
+				strategyApyMap.set(strategyAddressLower, strategyData)
 			}
 
-			avsApyMap.set(avs.avs.address, {
-				avsAddress: avs.avs.address,
-				maxApy: Math.max(...Array.from(strategyApyMap.values()).map((data) => data.apy)),
-				strategyApys: Array.from(strategyApyMap.entries()).map(([strategyAddress, data]) => ({
-					strategyAddress,
-					apy: data.apy,
-					tokens: Array.from(data.tokens.entries()).map(([tokenAddress, apy]) => ({
-						tokenAddress,
-						apy
+			if (strategyApyMap.size > 0) {
+				avsApyMap.set(avs.address, {
+					avsAddress: avs.address,
+					maxApy: Math.max(...Array.from(strategyApyMap.values()).map((data) => data.apy)),
+					strategyApys: Array.from(strategyApyMap.entries()).map(([strategyAddress, data]) => ({
+						strategyAddress,
+						apy: data.apy,
+						baseApy: data.baseApy,
+						trailingApy7d: data.trailingApy7d,
+						trailingApy30d: data.trailingApy30d,
+						trailingApy3m: data.trailingApy3m,
+						trailingApy6m: data.trailingApy6m,
+						trailingApy1y: data.trailingApy1y,
+						tokens: Array.from(data.tokens.entries()).map(([tokenAddress, apy]) => ({
+							tokenAddress,
+							apy
+						}))
 					}))
-				}))
-			})
+				})
+			}
 		}
 
 		return Array.from(avsApyMap.values())

@@ -103,7 +103,7 @@ class RequestsUpdateManager {
 		const response = await fetch(url, {
 			method: 'POST',
 			headers: {
-				Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+				Authorization: `Bearer ${process.env.SUPABASE_EF_SERVICE_ROLE_KEY}`,
 				'Content-Type': 'application/json'
 			},
 			body: JSON.stringify(data.map((payload) => payload.data))
