@@ -139,11 +139,13 @@ async function processWithdrawals(
 		}
 	})
 
-	// Calculate daily withdrawals
-	const dailyWithdrawals = allWithdrawals.reduce((acc, withdrawal) => {
+	// Calculate daily withdrawals with proper async handling
+	const dailyWithdrawals: Record<number, Omit<Prisma.MetricWithdrawalUnitCreateInput, 'id'>> = {}
+
+	for (const withdrawal of allWithdrawals) {
 		const dayTimestamp = new Date(withdrawal.createdAt).setUTCHours(0, 0, 0, 0)
-		if (!acc[dayTimestamp]) {
-			acc[dayTimestamp] = {
+		if (!dailyWithdrawals[dayTimestamp]) {
+			dailyWithdrawals[dayTimestamp] = {
 				timestamp: new Date(dayTimestamp),
 				tvlEth: 0,
 				totalWithdrawals: 0,
@@ -152,7 +154,8 @@ async function processWithdrawals(
 			}
 		}
 
-		withdrawal.strategies.forEach(async (strategyAddress, index) => {
+		for (let index = 0; index < withdrawal.strategies.length; index++) {
+			const strategyAddress = withdrawal.strategies[index]
 			const symbol = strategyToSymbolMap.get(strategyAddress)?.toLowerCase()
 			const sharesUnderlying = strategiesWithShareUnderlying.find(
 				(su) => su.strategyAddress.toLowerCase() === strategyAddress.toLowerCase()
@@ -184,14 +187,13 @@ async function processWithdrawals(
 					(Number((shares * BigInt(sharesUnderlying.sharesToUnderlying)) / BigInt(1e18)) /
 						Math.pow(10, sharesUnderlying.decimals)) *
 					ethPrice
-				acc[dayTimestamp].changeTvlEth = Number(acc[dayTimestamp].changeTvlEth) + withdrawalValueEth
+				dailyWithdrawals[dayTimestamp].changeTvlEth =
+					Number(dailyWithdrawals[dayTimestamp].changeTvlEth) + withdrawalValueEth
 			}
-		})
+		}
 
-		acc[dayTimestamp].changeWithdrawals += 1
-
-		return acc
-	}, {} as Record<number, Omit<Prisma.MetricWithdrawalUnitCreateInput, 'id'>>)
+		dailyWithdrawals[dayTimestamp].changeWithdrawals += 1
+	}
 
 	// Calculate cumulative metrics
 	const cumulativeWithdrawals = Object.values(dailyWithdrawals)
