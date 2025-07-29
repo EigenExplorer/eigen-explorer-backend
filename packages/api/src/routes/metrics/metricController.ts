@@ -104,7 +104,7 @@ type HistoricalAggregateRecord = {
 }
 
 type HistoricalAggregateRecordWithStrategies = HistoricalAggregateRecord & {
-	tvlStrategies: { [strategyAddress: string]: number }
+	tvlStrategies: { [strategyName: string]: number }
 }
 type AggregateModelMap = {
 	metricAvsUnit: Prisma.MetricAvsUnit
@@ -1561,6 +1561,16 @@ async function doGetHistoricalAvsAggregate(
 
 	const ethPrices = await fetchCurrentEthPrices()
 
+	// Create strategy address-to-symbol mapping for strategy breakdown
+	let strategyAddressToSymbol: Map<string, string> | undefined
+	if (withStrategyTvl) {
+		const strategiesWithShares = await getStrategiesWithShareUnderlying()
+		strategyAddressToSymbol = new Map<string, string>()
+		for (const strategy of strategiesWithShares) {
+			strategyAddressToSymbol.set(strategy.strategyAddress.toLowerCase(), strategy.symbol)
+		}
+	}
+
 	// Fetch initial data for metrics calculation
 	const processMetricUnitData = async () => {
 		// Fetch the timestamp of the first record on or before startTimestamp
@@ -1742,8 +1752,8 @@ async function doGetHistoricalAvsAggregate(
 		}
 
 		// Conditionally add strategy breakdown
-		if (withStrategyTvl) {
-			const tvlStrategies: { [strategyAddress: string]: number } = {}
+		if (withStrategyTvl && strategyAddressToSymbol) {
+			const tvlStrategies: { [strategyName: string]: number } = {}
 
 			// Calculate strategy-wise TVL for the current timestamp
 			if (variant === 'cumulative') {
@@ -1758,7 +1768,8 @@ async function doGetHistoricalAvsAggregate(
 
 				for (const [strategyAddress, record] of latestStrategyRecords) {
 					const ethPrice = ethPrices.get(strategyAddress) || 0
-					tvlStrategies[strategyAddress] = Number(record.tvl) * ethPrice
+					const strategySymbol = strategyAddressToSymbol.get(strategyAddress) || strategyAddress
+					tvlStrategies[strategySymbol] = Number(record.tvl) * ethPrice
 				}
 			} else {
 				// For discrete, sum the change values for each strategy
@@ -1773,7 +1784,8 @@ async function doGetHistoricalAvsAggregate(
 				}
 
 				for (const [strategyAddress, changeEth] of strategyChanges) {
-					tvlStrategies[strategyAddress] = changeEth
+					const strategySymbol = strategyAddressToSymbol.get(strategyAddress) || strategyAddress
+					tvlStrategies[strategySymbol] = changeEth
 				}
 			}
 
