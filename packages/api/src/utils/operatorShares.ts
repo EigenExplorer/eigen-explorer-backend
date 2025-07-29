@@ -6,10 +6,11 @@ export function withOperatorShares(avsOperators) {
 	const sharesMap: IMap<string, string> = new Map()
 
 	avsOperators.map((avsOperator) => {
+		// TODO: Add back with operator set strategies
+		// TODO: Select whether to use operator set strategies or all strategies
+		// const shares = avsOperator.operator.shares.filter((s) => true)
 		const shares = avsOperator.operator.shares.filter(
-			(s) => true
-			// TODO: Add back with operator set strategies
-			// avsOperator.restakedStrategies.indexOf(s.strategyAddress.toLowerCase()) !== -1
+			(s) => avsOperator.restakedStrategies.indexOf(s.strategyAddress.toLowerCase()) !== -1
 		)
 
 		shares.map((s) => {

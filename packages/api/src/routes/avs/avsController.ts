@@ -376,9 +376,12 @@ export async function getAVS(req: Request, res: Response) {
 			}
 		})
 
-		const shares = withOperatorShares(avs.operators).filter((s) => true)
 		// TODO: Add back with operator set strategies
-		// (s) => avs.restakeableStrategies.indexOf(s.strategyAddress.toLowerCase()) !== -1
+		// TODO: Select whether to use operator set strategies or all strategies
+		// const shares = withOperatorShares(avs.operators).filter((s) => true)
+		const shares = withOperatorShares(avs.operators).filter(
+			(s) => avs.restakeableStrategies.indexOf(s.strategyAddress.toLowerCase()) !== -1
+		)
 
 		const strategiesWithSharesUnderlying = withTvl ? await getStrategiesWithShareUnderlying() : []
 

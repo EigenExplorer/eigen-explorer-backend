@@ -67,15 +67,16 @@ export async function monitorAvsMetrics(params: MonitorAvsMetricsParams) {
 					where: {
 						operatorAddress: {
 							in: avs.operators.map((o) => o.operatorAddress)
-						},
-						shares: {
-							some: {
-								strategyAddress: {
-									in: avs.restakeableStrategies
-								},
-								shares: { gt: '0' }
-							}
 						}
+						// TODO: Add back with operator set strategies
+						// shares: {
+						// 	some: {
+						// 		strategyAddress: {
+						// 			in: avs.restakeableStrategies
+						// 		},
+						// 		shares: { gt: '0' }
+						// 	}
+						// }
 					}
 				})
 
