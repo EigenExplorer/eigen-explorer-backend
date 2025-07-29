@@ -9,6 +9,7 @@ import { SortByQuerySchema } from '../../schema/zod/schemas/sortByQuery'
 import { SearchByTextQuerySchema } from '../../schema/zod/schemas/searchByTextQuery'
 import { WithRewardsQuerySchema } from '../../schema/zod/schemas/withRewardsQuery'
 import { getOperatorSearchQuery } from '../operators/operatorController'
+import { LegacyQuerySchema } from '../../schema/zod/schemas/legacyQuery'
 import { EigenExplorerApiError, handleAndReturnErrorResponse } from '../../schema/errors'
 import {
 	getStrategiesWithShareUnderlying,
@@ -49,6 +50,7 @@ export async function getAllAVS(req: Request, res: Response) {
 		.and(SortByQuerySchema)
 		.and(WithCuratedMetadata)
 		.and(SearchByTextQuerySchema)
+		.and(LegacyQuerySchema)
 		.safeParse(req.query)
 
 	if (!queryCheck.success) {
@@ -67,8 +69,10 @@ export async function getAllAVS(req: Request, res: Response) {
 			sortByTotalOperators,
 			sortByApy,
 			searchByText,
-			searchMode
+			searchMode,
+			legacy
 		} = queryCheck.data
+		const isLegacy = legacy === 'true'
 
 		// Setup sort if applicable
 		const sortConfig = sortByTotalStakers
@@ -87,7 +91,7 @@ export async function getAllAVS(req: Request, res: Response) {
 		// Fetch records and apply search/sort
 		const avsRecords = await prisma.avs.findMany({
 			where: {
-				...getAvsFilterQuery(true),
+				...getAvsFilterQuery(true, isLegacy),
 				...searchFilterQuery,
 				...(minTvl ? { tvlEth: { gte: minTvl } } : {})
 			},
@@ -117,7 +121,7 @@ export async function getAllAVS(req: Request, res: Response) {
 		// Fetch count
 		const avsCount = await prisma.avs.count({
 			where: {
-				...getAvsFilterQuery(true),
+				...getAvsFilterQuery(true, isLegacy),
 				...searchFilterQuery,
 				...(minTvl ? { tvlEth: { gte: minTvl } } : {})
 			}
@@ -171,7 +175,9 @@ export async function getAllAVS(req: Request, res: Response) {
  */
 export async function getAllAVSAddresses(req: Request, res: Response) {
 	// Validate pagination query
-	const queryCheck = PaginationQuerySchema.and(SearchByTextQuerySchema).safeParse(req.query)
+	const queryCheck = PaginationQuerySchema.and(SearchByTextQuerySchema)
+		.and(LegacyQuerySchema)
+		.safeParse(req.query)
 	if (!queryCheck.success) {
 		return handleAndReturnErrorResponse(req, res, queryCheck.error)
 	}
@@ -223,7 +229,7 @@ export async function getAllAVSAddresses(req: Request, res: Response) {
 		// Determine count
 		const avsCount = await prisma.avs.count({
 			where: {
-				...getAvsFilterQuery(true),
+				...getAvsFilterQuery(true, isLegacy),
 				...searchFilterQuery
 			}
 		})
@@ -336,6 +342,7 @@ export async function getAVS(req: Request, res: Response) {
 	const queryCheck = WithTvlQuerySchema.and(WithCuratedMetadata)
 		.and(WithRewardsQuerySchema)
 		.and(WithTrailingApySchema)
+		.and(LegacyQuerySchema)
 		.safeParse(req.query)
 	if (!queryCheck.success) {
 		return handleAndReturnErrorResponse(req, res, queryCheck.error)
@@ -348,10 +355,10 @@ export async function getAVS(req: Request, res: Response) {
 
 	try {
 		const { address } = req.params
-		const { withTvl, withCuratedMetadata, withRewards, withTrailingApy } = queryCheck.data
+		const { withTvl, withCuratedMetadata, withRewards, withTrailingApy, legacy } = queryCheck.data
 
 		const avs = await prisma.avs.findUniqueOrThrow({
-			where: { address: address.toLowerCase(), ...getAvsFilterQuery() },
+			where: { address: address.toLowerCase(), ...getAvsFilterQuery(false, legacy === 'true') },
 			include: {
 				curatedMetadata: withCuratedMetadata,
 				additionalInfo: withCuratedMetadata,
@@ -369,9 +376,12 @@ export async function getAVS(req: Request, res: Response) {
 			}
 		})
 
-		const shares = withOperatorShares(avs.operators).filter((s) => true)
 		// TODO: Add back with operator set strategies
-		// (s) => avs.restakeableStrategies.indexOf(s.strategyAddress.toLowerCase()) !== -1
+		// TODO: Select whether to use operator set strategies or all strategies
+		// const shares = withOperatorShares(avs.operators).filter((s) => true)
+		const shares = withOperatorShares(avs.operators).filter(
+			(s) => avs.restakeableStrategies.indexOf(s.strategyAddress.toLowerCase()) !== -1
+		)
 
 		const strategiesWithSharesUnderlying = withTvl ? await getStrategiesWithShareUnderlying() : []
 
@@ -427,6 +437,7 @@ export async function getAVSStakers(req: Request, res: Response) {
 	// Validate query and params
 	const queryCheck = PaginationQuerySchema.and(WithTvlQuerySchema)
 		.and(UpdatedSinceQuerySchema)
+		.and(LegacyQuerySchema)
 		.safeParse(req.query)
 
 	if (!queryCheck.success) {
@@ -440,10 +451,10 @@ export async function getAVSStakers(req: Request, res: Response) {
 
 	try {
 		const { address } = req.params
-		const { skip, take, withTvl, updatedSince } = queryCheck.data
+		const { skip, take, withTvl, updatedSince, legacy } = queryCheck.data
 
 		const avs = await prisma.avs.findUniqueOrThrow({
-			where: { address: address.toLowerCase(), ...getAvsFilterQuery() },
+			where: { address: address.toLowerCase(), ...getAvsFilterQuery(false, legacy === 'true') },
 			include: { operators: true }
 		})
 
@@ -525,6 +536,7 @@ export async function getAVSOperators(req: Request, res: Response) {
 		.and(MinTvlQuerySchema)
 		.and(SortByQuerySchema)
 		.and(SearchByTextQuerySchema)
+		.and(LegacyQuerySchema)
 		.safeParse(req.query)
 	if (!queryCheck.success) {
 		return handleAndReturnErrorResponse(req, res, queryCheck.error)
@@ -537,12 +549,12 @@ export async function getAVSOperators(req: Request, res: Response) {
 
 	try {
 		const { address } = req.params
-		const { skip, take, withTvl, minTvl, sortOperatorsByTvl, searchByText, searchMode } =
+		const { skip, take, withTvl, minTvl, sortOperatorsByTvl, searchByText, searchMode, legacy } =
 			queryCheck.data
 		const searchFilterQuery = getOperatorSearchQuery(searchByText, searchMode, 'partial')
 
 		const avs = await prisma.avs.findUniqueOrThrow({
-			where: { address: address.toLowerCase(), ...getAvsFilterQuery() },
+			where: { address: address.toLowerCase(), ...getAvsFilterQuery(false, legacy === 'true') },
 			include: {
 				operators: {
 					where: { isActive: true }
@@ -1304,21 +1316,33 @@ export function getAvsFilterQuery(filterName?: boolean, isLegacy = true) {
 		}
 	}
 
-	// After introduction of area-internal-dashboard, `isVisible` checks move to `AvsAdditionalInfo` with `CuratedMetadata` only as fallback
-	// Currently, this is only accessible by setting the flag `legacy=false` when using full text search
+	// After introduction of area-internal-dashboard, validity checks move to `AvsAdditionalInfo` with `CuratedMetadata` only as fallback
+	// Currently, this is only accessible by setting the flag `legacy=false`, on routes where `LegacyQuerySchema` enabled
 	return {
 		AND: [
 			queryWithName,
 			{
 				OR: [
-					// Check if `additionalInfo.isVisible` is true
+					// Check `additionalInfo.isVisible` && `additionalInfo.isVerified` is true
 					{
-						additionalInfo: {
-							some: {
-								metadataKey: 'isVisible',
-								metadataContent: 'true'
+						AND: [
+							{
+								additionalInfo: {
+									some: {
+										metadataKey: 'isVisible',
+										metadataContent: 'true'
+									}
+								}
+							},
+							{
+								additionalInfo: {
+									some: {
+										metadataKey: 'isVerified',
+										metadataContent: 'true'
+									}
+								}
 							}
-						}
+						]
 					},
 					// If `additionalInfo.isVisible` does not exist, check `curatedMetadata.isVisible` is true
 					{
