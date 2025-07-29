@@ -237,16 +237,18 @@ export async function getOperator(req: Request, res: Response) {
 
 		const strategiesWithSharesUnderlying = withTvl ? await getStrategiesWithShareUnderlying() : []
 
+		const rewardsMap =
+			withRewards || withTrailingApy
+				? await calculateOperatorApyForAll([operator], withTrailingApy)
+				: {}
+
 		res.send({
 			...operator,
 			avsRegistrations,
 			totalStakers: operator.totalStakers,
 			totalAvs: operator.totalAvs,
 			tvl: withTvl ? sharesToTVL(operator.shares, strategiesWithSharesUnderlying) : undefined,
-			rewards:
-				withRewards || withTrailingApy
-					? await calculateOperatorApyForAll([operator], withTrailingApy)
-					: undefined,
+			rewards: withRewards || withTrailingApy ? rewardsMap[operator.address] : undefined,
 			stakers: undefined,
 			metadataUrl: undefined,
 			isMetadataSynced: undefined,
