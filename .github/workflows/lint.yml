@@ -14,10 +14,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Prettier Check
-        uses: actionsx/prettier@v2
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
         with:
-          args: --check .
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Prettier Check
+        run: npm run format
 
       - name: Prettier Result
         if: failure()

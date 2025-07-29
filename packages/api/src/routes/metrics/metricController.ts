@@ -102,6 +102,10 @@ type HistoricalAggregateRecord = {
 	totalOperators?: number
 	totalAvs?: number
 }
+
+type HistoricalAggregateRecordWithStrategies = HistoricalAggregateRecord & {
+	tvlStrategies: { [strategyName: string]: number }
+}
 type AggregateModelMap = {
 	metricAvsUnit: Prisma.MetricAvsUnit
 	metricOperatorUnit: Prisma.MetricOperatorUnit
@@ -568,8 +572,15 @@ export async function getHistoricalAvsAggregate(req: Request, res: Response) {
 
 	try {
 		const { address } = req.params
-		const { frequency, variant, startAt, endAt } = queryCheck.data
-		const data = await doGetHistoricalAvsAggregate(address, startAt, endAt, frequency, variant)
+		const { frequency, variant, startAt, endAt, withStrategyTvl } = queryCheck.data
+		const data = await doGetHistoricalAvsAggregate(
+			address,
+			startAt,
+			endAt,
+			frequency,
+			variant,
+			withStrategyTvl
+		)
 		res.status(200).send({ data })
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
@@ -1541,13 +1552,24 @@ async function doGetHistoricalAvsAggregate(
 	startAt: string,
 	endAt: string,
 	frequency: string,
-	variant: string
+	variant: string,
+	withStrategyTvl: boolean = false
 ) {
 	const startTimestamp = resetTime(new Date(startAt))
 	const endTimestamp = resetTime(new Date(endAt))
 	const modelNameTvl = 'metricAvsStrategyUnit' as MetricModelName
 
 	const ethPrices = await fetchCurrentEthPrices()
+
+	// Create strategy address-to-symbol mapping for strategy breakdown
+	let strategyAddressToSymbol: Map<string, string> | undefined
+	if (withStrategyTvl) {
+		const strategiesWithShares = await getStrategiesWithShareUnderlying()
+		strategyAddressToSymbol = new Map<string, string>()
+		for (const strategy of strategiesWithShares) {
+			strategyAddressToSymbol.set(strategy.strategyAddress.toLowerCase(), strategy.symbol)
+		}
+	}
 
 	// Fetch initial data for metrics calculation
 	const processMetricUnitData = async () => {
@@ -1670,7 +1692,7 @@ async function doGetHistoricalAvsAggregate(
 	strategyData = [...strategyData, ...remainingStrategyData]
 	strategyAddresses = [...new Set(strategyData.map((data) => data.strategyAddress))]
 
-	const results: HistoricalAggregateRecord[] = []
+	const results: (HistoricalAggregateRecord | HistoricalAggregateRecordWithStrategies)[] = []
 	let currentTimestamp = startTimestamp
 	const offset = getOffsetInMs(frequency)
 
@@ -1720,12 +1742,60 @@ async function doGetHistoricalAvsAggregate(
 			modelNameTvl,
 			ethPrices
 		)
-		results.push({
+
+		// Prepare the base result
+		const baseResult = {
 			timestamp: new Date(Number(currentTimestamp)).toISOString(),
 			tvlEth,
 			totalStakers,
 			totalOperators
-		})
+		}
+
+		// Conditionally add strategy breakdown
+		if (withStrategyTvl && strategyAddressToSymbol) {
+			const tvlStrategies: { [strategyName: string]: number } = {}
+
+			// Calculate strategy-wise TVL for the current timestamp
+			if (variant === 'cumulative') {
+				// For cumulative, get the latest TVL value for each strategy
+				const latestStrategyRecords = new Map<string, (typeof intervalStrategyData)[0]>()
+				for (const record of intervalStrategyData) {
+					const existing = latestStrategyRecords.get(record.strategyAddress)
+					if (!existing || record.timestamp > existing.timestamp) {
+						latestStrategyRecords.set(record.strategyAddress, record)
+					}
+				}
+
+				for (const [strategyAddress, record] of latestStrategyRecords) {
+					const ethPrice = ethPrices.get(strategyAddress) || 0
+					const strategySymbol = strategyAddressToSymbol.get(strategyAddress) || strategyAddress
+					tvlStrategies[strategySymbol] = Number(record.tvl) * ethPrice
+				}
+			} else {
+				// For discrete, sum the change values for each strategy
+				const strategyChanges = new Map<string, number>()
+				for (const record of intervalStrategyData) {
+					const ethPrice = ethPrices.get(record.strategyAddress) || 0
+					const changeEth = Number(record.changeTvl) * ethPrice
+					strategyChanges.set(
+						record.strategyAddress,
+						(strategyChanges.get(record.strategyAddress) || 0) + changeEth
+					)
+				}
+
+				for (const [strategyAddress, changeEth] of strategyChanges) {
+					const strategySymbol = strategyAddressToSymbol.get(strategyAddress) || strategyAddress
+					tvlStrategies[strategySymbol] = changeEth
+				}
+			}
+
+			results.push({
+				...baseResult,
+				tvlStrategies
+			} as HistoricalAggregateRecordWithStrategies)
+		} else {
+			results.push(baseResult)
+		}
 
 		currentTimestamp = nextTimestamp
 	}
