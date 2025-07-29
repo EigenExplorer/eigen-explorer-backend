@@ -119,7 +119,14 @@ export const HistoricalCountSchema = z
 			)
 			.default('')
 			.describe('End date in ISO string format')
-			.openapi({ example: '2024-04-12T08:31:11.000' })
+			.openapi({ example: '2024-04-12T08:31:11.000' }),
+		withStrategyTvl: z
+			.enum(['true', 'false'])
+			.optional()
+			.default('false')
+			.describe('Include strategy-wise TVL breakdown in response')
+			.transform((val) => val === 'true')
+			.openapi({ example: 'false' })
 	})
 	.refine(
 		(data) => {
