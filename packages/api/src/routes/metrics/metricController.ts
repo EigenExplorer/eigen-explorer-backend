@@ -2676,3 +2676,48 @@ async function calculateMetricsForHistoricalRecord(
 function extractTvlValue(tvl: number | TvlWithChange): number {
 	return (tvl as TvlWithChange).tvl || (tvl as number)
 }
+
+/**
+ * Function to handle the request for historical strategy shares data
+ *
+ * @param req
+ * @param res
+ * @returns
+ */
+export async function getHistoricalStrategyShares(req: Request, res: Response) {
+	const { strategyAddress } = req.params
+
+	try {
+		if (!strategyAddress) {
+			return res.status(400).json({ error: 'Strategy address is required' })
+		}
+
+		const prismaClient = getPrismaClient()
+
+		const historicalShares = await prismaClient.strategySharesDaily.findMany({
+			where: {
+				strategyAddress: strategyAddress.toLowerCase()
+			},
+			orderBy: {
+				timestamp: 'asc'
+			},
+			select: {
+				strategyAddress: true,
+				tokenAddress: true,
+				sharesToUnderlying: true,
+				timestamp: true
+			}
+		})
+
+		return res.status(200).json({
+			data: historicalShares.map((share) => ({
+				strategyAddress: share.strategyAddress,
+				tokenAddress: share.tokenAddress,
+				exchangeRate: share.sharesToUnderlying,
+				timestamp: share.timestamp
+			}))
+		})
+	} catch (error) {
+		return res.status(500).json({ error: 'Failed to fetch historical strategy shares data' })
+	}
+}
