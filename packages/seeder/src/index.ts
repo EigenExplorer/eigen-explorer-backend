@@ -29,6 +29,7 @@ import { seedMetricsRestaking } from './metrics/seedMetricsRestaking'
 import { seedStrategies } from './seedStrategies'
 import { seedRestakedStrategies } from './seedAvsRestakedStrategies'
 import { seedEthPricesDaily } from './seedEthPricesDaily'
+import { seedStrategySharesDaily } from './seedStrategySharesDaily'
 import { seedMetricsEigenPods } from './metrics/seedMetricsEigenPods'
 import { seedMetricsTvl } from './metrics/seedMetricsTvl'
 import { monitorAvsMetrics } from './monitors/avsMetrics'
@@ -271,6 +272,7 @@ async function seedEigenDailyData(retryCount = 0) {
 		await seedStrategies()
 		await seedRestakedStrategies()
 		await seedEthPricesDaily()
+		await seedStrategySharesDaily()
 
 		if (!process.env.FLAG_SEEDER_DISABLE_HISTORICAL_DATA) {
 			await seedMetricsDeposit()

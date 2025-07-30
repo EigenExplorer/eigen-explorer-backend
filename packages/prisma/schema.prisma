@@ -874,6 +874,19 @@ model EthPricesDaily {
   @@index([timestamp])
 }
 
+model StrategySharesDaily {
+  id Int @id @default(autoincrement())
+
+  strategyAddress    String
+  tokenAddress       String
+  sharesToUnderlying String
+  timestamp          DateTime
+
+  @@unique([strategyAddress, timestamp])
+  @@index([strategyAddress])
+  @@index([timestamp])
+}
+
 // Misc
 
 model Evm_BlockData {

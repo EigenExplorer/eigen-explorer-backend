@@ -23,7 +23,8 @@ import {
 	getTotalWithdrawals,
 	getTotalDeposits,
 	getRestakingRatio,
-	getDeploymentRatio
+	getDeploymentRatio,
+	getHistoricalStrategyShares
 } from './metricController'
 
 import routeCache from 'route-cache'
@@ -96,5 +97,11 @@ router.get('/historical/count-deposits', routeCache.cacheSeconds(120), getHistor
 router.get('/restaking-ratio', routeCache.cacheSeconds(120), getRestakingRatio)
 
 router.get('/deployment-ratio', routeCache.cacheSeconds(120), getDeploymentRatio)
+
+router.get(
+	'/historical/strategy-shares/:strategyAddress',
+	routeCache.cacheSeconds(120),
+	getHistoricalStrategyShares
+)
 
 export default router
