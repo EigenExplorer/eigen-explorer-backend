@@ -30,3 +30,17 @@ export function withOperatorShares(avsOperators) {
 		shares
 	}))
 }
+
+export function getLatestActiveOperatorSplits(splits): Record<string, Record<string, number>> {
+	const splitMap: Record<string, Record<string, number>> = {}
+
+	for (const { operatorAddress, avsAddress, splitBips } of splits) {
+		if (!splitMap[operatorAddress]) splitMap[operatorAddress] = {}
+
+		if (!(avsAddress in splitMap[operatorAddress])) {
+			splitMap[operatorAddress][avsAddress] = splitBips / 100
+		}
+	}
+
+	return splitMap
+}
