@@ -16,7 +16,7 @@ import {
 	sharesToTVL,
 	sharesToTVLStrategies
 } from '../../utils/strategyShares'
-import { withOperatorShares } from '../../utils/operatorShares'
+import { getLatestActiveOperatorSplits, withOperatorShares } from '../../utils/operatorShares'
 import Prisma from '@prisma/client'
 import prisma from '../../utils/prismaClient'
 import { fetchTokenPrices } from '../../utils/tokenPrices'
@@ -115,19 +115,44 @@ export async function getAllOperators(req: Request, res: Response) {
 				? await calculateOperatorApyForAll(operatorRecords, withTrailingApy)
 				: {}
 
-		const operators = operatorRecords.map((operator) => ({
-			...operator,
-			avsRegistrations: operator.avs,
-			totalStakers: operator.totalStakers,
-			totalAvs: operator.totalAvs,
-			tvl: withTvl ? sharesToTVL(operator.shares, strategiesWithSharesUnderlying) : undefined,
-			rewards: withRewards || withTrailingApy ? rewardsMap[operator.address] : undefined,
-			metadataUrl: undefined,
-			isMetadataSynced: undefined,
-			avs: undefined,
-			tvlEth: undefined,
-			sharesHash: undefined
-		}))
+		const splits = await prisma.operatorAvsSplit.findMany({
+			where: {
+				operatorAddress: {
+					in: operatorRecords.map((op) => op.address)
+				},
+				activatedAt: {
+					lte: Math.floor(new Date().setUTCHours(0, 0, 0, 0) / 1000)
+				}
+			},
+			orderBy: {
+				activatedAt: 'desc'
+			}
+		})
+		const activeSplitsMap = getLatestActiveOperatorSplits(splits)
+
+		const operators = operatorRecords.map((operator) => {
+			const avsRegistrations = operator.avs.map(({ avsAddress, isActive }) => ({
+				avsAddress,
+				isActive,
+				...(isActive && {
+					operatorSplitPercent: activeSplitsMap[operator.address]?.[avsAddress] ?? 10
+				})
+			}))
+
+			return {
+				...operator,
+				avsRegistrations,
+				totalStakers: operator.totalStakers,
+				totalAvs: operator.totalAvs,
+				tvl: withTvl ? sharesToTVL(operator.shares, strategiesWithSharesUnderlying) : undefined,
+				rewards: withRewards || withTrailingApy ? rewardsMap[operator.address] : undefined,
+				metadataUrl: undefined,
+				isMetadataSynced: undefined,
+				avs: undefined,
+				tvlEth: undefined,
+				sharesHash: undefined
+			}
+		})
 
 		res.send({
 			data: operators,
@@ -229,11 +254,32 @@ export async function getOperator(req: Request, res: Response) {
 			}
 		})
 
-		const avsRegistrations = operator.avs.map((registration) => ({
-			avsAddress: registration.avsAddress,
-			isActive: registration.isActive,
-			...(withAvsData && registration.avs ? { ...registration.avs, operators: undefined } : {})
-		}))
+		const splits = await prisma.operatorAvsSplit.findMany({
+			where: {
+				operatorAddress: operator.address,
+				activatedAt: {
+					lte: Math.floor(new Date().setUTCHours(0, 0, 0, 0) / 1000)
+				}
+			},
+			orderBy: {
+				activatedAt: 'desc'
+			}
+		})
+
+		const activeSplitsMap = getLatestActiveOperatorSplits(splits)
+
+		const avsRegistrations = operator.avs.map(({ avsAddress, isActive, avs }) => {
+			const operatorAddress = operator.address
+
+			return {
+				avsAddress,
+				isActive,
+				...(isActive && {
+					operatorSplitPercent: activeSplitsMap[operatorAddress]?.[avsAddress] ?? 10
+				}),
+				...(withAvsData && avs ? { ...avs, operators: undefined } : {})
+			}
+		})
 
 		const strategiesWithSharesUnderlying = withTvl ? await getStrategiesWithShareUnderlying() : []
 
