@@ -13,7 +13,10 @@ const blockSyncKeyLogs = 'lastSyncedBlock_logs_operatorShares'
 
 export async function seedOperatorShares(toBlock?: bigint, fromBlock?: bigint) {
 	const prismaClient = getPrismaClient()
-	const operatorShares: IMap<string, { shares: bigint; strategyAddress: string }[]> = new Map()
+	const operatorShares: IMap<
+		string,
+		{ shares: bigint; slashedShares: bigint; strategyAddress: string }[]
+	> = new Map()
 
 	const firstBlock = fromBlock ? fromBlock : await fetchLastSyncBlock(blockSyncKey)
 	const lastBlock = toBlock ? toBlock : await fetchLastSyncBlock(blockSyncKeyLogs)
@@ -59,6 +62,18 @@ export async function seedOperatorShares(toBlock?: bigint, fromBlock?: bigint) {
 					]
 				})
 
+			await prismaClient.eventLogs_OperatorSharesSlashed
+				.findMany({ where: { blockNumber: { gt: fromBlock, lte: toBlock } } })
+				.then((logs) => {
+					allLogs = [
+						...allLogs,
+						...logs.map((log) => ({
+							...log,
+							eventName: 'OperatorSharesSlashed'
+						}))
+					]
+				})
+
 			allLogs = allLogs.sort((a, b) => {
 				if (a.blockNumber === b.blockNumber) {
 					return a.transactionIndex - b.transactionIndex
@@ -84,8 +99,10 @@ export async function seedOperatorShares(toBlock?: bigint, fromBlock?: bigint) {
 
 				const operatorAddress = String(log.operator).toLowerCase()
 				const strategyAddress = String(log.strategy).toLowerCase()
-				const shares = log.shares
-				if (!shares) continue
+
+				if (log.eventName !== 'OperatorSharesSlashed' && !log.shares) {
+					continue
+				}
 
 				// Load existing staker shares data
 				if (!operatorShares.has(operatorAddress)) {
@@ -97,7 +114,8 @@ export async function seedOperatorShares(toBlock?: bigint, fromBlock?: bigint) {
 							operatorAddress,
 							foundOperatorInit.shares.map((o) => ({
 								...o,
-								shares: BigInt(o.shares)
+								shares: BigInt(o.shares),
+								slashedShares: BigInt(o.slashedShares)
 							}))
 						)
 					} else {
@@ -110,7 +128,9 @@ export async function seedOperatorShares(toBlock?: bigint, fromBlock?: bigint) {
 					.findIndex((os) => os.strategyAddress.toLowerCase() === strategyAddress.toLowerCase())
 
 				if (foundSharesIndex !== undefined && foundSharesIndex === -1) {
-					operatorShares.get(operatorAddress).push({ shares: 0n, strategyAddress: strategyAddress })
+					operatorShares
+						.get(operatorAddress)
+						.push({ shares: 0n, slashedShares: 0n, strategyAddress: strategyAddress })
 
 					foundSharesIndex = operatorShares
 						.get(operatorAddress)
@@ -119,10 +139,14 @@ export async function seedOperatorShares(toBlock?: bigint, fromBlock?: bigint) {
 
 				if (log.eventName === 'OperatorSharesIncreased') {
 					operatorShares.get(operatorAddress)[foundSharesIndex].shares =
-						operatorShares.get(operatorAddress)[foundSharesIndex].shares + BigInt(shares)
+						operatorShares.get(operatorAddress)[foundSharesIndex].shares + BigInt(log.shares)
 				} else if (log.eventName === 'OperatorSharesDecreased') {
 					operatorShares.get(operatorAddress)[foundSharesIndex].shares =
-						operatorShares.get(operatorAddress)[foundSharesIndex].shares - BigInt(shares)
+						operatorShares.get(operatorAddress)[foundSharesIndex].shares - BigInt(log.shares)
+				} else if (log.eventName === 'OperatorSharesSlashed') {
+					operatorShares.get(operatorAddress)[foundSharesIndex].slashedShares =
+						operatorShares.get(operatorAddress)[foundSharesIndex].slashedShares +
+						BigInt(log.totalSlashedShares)
 				}
 			}
 
@@ -142,6 +166,7 @@ export async function seedOperatorShares(toBlock?: bigint, fromBlock?: bigint) {
 			operatorAddress: string
 			strategyAddress: string
 			shares: string
+			slashedShares: string
 		}[] = []
 
 		for (const [operatorAddress, shares] of operatorShares) {
@@ -149,7 +174,8 @@ export async function seedOperatorShares(toBlock?: bigint, fromBlock?: bigint) {
 				newOperatorShares.push({
 					operatorAddress,
 					strategyAddress: share.strategyAddress,
-					shares: share.shares.toString()
+					shares: share.shares.toString(),
+					slashedShares: share.slashedShares.toString()
 				})
 			})
 		}
@@ -174,10 +200,12 @@ export async function seedOperatorShares(toBlock?: bigint, fromBlock?: bigint) {
 						create: {
 							operatorAddress,
 							strategyAddress: share.strategyAddress,
-							shares: share.shares.toString()
+							shares: share.shares.toString(),
+							slashedShares: share.slashedShares.toString()
 						},
 						update: {
-							shares: share.shares.toString()
+							shares: share.shares.toString(),
+							slashedShares: share.slashedShares.toString()
 						}
 					})
 				)

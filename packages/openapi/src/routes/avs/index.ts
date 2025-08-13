@@ -7,6 +7,11 @@ import { getAvsOperatorsByAddress } from './getAvsOperatorsByAddress'
 import { getAvsRewards } from './getAvsRewards'
 import { getAvsRewardsEvents } from './getAvsRewardsEvents'
 import { getAvsRegistrationEvents } from './getAvsRegistrationEvents'
+import { getAvsAllocations } from './getAvsAllocations'
+import { getAvsOperatorSetDetails } from './getAvsOperatorSetDetails'
+import { getAvsOperatorSets } from './getAvsOperatorSets'
+import { getAvsSlashed } from './getAvsSlashed'
+import { getAvsOperatorSetOperators } from './getAvsOperatorSetOperators'
 
 export const avsRoutes: ZodOpenApiPathsObject = {
 	'/avs': { get: getAllAvs },
@@ -18,5 +23,10 @@ export const avsRoutes: ZodOpenApiPathsObject = {
 	'/avs/{address}/operators': { get: getAvsOperatorsByAddress },
 	'/avs/{address}/rewards': { get: getAvsRewards },
 	'/avs/{address}/events/rewards': { get: getAvsRewardsEvents },
-	'/avs/{address}/events/registration-status': { get: getAvsRegistrationEvents }
+	'/avs/{address}/events/registration-status': { get: getAvsRegistrationEvents },
+	'/avs/{address}/operator-sets': { get: getAvsOperatorSets },
+	'/avs/{address}/operator-sets/{operatorSetId}': { get: getAvsOperatorSetDetails },
+	'/avs/{address}/operator-sets/{operatorSetId}/operators': { get: getAvsOperatorSetOperators },
+	'/avs/{address}/allocations': { get: getAvsAllocations },
+	'/avs/{address}/slashed': { get: getAvsSlashed }
 }

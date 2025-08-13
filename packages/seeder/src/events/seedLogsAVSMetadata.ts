@@ -29,6 +29,7 @@ export async function seedLogsAVSMetadata(
 	const firstBlock = fromBlock ? fromBlock : await fetchLastSyncBlock(blockSyncKeyLogs)
 	const lastBlock = toBlock ? toBlock : await viemClient.getBlockNumber()
 
+	const contracts = [getEigenContracts().AVSDirectory, getEigenContracts().AllocationManager]
 	let isUpdated = false
 	let updatedCount = 0
 
@@ -41,27 +42,31 @@ export async function seedLogsAVSMetadata(
 			const dbTransactions: any[] = []
 			const logsAVSMetadataURIUpdated: prisma.EventLogs_AVSMetadataURIUpdated[] = []
 
-			const logs = await viemClient.getLogs({
-				address: getEigenContracts().AVSDirectory,
-				event: parseAbiItem('event AVSMetadataURIUpdated(address indexed avs, string metadataURI)'),
-				fromBlock,
-				toBlock
-			})
-
-			// Setup a list containing event data
-			for (const l in logs) {
-				const log = logs[l]
-
-				logsAVSMetadataURIUpdated.push({
-					address: log.address,
-					transactionHash: log.transactionHash,
-					transactionIndex: log.logIndex,
-					blockNumber: BigInt(log.blockNumber),
-					blockHash: log.blockHash,
-					blockTime: blockData.get(log.blockNumber) || new Date(0),
-					avs: String(log.args.avs),
-					metadataURI: String(log.args.metadataURI)
+			for (const contract of contracts) {
+				const logs = await viemClient.getLogs({
+					address: contract,
+					event: parseAbiItem(
+						'event AVSMetadataURIUpdated(address indexed avs, string metadataURI)'
+					),
+					fromBlock,
+					toBlock
 				})
+
+				// Setup a list containing event data
+				for (const l in logs) {
+					const log = logs[l]
+
+					logsAVSMetadataURIUpdated.push({
+						address: log.address,
+						transactionHash: log.transactionHash,
+						transactionIndex: log.logIndex,
+						blockNumber: BigInt(log.blockNumber),
+						blockHash: log.blockHash,
+						blockTime: blockData.get(log.blockNumber) || new Date(0),
+						avs: String(log.args.avs),
+						metadataURI: String(log.args.metadataURI)
+					})
+				}
 			}
 
 			dbTransactions.push(

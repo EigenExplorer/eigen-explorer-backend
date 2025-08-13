@@ -6,6 +6,11 @@ import {
 	getOperatorRewards,
 	getOperatorDelegationEvents,
 	getOperatorRegistrationEvents,
+	getOperatorAllocationDelay,
+	getOperatorAllocations,
+	getOperatorOperatorSets,
+	getOperatorSlashed,
+	getOperatorMagnitudes,
 	invalidateMetadata
 } from './operatorController'
 
@@ -116,6 +121,16 @@ router.get(
 	routeCache.cacheSeconds(120),
 	getOperatorRegistrationEvents
 )
+
+router.get('/:address/operator-sets', routeCache.cacheSeconds(120), getOperatorOperatorSets)
+
+router.get('/:address/allocations', routeCache.cacheSeconds(120), getOperatorAllocations)
+
+router.get('/:address/slashed', routeCache.cacheSeconds(120), getOperatorSlashed)
+
+router.get('/:address/allocation-delay', routeCache.cacheSeconds(120), getOperatorAllocationDelay)
+
+router.get('/:address/magnitudes', routeCache.cacheSeconds(120), getOperatorMagnitudes)
 
 // Protected routes
 router.get('/:address/invalidate-metadata', routeCache.cacheSeconds(120), invalidateMetadata)

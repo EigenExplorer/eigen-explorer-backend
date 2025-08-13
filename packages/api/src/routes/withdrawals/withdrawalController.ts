@@ -5,6 +5,7 @@ import { handleAndReturnErrorResponse } from '../../schema/errors'
 import { WithdrawalListQuerySchema } from '../../schema/zod/schemas/withdrawal'
 import { PaginationQuerySchema } from '../../schema/zod/schemas/paginationQuery'
 import { getViemClient } from '../../viem/viemClient'
+import { processWithdrawals } from '../../utils/strategyShares'
 
 /**
  * Route to get a list of all withdrawals
@@ -72,22 +73,7 @@ export async function getAllWithdrawals(req: Request, res: Response) {
 			orderBy: { createdAtBlock: 'desc' }
 		})
 
-		const data = withdrawalRecords.map((withdrawal) => {
-			const shares = withdrawal.shares.map((s, i) => ({
-				strategyAddress: withdrawal.strategies[i],
-				shares: s
-			}))
-
-			return {
-				...withdrawal,
-				shares,
-				strategies: undefined,
-				completedWithdrawal: undefined,
-				isCompleted: !!withdrawal.completedWithdrawal,
-				updatedAt: withdrawal.completedWithdrawal?.createdAt || withdrawal.createdAt,
-				updatedAtBlock: withdrawal.completedWithdrawal?.createdAtBlock || withdrawal.createdAtBlock
-			}
-		})
+		const data = await processWithdrawals(withdrawalRecords)
 
 		res.send({
 			data,
@@ -119,20 +105,9 @@ export async function getWithdrawal(req: Request, res: Response) {
 			}
 		})
 
-		const shares = withdrawal.shares.map((s, i) => ({
-			strategyAddress: withdrawal.strategies[i],
-			shares: s
-		}))
-
-		res.send({
-			...withdrawal,
-			shares,
-			strategies: undefined,
-			completedWithdrawal: undefined,
-			isCompleted: !!withdrawal.completedWithdrawal,
-			updatedAt: withdrawal.completedWithdrawal?.createdAt || withdrawal.createdAt,
-			updatedAtBlock: withdrawal.completedWithdrawal?.createdAtBlock || withdrawal.createdAtBlock
-		})
+		// Process single withdrawal using helper function
+		const [processedWithdrawal] = await processWithdrawals([withdrawal])
+		res.send(processedWithdrawal)
 	} catch (error) {
 		handleAndReturnErrorResponse(req, res, error)
 	}

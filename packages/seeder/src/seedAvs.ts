@@ -50,7 +50,6 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 
 			for (const l in logs) {
 				const log = logs[l]
-
 				const avsAddress = String(log.avs).toLowerCase()
 				const existingRecord = avsList.get(avsAddress)
 
@@ -121,6 +120,7 @@ export async function seedAvs(toBlock?: bigint, fromBlock?: bigint) {
 				isMetadataSynced,
 				totalStakers: 0,
 				totalOperators: 0,
+				avsRegistrarAddress: '',
 				maxApy: new prisma.Prisma.Decimal(0),
 				tvlEth: new prisma.Prisma.Decimal(0),
 				sharesHash: '',

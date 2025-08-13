@@ -62,7 +62,8 @@ export async function seedQueuedWithdrawals(toBlock?: bigint, fromBlock?: bigint
 						withdrawerAddress,
 						strategies: log.strategies.map((s) => s.toLowerCase()) as string[],
 						shares: log.shares.map((s) => s.toString()),
-
+						isSlashable: false,
+						sharesToWithdraw: [],
 						createdAtBlock: blockNumber,
 						createdAt: timestamp
 					})
