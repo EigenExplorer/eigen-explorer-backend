@@ -822,6 +822,37 @@ model EventLogs_OperatorDirectedAVSRewardsSubmission {
   @@index([blockTime])
 }
 
+model EventLogs_OperatorDirectedOperatorSetRewardsSubmission {
+  address String
+
+  transactionHash  String
+  transactionIndex Int
+  blockNumber      BigInt
+  blockHash        String
+  blockTime        DateTime
+
+  caller                                String
+  avs                                   String
+  operatorSetId                         BigInt
+  operatorDirectedRewardsSubmissionHash String
+  submissionNonce                       BigInt
+
+  operatorDirectedRewardsSubmission_token          String
+  operatorDirectedRewardsSubmission_startTimestamp BigInt
+  operatorDirectedRewardsSubmission_duration       Int
+  operatorDirectedRewardsSubmission_description    String
+
+  strategiesAndMultipliers_strategies  String[]
+  strategiesAndMultipliers_multipliers String[]
+  operatorRewards_operators            String[]
+  operatorRewards_amounts              String[]
+
+  @@id([transactionHash, transactionIndex])
+  @@index([address], map: "ODOSRS_address_idx")
+  @@index([blockNumber], map: "ODOSRS_blockNumber_idx")
+  @@index([blockTime], map: "ODOSRS_blockTime_idx")
+}
+
 model EventLogs_OperatorAVSSplitBipsSet {
   address String
 
@@ -1176,6 +1207,24 @@ model EventLogs_DepositScalingFactorUpdated {
   @@index([blockNumber])
 }
 
+model EventLogs_RedistributionAddressSet {
+  address String
+
+  transactionHash  String
+  transactionIndex Int
+  blockNumber      BigInt
+  blockHash        String
+  blockTime        DateTime
+
+  avs String
+  operatorSetId BigInt
+  redistributionRecipient String
+
+  @@id([transactionHash, transactionIndex])
+  @@index([blockNumber])
+  @@index([avs,operatorSetId])
+}
+
 model OperatorSet {
   avs      Avs      @relation(fields: [avsAddress], references: [address])
   avsAddress        String
@@ -1189,6 +1238,8 @@ model OperatorSet {
   updatedAtBlock BigInt   @default(0)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @default(now())
+
+  redistributionRecipient String?
 
   @@id([avsAddress, operatorSetId])
   @@index([avsAddress])
@@ -1206,6 +1257,7 @@ model AvsOperatorSet {
   slashableUntil     BigInt
 
   slashedRecords    AvsOperatorSlashed[]
+  rewards           OperatorDirectedOperatorSetRewardsSubmission[]
 
   createdAtBlock BigInt   @default(0)
   updatedAtBlock BigInt   @default(0)
@@ -1239,6 +1291,29 @@ model AvsAllocation {
     @@index([avsAddress])
     @@index([operatorAddress])
     @@index([avsAddress, operatorSetId])
+}
+
+model OperatorDirectedOperatorSetRewardsSubmission {
+  id       Int      @id @default(autoincrement())
+  avsOperatorSet    AvsOperatorSet @relation(fields: [avsAddress, operatorSetId, operatorAddress ], references: [avsAddress, operatorSetId, operatorAddress])
+
+  submissionNonce                       BigInt
+  operatorDirectedRewardsSubmissionHash String
+
+  avsAddress      String
+  operatorAddress String
+  operatorSetId   BigInt
+
+  strategyAddress String
+  multiplier      Decimal @default(0) @db.Decimal(78, 0)
+  token           String
+  amount          Decimal @default(0) @db.Decimal(78, 0)
+  startTimestamp  BigInt
+  duration        Int
+  description     String
+
+  createdAtBlock BigInt   @default(0)
+  createdAt      DateTime @default(now())
 }
 
 model AvsOperatorSlashed {
