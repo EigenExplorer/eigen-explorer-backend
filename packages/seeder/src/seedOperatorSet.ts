@@ -75,6 +75,7 @@ export async function seedOperatorSet(toBlock?: bigint, fromBlock?: bigint) {
 					avsAddress,
 					operatorSetId: BigInt(log.operatorSetId),
 					strategies: [],
+					redistributionRecipient: '',
 					createdAtBlock: blockNumber,
 					updatedAtBlock: blockNumber,
 					createdAt,
